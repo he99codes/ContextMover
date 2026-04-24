@@ -1,0 +1,30 @@
+
+> browser-extension@0.1.0 dev C:\Users\VIP\Desktop\ContextForge\packages\browser-extension
+> vite
+
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m2555[22m[2m[0m ms[22m
+
+  [95mB R O W S E R[39m
+  [92mE X T E N S I O N[39m
+  [94mT O O L S[39m
+  
+  [32m➜[39m  [1mCRXJS[22m: [32mLoad [36mdist[32m as unpacked extension[39m
+[2m9:22:08 pm[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/background/service-worker.ts[22m
+[2m9:27:40 pm[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/background/service-worker.ts[22m
+[2m9:27:46 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/popup/Popup.tsx[22m
+[2m9:30:43 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/popup/Popup.tsx[22m
+[2m9:30:51 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/sidebar/Sidebar.tsx[22m
+[2m9:34:39 pm[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/content/shared.ts[22m
+[2m9:34:48 pm[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/content/chatgpt.ts[22m
+[2m9:34:55 pm[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/content/claude.ts[22m
+[2m9:35:04 pm[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/content/gemini.ts[22m
+[2m9:35:13 pm[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/content/grok.ts[22m
+[2m9:35:32 pm[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/background/service-worker.ts[22m
+[2m9:35:40 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/popup/Popup.tsx[22m
+[2m9:35:40 pm[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/popup/Popup.tsx[22m Could not Fast Refresh (export removed)
+[2m9:35:40 pm[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/popup/Popup.tsx[22m
+[2m9:36:45 pm[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/popup/Popup.tsx[22m
+[2m9:40:50 pm[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/background/service-worker.ts[22m
+[2m9:40:57 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/popup/Popup.tsx[22m
+[2m9:40:58 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/popup/Popup.tsx[22m

@@ -1,0 +1,80 @@
+{
+    "manifest_version": 3,
+    "name": "ContextForge",
+    "version": "0.1.0",
+    "description": "Never lose coding context again. One layer. Any agent. Zero friction.",
+    "permissions": [
+        "activeTab",
+        "scripting",
+        "storage",
+        "nativeMessaging",
+        "tabs",
+        "alarms",
+        "notifications",
+        "sidePanel"
+    ],
+    "host_permissions": [
+        "https://claude.ai/*",
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://gemini.google.com/*",
+        "https://grok.com/*",
+        "https://grok.x.ai/*",
+        "http://localhost:49152/*"
+    ],
+    "background": {
+        "service_worker": "src/background/service-worker.ts",
+        "type": "module"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://claude.ai/*"
+            ],
+            "js": [
+                "src/content/claude.ts"
+            ],
+            "run_at": "document_idle"
+        },
+        {
+            "matches": [
+                "https://chatgpt.com/*",
+                "https://chat.openai.com/*"
+            ],
+            "js": [
+                "src/content/chatgpt.ts"
+            ],
+            "run_at": "document_start"
+        },
+        {
+            "matches": [
+                "https://gemini.google.com/*"
+            ],
+            "js": [
+                "src/content/gemini.ts"
+            ],
+            "run_at": "document_start"
+        },
+        {
+            "matches": [
+                "https://grok.com/*",
+                "https://grok.x.ai/*"
+            ],
+            "js": [
+                "src/content/grok.ts"
+            ],
+            "run_at": "document_idle"
+        }
+    ],
+    "action": {
+        "default_title": "ContextForge"
+    },
+    "side_panel": {
+        "default_path": "src/sidebar/index.html"
+    },
+    "web_accessible_resources": [],
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self'"
+    },
+    "icons": {}
+}

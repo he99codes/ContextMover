@@ -1,0 +1,22 @@
+{
+  "name": "contextforge",
+  "private": true,
+  "version": "0.1.0",
+  "description": "OS layer for AI coding agents — never lose context again",
+  "scripts": {
+    "dev:ext": "pnpm --filter browser-extension dev",
+    "dev:vscode": "pnpm --filter vscode-extension dev",
+    "build:ext": "pnpm --filter browser-extension build",
+    "build:vscode": "pnpm --filter vscode-extension build",
+    "build": "pnpm run build:ext && pnpm run build:vscode",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}
