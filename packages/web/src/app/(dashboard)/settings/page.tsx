@@ -1,10 +1,22 @@
-export default function SettingsPage() {
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { SettingsView } from "@/components/dashboard/SettingsView";
+
+export default async function SettingsPage() {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = createClient();
+
+  const [{ data: { user } }, { count }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from("sessions").select("id", { count: "exact", head: true }),
+  ]);
+
+  if (!user) return null;
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-[#1A1A1A]">Settings</h1>
-      <p className="mt-1 text-sm text-[#6B6B6B]">
-        Account preferences and integrations.
-      </p>
-    </div>
+    <SettingsView
+      email={user.email ?? "(unknown)"}
+      userId={user.id}
+      sessionCount={count ?? 0}
+    />
   );
 }

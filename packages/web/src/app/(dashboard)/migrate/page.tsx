@@ -1,10 +1,20 @@
-export default function MigratePage() {
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { MigrateView } from "@/components/dashboard/MigrateView";
+import type { Session } from "@/types";
+
+export default async function MigratePage() {
+  if (!isSupabaseConfigured()) return null;
+
+  const supabase = createClient();
+  const [{ data: sessionData }, { data: { user } }] = await Promise.all([
+    supabase.from("sessions").select("*").order("updated_at", { ascending: false }),
+    supabase.auth.getUser(),
+  ]);
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-[#1A1A1A]">Migrate</h1>
-      <p className="mt-1 text-sm text-[#6B6B6B]">
-        Move a conversation from one AI platform to another.
-      </p>
-    </div>
+    <MigrateView
+      initialSessions={(sessionData ?? []) as Session[]}
+      userId={user?.id ?? ""}
+    />
   );
 }

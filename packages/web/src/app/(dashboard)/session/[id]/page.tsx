@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { SessionDetailView } from "@/components/dashboard/SessionDetailView";
 import type { Session } from "@/types";
 
 export default async function SessionPage({
@@ -18,16 +19,5 @@ export default async function SessionPage({
 
   if (!data) notFound();
 
-  const session = data as Session;
-
-  return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-[#1A1A1A]">
-        {session.title ?? "Untitled session"}
-      </h1>
-      <p className="mt-1 text-sm text-[#6B6B6B]">
-        {session.platform} · {session.messages.length} messages
-      </p>
-    </div>
-  );
+  return <SessionDetailView session={data as Session} />;
 }

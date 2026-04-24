@@ -1,9 +1,9 @@
 {
   "pages": {
-    "/(dashboard)/settings/page": [
+    "/(dashboard)/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/settings/page.js"
+      "static/chunks/app/(dashboard)/dashboard/page.js"
     ],
     "/(dashboard)/layout": [
       "static/chunks/webpack.js",
@@ -16,15 +16,15 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/(dashboard)/analytics/page": [
+    "/auth/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/analytics/page.js"
+      "static/chunks/app/auth/page.js"
     ],
-    "/(dashboard)/dashboard/page": [
+    "/(dashboard)/session/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/dashboard/page.js"
+      "static/chunks/app/(dashboard)/session/[id]/page.js"
     ],
     "/(dashboard)/migrate/page": [
       "static/chunks/webpack.js",
@@ -36,15 +36,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(dashboard)/agents/page.js"
     ],
-    "/(dashboard)/session/[id]/page": [
+    "/(dashboard)/analytics/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/session/[id]/page.js"
+      "static/chunks/app/(dashboard)/analytics/page.js"
     ],
-    "/_not-found/page": [
+    "/(dashboard)/settings/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/(dashboard)/settings/page.js"
     ]
   }
 }
