@@ -3,6 +3,38 @@ import { db } from "@/lib/db";
 import summarize from "@/lib/summarizer";
 import buildMigrationPrompt from "@/lib/translator";
 import type { ContextSession, Message } from "@/lib/types";
+import { supabase } from "@/lib/supabase";
+import {
+  upsertSessionToCloud,
+  deleteSessionFromCloud,
+  bulkSyncToCloud,
+} from "@/lib/cloud-sync";
+import { startRealtimeSync, stopRealtimeSync } from "@/lib/realtime-sync";
+
+// Start realtime sync as soon as the service worker wakes up — if the user is
+// already signed in, edits/deletes from the web dashboard will mirror into the
+// local IndexedDB without needing a sign-in round-trip.
+void startRealtimeSync();
+
+// Broadcast a message to any OPEN extension view (sidebar, popup, options).
+// Using chrome.runtime.sendMessage with no open view rejects with "Receiving
+// end does not exist" which Chrome surfaces as an error in DevTools even when
+// the promise rejection is caught. Gating on getContexts() eliminates the noise.
+async function broadcastToViews(message: unknown): Promise<void> {
+  try {
+    const contexts = await chrome.runtime.getContexts({
+      contextTypes: [
+        "SIDE_PANEL" as chrome.runtime.ContextType,
+        "POPUP" as chrome.runtime.ContextType,
+        "TAB" as chrome.runtime.ContextType,
+      ],
+    });
+    if (!contexts || contexts.length === 0) return;
+    await chrome.runtime.sendMessage(message);
+  } catch {
+    /* No listener ready — safe to ignore. */
+  }
+}
 
 const BRIDGE_URL = "http://localhost:49152";
 const PLATFORM_URLS = {
@@ -94,6 +126,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
       case "DELETE_SESSION":
         await db.deleteSession(msg.sessionId);
+        void deleteSessionFromCloud(msg.sessionId);
         sendResponse({ ok: true });
         break;
 
@@ -104,6 +137,60 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       case "FETCH_IDE_CONTEXT":
         await handleFetchIdeContext(sendResponse);
         break;
+
+      case "AUTH_GET_USER": {
+        const { data } = await supabase.auth.getUser();
+        sendResponse({ user: data.user ?? null });
+        break;
+      }
+
+      case "AUTH_SIGN_IN": {
+        const { email, password } = msg.payload;
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) {
+          sendResponse({ error: error.message });
+        } else {
+          sendResponse({ user: data.user });
+          // Bulk-sync any locally-captured sessions to the cloud now that we
+          // have an authenticated user, then begin listening for remote edits.
+          void (async () => {
+            const local = await db.getAllSessions();
+            await bulkSyncToCloud(local);
+            await startRealtimeSync();
+            void broadcastToViews({ type: "AUTH_STATE_CHANGED" });
+          })();
+        }
+        break;
+      }
+
+      case "AUTH_SIGN_UP": {
+        const { email, password } = msg.payload;
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+          sendResponse({ error: error.message });
+        } else {
+          sendResponse({ user: data.user, needsConfirmation: !data.session });
+        }
+        break;
+      }
+
+      case "AUTH_SIGN_OUT": {
+        await stopRealtimeSync();
+        await supabase.auth.signOut();
+        sendResponse({ ok: true });
+        void broadcastToViews({ type: "AUTH_STATE_CHANGED" });
+        break;
+      }
+
+      case "CLOUD_RESYNC_ALL": {
+        const local = await db.getAllSessions();
+        await bulkSyncToCloud(local);
+        sendResponse({ ok: true, count: local.length });
+        break;
+      }
 
       default:
         sendResponse({ error: `Unknown message type: ${msg.type}` });
@@ -135,6 +222,9 @@ async function handleCaptureMessage(payload: {
   session.messages.push(message);
   session.updatedAt = Date.now();
   await db.saveSession(session);
+
+  // Mirror to Supabase so the web dashboard sees it in realtime.
+  void upsertSessionToCloud(session);
 
   // Mirror to VS Code bridge (fire-and-forget — bridge may not be running)
   fetch(`${BRIDGE_URL}/context`, {
@@ -174,6 +264,9 @@ async function handleCaptureSession(payload: {
 
   await db.saveSession(session);
 
+  // Mirror to Supabase so the web dashboard sees it in realtime.
+  void upsertSessionToCloud(session);
+
   // ── DIAGNOSTIC STAGE 3 — read back from IndexedDB to verify persistence ────
   const saved = await db.getSession(payload.sessionId);
   const savedUser = saved?.messages.filter(m => m.role === "user").length ?? 0;
@@ -184,7 +277,7 @@ async function handleCaptureSession(payload: {
   }
 
   // Push an instant refresh notification to any open extension view (sidebar).
-  chrome.runtime.sendMessage({ type: "SESSIONS_UPDATED" }).catch(() => { /* no listener open */ });
+  void broadcastToViews({ type: "SESSIONS_UPDATED" });
 
   fetch(`${BRIDGE_URL}/context`, {
     method: "POST",

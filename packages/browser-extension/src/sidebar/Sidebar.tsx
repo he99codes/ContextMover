@@ -16,11 +16,11 @@ const PLATFORM_SHORT: Record<Platform, string> = {
   grok: "GK",
 };
 
-const PLATFORM_GLOWS: Record<Platform, string> = {
-  claude: "from-green-500/30 via-green-400/10 to-transparent",
-  chatgpt: "from-green-500/30 via-green-300/10 to-transparent",
-  gemini: "from-green-600/30 via-green-300/10 to-transparent",
-  grok: "from-green-500/25 via-green-300/10 to-transparent",
+const PLATFORM_COLORS: Record<Platform, string> = {
+  claude:  "#D97706",
+  chatgpt: "#10B981",
+  gemini:  "#6366F1",
+  grok:    "#F5F5F5",
 };
 
 type View = "sessions" | "detail";
@@ -180,34 +180,37 @@ export default function Sidebar() {
 
   if (view === "detail" && selected) {
     const visibleMessages = showFullTranscript ? selected.messages : selected.messages.slice(-6);
+    const platformColor = PLATFORM_COLORS[selected.platform];
 
     return (
-      <div className="relative flex h-full flex-col overflow-hidden bg-[#0a0a0a] text-green-50">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),_transparent_30%),linear-gradient(180deg,_#0d120d_0%,_#080c08_54%,_#030703_100%)]" />
-        <div className="relative flex h-full flex-col">
-          <div className="border-b border-green-300/10 px-4 py-3">
-            <div className="flex items-center gap-3">
+      <div className="flex h-full flex-col overflow-hidden bg-[#0A0A0A] text-[#F5F5F5]">
+        <div className="flex h-full flex-col">
+          <div className="border-b border-[#2A2A2A] px-4 py-3">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setView("sessions")}
-                className="rounded-full border border-green-400/20 bg-black/20 px-2.5 py-1 text-sm font-semibold text-green-100/80 transition hover:border-green-400/40 hover:bg-green-500/10"
+                className="rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-2.5 py-1 text-sm font-medium text-[#F5F5F5] transition hover:border-[#00FF88]/30 hover:text-[#00FF88]"
               >
                 Back
               </button>
-              <span className="rounded-full border border-green-400/15 bg-green-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-green-300">
-                Source: {PLATFORM_LABELS[selected.platform]}
+              <span
+                className="rounded-[4px] border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em]"
+                style={{ color: platformColor, borderColor: `${platformColor}40`, background: `${platformColor}15` }}
+              >
+                {PLATFORM_LABELS[selected.platform]}
               </span>
-              <span className="truncate text-sm font-semibold text-white">{selected.title}</span>
+              <span className="truncate text-sm font-medium text-[#F5F5F5]">{selected.title}</span>
             </div>
           </div>
 
           {statusMessage && (
             <div
-              className={`mx-4 mt-3 rounded-[18px] border px-3 py-2 text-xs ${
+              className={`mx-3 mt-3 rounded-[8px] border px-3 py-2 text-xs ${
                 statusMessage.tone === "success"
-                  ? "border-green-400/20 bg-green-500/10 text-green-50"
+                  ? "border-[#00FF88]/20 bg-[#00FF88]/10 text-[#00FF88]"
                   : statusMessage.tone === "error"
-                  ? "border-red-300/20 bg-red-500/10 text-red-100"
-                  : "border-green-300/10 bg-white/[0.04] text-green-100/80"
+                  ? "border-red-500/20 bg-red-500/10 text-red-400"
+                  : "border-[#2A2A2A] bg-[#1A1A1A] text-[#6B6B6B]"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -216,97 +219,97 @@ export default function Sidebar() {
                   onClick={() => setStatusMessage(null)}
                   className="text-[10px] uppercase tracking-[0.18em] opacity-60"
                 >
-                  close
+                  ×
                 </button>
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-2 border-b border-green-300/10 px-4 py-3 text-center">
-            <div className="rounded-2xl border border-green-300/10 bg-white/[0.03] px-2 py-2">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-green-300/45">Turns</div>
-              <div className="mt-1 text-lg font-semibold text-white">{selected.messages.length}</div>
+          <div className="grid grid-cols-3 gap-2 border-b border-[#2A2A2A] px-3 py-3 text-center">
+            <div className="rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] px-2 py-2">
+              <div className="text-[10px] uppercase tracking-[0.18em] text-[#6B6B6B]">Turns</div>
+              <div className="mt-1 text-lg font-semibold text-[#F5F5F5]">{selected.messages.length}</div>
             </div>
-            <div className="rounded-2xl border border-green-300/10 bg-white/[0.03] px-2 py-2">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-green-300/45">Created</div>
-              <div className="mt-1 text-xs font-medium text-green-100/80">
+            <div className="rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] px-2 py-2">
+              <div className="text-[10px] uppercase tracking-[0.18em] text-[#6B6B6B]">Created</div>
+              <div className="mt-1 text-xs font-medium text-[#F5F5F5]/80">
                 {new Date(selected.createdAt).toLocaleDateString()}
               </div>
             </div>
-            <div className="rounded-2xl border border-green-300/10 bg-green-500/10 px-2 py-2">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-green-300/45">Route</div>
-              <div className="mt-1 text-xs font-medium text-white">
-                {`${PLATFORM_LABELS[selected.platform]} -> ${PLATFORM_LABELS[targetPlatform]}`}
+            <div className="rounded-[8px] border border-[#00FF88]/20 bg-[#00FF88]/5 px-2 py-2">
+              <div className="text-[10px] uppercase tracking-[0.18em] text-[#6B6B6B]">Route</div>
+              <div className="mt-1 text-xs font-medium text-[#F5F5F5]">
+                {`${PLATFORM_SHORT[selected.platform]} → ${PLATFORM_SHORT[targetPlatform]}`}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between px-4 pt-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-green-300/45">
+          <div className="flex items-center justify-between px-3 pt-3">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#6B6B6B]">
               {showFullTranscript ? "Full transcript" : "Recent transcript"}
             </div>
             <button
               onClick={() => setShowFullTranscript((value) => !value)}
-              className="rounded-full border border-green-400/15 bg-black/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-green-100/80"
+              className="rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-2 py-1 text-[10px] font-medium text-[#6B6B6B] hover:border-[#00FF88]/20 hover:text-[#00FF88] transition-colors"
             >
               {showFullTranscript ? "Show recent" : "Show all"}
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
             {visibleMessages.map((msg, index) => (
               <div
                 key={`${msg.role}-${index}-${msg.timestamp}`}
-                className={`rounded-[22px] border px-3 py-3 text-xs shadow-[0_14px_34px_rgba(0,0,0,0.2)] ${
+                className={`rounded-[8px] border px-3 py-2.5 text-xs ${
                   msg.role === "user"
-                    ? "ml-6 border-green-400/18 bg-green-500/10 text-green-50"
-                    : "mr-6 border-green-300/10 bg-white/[0.04] text-green-100/82"
+                    ? "ml-4 border-[#2A2A2A] bg-[#1A1A1A] text-[#F5F5F5]"
+                    : "mr-4 border-[#00FF88]/10 bg-[#00FF88]/5 text-[#F5F5F5]/90"
                 }`}
               >
                 <div className="mb-1 flex items-center justify-between gap-2">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-green-300/55">
-                    {msg.role === "user" ? "User prompt" : "Assistant reply"}
+                  <div className={`text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                    msg.role === "user" ? "text-[#6B6B6B]" : "text-[#00FF88]"
+                  }`}>
+                    {msg.role === "user" ? "You" : "Assistant"}
                   </div>
-                  <div className="text-[10px] text-green-100/40">{formatRelativeTime(msg.timestamp)}</div>
+                  <div className="text-[10px] text-[#6B6B6B]">{formatRelativeTime(msg.timestamp)}</div>
                 </div>
-                <div className="whitespace-pre-wrap leading-6">{msg.content}</div>
+                <div className="whitespace-pre-wrap leading-5">{msg.content}</div>
               </div>
             ))}
           </div>
 
-          <div className="border-t border-green-300/10 px-4 py-4 space-y-3 bg-black/20">
+          <div className="border-t border-[#2A2A2A] px-3 py-3 space-y-3">
             <div>
-              <div className="mb-2 text-[10px] uppercase tracking-[0.24em] text-green-300/45">
-                Send This Context To
+              <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-[#6B6B6B]">
+                Route to
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-1.5">
                 {(Object.keys(PLATFORM_LABELS) as Platform[]).map((platform) => (
                   <button
                     key={platform}
                     onClick={() => setTargetPlatform(platform)}
-                    className={`relative overflow-hidden rounded-[18px] border px-3 py-3 text-left transition ${
-                      targetPlatform === platform
-                        ? "border-green-400/35 bg-green-500/10 text-white"
-                        : "border-green-300/10 bg-white/[0.03] text-green-100/75 hover:border-green-400/20"
-                    }`}
+                    className="rounded-[4px] border px-2.5 py-2 text-left transition-all"
+                    style={targetPlatform === platform ? {
+                      borderColor: `${PLATFORM_COLORS[platform]}40`,
+                      background: `${PLATFORM_COLORS[platform]}15`,
+                      color: PLATFORM_COLORS[platform],
+                    } : {
+                      borderColor: "#2A2A2A",
+                      background: "#1A1A1A",
+                      color: "#6B6B6B",
+                    }}
                   >
-                    <div
-                      className={`absolute inset-0 bg-gradient-to-br ${PLATFORM_GLOWS[platform]} opacity-90`}
-                    />
-                    <div className="relative flex items-center justify-between">
-                      <span className="text-xs font-semibold">{PLATFORM_LABELS[platform]}</span>
-                      <span className="text-[10px] uppercase tracking-[0.18em] text-green-100/55">
-                        {PLATFORM_SHORT[platform]}
-                      </span>
-                    </div>
+                    <div className="text-xs font-semibold">{PLATFORM_LABELS[platform]}</div>
+                    <div className="text-[9px] uppercase tracking-wider opacity-60 mt-0.5">{PLATFORM_SHORT[platform]}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             {ideContext && (
-              <div className="rounded-2xl border border-green-400/15 bg-green-500/10 px-3 py-2 text-xs text-green-100/85">
-                IDE context is attached and will travel with this session.
+              <div className="rounded-[4px] border border-[#00FF88]/20 bg-[#00FF88]/5 px-3 py-2 text-xs text-[#00FF88]/80">
+                IDE context attached.
               </div>
             )}
 
@@ -314,21 +317,21 @@ export default function Sidebar() {
               <button
                 onClick={migrate}
                 disabled={migrating}
-                className="flex-1 rounded-full bg-green-500 py-2 text-xs font-semibold text-black transition hover:bg-green-400 disabled:opacity-50"
+                className="flex-1 rounded-[4px] bg-[#00FF88] py-2 text-xs font-semibold text-black transition hover:bg-[#00CC6A] hover:shadow-[0_0_10px_rgba(0,255,136,0.25)] disabled:opacity-50"
               >
-                {migrating ? "Migrating..." : `Migrate To ${PLATFORM_LABELS[targetPlatform]}`}
+                {migrating ? "Migrating..." : `→ ${PLATFORM_LABELS[targetPlatform]}`}
               </button>
               <button
                 onClick={() => deleteSession(selected.id)}
-                className="rounded-full border border-green-400/15 bg-black/20 px-3 text-xs font-semibold text-green-100/75 transition hover:border-red-300/30 hover:bg-red-400/10 hover:text-red-100"
+                className="rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 text-xs font-medium text-[#6B6B6B] transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
               >
                 Delete
               </button>
             </div>
 
             {migrating && (
-              <div className="overflow-hidden rounded-full bg-black/20">
-                <div className="h-1.5 w-full animate-pulse bg-gradient-to-r from-green-500 via-green-400 to-green-500" />
+              <div className="overflow-hidden rounded-full bg-[#1A1A1A]">
+                <div className="h-1 w-full animate-pulse bg-[#00FF88]" />
               </div>
             )}
           </div>
@@ -338,57 +341,51 @@ export default function Sidebar() {
   }
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden bg-[#0a0a0a] text-green-50">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),_transparent_30%),radial-gradient(circle_at_75%_10%,_rgba(134,239,172,0.08),_transparent_18%),linear-gradient(180deg,_#0d120d_0%,_#080c08_54%,_#030703_100%)]" />
-      <div className="relative flex h-full flex-col">
-        <div className="border-b border-green-300/10 px-4 py-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-green-400/15 bg-green-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.26em] text-green-300">
-                <span className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_16px_rgba(34,197,94,0.7)]" />
-                ContextForge
-              </div>
-              <h1 className="mt-3 font-serif text-2xl leading-none text-white">Context stream</h1>
-              <p className="mt-2 text-xs leading-5 text-green-100/60">
-                {leadSession
-                  ? `Top capture is from ${PLATFORM_LABELS[leadSession.platform]}.`
-                  : "Open an AI tab to start capturing context."}
-              </p>
-            </div>
+    <div className="flex h-full flex-col overflow-hidden bg-[#0A0A0A] text-[#F5F5F5]">
+      <div className="flex h-full flex-col">
+        {/* Header */}
+        <div className="border-b border-[#2A2A2A] px-4 py-3">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-[#00FF88] shadow-[0_0_8px_rgba(0,255,136,0.7)]" />
+              <span className="text-xs font-semibold text-[#F5F5F5] tracking-tight">ContextForge</span>
+            </div>
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => { void loadSessions(); }}
-                title="Refresh sessions"
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-green-500/30 bg-green-500/10 text-base text-green-400 transition hover:bg-green-500/20 hover:text-green-300 active:scale-95"
+                title="Refresh"
+                className="flex h-6 w-6 items-center justify-center rounded-[4px] border border-[#2A2A2A] text-sm text-[#6B6B6B] transition hover:border-[#00FF88]/30 hover:text-[#00FF88]"
               >
                 ↻
               </button>
               <button
-                onClick={() => {
-                  void checkBridge();
-                  void loadSessions();
-                }}
-                className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                onClick={() => { void checkBridge(); void loadSessions(); }}
+                className={`rounded-[4px] px-2 py-1 text-[10px] font-medium transition ${
                   bridgeStatus === "ok"
-                    ? "bg-green-500/15 text-green-300"
-                    : "bg-white/10 text-green-100/70"
+                    ? "bg-[#00FF88]/10 text-[#00FF88] border border-[#00FF88]/20"
+                    : "bg-[#1A1A1A] text-[#6B6B6B] border border-[#2A2A2A]"
                 }`}
               >
-                {bridgeStatus === "ok" ? "IDE Linked" : "IDE Offline"}
+                {bridgeStatus === "ok" ? "IDE ●" : "IDE ○"}
               </button>
             </div>
           </div>
+          <p className="mt-2 text-xs text-[#6B6B6B]">
+            {leadSession
+              ? `Latest from ${PLATFORM_LABELS[leadSession.platform]}`
+              : "Open an AI tab to start capturing."}
+          </p>
 
-          <div className="mt-4 grid grid-cols-4 gap-2">
+          <div className="mt-3 grid grid-cols-4 gap-1.5">
             {sourceCounts.map(({ platform, count }) => (
               <div
                 key={platform}
-                className="rounded-2xl border border-green-300/10 bg-white/[0.03] px-2 py-2 text-center"
+                className="rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-1.5 py-1.5 text-center"
               >
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-green-300/50">
+                <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: PLATFORM_COLORS[platform] }}>
                   {PLATFORM_SHORT[platform]}
                 </div>
-                <div className="mt-1 text-base font-semibold text-white">{count}</div>
+                <div className="mt-0.5 text-sm font-semibold text-[#F5F5F5]">{count}</div>
               </div>
             ))}
           </div>
@@ -396,73 +393,63 @@ export default function Sidebar() {
 
         {statusMessage && (
           <div
-            className={`mx-3 mt-3 rounded-[18px] border px-3 py-2 text-xs ${
+            className={`mx-3 mt-2 rounded-[8px] border px-3 py-2 text-xs ${
               statusMessage.tone === "success"
-                ? "border-green-400/20 bg-green-500/10 text-green-50"
+                ? "border-[#00FF88]/20 bg-[#00FF88]/10 text-[#00FF88]"
                 : statusMessage.tone === "error"
-                ? "border-red-300/20 bg-red-500/10 text-red-100"
-                : "border-green-300/10 bg-white/[0.04] text-green-100/80"
+                ? "border-red-500/20 bg-red-500/10 text-red-400"
+                : "border-[#2A2A2A] bg-[#1A1A1A] text-[#6B6B6B]"
             }`}
           >
             <div className="flex items-start justify-between gap-3">
               <div>{statusMessage.text}</div>
-              <button
-                onClick={() => setStatusMessage(null)}
-                className="text-[10px] uppercase tracking-[0.18em] opacity-60"
-              >
-                close
-              </button>
+              <button onClick={() => setStatusMessage(null)} className="opacity-60 hover:opacity-100">×</button>
             </div>
           </div>
         )}
 
-        <div className="px-3 pt-3">
+        <div className="px-3 pt-2">
           <input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search context by title, agent, or recent content"
-            className="w-full rounded-2xl border border-green-300/10 bg-white/[0.03] px-3 py-2 text-sm text-green-50 outline-none placeholder:text-green-100/30 focus:border-green-400/30"
+            placeholder="Search sessions…"
+            className="w-full rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-1.5 text-xs text-[#F5F5F5] outline-none placeholder:text-[#6B6B6B] focus:border-[#00FF88]"
           />
         </div>
 
-        <div className="flex gap-1 overflow-x-auto border-b border-green-300/10 px-3 py-2">
+        <div className="flex gap-1 overflow-x-auto border-b border-[#2A2A2A] px-3 py-2">
           {(["all", "claude", "chatgpt", "gemini", "grok"] as const).map((item) => (
             <button
               key={item}
               onClick={() => setFilter(item)}
-              className={`whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-semibold transition ${
+              className={`whitespace-nowrap rounded-[4px] px-2.5 py-1 text-[10px] font-medium transition-all ${
                 filter === item
-                  ? "bg-green-500 text-black"
-                  : "bg-white/[0.04] text-green-100/70 hover:bg-white/[0.07]"
+                  ? "bg-[#00FF88]/10 text-[#00FF88] border border-[#00FF88]/25"
+                  : "bg-[#1A1A1A] border border-[#2A2A2A] text-[#6B6B6B] hover:text-[#F5F5F5]"
               }`}
             >
-              {item === "all" ? "All sources" : PLATFORM_LABELS[item]}
-              <span className="ml-1 opacity-70">
-                {item === "all"
-                  ? sessions.length
-                  : sessions.filter((session) => session.platform === item).length}
+              {item === "all" ? "All" : PLATFORM_LABELS[item]}
+              <span className="ml-1 opacity-60">
+                {item === "all" ? sessions.length : sessions.filter((s) => s.platform === item).length}
               </span>
             </button>
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-3">
+        <div className="flex-1 overflow-y-auto px-3 py-2">
           {filtered.length === 0 ? (
-            <div className="rounded-[28px] border border-dashed border-green-400/20 bg-white/[0.03] px-4 py-10 text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-green-400/15 bg-green-500/10 text-lg text-green-400">
-                C
-              </div>
-              <p className="text-sm font-medium text-white">
-                {sessions.length === 0 ? "No captured sessions in this stream." : "No results for this filter."}
+            <div className="rounded-[8px] border border-dashed border-[#2A2A2A] px-4 py-8 text-center">
+              <p className="text-xs font-medium text-[#F5F5F5]">
+                {sessions.length === 0 ? "No sessions captured yet." : "No results."}
               </p>
-              <p className="mt-2 text-xs leading-5 text-green-100/55">
+              <p className="mt-1 text-[11px] text-[#6B6B6B]">
                 {sessions.length === 0
-                  ? "Visit ChatGPT, Claude, Gemini, or Grok to build a migration-ready archive."
-                  : "Try a different search or switch the active platform filter."}
+                  ? "Visit ChatGPT, Claude, Gemini, or Grok."
+                  : "Try a different search or filter."}
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {filtered.map((session) => (
                 <button
                   key={session.id}
@@ -471,32 +458,27 @@ export default function Sidebar() {
                     setShowFullTranscript(false);
                     setView("detail");
                   }}
-                  className="group relative block w-full overflow-hidden rounded-[24px] border border-green-300/10 bg-white/[0.035] px-4 py-3 text-left transition hover:border-green-400/25 hover:bg-white/[0.05]"
+                  className="group block w-full rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2.5 text-left transition-all hover:border-[#00FF88]/20 hover:shadow-[0_0_12px_rgba(0,255,136,0.05)]"
                 >
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-br ${PLATFORM_GLOWS[session.platform]} opacity-75`}
-                  />
-                  <div className="relative flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-green-400/15 bg-black/20 text-[11px] font-semibold uppercase tracking-[0.18em] text-green-100">
-                      {PLATFORM_SHORT[session.platform]}
-                    </div>
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className="mt-0.5 h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: PLATFORM_COLORS[session.platform] }}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full border border-green-400/15 bg-black/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-green-300">
-                          from {PLATFORM_LABELS[session.platform]}
+                        <span
+                          className="text-[10px] font-semibold uppercase tracking-wider"
+                          style={{ color: PLATFORM_COLORS[session.platform] }}
+                        >
+                          {PLATFORM_LABELS[session.platform]}
                         </span>
-                        <span className="text-[10px] text-green-100/45">
-                          {formatRelativeTime(session.updatedAt)}
-                        </span>
+                        <span className="text-[10px] text-[#6B6B6B]">{formatRelativeTime(session.updatedAt)}</span>
                       </div>
-                      <p className="mt-2 truncate text-sm font-semibold text-white">{session.title}</p>
-                      <p className="mt-1 text-[11px] text-green-100/60">
-                        {session.messages.length} turns ready to migrate
-                      </p>
+                      <p className="mt-1 truncate text-xs font-medium text-[#F5F5F5] group-hover:text-[#00FF88] transition-colors">{session.title}</p>
+                      <p className="mt-0.5 text-[10px] text-[#6B6B6B]">{session.messages.length} turns</p>
                     </div>
-                    <span className="pt-1 text-green-100/35 transition group-hover:text-green-100/70">
-                      &gt;
-                    </span>
+                    <span className="text-[#2A2A2A] transition group-hover:text-[#00FF88] pt-0.5">›</span>
                   </div>
                 </button>
               ))}
@@ -504,8 +486,8 @@ export default function Sidebar() {
           )}
         </div>
 
-        <div className="border-t border-green-300/10 px-4 py-2 text-center">
-          <span className="text-[10px] text-green-100/35">local-first context routing engine</span>
+        <div className="border-t border-[#2A2A2A] px-4 py-1.5 text-center">
+          <span className="text-[9px] text-[#6B6B6B]/60 uppercase tracking-widest">context routing engine</span>
         </div>
       </div>
     </div>

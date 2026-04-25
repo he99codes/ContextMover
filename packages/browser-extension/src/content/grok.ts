@@ -121,24 +121,64 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 });
 
+const GROK_INJECT_SELECTORS = [
+  // Current Grok composer (confirmed 2026-04) — [data-testid="chat-input"]
+  // is a WRAPPER div; the real editor is a nested contenteditable ProseMirror.
+  // We MUST target the inner contenteditable, not the wrapper.
+  '[data-testid="chat-input"] [contenteditable="true"]',
+  '[data-testid="chat-input"] .ProseMirror',
+  '[data-testid="composer-text-input"] [contenteditable="true"]',
+  '[data-testid="composer-text-input"]',       // legacy
+  'textarea[placeholder*="Ask"]',              // Grok "Ask anything" placeholder
+  'textarea[placeholder*="message"]',
+  '[contenteditable="true"][role="textbox"]',
+  '.ProseMirror[contenteditable="true"]',      // TipTap / ProseMirror editor
+  '[class*="composer"] textarea',
+  '[class*="input"] textarea',
+  'form textarea',
+  'textarea:not([readonly])',                  // broad textarea fallback
+  '[contenteditable="true"]',                  // last-resort contenteditable
+];
+
 async function injectIntoGrokInput(text: string) {
-  const input = await waitForAnyElement<HTMLElement>([
-    'textarea[placeholder*="Ask"]',              // Grok "Ask anything" placeholder
-    'textarea[placeholder*="message"]',
-    '[data-testid="composer-text-input"]',
-    '[contenteditable="true"][role="textbox"]',
-    '[class*="composer"] textarea',
-    '[class*="input"] textarea',
-    'form textarea',
-    'textarea:not([readonly])',                  // broad textarea fallback
-    '[contenteditable="true"]',                  // last-resort contenteditable
-  ]);
-
-  if (!input) return { ok: false, error: "Grok input box not found. Make sure a chat is open." };
-
-  if (!setPromptInputValue(input, text)) {
-    return { ok: false, error: "Grok input did not accept the text. Try reloading the tab." };
+  // Try each selector individually so we can log which one matched — this is
+  // critical when Grok's DOM changes and we need to see which strategy worked.
+  let input: HTMLElement | null = null;
+  let matchedSelector = "";
+  for (const sel of GROK_INJECT_SELECTORS) {
+    const el = document.querySelector<HTMLElement>(sel);
+    if (el) {
+      input = el;
+      matchedSelector = sel;
+      break;
+    }
   }
 
+  // If nothing yet, give the page up to 4s to render the composer (SPA route).
+  if (!input) {
+    input = await waitForAnyElement<HTMLElement>(GROK_INJECT_SELECTORS);
+    matchedSelector = input
+      ? GROK_INJECT_SELECTORS.find(s => document.querySelector(s) === input) ?? "(late)"
+      : "";
+  }
+
+  if (!input) {
+    console.warn("[ContextForge:grok] injection failed — no composer element matched any selector");
+    return {
+      ok: false,
+      error: "Grok input box not found. Make sure a Grok chat tab is open and the page has finished loading.",
+    };
+  }
+
+  console.log(`[ContextForge:grok] injecting via selector: ${matchedSelector}, tag=${input.tagName}, contentEditable=${input.isContentEditable}`);
+
+  if (!setPromptInputValue(input, text)) {
+    return {
+      ok: false,
+      error: `Grok input (${input.tagName.toLowerCase()}) did not accept the text. Try reloading the tab.`,
+    };
+  }
+
+  console.log("[ContextForge:grok] injection succeeded");
   return { ok: true };
 }

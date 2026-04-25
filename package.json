@@ -6,8 +6,10 @@
   "scripts": {
     "dev:ext": "pnpm --filter browser-extension dev",
     "dev:vscode": "pnpm --filter vscode-extension dev",
+    "dev:web": "pnpm --filter web dev",
     "build:ext": "pnpm --filter browser-extension build",
     "build:vscode": "pnpm --filter vscode-extension build",
+    "build:web": "pnpm --filter web build",
     "build": "pnpm run build:ext && pnpm run build:vscode",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck"
