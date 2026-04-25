@@ -9,21 +9,21 @@ import type { Session } from "@/types";
 
 const PLATFORM_STYLES: Record<
   string,
-  { label: string; bg: string; text: string; dot: string }
+  { label: string; color: string; dot: string; badge: string }
 > = {
-  claude:   { label: "Claude",  bg: "bg-amber-50",   text: "text-amber-700",  dot: "bg-amber-500"  },
-  chatgpt:  { label: "ChatGPT", bg: "bg-emerald-50",  text: "text-emerald-700",dot: "bg-emerald-500"},
-  gemini:   { label: "Gemini",  bg: "bg-indigo-50",  text: "text-indigo-700", dot: "bg-indigo-500" },
-  grok:     { label: "Grok",    bg: "bg-zinc-100",   text: "text-zinc-800",   dot: "bg-zinc-700"   },
+  claude:  { label: "Claude",  color: "#D97706", dot: "bg-[#D97706]",  badge: "text-[#D97706] border-[#D97706]/25 bg-[#D97706]/10"  },
+  chatgpt: { label: "ChatGPT", color: "#10B981", dot: "bg-[#10B981]",  badge: "text-[#10B981] border-[#10B981]/25 bg-[#10B981]/10" },
+  gemini:  { label: "Gemini",  color: "#6366F1", dot: "bg-[#6366F1]",  badge: "text-[#6366F1] border-[#6366F1]/25 bg-[#6366F1]/10"  },
+  grok:    { label: "Grok",    color: "#F5F5F5", dot: "bg-[#F5F5F5]",  badge: "text-[#F5F5F5] border-[#F5F5F5]/25 bg-[#F5F5F5]/10"  },
 };
 
 function getPlatformStyle(platform: string) {
   return (
     PLATFORM_STYLES[platform.toLowerCase()] ?? {
       label: platform,
-      bg: "bg-slate-50",
-      text: "text-slate-700",
-      dot: "bg-slate-500",
+      color: "#6B6B6B",
+      dot: "bg-[#6B6B6B]",
+      badge: "text-[#6B6B6B] border-[#6B6B6B]/25 bg-[#6B6B6B]/10",
     }
   );
 }
@@ -119,10 +119,10 @@ export function SessionCard({ session }: SessionCardProps) {
   return (
     <div
       className={cn(
-        "group relative flex items-start gap-4 rounded-xl border bg-white px-5 py-4 transition-all",
+        "group relative flex items-start gap-4 rounded-[8px] border px-5 py-4 transition-all",
         busy === "delete"
-          ? "border-red-200 opacity-50"
-          : "border-[#E8E8E4] hover:border-[#2563EB]/30 hover:shadow-sm"
+          ? "border-red-500/30 bg-red-500/5 opacity-50"
+          : "bg-[#1A1A1A] border-[#2A2A2A] hover:border-[#00FF88]/25 hover:shadow-[0_0_16px_rgba(0,255,136,0.06)]"
       )}
     >
       {/* Platform dot */}
@@ -142,14 +142,14 @@ export function SessionCard({ session }: SessionCardProps) {
                   onChange={(e) => setTitleDraft(e.target.value)}
                   onKeyDown={handleKeyDown}
                   disabled={busy === "save"}
-                  className="flex-1 rounded-md border border-[#2563EB]/40 bg-white px-2 py-1 text-sm font-medium text-[#1A1A1A] outline-none focus:border-[#2563EB]"
+                  className="flex-1 rounded-[4px] border border-[#00FF88]/30 bg-[#0A0A0A] px-2 py-1 text-sm font-medium text-[#F5F5F5] outline-none focus:border-[#00FF88]"
                   placeholder="Session title"
                 />
                 <button
                   type="button"
                   onClick={handleSaveRename}
                   disabled={busy === "save"}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#2563EB] hover:bg-[#EFF6FF] disabled:opacity-50"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#00FF88] hover:bg-[#00FF88]/10 disabled:opacity-50"
                   aria-label="Save title"
                 >
                   {busy === "save" ? (
@@ -162,7 +162,7 @@ export function SessionCard({ session }: SessionCardProps) {
                   type="button"
                   onClick={handleCancelRename}
                   disabled={busy === "save"}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#6B6B6B] hover:bg-[#F5F5F0] disabled:opacity-50"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#6B6B6B] hover:bg-[#2A2A2A] disabled:opacity-50"
                   aria-label="Cancel rename"
                 >
                   <X size={14} />
@@ -173,7 +173,7 @@ export function SessionCard({ session }: SessionCardProps) {
                 href={`/session/${session.id}`}
                 className="block min-w-0"
               >
-                <p className="truncate text-sm font-medium text-[#1A1A1A] group-hover:text-[#2563EB]">
+                <p className="truncate text-sm font-medium text-[#F5F5F5] group-hover:text-[#00FF88] transition-colors">
                   {session.title ?? "Untitled session"}
                 </p>
                 {preview && (
@@ -184,11 +184,11 @@ export function SessionCard({ session }: SessionCardProps) {
               </Link>
             )}
             {error && (
-              <p className="mt-1 text-[11px] text-red-600">{error}</p>
+              <p className="mt-1 text-[11px] text-red-400">{error}</p>
             )}
           </div>
 
-          {/* Action buttons — revealed on hover (or always visible while editing) */}
+          {/* Action buttons — revealed on hover */}
           <div
             className={cn(
               "flex items-center gap-1 transition-opacity",
@@ -203,7 +203,7 @@ export function SessionCard({ session }: SessionCardProps) {
               }}
               disabled={busy !== null}
               title="Rename session"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#6B6B6B] hover:bg-[#F5F5F0] hover:text-[#1A1A1A] disabled:opacity-50"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#6B6B6B] hover:bg-[#2A2A2A] hover:text-[#F5F5F5] disabled:opacity-50"
             >
               <Pencil size={13} />
             </button>
@@ -212,7 +212,7 @@ export function SessionCard({ session }: SessionCardProps) {
               onClick={handleDelete}
               disabled={busy !== null}
               title="Delete session"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#6B6B6B] hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#6B6B6B] hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
             >
               {busy === "delete" ? (
                 <Loader2 size={13} className="animate-spin" />
@@ -225,12 +225,12 @@ export function SessionCard({ session }: SessionCardProps) {
           {!isEditing && (
             <Link
               href={`/session/${session.id}`}
-              className="mt-0.5 shrink-0 group-hover:opacity-0 transition-opacity"
+              className="mt-0.5 shrink-0"
               aria-label="Open session"
             >
               <ArrowRight
                 size={14}
-                className="text-[#E8E8E4] transition-colors group-hover:text-[#2563EB]"
+                className="text-[#2A2A2A] transition-colors group-hover:text-[#00FF88]"
               />
             </Link>
           )}
@@ -239,9 +239,8 @@ export function SessionCard({ session }: SessionCardProps) {
         <div className="mt-2.5 flex items-center gap-3">
           <span
             className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
-              style.bg,
-              style.text
+              "inline-flex items-center gap-1 rounded-[4px] border px-2 py-0.5 text-[11px] font-medium",
+              style.badge
             )}
           >
             {style.label}

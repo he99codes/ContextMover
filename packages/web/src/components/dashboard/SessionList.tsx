@@ -56,10 +56,10 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
               key={p}
               onClick={() => setFilter(p)}
               className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                "rounded-[4px] px-3 py-1 text-xs font-medium transition-all",
                 filter === p
-                  ? "bg-[#2563EB] text-white"
-                  : "bg-white border border-[#E8E8E4] text-[#6B6B6B] hover:text-[#1A1A1A] hover:border-[#1A1A1A]/20"
+                  ? "bg-[#00FF88]/10 text-[#00FF88] border border-[#00FF88]/30 shadow-[0_0_8px_rgba(0,255,136,0.12)]"
+                  : "bg-[#1A1A1A] border border-[#2A2A2A] text-[#6B6B6B] hover:text-[#F5F5F5] hover:border-[#3A3A3A]"
               )}
             >
               {p}
@@ -67,7 +67,7 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
                 <span
                   className={cn(
                     "ml-1.5 tabular-nums",
-                    filter === p ? "text-white/80" : "text-[#6B6B6B]"
+                    filter === p ? "text-[#00FF88]/70" : "text-[#6B6B6B]"
                   )}
                 >
                   {counts[p]}
@@ -87,18 +87,18 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
             placeholder="Search sessions…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 text-sm h-8"
+            className="pl-8 text-sm h-8 bg-[#1A1A1A] border-[#2A2A2A] text-[#F5F5F5] placeholder:text-[#6B6B6B] focus:border-[#00FF88] rounded-[4px]"
           />
         </div>
       </div>
 
       {/* List */}
       {filtered.length === 0 && sessions.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#E8E8E4] bg-white py-20 text-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#EFF6FF]">
-            <Layers size={20} className="text-[#2563EB]" />
+        <div className="flex flex-col items-center justify-center rounded-[8px] border border-dashed border-[#2A2A2A] bg-[#111111] py-20 text-center">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[8px] bg-[#00FF88]/10 border border-[#00FF88]/20">
+            <Layers size={20} className="text-[#00FF88]" />
           </div>
-          <h3 className="text-sm font-medium text-[#1A1A1A]">
+          <h3 className="text-sm font-medium text-[#F5F5F5]">
             No sessions captured yet
           </h3>
           <p className="mt-1.5 max-w-xs text-sm text-[#6B6B6B]">
@@ -109,14 +109,14 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
       )}
 
       {filtered.length === 0 && sessions.length > 0 && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#E8E8E4] bg-white py-16 text-center">
+        <div className="flex flex-col items-center justify-center rounded-[8px] border border-dashed border-[#2A2A2A] bg-[#111111] py-16 text-center">
           <RefreshCw size={18} className="mb-3 text-[#6B6B6B]" />
           <p className="text-sm text-[#6B6B6B]">
             No sessions match your filter.
           </p>
           <button
             onClick={() => { setFilter("All"); setSearch(""); }}
-            className="mt-2 text-xs text-[#2563EB] hover:underline"
+            className="mt-2 text-xs text-[#00FF88] hover:underline"
           >
             Clear filters
           </button>

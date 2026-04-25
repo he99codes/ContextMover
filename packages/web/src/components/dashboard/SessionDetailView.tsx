@@ -18,19 +18,18 @@ import { cn, formatRelativeTime } from "@/lib/utils";
 import { useSessionMutations } from "@/hooks/useSessionMutations";
 import type { Session } from "@/types";
 
-const PLATFORM_STYLES: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-  claude:   { label: "Claude",  bg: "bg-amber-50",    text: "text-amber-700",   dot: "bg-amber-500"   },
-  chatgpt:  { label: "ChatGPT", bg: "bg-emerald-50",  text: "text-emerald-700", dot: "bg-emerald-500" },
-  gemini:   { label: "Gemini",  bg: "bg-indigo-50",   text: "text-indigo-700",  dot: "bg-indigo-500"  },
-  grok:     { label: "Grok",    bg: "bg-zinc-100",    text: "text-zinc-800",    dot: "bg-zinc-700"    },
+const PLATFORM_STYLES: Record<string, { label: string; dot: string; badge: string }> = {
+  claude:  { label: "Claude",  dot: "bg-[#D97706]", badge: "text-[#D97706] border-[#D97706]/25 bg-[#D97706]/10" },
+  chatgpt: { label: "ChatGPT", dot: "bg-[#10B981]", badge: "text-[#10B981] border-[#10B981]/25 bg-[#10B981]/10" },
+  gemini:  { label: "Gemini",  dot: "bg-[#6366F1]", badge: "text-[#6366F1] border-[#6366F1]/25 bg-[#6366F1]/10" },
+  grok:    { label: "Grok",    dot: "bg-[#F5F5F5]", badge: "text-[#F5F5F5] border-[#F5F5F5]/25 bg-[#F5F5F5]/10" },
 };
 
 function getStyle(platform: string) {
   return PLATFORM_STYLES[platform.toLowerCase()] ?? {
     label: platform,
-    bg: "bg-slate-50",
-    text: "text-slate-700",
-    dot: "bg-slate-500",
+    dot: "bg-[#6B6B6B]",
+    badge: "text-[#6B6B6B] border-[#6B6B6B]/25 bg-[#6B6B6B]/10",
   };
 }
 
@@ -97,14 +96,14 @@ export function SessionDetailView({ session }: Props) {
       {/* Back */}
       <Link
         href="/dashboard"
-        className="inline-flex items-center gap-1.5 text-sm text-[#6B6B6B] hover:text-[#1A1A1A] mb-6"
+        className="inline-flex items-center gap-1.5 text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors mb-6"
       >
         <ArrowLeft size={14} />
         All sessions
       </Link>
 
       {/* Header */}
-      <div className="rounded-xl border border-[#E8E8E4] bg-white p-6 mb-6">
+      <div className="rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] p-6 mb-6">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             {isEditing ? (
@@ -117,23 +116,23 @@ export function SessionDetailView({ session }: Props) {
                     if (e.key === "Enter") handleSave();
                     if (e.key === "Escape") { setIsEditing(false); setDraft(title); }
                   }}
-                  className="flex-1 rounded-md border border-[#2563EB]/40 px-3 py-1.5 text-xl font-semibold text-[#1A1A1A] outline-none focus:border-[#2563EB]"
+                  className="flex-1 rounded-[4px] border border-[#00FF88]/30 bg-[#0A0A0A] px-3 py-1.5 text-xl font-semibold text-[#F5F5F5] outline-none focus:border-[#00FF88]"
                 />
                 <button
                   onClick={handleSave}
                   disabled={busy === "save"}
-                  className="inline-flex h-8 px-3 items-center gap-1 rounded-md bg-[#2563EB] text-white text-sm font-medium hover:bg-[#1D4ED8] disabled:opacity-50"
+                  className="inline-flex h-8 px-3 items-center gap-1 rounded-[4px] bg-[#00FF88] text-black text-sm font-semibold hover:bg-[#00CC6A] disabled:opacity-50 transition-colors"
                 >
                   {busy === "save" ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                   Save
                 </button>
               </div>
             ) : (
-              <h1 className="text-xl font-semibold text-[#1A1A1A] flex items-center gap-2">
+              <h1 className="text-xl font-semibold text-[#F5F5F5] flex items-center gap-2 group">
                 {title}
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="opacity-0 group-hover:opacity-100 hover:opacity-100 text-[#6B6B6B] hover:text-[#1A1A1A] transition-opacity"
+                  className="opacity-0 group-hover:opacity-100 text-[#6B6B6B] hover:text-[#F5F5F5] transition-all"
                   title="Rename"
                 >
                   <Pencil size={14} />
@@ -142,7 +141,7 @@ export function SessionDetailView({ session }: Props) {
             )}
 
             <div className="mt-2 flex items-center gap-3 flex-wrap">
-              <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium", style.bg, style.text)}>
+              <span className={cn("inline-flex items-center gap-1.5 rounded-[4px] border px-2 py-0.5 text-[11px] font-medium", style.badge)}>
                 <span className={cn("inline-block h-1.5 w-1.5 rounded-full", style.dot)} />
                 {style.label}
               </span>
@@ -160,14 +159,14 @@ export function SessionDetailView({ session }: Props) {
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={copyAll}
-              className="inline-flex h-9 px-3 items-center gap-1.5 rounded-md border border-[#E8E8E4] text-sm font-medium text-[#1A1A1A] hover:bg-[#F7F7F5]"
+              className="inline-flex h-9 px-3 items-center gap-1.5 rounded-[4px] border border-[#2A2A2A] text-sm font-medium text-[#F5F5F5] hover:bg-[#2A2A2A] transition-colors"
             >
-              {copiedIdx === -1 ? <Check size={14} /> : <Copy size={14} />}
+              {copiedIdx === -1 ? <Check size={14} className="text-[#00FF88]" /> : <Copy size={14} />}
               {copiedIdx === -1 ? "Copied" : "Copy all"}
             </button>
             <Link
               href={`/migrate?session=${session.id}`}
-              className="inline-flex h-9 px-3 items-center gap-1.5 rounded-md bg-[#2563EB] text-white text-sm font-medium hover:bg-[#1D4ED8]"
+              className="inline-flex h-9 px-3 items-center gap-1.5 rounded-[4px] bg-[#00FF88] text-black text-sm font-semibold hover:bg-[#00CC6A] transition-all hover:shadow-[0_0_12px_rgba(0,255,136,0.3)]"
             >
               <ArrowLeftRight size={14} />
               Migrate
@@ -175,7 +174,7 @@ export function SessionDetailView({ session }: Props) {
             <button
               onClick={handleDelete}
               disabled={busy === "delete"}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#E8E8E4] text-[#6B6B6B] hover:bg-red-50 hover:text-red-600 hover:border-red-200 disabled:opacity-50"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-[4px] border border-[#2A2A2A] text-[#6B6B6B] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 disabled:opacity-50 transition-colors"
               title="Delete session"
             >
               {busy === "delete" ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
@@ -186,7 +185,7 @@ export function SessionDetailView({ session }: Props) {
 
       {/* Messages */}
       {session.messages.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#E8E8E4] bg-white p-12 text-center text-sm text-[#6B6B6B]">
+        <div className="rounded-[8px] border border-dashed border-[#2A2A2A] bg-[#111111] p-12 text-center text-sm text-[#6B6B6B]">
           No messages in this session yet.
         </div>
       ) : (
@@ -195,28 +194,28 @@ export function SessionDetailView({ session }: Props) {
             <div
               key={idx}
               className={cn(
-                "rounded-xl border bg-white p-5 group relative",
+                "rounded-[8px] border p-5 group relative transition-all",
                 msg.role === "user"
-                  ? "border-[#E8E8E4]"
-                  : "border-[#EFF6FF] bg-[#FAFBFF]"
+                  ? "bg-[#1A1A1A] border-[#2A2A2A] hover:border-[#3A3A3A]"
+                  : "bg-[#111111] border-[#2A2A2A] hover:border-[#00FF88]/15"
               )}
             >
               <div className="flex items-center justify-between mb-2">
                 <span className={cn(
                   "text-[11px] font-semibold uppercase tracking-wider",
-                  msg.role === "user" ? "text-[#6B6B6B]" : "text-[#2563EB]"
+                  msg.role === "user" ? "text-[#6B6B6B]" : "text-[#00FF88]"
                 )}>
                   {msg.role === "user" ? "You" : "Assistant"}
                 </span>
                 <button
                   onClick={() => copyMessage(msg.content, idx)}
-                  className="opacity-0 group-hover:opacity-100 text-[#6B6B6B] hover:text-[#1A1A1A] transition-opacity"
+                  className="opacity-0 group-hover:opacity-100 text-[#6B6B6B] hover:text-[#F5F5F5] transition-all"
                   title="Copy message"
                 >
-                  {copiedIdx === idx ? <Check size={13} className="text-green-600" /> : <Copy size={13} />}
+                  {copiedIdx === idx ? <Check size={13} className="text-[#00FF88]" /> : <Copy size={13} />}
                 </button>
               </div>
-              <div className="text-sm text-[#1A1A1A] whitespace-pre-wrap break-words leading-relaxed">
+              <div className="text-sm text-[#F5F5F5]/90 whitespace-pre-wrap break-words leading-relaxed">
                 {msg.content}
               </div>
             </div>

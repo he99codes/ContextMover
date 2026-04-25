@@ -1,8 +1,8 @@
 {
-  "/(dashboard)/session/[id]/page": "app/(dashboard)/session/[id]/page.js",
-  "/(dashboard)/migrate/page": "app/(dashboard)/migrate/page.js",
   "/(dashboard)/agents/page": "app/(dashboard)/agents/page.js",
-  "/(dashboard)/analytics/page": "app/(dashboard)/analytics/page.js",
   "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js",
+  "/(dashboard)/migrate/page": "app/(dashboard)/migrate/page.js",
+  "/(dashboard)/analytics/page": "app/(dashboard)/analytics/page.js",
+  "/(dashboard)/session/[id]/page": "app/(dashboard)/session/[id]/page.js",
   "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js"
 }

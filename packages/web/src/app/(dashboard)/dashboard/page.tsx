@@ -17,7 +17,7 @@ export default async function DashboardPage() {
   return (
     <div className="p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-[#1A1A1A]">Sessions</h1>
+        <h1 className="text-2xl font-semibold text-[#F5F5F5]">Sessions</h1>
         <p className="mt-1 text-sm text-[#6B6B6B]">
           {sessions.length > 0
             ? `${sessions.length} captured session${sessions.length === 1 ? "" : "s"}`

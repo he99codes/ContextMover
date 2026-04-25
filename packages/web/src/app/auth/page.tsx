@@ -63,15 +63,15 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F7F7F5] p-4">
+    <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A] p-4">
       <div className="w-full max-w-[380px]">
         {/* Logo */}
         <div className="mb-8 text-center">
           <div className="mb-3 flex items-center justify-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2563EB]">
-              <Zap size={18} className="text-white" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[#00FF88]">
+              <Zap size={18} className="text-black" />
             </div>
-            <span className="text-xl font-semibold text-[#1A1A1A]">
+            <span className="text-xl font-semibold text-[#F5F5F5]">
               ContextForge
             </span>
           </div>
@@ -80,9 +80,9 @@ export default function AuthPage() {
           </p>
         </div>
 
-        <Card className="border-[#E8E8E4] shadow-sm">
+        <Card className="border-[#2A2A2A] bg-[#111111] shadow-[0_0_40px_rgba(0,0,0,0.6)]">
           <CardHeader className="pb-4">
-            <CardTitle className="text-[#1A1A1A]">
+            <CardTitle className="text-[#F5F5F5]">
               {mode === "signin" ? "Welcome back" : "Create an account"}
             </CardTitle>
             <CardDescription className="text-[#6B6B6B]">
@@ -95,7 +95,7 @@ export default function AuthPage() {
           <CardContent>
             <form onSubmit={handleAuth} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-[#F5F5F5] text-xs uppercase tracking-wider">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -105,11 +105,12 @@ export default function AuthPage() {
                   required
                   autoComplete="email"
                   disabled={isLoading}
+                  className="bg-[#1A1A1A] border-[#2A2A2A] text-[#F5F5F5] placeholder:text-[#6B6B6B] focus:border-[#00FF88] focus:ring-0 rounded-[8px]"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-[#F5F5F5] text-xs uppercase tracking-wider">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -122,12 +123,12 @@ export default function AuthPage() {
                       mode === "signin" ? "current-password" : "new-password"
                     }
                     disabled={isLoading}
-                    className="pr-9"
+                    className="bg-[#1A1A1A] border-[#2A2A2A] text-[#F5F5F5] placeholder:text-[#6B6B6B] focus:border-[#00FF88] focus:ring-0 rounded-[8px] pr-9"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors"
                     tabIndex={-1}
                   >
                     {showPassword ? (
@@ -140,14 +141,14 @@ export default function AuthPage() {
               </div>
 
               {error && (
-                <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+                <div className="flex items-start gap-2 rounded-[8px] border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-400">
                   <AlertCircle size={15} className="mt-0.5 shrink-0" />
                   <span>{error}</span>
                 </div>
               )}
 
               {success && (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
+                <div className="rounded-[8px] border border-[#00FF88]/30 bg-[#00FF88]/10 px-3 py-2.5 text-sm text-[#00FF88]">
                   {success}
                 </div>
               )}
@@ -155,7 +156,7 @@ export default function AuthPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white"
+                className="w-full bg-[#00FF88] hover:bg-[#00CC6A] text-black font-semibold rounded-[8px] transition-all hover:shadow-[0_0_16px_rgba(0,255,136,0.3)]"
               >
                 {isLoading
                   ? "Loading…"
@@ -173,7 +174,7 @@ export default function AuthPage() {
                   setError(null);
                   setSuccess(null);
                 }}
-                className="text-sm text-[#6B6B6B] transition-colors hover:text-[#2563EB]"
+                className="text-sm text-[#6B6B6B] transition-colors hover:text-[#00FF88]"
               >
                 {mode === "signin"
                   ? "Don't have an account? Sign up"
@@ -183,7 +184,7 @@ export default function AuthPage() {
           </CardContent>
         </Card>
 
-        <p className="mt-6 text-center text-xs text-[#6B6B6B]/70">
+        <p className="mt-6 text-center text-xs text-[#6B6B6B]/60">
           By signing in you agree to our Terms of Service and Privacy Policy.
         </p>
       </div>

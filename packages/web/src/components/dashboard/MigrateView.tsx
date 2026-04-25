@@ -7,11 +7,11 @@ import { cn, formatRelativeTime } from "@/lib/utils";
 import { useRealtimeSessions } from "@/hooks/useRealtimeSessions";
 import type { Session, Platform } from "@/types";
 
-const TARGETS: { id: Platform; label: string; tone: string }[] = [
-  { id: "claude",  label: "Claude",  tone: "bg-amber-50 text-amber-700 border-amber-200"   },
-  { id: "chatgpt", label: "ChatGPT", tone: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  { id: "gemini",  label: "Gemini",  tone: "bg-indigo-50 text-indigo-700 border-indigo-200" },
-  { id: "grok",    label: "Grok",    tone: "bg-zinc-100 text-zinc-800 border-zinc-300"     },
+const TARGETS: { id: Platform; label: string; color: string; active: string }[] = [
+  { id: "claude",  label: "Claude",  color: "#D97706", active: "border-[#D97706]/40 bg-[#D97706]/10 text-[#D97706]"  },
+  { id: "chatgpt", label: "ChatGPT", color: "#10B981", active: "border-[#10B981]/40 bg-[#10B981]/10 text-[#10B981]" },
+  { id: "gemini",  label: "Gemini",  color: "#6366F1", active: "border-[#6366F1]/40 bg-[#6366F1]/10 text-[#6366F1]"  },
+  { id: "grok",    label: "Grok",    color: "#F5F5F5", active: "border-[#F5F5F5]/40 bg-[#F5F5F5]/10 text-[#F5F5F5]"  },
 ];
 
 interface Props {
@@ -94,7 +94,7 @@ export function MigrateView({ initialSessions, userId }: Props) {
   return (
     <div className="max-w-6xl mx-auto p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-[#1A1A1A]">Migrate</h1>
+        <h1 className="text-2xl font-semibold text-[#F5F5F5]">Migrate</h1>
         <p className="mt-1 text-sm text-[#6B6B6B]">
           Generate a paste-ready prompt that transfers a conversation from one AI to another.
         </p>
@@ -102,8 +102,8 @@ export function MigrateView({ initialSessions, userId }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
         {/* Session picker */}
-        <div className="rounded-xl border border-[#E8E8E4] bg-white overflow-hidden">
-          <div className="p-3 border-b border-[#E8E8E4]">
+        <div className="rounded-[8px] border border-[#2A2A2A] bg-[#111111] overflow-hidden">
+          <div className="p-3 border-b border-[#2A2A2A]">
             <div className="relative">
               <Search
                 size={13}
@@ -113,7 +113,7 @@ export function MigrateView({ initialSessions, userId }: Props) {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search sessions…"
-                className="w-full h-8 pl-8 pr-2 rounded-md border border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB]"
+                className="w-full h-8 pl-8 pr-2 rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] text-sm text-[#F5F5F5] placeholder:text-[#6B6B6B] outline-none focus:border-[#00FF88]"
               />
             </div>
           </div>
@@ -128,11 +128,16 @@ export function MigrateView({ initialSessions, userId }: Props) {
                   key={s.id}
                   onClick={() => setSelectedId(s.id)}
                   className={cn(
-                    "w-full text-left px-3 py-2.5 border-b border-[#E8E8E4] last:border-b-0 hover:bg-[#F7F7F5]",
-                    selectedId === s.id && "bg-[#EFF6FF] hover:bg-[#EFF6FF]"
+                    "w-full text-left px-3 py-2.5 border-b border-[#2A2A2A] last:border-b-0 transition-colors",
+                    selectedId === s.id
+                      ? "bg-[#00FF88]/5 hover:bg-[#00FF88]/5"
+                      : "hover:bg-[#1A1A1A]"
                   )}
                 >
-                  <p className="text-sm font-medium text-[#1A1A1A] truncate">
+                  <p className={cn(
+                    "text-sm font-medium truncate",
+                    selectedId === s.id ? "text-[#00FF88]" : "text-[#F5F5F5]"
+                  )}>
                     {s.title ?? "Untitled session"}
                   </p>
                   <div className="mt-0.5 flex items-center gap-2 text-[11px] text-[#6B6B6B]">
@@ -149,7 +154,7 @@ export function MigrateView({ initialSessions, userId }: Props) {
         </div>
 
         {/* Prompt builder */}
-        <div className="rounded-xl border border-[#E8E8E4] bg-white p-5">
+        <div className="rounded-[8px] border border-[#2A2A2A] bg-[#111111] p-5">
           {!selected ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <ArrowLeftRight size={24} className="text-[#6B6B6B] mb-3" />
@@ -163,8 +168,8 @@ export function MigrateView({ initialSessions, userId }: Props) {
                 <p className="text-xs font-semibold text-[#6B6B6B] uppercase tracking-wider mb-2">
                   From
                 </p>
-                <div className="rounded-lg bg-[#F7F7F5] px-3 py-2">
-                  <p className="text-sm font-medium text-[#1A1A1A] truncate">
+                <div className="rounded-[4px] bg-[#1A1A1A] border border-[#2A2A2A] px-3 py-2">
+                  <p className="text-sm font-medium text-[#F5F5F5] truncate">
                     {selected.title ?? "Untitled session"}
                   </p>
                   <p className="text-[11px] text-[#6B6B6B] mt-0.5 uppercase tracking-wider">
@@ -184,11 +189,11 @@ export function MigrateView({ initialSessions, userId }: Props) {
                       onClick={() => setTarget(t.id)}
                       disabled={t.id === selected.platform}
                       className={cn(
-                        "px-3 py-1.5 rounded-md border text-sm font-medium transition-colors",
+                        "px-3 py-1.5 rounded-[4px] border text-sm font-medium transition-all",
                         target === t.id
-                          ? t.tone
-                          : "border-[#E8E8E4] bg-white text-[#1A1A1A] hover:border-[#1A1A1A]/20",
-                        t.id === selected.platform && "opacity-40 cursor-not-allowed"
+                          ? t.active
+                          : "border-[#2A2A2A] bg-[#1A1A1A] text-[#6B6B6B] hover:border-[#3A3A3A] hover:text-[#F5F5F5]",
+                        t.id === selected.platform && "opacity-30 cursor-not-allowed"
                       )}
                       title={
                         t.id === selected.platform
@@ -208,19 +213,19 @@ export function MigrateView({ initialSessions, userId }: Props) {
                 </p>
                 <button
                   onClick={copyPrompt}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-[#2563EB] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#1D4ED8]"
+                  className="inline-flex items-center gap-1.5 rounded-[4px] bg-[#00FF88] px-3 py-1.5 text-xs font-semibold text-black hover:bg-[#00CC6A] transition-all hover:shadow-[0_0_10px_rgba(0,255,136,0.25)]"
                 >
                   {copied ? <Check size={12} /> : <Copy size={12} />}
-                  {copied ? "Copied" : "Copy to clipboard"}
+                  {copied ? "Copied!" : "Copy to clipboard"}
                 </button>
               </div>
 
-              <pre className="rounded-lg border border-[#E8E8E4] bg-[#FAFAF8] p-4 text-xs font-mono text-[#1A1A1A] whitespace-pre-wrap break-words max-h-[420px] overflow-y-auto">
+              <pre className="rounded-[4px] border border-[#2A2A2A] bg-[#0A0A0A] p-4 text-xs font-mono text-[#F5F5F5]/80 whitespace-pre-wrap break-words max-h-[420px] overflow-y-auto">
                 {prompt}
               </pre>
 
               <p className="mt-3 text-xs text-[#6B6B6B]">
-                Copy this and paste it into a new chat on <strong>{TARGETS.find((t) => t.id === target)?.label}</strong>.
+                Copy this and paste it into a new chat on <strong className="text-[#F5F5F5]">{TARGETS.find((t) => t.id === target)?.label}</strong>.
                 The browser extension will do this automatically from the sidebar.
               </p>
             </>

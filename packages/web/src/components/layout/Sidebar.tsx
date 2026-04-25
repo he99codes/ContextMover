@@ -46,13 +46,13 @@ export function Sidebar({ user }: SidebarProps) {
     : "CF";
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col border-r border-[#E8E8E4] bg-white">
+    <aside className="fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col border-r border-[#2A2A2A] bg-[#0A0A0A]">
       {/* Logo */}
-      <div className="flex h-14 items-center gap-2.5 border-b border-[#E8E8E4] px-4">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#2563EB]">
-          <Zap size={14} className="text-white" />
+      <div className="flex h-14 items-center gap-2.5 border-b border-[#2A2A2A] px-4">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#00FF88]">
+          <Zap size={14} className="text-black" />
         </div>
-        <span className="text-[15px] font-semibold text-[#1A1A1A] tracking-tight">
+        <span className="text-[15px] font-semibold text-[#F5F5F5] tracking-tight">
           ContextForge
         </span>
       </div>
@@ -69,15 +69,15 @@ export function Sidebar({ user }: SidebarProps) {
               key={item.name}
               href={item.href}
               className={cn(
-                "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm font-medium transition-all",
                 isActive
-                  ? "bg-[#EFF6FF] text-[#2563EB]"
-                  : "text-[#6B6B6B] hover:bg-[#F7F7F5] hover:text-[#1A1A1A]"
+                  ? "bg-[#00FF88]/10 text-[#00FF88] shadow-[0_0_12px_rgba(0,255,136,0.12)]"
+                  : "text-[#6B6B6B] hover:bg-[#1A1A1A] hover:text-[#F5F5F5]"
               )}
             >
               <item.icon
                 size={16}
-                className={isActive ? "text-[#2563EB]" : "text-[#6B6B6B]"}
+                className={isActive ? "text-[#00FF88]" : "text-[#6B6B6B]"}
               />
               {item.name}
             </Link>
@@ -86,21 +86,21 @@ export function Sidebar({ user }: SidebarProps) {
       </nav>
 
       {/* User */}
-      <div className="border-t border-[#E8E8E4] p-3">
-        <div className="flex items-center gap-2.5 rounded-md px-2 py-2">
+      <div className="border-t border-[#2A2A2A] p-3">
+        <div className="flex items-center gap-2.5 rounded-[8px] px-2 py-2">
           <Avatar className="h-7 w-7">
-            <AvatarFallback className="bg-[#EFF6FF] text-[#2563EB] text-xs font-semibold">
+            <AvatarFallback className="bg-[#00FF88]/10 text-[#00FF88] text-xs font-semibold border border-[#00FF88]/20">
               {initials}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[12px] font-medium text-[#1A1A1A]">
+            <p className="truncate text-[12px] font-medium text-[#6B6B6B]">
               {user?.email ?? ""}
             </p>
           </div>
           <button
             onClick={handleSignOut}
-            className="shrink-0 text-[#6B6B6B] transition-colors hover:text-[#1A1A1A]"
+            className="shrink-0 text-[#6B6B6B] transition-colors hover:text-red-400"
             title="Sign out"
           >
             <LogOut size={14} />
