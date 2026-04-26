@@ -542,6 +542,96 @@ function scrapeSessionFromPage(platform: string) {
   };
 }
 
+// Self-contained prompt injector — serialised and run directly in the page
+// via chrome.scripting.executeScript when the content script listener is absent.
+// Must have ZERO imports / outer-scope references.
+function injectPromptInPage(
+  text: string,
+  platform: string
+): { ok: boolean; error?: string } {
+  const SELECTORS: Record<string, string[]> = {
+    perplexity: [
+      'textarea[placeholder*="Ask"]',
+      'textarea[placeholder*="ask"]',
+      'textarea[placeholder*="Search"]',
+      '[contenteditable="true"][role="textbox"]',
+      '.ProseMirror[contenteditable="true"]',
+      'textarea:not([readonly])',
+      '[contenteditable="true"]',
+    ],
+    deepseek: [
+      '#chat-input',
+      'textarea[placeholder*="Send"]',
+      'textarea[placeholder*="Message"]',
+      '[contenteditable="true"]',
+      'textarea:not([readonly])',
+    ],
+    claude: [
+      '.ProseMirror[contenteditable]',
+      '[contenteditable="true"]',
+    ],
+    chatgpt: [
+      '#prompt-textarea',
+      '[contenteditable="true"]',
+      'textarea',
+    ],
+    gemini: [
+      '.ql-editor[contenteditable]',
+      '[contenteditable="true"]',
+    ],
+    grok: [
+      'textarea:not([readonly])',
+      '[contenteditable="true"]',
+    ],
+  };
+
+  const sels = SELECTORS[platform] ?? ['textarea:not([readonly])', '[contenteditable="true"]'];
+  let input: HTMLElement | null = null;
+  for (const sel of sels) {
+    const el = document.querySelector<HTMLElement>(sel);
+    if (el) { input = el; break; }
+  }
+
+  if (!input) {
+    return {
+      ok: false,
+      error: `Input box not found on the ${platform} page. Make sure a conversation is open, then try again.`,
+    };
+  }
+
+  input.focus();
+
+  if (input instanceof HTMLTextAreaElement) {
+    const nativeSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLTextAreaElement.prototype,
+      "value"
+    )?.set;
+    nativeSetter?.call(input, text);
+    input.dispatchEvent(new Event("input",  { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    return { ok: input.value === text || input.value.length > 0 };
+  }
+
+  if (input.isContentEditable) {
+    document.execCommand("selectAll", false, undefined);
+    const inserted = document.execCommand("insertText", false, text);
+    if (inserted && (input.textContent?.trim().length ?? 0) > 0) return { ok: true };
+
+    // Fallback: innerText + synthetic InputEvent
+    try {
+      input.innerText = text;
+      input.dispatchEvent(new InputEvent("input", { bubbles: true, data: text, inputType: "insertText" }));
+      if ((input.textContent?.trim().length ?? 0) > 0) return { ok: true };
+    } catch { /* fall through */ }
+
+    input.textContent = text;
+    input.dispatchEvent(new InputEvent("input", { bubbles: true, data: text }));
+    return { ok: (input.textContent?.trim().length ?? 0) > 0 };
+  }
+
+  return { ok: false, error: "Unrecognised input type on target page." };
+}
+
 async function sendMessageToTab(
   tabId: number,
   message: { type: "INJECT_CONTEXT"; prompt: string; platform: string }
@@ -568,14 +658,33 @@ async function sendMessageToTab(
 
     // Chrome throws this when the content script hasn't loaded in the tab yet
     // (tab opened before extension install, or extension was reloaded).
+    // Fall back to a direct executeScript injection — no content script needed.
     if (messageText.includes("Receiving end does not exist") ||
         messageText.includes("Could not establish connection")) {
-      return {
-        ok: false,
-        error:
-          "The content script is not running in the target tab. " +
-          "Please reload that tab (press F5 while on the AI platform page), then try migrating again.",
-      };
+      console.log(`[ContextForge] Content script absent — falling back to executeScript injection for tab ${tabId}`);
+      try {
+        const [result] = await chrome.scripting.executeScript({
+          target: { tabId },
+          func: injectPromptInPage,
+          args: [message.prompt, message.platform],
+        });
+        const res = result?.result as { ok: boolean; error?: string } | undefined;
+        if (res?.ok) {
+          console.log(`[ContextForge] executeScript injection succeeded for tab ${tabId}`);
+          return { ok: true };
+        }
+        return {
+          ok: false,
+          error: res?.error ?? "Direct page injection failed. Reload the target tab and try again.",
+        };
+      } catch (scriptErr) {
+        const scriptMsg = scriptErr instanceof Error ? scriptErr.message : String(scriptErr);
+        console.warn("[ContextForge] executeScript fallback failed:", scriptMsg);
+        return {
+          ok: false,
+          error: `Could not reach the ${message.platform} tab: ${scriptMsg}. Try reloading that tab.`,
+        };
+      }
     }
 
     return { ok: false, error: messageText };
