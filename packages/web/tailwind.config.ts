@@ -55,10 +55,12 @@ const config: Config = {
           "green-dim": "#00CC6A",
         },
         platform: {
-          claude:  "#D97706",
-          chatgpt: "#10B981",
-          gemini:  "#6366F1",
-          grok:    "#F5F5F5",
+          claude:     "#D97706",
+          chatgpt:    "#10B981",
+          gemini:     "#6366F1",
+          grok:       "#F5F5F5",
+          perplexity: "#20B2AA",
+          deepseek:   "#4C8BF5",
         },
       },
       fontFamily: {

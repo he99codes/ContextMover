@@ -25,6 +25,8 @@ export default defineConfig({
         "src/content/chatgpt": "src/content/chatgpt.ts",
         "src/content/gemini": "src/content/gemini.ts",
         "src/content/grok": "src/content/grok.ts",
+        "src/content/perplexity": "src/content/perplexity.ts",
+        "src/content/deepseek": "src/content/deepseek.ts",
         "src/content/fetch-interceptor": "src/content/fetch-interceptor.ts",
         "src/content/interceptor-bridge": "src/content/interceptor-bridge.ts",
       },

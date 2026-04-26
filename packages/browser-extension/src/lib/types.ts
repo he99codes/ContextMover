@@ -1,6 +1,6 @@
 // packages/browser-extension/src/lib/types.ts
 
-export type Platform = "claude" | "chatgpt" | "gemini" | "grok";
+export type Platform = "claude" | "chatgpt" | "gemini" | "grok" | "perplexity" | "deepseek";
 
 export interface Message {
   role: "user" | "assistant";

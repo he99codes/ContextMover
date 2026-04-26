@@ -4,10 +4,12 @@ import type { Session, Migration } from "@/types";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
 const PLATFORM_COLORS: Record<string, string> = {
-  claude:  "bg-[#D97706]",
-  chatgpt: "bg-[#10B981]",
-  gemini:  "bg-[#6366F1]",
-  grok:    "bg-[#F5F5F5]",
+  claude:     "bg-[#D97706]",
+  chatgpt:    "bg-[#10B981]",
+  gemini:     "bg-[#6366F1]",
+  grok:       "bg-[#F5F5F5]",
+  perplexity: "bg-[#20B2AA]",
+  deepseek:   "bg-[#4C8BF5]",
 };
 
 export default async function AnalyticsPage() {
@@ -27,7 +29,7 @@ export default async function AnalyticsPage() {
     acc[s.platform] = (acc[s.platform] ?? 0) + 1;
     return acc;
   }, {});
-  const platforms = ["claude", "chatgpt", "gemini", "grok"] as const;
+  const platforms = ["claude", "chatgpt", "gemini", "grok", "perplexity", "deepseek"] as const;
   const maxCount = Math.max(1, ...platforms.map((p) => byPlatform[p] ?? 0));
 
   const stats = [

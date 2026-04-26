@@ -1,4 +1,4 @@
-export type Platform = "claude" | "chatgpt" | "gemini" | "grok";
+export type Platform = "claude" | "chatgpt" | "gemini" | "grok" | "perplexity" | "deepseek";
 
 export interface Message {
   role: "user" | "assistant";
@@ -38,22 +38,28 @@ export interface CustomAgent {
 }
 
 export const PLATFORM_LABELS: Record<Platform, string> = {
-  claude: "Claude",
-  chatgpt: "ChatGPT",
-  gemini: "Gemini",
-  grok: "Grok",
+  claude:     "Claude",
+  chatgpt:    "ChatGPT",
+  gemini:     "Gemini",
+  grok:       "Grok",
+  perplexity: "Perplexity",
+  deepseek:   "DeepSeek",
 };
 
 export const PLATFORM_COLORS: Record<Platform, string> = {
-  claude: "#D97706",
-  chatgpt: "#10B981",
-  gemini: "#6366F1",
-  grok: "#1A1A1A",
+  claude:     "#D97706",
+  chatgpt:    "#10B981",
+  gemini:     "#6366F1",
+  grok:       "#F5F5F5",
+  perplexity: "#20B2AA",
+  deepseek:   "#4C8BF5",
 };
 
 export const PLATFORM_BG: Record<Platform, string> = {
-  claude: "bg-amber-50 text-amber-700 border-amber-200",
-  chatgpt: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  gemini: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  grok: "bg-gray-100 text-gray-700 border-gray-200",
+  claude:     "bg-amber-50 text-amber-700 border-amber-200",
+  chatgpt:    "bg-emerald-50 text-emerald-700 border-emerald-200",
+  gemini:     "bg-indigo-50 text-indigo-700 border-indigo-200",
+  grok:       "bg-gray-100 text-gray-700 border-gray-200",
+  perplexity: "bg-teal-50 text-teal-700 border-teal-200",
+  deepseek:   "bg-blue-50 text-blue-700 border-blue-200",
 };

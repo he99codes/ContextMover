@@ -4,24 +4,30 @@ import type { ContextSession, Platform } from "@/lib/types";
 import ExportMenu from "@/components/ExportMenu";
 
 const PLATFORM_LABELS: Record<Platform, string> = {
-  claude: "Claude",
-  chatgpt: "ChatGPT",
-  gemini: "Gemini",
-  grok: "Grok",
+  claude:     "Claude",
+  chatgpt:    "ChatGPT",
+  gemini:     "Gemini",
+  grok:       "Grok",
+  perplexity: "Perplexity",
+  deepseek:   "DeepSeek",
 };
 
 const PLATFORM_SHORT: Record<Platform, string> = {
-  claude: "CL",
-  chatgpt: "GPT",
-  gemini: "GM",
-  grok: "GK",
+  claude:     "CL",
+  chatgpt:    "GPT",
+  gemini:     "GM",
+  grok:       "GK",
+  perplexity: "PPX",
+  deepseek:   "DS",
 };
 
 const PLATFORM_COLORS: Record<Platform, string> = {
-  claude:  "#D97706",
-  chatgpt: "#10B981",
-  gemini:  "#6366F1",
-  grok:    "#F5F5F5",
+  claude:     "#D97706",
+  chatgpt:    "#10B981",
+  gemini:     "#6366F1",
+  grok:       "#F5F5F5",
+  perplexity: "#20B2AA",
+  deepseek:   "#4C8BF5",
 };
 
 type StatusTone = "info" | "success" | "error";

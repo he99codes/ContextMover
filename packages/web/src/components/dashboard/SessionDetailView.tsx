@@ -19,11 +19,13 @@ import { useSessionMutations } from "@/hooks/useSessionMutations";
 import type { Session } from "@/types";
 import { SessionExportPanel } from "./SessionExportPanel";
 
-const PLATFORM_STYLES: Record<string, { label: string; dot: string; badge: string }> = {
-  claude:  { label: "Claude",  dot: "bg-[#D97706]", badge: "text-[#D97706] border-[#D97706]/25 bg-[#D97706]/10" },
-  chatgpt: { label: "ChatGPT", dot: "bg-[#10B981]", badge: "text-[#10B981] border-[#10B981]/25 bg-[#10B981]/10" },
-  gemini:  { label: "Gemini",  dot: "bg-[#6366F1]", badge: "text-[#6366F1] border-[#6366F1]/25 bg-[#6366F1]/10" },
-  grok:    { label: "Grok",    dot: "bg-[#F5F5F5]", badge: "text-[#F5F5F5] border-[#F5F5F5]/25 bg-[#F5F5F5]/10" },
+const PLATFORM_STYLES: Record<string, { label: string; dot: string; badge: string; color: string }> = {
+  claude:     { label: "Claude",     dot: "bg-[#D97706]", badge: "text-[#D97706] border-[#D97706]/25 bg-[#D97706]/10", color: "#D97706" },
+  chatgpt:    { label: "ChatGPT",    dot: "bg-[#10B981]", badge: "text-[#10B981] border-[#10B981]/25 bg-[#10B981]/10", color: "#10B981" },
+  gemini:     { label: "Gemini",     dot: "bg-[#6366F1]", badge: "text-[#6366F1] border-[#6366F1]/25 bg-[#6366F1]/10", color: "#6366F1" },
+  grok:       { label: "Grok",       dot: "bg-[#F5F5F5]", badge: "text-[#F5F5F5] border-[#F5F5F5]/25 bg-[#F5F5F5]/10", color: "#F5F5F5" },
+  perplexity: { label: "Perplexity", dot: "bg-[#20B2AA]", badge: "text-[#20B2AA] border-[#20B2AA]/25 bg-[#20B2AA]/10", color: "#20B2AA" },
+  deepseek:   { label: "DeepSeek",   dot: "bg-[#4C8BF5]", badge: "text-[#4C8BF5] border-[#4C8BF5]/25 bg-[#4C8BF5]/10", color: "#4C8BF5" },
 };
 
 function getStyle(platform: string) {

@@ -21,6 +21,8 @@
         "https://gemini.google.com/*",
         "https://grok.com/*",
         "https://grok.x.ai/*",
+        "https://www.perplexity.ai/*",
+        "https://chat.deepseek.com/*",
         "http://localhost:49152/*"
     ],
     "background": {
@@ -35,7 +37,9 @@
                 "https://chat.openai.com/*",
                 "https://gemini.google.com/*",
                 "https://grok.com/*",
-                "https://grok.x.ai/*"
+                "https://grok.x.ai/*",
+                "https://www.perplexity.ai/*",
+                "https://chat.deepseek.com/*"
             ],
             "js": [
                 "src/content/fetch-interceptor.ts"
@@ -50,7 +54,9 @@
                 "https://chat.openai.com/*",
                 "https://gemini.google.com/*",
                 "https://grok.com/*",
-                "https://grok.x.ai/*"
+                "https://grok.x.ai/*",
+                "https://www.perplexity.ai/*",
+                "https://chat.deepseek.com/*"
             ],
             "js": [
                 "src/content/interceptor-bridge.ts"
@@ -94,6 +100,24 @@
                 "src/content/grok.ts"
             ],
             "run_at": "document_idle"
+        },
+        {
+            "matches": [
+                "https://www.perplexity.ai/*"
+            ],
+            "js": [
+                "src/content/perplexity.ts"
+            ],
+            "run_at": "document_idle"
+        },
+        {
+            "matches": [
+                "https://chat.deepseek.com/*"
+            ],
+            "js": [
+                "src/content/deepseek.ts"
+            ],
+            "run_at": "document_idle"
         }
     ],
     "action": {
@@ -114,7 +138,9 @@
                 "https://chat.openai.com/*",
                 "https://gemini.google.com/*",
                 "https://grok.com/*",
-                "https://grok.x.ai/*"
+                "https://grok.x.ai/*",
+                "https://www.perplexity.ai/*",
+                "https://chat.deepseek.com/*"
             ]
         }
     ],

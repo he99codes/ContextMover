@@ -1,10 +1,12 @@
 import type { Platform } from "./types";
 
 const PLATFORM_TAB_PATTERNS: Record<Platform, string[]> = {
-  claude: ["https://claude.ai/*"],
-  chatgpt: ["https://chatgpt.com/*", "https://chat.openai.com/*"],
-  gemini: ["https://gemini.google.com/*"],
-  grok: ["https://grok.com/*", "https://grok.x.ai/*"],
+  claude:     ["https://claude.ai/*"],
+  chatgpt:    ["https://chatgpt.com/*", "https://chat.openai.com/*"],
+  gemini:     ["https://gemini.google.com/*"],
+  grok:       ["https://grok.com/*", "https://grok.x.ai/*"],
+  perplexity: ["https://www.perplexity.ai/*"],
+  deepseek:   ["https://chat.deepseek.com/*"],
 };
 
 export async function findTargetPlatformTab(

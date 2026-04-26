@@ -11,10 +11,12 @@ const PLATFORM_STYLES: Record<
   string,
   { label: string; color: string; dot: string; badge: string }
 > = {
-  claude:  { label: "Claude",  color: "#D97706", dot: "bg-[#D97706]",  badge: "text-[#D97706] border-[#D97706]/25 bg-[#D97706]/10"  },
-  chatgpt: { label: "ChatGPT", color: "#10B981", dot: "bg-[#10B981]",  badge: "text-[#10B981] border-[#10B981]/25 bg-[#10B981]/10" },
-  gemini:  { label: "Gemini",  color: "#6366F1", dot: "bg-[#6366F1]",  badge: "text-[#6366F1] border-[#6366F1]/25 bg-[#6366F1]/10"  },
-  grok:    { label: "Grok",    color: "#F5F5F5", dot: "bg-[#F5F5F5]",  badge: "text-[#F5F5F5] border-[#F5F5F5]/25 bg-[#F5F5F5]/10"  },
+  claude:     { label: "Claude",     color: "#D97706", dot: "bg-[#D97706]", badge: "text-[#D97706] border-[#D97706]/25 bg-[#D97706]/10" },
+  chatgpt:    { label: "ChatGPT",    color: "#10B981", dot: "bg-[#10B981]", badge: "text-[#10B981] border-[#10B981]/25 bg-[#10B981]/10" },
+  gemini:     { label: "Gemini",     color: "#6366F1", dot: "bg-[#6366F1]", badge: "text-[#6366F1] border-[#6366F1]/25 bg-[#6366F1]/10" },
+  grok:       { label: "Grok",       color: "#F5F5F5", dot: "bg-[#F5F5F5]", badge: "text-[#F5F5F5] border-[#F5F5F5]/25 bg-[#F5F5F5]/10" },
+  perplexity: { label: "Perplexity", color: "#20B2AA", dot: "bg-[#20B2AA]", badge: "text-[#20B2AA] border-[#20B2AA]/25 bg-[#20B2AA]/10" },
+  deepseek:   { label: "DeepSeek",   color: "#4C8BF5", dot: "bg-[#4C8BF5]", badge: "text-[#4C8BF5] border-[#4C8BF5]/25 bg-[#4C8BF5]/10" },
 };
 
 function getPlatformStyle(platform: string) {
@@ -119,12 +121,20 @@ export function SessionCard({ session }: SessionCardProps) {
   return (
     <div
       className={cn(
-        "group relative flex items-start gap-4 rounded-[8px] border px-5 py-4 transition-all",
+        "group relative flex items-start gap-4 rounded-[8px] border px-5 py-4 transition-all duration-200 overflow-hidden",
         busy === "delete"
           ? "border-red-500/30 bg-red-500/5 opacity-50"
-          : "bg-[#1A1A1A] border-[#2A2A2A] hover:border-[#00FF88]/25 hover:shadow-[0_0_16px_rgba(0,255,136,0.06)]"
+          : "bg-[#1A1A1A] border-[#2A2A2A] hover:border-[#2A2A2A] hover:shadow-[0_0_24px_rgba(0,0,0,0.4)]"
       )}
+      style={busy !== "delete" ? {
+        "--platform-color": style.color,
+      } as React.CSSProperties : {}}
     >
+      {/* Platform color left accent bar */}
+      <div
+        className="absolute inset-y-0 left-0 w-[3px] rounded-l-[8px] transition-opacity duration-200 opacity-0 group-hover:opacity-100"
+        style={{ backgroundColor: style.color }}
+      />
       {/* Platform dot */}
       <div className="mt-1 shrink-0">
         <span className={cn("inline-block h-2 w-2 rounded-full", style.dot)} />

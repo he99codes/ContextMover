@@ -8,7 +8,16 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { Session } from "@/types";
 
-const PLATFORMS = ["All", "Claude", "ChatGPT", "Gemini", "Grok"] as const;
+const PLATFORMS = ["All", "Claude", "ChatGPT", "Gemini", "Grok", "Perplexity", "DeepSeek"] as const;
+
+const PLATFORM_COLORS: Record<string, string> = {
+  Claude:     "#D97706",
+  ChatGPT:    "#10B981",
+  Gemini:     "#6366F1",
+  Grok:       "#F5F5F5",
+  Perplexity: "#20B2AA",
+  DeepSeek:   "#4C8BF5",
+};
 
 interface SessionListProps {
   initialSessions: Session[];
@@ -51,30 +60,37 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Platform filters */}
         <div className="flex items-center gap-1 flex-wrap">
-          {PLATFORMS.map((p) => (
-            <button
-              key={p}
-              onClick={() => setFilter(p)}
-              className={cn(
-                "rounded-[4px] px-3 py-1 text-xs font-medium transition-all",
-                filter === p
-                  ? "bg-[#00FF88]/10 text-[#00FF88] border border-[#00FF88]/30 shadow-[0_0_8px_rgba(0,255,136,0.12)]"
-                  : "bg-[#1A1A1A] border border-[#2A2A2A] text-[#6B6B6B] hover:text-[#F5F5F5] hover:border-[#3A3A3A]"
-              )}
-            >
-              {p}
-              {counts[p] > 0 && (
-                <span
-                  className={cn(
-                    "ml-1.5 tabular-nums",
-                    filter === p ? "text-[#00FF88]/70" : "text-[#6B6B6B]"
-                  )}
-                >
-                  {counts[p]}
-                </span>
-              )}
-            </button>
-          ))}
+          {PLATFORMS.map((p) => {
+            const pColor = p !== "All" ? PLATFORM_COLORS[p] : null;
+            const isActive = filter === p;
+            return (
+              <button
+                key={p}
+                onClick={() => setFilter(p)}
+                className={cn(
+                  "rounded-[4px] px-3 py-1 text-xs font-medium transition-all duration-150 border",
+                  isActive && p === "All"
+                    ? "bg-[#00FF88]/10 text-[#00FF88] border-[#00FF88]/30 shadow-[0_0_8px_rgba(0,255,136,0.12)]"
+                    : isActive && pColor
+                    ? "border-transparent"
+                    : "bg-[#1A1A1A] border-[#2A2A2A] text-[#6B6B6B] hover:text-[#F5F5F5] hover:border-[#3A3A3A]"
+                )}
+                style={isActive && pColor ? {
+                  background: `${pColor}18`,
+                  borderColor: `${pColor}40`,
+                  color: pColor,
+                  boxShadow: `0 0 8px ${pColor}20`,
+                } : {}}
+              >
+                {p}
+                {counts[p] > 0 && (
+                  <span className="ml-1.5 tabular-nums opacity-60">
+                    {counts[p]}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Search */}

@@ -21,7 +21,7 @@ type CapturedDetail = {
 };
 
 const TAG = "[ContextForge:bridge]";
-const VALID_PLATFORMS: Platform[] = ["claude", "chatgpt", "gemini", "grok"];
+const VALID_PLATFORMS: Platform[] = ["claude", "chatgpt", "gemini", "grok", "perplexity", "deepseek"];
 const legacyChecker = makeLegacyChecker();
 
 // Idempotency: do not double-install if the bridge is loaded twice.

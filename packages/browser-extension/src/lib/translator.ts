@@ -19,6 +19,10 @@ export default function buildMigrationPrompt(
       return buildGeminiPrompt(payload);
     case "grok":
       return buildGrokPrompt(payload);
+    case "perplexity":
+      return buildPerplexityPrompt(payload);
+    case "deepseek":
+      return buildDeepSeekPrompt(payload);
     default: {
       const _exhaustive: never = payload.targetPlatform;
       void _exhaustive;
@@ -390,6 +394,165 @@ function buildGeminiPrompt(payload: MigrationPayload): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PERPLEXITY — Markdown with plain-prose instructions
+// Perplexity is a search-focused AI; guide it to treat the context as a
+// conversation continuation rather than a new search query.
+// ─────────────────────────────────────────────────────────────────────────────
+function buildPerplexityPrompt(payload: MigrationPayload): string {
+  const { sourceSession, extracted: ex, ideContext } = payload;
+  const now = new Date().toISOString();
+  const tail = tailMessages(ex, sourceSession.messages);
+  const currentFocus = ex?.currentFocus ?? "See recent messages below";
+
+  const out: string[] = [
+    `## Migrated Context — Perplexity`,
+    ``,
+    `> **From:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | ${now}`,
+    ``,
+    `---`,
+    ``,
+    `## Goal`,
+    ``,
+    ex?.primaryGoal ?? payload.summary,
+    ``,
+    `## Progress`,
+    ``,
+    `**Completed:** ${ex?.completed.length ? ex.completed.map(c => `\n- ${c}`).join("") : " (none extracted)"}`,
+    ``,
+    `**Pending:** ${ex?.pending.length ? ex.pending.map(p => `\n- ${p}`).join("") : " (none extracted)"}`,
+    ``,
+    `## Key Decisions`,
+    ``,
+    ex?.decisions || "(none extracted)",
+    ``,
+    `## Code`,
+    ``,
+  ];
+
+  if (ex?.codeBlocks.length) {
+    for (const block of ex.codeBlocks) {
+      if (block.path) out.push(`### \`${block.path}\``, ``);
+      else if (block.context) out.push(`_${block.context}_`, ``);
+      out.push(`\`\`\`${block.language}`, block.content, `\`\`\``, ``);
+    }
+  } else {
+    out.push(`_No code blocks detected in this session_`, ``);
+  }
+
+  if (ideContext) {
+    out.push(`---`, ``, `## Codebase State`, ``, ideContext, ``);
+  }
+
+  out.push(
+    `---`,
+    ``,
+    `## Where We Left Off`,
+    ``,
+    ...tail.flatMap((m) => [
+      `**${m.role === "user" ? "User" : "Perplexity"}:**`,
+      ``,
+      m.content,
+      ``,
+    ]),
+    `---`,
+    ``,
+    `## Instructions`,
+    ``,
+    `This is a migrated conversation from ${sourceSession.platform}. Please continue it directly.`,
+    `The user is currently focused on: **${currentFocus}**`,
+    ``,
+    `Do not treat this as a new search query. Pick up exactly where the conversation ended,`,
+    `treating all code and decisions above as established context.`
+  );
+
+  return out.join("\n");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEEPSEEK — Markdown with technical framing
+// DeepSeek is strong at code; emphasise code blocks and technical context.
+// ─────────────────────────────────────────────────────────────────────────────
+function buildDeepSeekPrompt(payload: MigrationPayload): string {
+  const { sourceSession, extracted: ex, ideContext } = payload;
+  const now = new Date().toISOString();
+  const tail = tailMessages(ex, sourceSession.messages);
+  const currentFocus = ex?.currentFocus ?? "See recent messages below";
+
+  const out: string[] = [
+    `# ContextForge Migration → DeepSeek`,
+    ``,
+    `**Source:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | ${now}`,
+    ``,
+    `---`,
+    ``,
+    `## Objective`,
+    ``,
+    ex?.primaryGoal ?? payload.summary,
+    ``,
+    `## Current Focus`,
+    ``,
+    currentFocus,
+    ``,
+    `## Completed`,
+    ``,
+    ex?.completed.length
+      ? ex.completed.map((c) => `- ${c}`).join("\n")
+      : "_Nothing extracted_",
+    ``,
+    `## Pending`,
+    ``,
+    ex?.pending.length
+      ? ex.pending.map((p) => `- ${p}`).join("\n")
+      : "_Nothing extracted_",
+    ``,
+    `## Decisions & Facts`,
+    ``,
+    ex?.decisions || "_None extracted_",
+    ``,
+    `## Code Context`,
+    ``,
+  ];
+
+  if (ex?.codeBlocks.length) {
+    for (const block of ex.codeBlocks) {
+      if (block.path) out.push(`### \`${block.path}\``, ``);
+      else if (block.context) out.push(`_${block.context}_`, ``);
+      out.push(`\`\`\`${block.language}`, block.content, `\`\`\``, ``);
+    }
+  } else {
+    out.push(`_No code blocks detected in this session_`, ``);
+  }
+
+  if (ideContext) {
+    out.push(`---`, ``, `## Live Codebase (VS Code)`, ``, ideContext, ``);
+  }
+
+  out.push(
+    `---`,
+    ``,
+    `## Recent Conversation`,
+    ``,
+    ...tail.flatMap((m) => [
+      `**${m.role === "user" ? "User" : "Assistant"}:**`,
+      ``,
+      m.content,
+      ``,
+    ]),
+    `---`,
+    ``,
+    `## Task`,
+    ``,
+    `Continue this conversation from ${sourceSession.platform}.`,
+    `Focus on: **${currentFocus}**`,
+    ``,
+    `All code above is established context — do not re-explain it.`,
+    `Pick up exactly where the conversation ended.`
+  );
+
+  return out.join("\n");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Utilities
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -413,4 +576,6 @@ export {
   buildChatGPTPrompt,
   buildGeminiPrompt,
   buildGrokPrompt,
+  buildPerplexityPrompt,
+  buildDeepSeekPrompt,
 };

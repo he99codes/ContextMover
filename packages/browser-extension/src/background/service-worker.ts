@@ -39,10 +39,12 @@ async function broadcastToViews(message: unknown): Promise<void> {
 
 const BRIDGE_URL = "http://localhost:49152";
 const PLATFORM_URLS = {
-  claude: ["https://claude.ai/*"],
-  chatgpt: ["https://chatgpt.com/*", "https://chat.openai.com/*"],
-  gemini: ["https://gemini.google.com/*"],
-  grok: ["https://grok.com/*", "https://grok.x.ai/*"],
+  claude:     ["https://claude.ai/*"],
+  chatgpt:    ["https://chatgpt.com/*", "https://chat.openai.com/*"],
+  gemini:     ["https://gemini.google.com/*"],
+  grok:       ["https://grok.com/*", "https://grok.x.ai/*"],
+  perplexity: ["https://www.perplexity.ai/*"],
+  deepseek:   ["https://chat.deepseek.com/*"],
 } as const;
 
 const ALL_PLATFORM_URL_GLOBS: string[] = Object.values(PLATFORM_URLS).flatMap((p) => [...p]);

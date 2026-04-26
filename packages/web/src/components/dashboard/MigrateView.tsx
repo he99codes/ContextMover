@@ -8,10 +8,12 @@ import { useRealtimeSessions } from "@/hooks/useRealtimeSessions";
 import type { Session, Platform } from "@/types";
 
 const TARGETS: { id: Platform; label: string; color: string; active: string }[] = [
-  { id: "claude",  label: "Claude",  color: "#D97706", active: "border-[#D97706]/40 bg-[#D97706]/10 text-[#D97706]"  },
-  { id: "chatgpt", label: "ChatGPT", color: "#10B981", active: "border-[#10B981]/40 bg-[#10B981]/10 text-[#10B981]" },
-  { id: "gemini",  label: "Gemini",  color: "#6366F1", active: "border-[#6366F1]/40 bg-[#6366F1]/10 text-[#6366F1]"  },
-  { id: "grok",    label: "Grok",    color: "#F5F5F5", active: "border-[#F5F5F5]/40 bg-[#F5F5F5]/10 text-[#F5F5F5]"  },
+  { id: "claude",     label: "Claude",     color: "#D97706", active: "border-[#D97706]/40 bg-[#D97706]/10 text-[#D97706]"   },
+  { id: "chatgpt",    label: "ChatGPT",    color: "#10B981", active: "border-[#10B981]/40 bg-[#10B981]/10 text-[#10B981]"  },
+  { id: "gemini",     label: "Gemini",     color: "#6366F1", active: "border-[#6366F1]/40 bg-[#6366F1]/10 text-[#6366F1]"   },
+  { id: "grok",       label: "Grok",       color: "#F5F5F5", active: "border-[#F5F5F5]/40 bg-[#F5F5F5]/10 text-[#F5F5F5]"   },
+  { id: "perplexity", label: "Perplexity", color: "#20B2AA", active: "border-[#20B2AA]/40 bg-[#20B2AA]/10 text-[#20B2AA]"  },
+  { id: "deepseek",   label: "DeepSeek",   color: "#4C8BF5", active: "border-[#4C8BF5]/40 bg-[#4C8BF5]/10 text-[#4C8BF5]"  },
 ];
 
 interface Props {
