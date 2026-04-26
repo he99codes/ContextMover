@@ -291,13 +291,20 @@ export default function Popup() {
                 {bridgeStatus.state === "ok" ? "●  Online" : bridgeStatus.state === "offline" ? "○  Offline" : "Checking"}
               </span>
             </div>
-            <div className="mt-2 grid grid-cols-4 gap-1.5">
+            <div className="mt-2 grid grid-cols-3 gap-1.5">
               {sourceBreakdown.map(({ platform, count }) => (
-                <div key={platform} className="rounded-[4px] border border-[#2A2A2A] bg-[#0A0A0A] px-1 py-1.5 text-center">
+                <div
+                  key={platform}
+                  className="rounded-[4px] border bg-[#0A0A0A] px-1 py-1.5 text-center transition-all"
+                  style={{
+                    borderColor: count > 0 ? `${PLATFORM_COLORS[platform]}35` : "#2A2A2A",
+                    background: count > 0 ? `${PLATFORM_COLORS[platform]}0D` : "#0A0A0A",
+                  }}
+                >
                   <div className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: PLATFORM_COLORS[platform] }}>
                     {PLATFORM_SHORT[platform]}
                   </div>
-                  <div className="mt-0.5 text-sm font-semibold text-[#F5F5F5]">{count}</div>
+                  <div className="mt-0.5 text-sm font-bold" style={{ color: count > 0 ? "#F5F5F5" : "#3A3A3A" }}>{count}</div>
                 </div>
               ))}
             </div>
@@ -323,32 +330,49 @@ export default function Popup() {
 
           <div className="mb-2 text-[10px] uppercase tracking-wider text-[#6B6B6B]">Route context to</div>
           <div className="grid grid-cols-2 gap-1.5">
-            {(Object.keys(PLATFORM_LABELS) as Platform[]).map((platform) => (
-              <button
-                key={platform}
-                onClick={() => setTargetPlatform(platform)}
-                className="rounded-[4px] border px-3 py-2 text-left transition-all"
-                style={targetPlatform === platform ? {
-                  borderColor: `${PLATFORM_COLORS[platform]}40`,
-                  background: `${PLATFORM_COLORS[platform]}15`,
-                } : {
-                  borderColor: "#2A2A2A",
-                  background: "#1A1A1A",
-                }}
-              >
-                <div className="flex items-center justify-between gap-1">
-                  <span
-                    className="text-xs font-semibold"
-                    style={{ color: targetPlatform === platform ? PLATFORM_COLORS[platform] : "#F5F5F5" }}
-                  >
-                    {PLATFORM_LABELS[platform]}
-                  </span>
-                  {targetPlatform === platform && (
-                    <span className="text-[9px] uppercase tracking-wider" style={{ color: PLATFORM_COLORS[platform] }}>armed</span>
+            {(Object.keys(PLATFORM_LABELS) as Platform[]).map((platform) => {
+              const isTarget = targetPlatform === platform;
+              const pColor = PLATFORM_COLORS[platform];
+              return (
+                <button
+                  key={platform}
+                  onClick={() => setTargetPlatform(platform)}
+                  className="rounded-[4px] border px-3 py-2 text-left transition-all duration-150 overflow-hidden relative"
+                  style={isTarget ? {
+                    borderColor: `${pColor}45`,
+                    background: `${pColor}12`,
+                    boxShadow: `0 0 10px ${pColor}18`,
+                  } : {
+                    borderColor: "#2A2A2A",
+                    background: "#1A1A1A",
+                  }}
+                >
+                  {isTarget && (
+                    <span
+                      className="absolute left-0 inset-y-0 w-[2px]"
+                      style={{ background: pColor }}
+                    />
                   )}
-                </div>
-              </button>
-            ))}
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className="h-1.5 w-1.5 rounded-full shrink-0"
+                        style={{ background: pColor, opacity: isTarget ? 1 : 0.35 }}
+                      />
+                      <span
+                        className="text-xs font-semibold"
+                        style={{ color: isTarget ? pColor : "#F5F5F5" }}
+                      >
+                        {PLATFORM_LABELS[platform]}
+                      </span>
+                    </div>
+                    {isTarget && (
+                      <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: pColor }}>✓</span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </section>
 
@@ -379,7 +403,7 @@ export default function Popup() {
                 </p>
                 <p className="mt-1 text-xs text-[#6B6B6B]">
                   {sessions.length === 0
-                    ? "Open ChatGPT, Claude, Gemini, or Grok."
+                    ? "Open Claude, ChatGPT, Gemini, Grok, Perplexity, or DeepSeek."
                     : "Try a different search."}
                 </p>
               </div>
@@ -396,8 +420,13 @@ export default function Popup() {
                 return (
                   <article
                     key={session.id}
-                    className="rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] p-3 transition-all hover:border-[#00FF88]/20 hover:shadow-[0_0_12px_rgba(0,255,136,0.04)]"
+                    className="rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] p-3 transition-all duration-150 overflow-hidden relative hover:border-[#2A2A2A] hover:shadow-[0_2px_16px_rgba(0,0,0,0.35)]"
+                    style={{ "--pcolor": pColor } as React.CSSProperties}
                   >
+                    <span
+                      className="absolute inset-y-0 left-0 w-[3px] rounded-l-[8px]"
+                      style={{ background: pColor, opacity: 0.7 }}
+                    />
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5">

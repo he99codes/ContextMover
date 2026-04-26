@@ -267,11 +267,12 @@ export default function Sidebar() {
             {visibleMessages.map((msg, index) => (
               <div
                 key={`${msg.role}-${index}-${msg.timestamp}`}
-                className={`rounded-[8px] border px-3 py-2.5 text-xs ${
+                className={`rounded-[8px] border px-3 py-2.5 text-xs overflow-hidden relative ${
                   msg.role === "user"
-                    ? "ml-4 border-[#2A2A2A] bg-[#1A1A1A] text-[#F5F5F5]"
+                    ? "ml-4 bg-[#1A1A1A] text-[#F5F5F5]"
                     : "mr-4 border-[#00FF88]/10 bg-[#00FF88]/5 text-[#F5F5F5]/90"
                 }`}
+                style={msg.role === "user" ? { borderColor: `${platformColor}30` } : {}}
               >
                 <div className="mb-1 flex items-center justify-between gap-2">
                   <div className={`text-[10px] font-semibold uppercase tracking-[0.18em] ${
@@ -395,16 +396,20 @@ export default function Sidebar() {
               : "Open an AI tab to start capturing."}
           </p>
 
-          <div className="mt-3 grid grid-cols-4 gap-1.5">
+          <div className="mt-3 grid grid-cols-3 gap-1.5">
             {sourceCounts.map(({ platform, count }) => (
               <div
                 key={platform}
-                className="rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-1.5 py-1.5 text-center"
+                className="rounded-[4px] border px-1.5 py-1.5 text-center transition-all"
+                style={{
+                  borderColor: count > 0 ? `${PLATFORM_COLORS[platform]}35` : "#2A2A2A",
+                  background: count > 0 ? `${PLATFORM_COLORS[platform]}0D` : "#111111",
+                }}
               >
-                <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: PLATFORM_COLORS[platform] }}>
+                <div className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: PLATFORM_COLORS[platform] }}>
                   {PLATFORM_SHORT[platform]}
                 </div>
-                <div className="mt-0.5 text-sm font-semibold text-[#F5F5F5]">{count}</div>
+                <div className="mt-0.5 text-sm font-bold" style={{ color: count > 0 ? "#F5F5F5" : "#3A3A3A" }}>{count}</div>
               </div>
             ))}
           </div>
@@ -437,22 +442,27 @@ export default function Sidebar() {
         </div>
 
         <div className="flex gap-1 overflow-x-auto border-b border-[#2A2A2A] px-3 py-2 scrollbar-none">
-          {(["all", "claude", "chatgpt", "gemini", "grok", "perplexity", "deepseek"] as const).map((item) => (
-            <button
-              key={item}
-              onClick={() => setFilter(item)}
-              className={`whitespace-nowrap rounded-[4px] px-2.5 py-1 text-[10px] font-medium transition-all ${
-                filter === item
-                  ? "bg-[#00FF88]/10 text-[#00FF88] border border-[#00FF88]/25"
-                  : "bg-[#1A1A1A] border border-[#2A2A2A] text-[#6B6B6B] hover:text-[#F5F5F5]"
-              }`}
-            >
-              {item === "all" ? "All" : PLATFORM_LABELS[item]}
-              <span className="ml-1 opacity-60">
-                {item === "all" ? sessions.length : sessions.filter((s) => s.platform === item).length}
-              </span>
-            </button>
-          ))}
+          {(["all", "claude", "chatgpt", "gemini", "grok", "perplexity", "deepseek"] as const).map((item) => {
+            const isActive = filter === item;
+            const pColor = item !== "all" ? PLATFORM_COLORS[item] : null;
+            const count = item === "all" ? sessions.length : sessions.filter((s) => s.platform === item).length;
+            return (
+              <button
+                key={item}
+                onClick={() => setFilter(item)}
+                className="whitespace-nowrap rounded-[4px] px-2.5 py-1 text-[10px] font-medium transition-all duration-150 border"
+                style={isActive
+                  ? pColor
+                    ? { background: `${pColor}18`, borderColor: `${pColor}40`, color: pColor, boxShadow: `0 0 6px ${pColor}20` }
+                    : { background: "rgba(0,255,136,0.1)", borderColor: "rgba(0,255,136,0.25)", color: "#00FF88" }
+                  : { background: "#1A1A1A", borderColor: "#2A2A2A", color: "#6B6B6B" }
+                }
+              >
+                {item === "all" ? "All" : PLATFORM_LABELS[item]}
+                <span className="ml-1 opacity-55">{count}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-2">
@@ -463,7 +473,7 @@ export default function Sidebar() {
               </p>
               <p className="mt-1 text-[11px] text-[#6B6B6B]">
                 {sessions.length === 0
-                  ? "Visit ChatGPT, Claude, Gemini, or Grok."
+                  ? "Visit Claude, ChatGPT, Gemini, Grok, Perplexity, or DeepSeek."
                   : "Try a different search or filter."}
               </p>
             </div>
@@ -487,8 +497,10 @@ export default function Sidebar() {
                       setView("detail");
                     }
                   }}
-                  className="group block w-full cursor-pointer rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2.5 text-left transition-all hover:border-[#00FF88]/20 hover:shadow-[0_0_12px_rgba(0,255,136,0.05)]"
-                >
+                  className="group block w-full cursor-pointer rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2.5 text-left transition-all duration-150 overflow-hidden relative hover:shadow-[0_2px_14px_rgba(0,0,0,0.3)]"
+                  style={{ borderColor: `${PLATFORM_COLORS[session.platform]}25` }}
+                >  
+                  <span className="absolute inset-y-0 left-0 w-[3px] rounded-l-[8px]" style={{ background: PLATFORM_COLORS[session.platform] }} />
                   <div className="flex items-start gap-2.5">
                     <div
                       className="mt-0.5 h-2 w-2 shrink-0 rounded-full"

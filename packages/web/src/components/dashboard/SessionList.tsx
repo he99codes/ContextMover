@@ -118,8 +118,8 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
             No sessions captured yet
           </h3>
           <p className="mt-1.5 max-w-xs text-sm text-[#6B6B6B]">
-            Install the ContextForge extension and visit Claude, ChatGPT,
-            Gemini, or Grok to start capturing context.
+            Install the ContextForge extension and visit Claude, ChatGPT, Gemini,
+            Grok, Perplexity, or DeepSeek to start capturing context.
           </p>
         </div>
       )}
