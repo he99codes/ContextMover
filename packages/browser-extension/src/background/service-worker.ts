@@ -10,6 +10,7 @@ import {
   bulkSyncToCloud,
 } from "@/lib/cloud-sync";
 import { startRealtimeSync, stopRealtimeSync } from "@/lib/realtime-sync";
+import { forgetSession, resolveSessionId } from "@/lib/session-id";
 
 // Start realtime sync as soon as the service worker wakes up — if the user is
 // already signed in, edits/deletes from the web dashboard will mirror into the
@@ -43,6 +44,28 @@ const PLATFORM_URLS = {
   gemini: ["https://gemini.google.com/*"],
   grok: ["https://grok.com/*", "https://grok.x.ai/*"],
 } as const;
+
+const ALL_PLATFORM_URL_GLOBS: string[] = Object.values(PLATFORM_URLS).flatMap((p) => [...p]);
+
+// Broadcast SESSION_FORGOTTEN to every open AI tab so live content scripts
+// drop their cached session id and let the next capture mint a fresh one.
+async function broadcastForgetToTabs(sessionId: string): Promise<void> {
+  try {
+    const tabs = await chrome.tabs.query({ url: ALL_PLATFORM_URL_GLOBS });
+    for (const tab of tabs) {
+      if (!tab.id) continue;
+      try {
+        chrome.tabs.sendMessage(
+          tab.id,
+          { type: "SESSION_FORGOTTEN", sessionId },
+          () => { void chrome.runtime.lastError; }
+        );
+      } catch { /* tab gone — ignore */ }
+    }
+  } catch (err) {
+    console.warn("[ContextForge] broadcastForgetToTabs failed:", err);
+  }
+}
 
 // ── Side panel behaviour ───────────────────────────────────────────────────────
 // Register at module load so it is always active, even after the service worker
@@ -126,9 +149,20 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
       case "DELETE_SESSION":
         await db.deleteSession(msg.sessionId);
+        await forgetSession(msg.sessionId);
         void deleteSessionFromCloud(msg.sessionId);
+        void broadcastForgetToTabs(msg.sessionId);
+        void broadcastToViews({ type: "SESSIONS_UPDATED" });
         sendResponse({ ok: true });
         break;
+
+      case "SESSION_EXISTS": {
+        // Used by content scripts to check if a legacy hash-based session id
+        // already exists so we can adopt it instead of orphaning it.
+        const existing = await db.getSession(msg.sessionId);
+        sendResponse({ exists: !!existing });
+        break;
+      }
 
       case "MIGRATE_CONTEXT":
         await handleMigrateContext(msg.payload, sendResponse);
@@ -392,9 +426,17 @@ async function syncOpenTabs() {
           continue;
         }
 
+        // Resolve the session id via the URL map (with legacy fallback) instead
+        // of trusting an id minted inside the page — keeps deletes durable.
+        const sessionId = await resolveSessionId(
+          platform as "claude" | "chatgpt" | "gemini" | "grok",
+          tab.url ?? "",
+          async (legacyId) => !!(await db.getSession(legacyId))
+        );
+
         await handleCaptureSession({
           platform,
-          sessionId: snapshot.sessionId,
+          sessionId,
           title: snapshot.title,
           messages: snapshot.messages,
         });

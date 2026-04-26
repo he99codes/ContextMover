@@ -17,6 +17,7 @@ import {
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { useSessionMutations } from "@/hooks/useSessionMutations";
 import type { Session } from "@/types";
+import { SessionExportPanel } from "./SessionExportPanel";
 
 const PLATFORM_STYLES: Record<string, { label: string; dot: string; badge: string }> = {
   claude:  { label: "Claude",  dot: "bg-[#D97706]", badge: "text-[#D97706] border-[#D97706]/25 bg-[#D97706]/10" },
@@ -92,7 +93,7 @@ export function SessionDetailView({ session }: Props) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
+    <div className="max-w-7xl mx-auto p-8">
       {/* Back */}
       <Link
         href="/dashboard"
@@ -183,6 +184,9 @@ export function SessionDetailView({ session }: Props) {
         </div>
       </div>
 
+      {/* Body: messages (left) + export panel (right) */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div>
       {/* Messages */}
       {session.messages.length === 0 ? (
         <div className="rounded-[8px] border border-dashed border-[#2A2A2A] bg-[#111111] p-12 text-center text-sm text-[#6B6B6B]">
@@ -222,6 +226,11 @@ export function SessionDetailView({ session }: Props) {
           ))}
         </div>
       )}
+      </div>
+      <aside className="lg:sticky lg:top-8 lg:self-start">
+        <SessionExportPanel session={session} />
+      </aside>
+      </div>
     </div>
   );
 }

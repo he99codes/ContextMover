@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
 import type { ContextSession, Platform } from "@/lib/types";
+import ExportMenu from "@/components/ExportMenu";
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   claude: "Claude",
@@ -321,6 +322,18 @@ export default function Sidebar() {
               >
                 {migrating ? "Migrating..." : `→ ${PLATFORM_LABELS[targetPlatform]}`}
               </button>
+              <ExportMenu
+                session={selected}
+                variant="icon"
+                align="right"
+                onSuccess={(fmt) =>
+                  setStatusMessage({
+                    tone: "success",
+                    text: `Exported as ${fmt.toUpperCase()} — check your downloads.`,
+                  })
+                }
+                onError={(text) => setStatusMessage({ tone: "error", text })}
+              />
               <button
                 onClick={() => deleteSession(selected.id)}
                 className="rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 text-xs font-medium text-[#6B6B6B] transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
@@ -451,14 +464,24 @@ export default function Sidebar() {
           ) : (
             <div className="space-y-1.5">
               {filtered.map((session) => (
-                <button
+                <div
                   key={session.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => {
                     setSelected(session);
                     setShowFullTranscript(false);
                     setView("detail");
                   }}
-                  className="group block w-full rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2.5 text-left transition-all hover:border-[#00FF88]/20 hover:shadow-[0_0_12px_rgba(0,255,136,0.05)]"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelected(session);
+                      setShowFullTranscript(false);
+                      setView("detail");
+                    }
+                  }}
+                  className="group block w-full cursor-pointer rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2.5 text-left transition-all hover:border-[#00FF88]/20 hover:shadow-[0_0_12px_rgba(0,255,136,0.05)]"
                 >
                   <div className="flex items-start gap-2.5">
                     <div
@@ -478,9 +501,23 @@ export default function Sidebar() {
                       <p className="mt-1 truncate text-xs font-medium text-[#F5F5F5] group-hover:text-[#00FF88] transition-colors">{session.title}</p>
                       <p className="mt-0.5 text-[10px] text-[#6B6B6B]">{session.messages.length} turns</p>
                     </div>
-                    <span className="text-[#2A2A2A] transition group-hover:text-[#00FF88] pt-0.5">›</span>
+                    <div className="flex shrink-0 items-center gap-1 pt-0.5">
+                      <ExportMenu
+                        session={session}
+                        variant="icon"
+                        align="right"
+                        onSuccess={(fmt) =>
+                          setStatusMessage({
+                            tone: "success",
+                            text: `Exported as ${fmt.toUpperCase()} — check your downloads.`,
+                          })
+                        }
+                        onError={(text) => setStatusMessage({ tone: "error", text })}
+                      />
+                      <span className="text-[#2A2A2A] transition group-hover:text-[#00FF88]">›</span>
+                    </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}

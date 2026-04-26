@@ -11,7 +11,8 @@
         "tabs",
         "alarms",
         "notifications",
-        "sidePanel"
+        "sidePanel",
+        "webRequest"
     ],
     "host_permissions": [
         "https://claude.ai/*",
@@ -27,6 +28,35 @@
         "type": "module"
     },
     "content_scripts": [
+        {
+            "matches": [
+                "https://claude.ai/*",
+                "https://chatgpt.com/*",
+                "https://chat.openai.com/*",
+                "https://gemini.google.com/*",
+                "https://grok.com/*",
+                "https://grok.x.ai/*"
+            ],
+            "js": [
+                "src/content/fetch-interceptor.ts"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN"
+        },
+        {
+            "matches": [
+                "https://claude.ai/*",
+                "https://chatgpt.com/*",
+                "https://chat.openai.com/*",
+                "https://gemini.google.com/*",
+                "https://grok.com/*",
+                "https://grok.x.ai/*"
+            ],
+            "js": [
+                "src/content/interceptor-bridge.ts"
+            ],
+            "run_at": "document_start"
+        },
         {
             "matches": [
                 "https://claude.ai/*"
@@ -72,7 +102,22 @@
     "side_panel": {
         "default_path": "src/sidebar/index.html"
     },
-    "web_accessible_resources": [],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "src/content/fetch-interceptor.ts",
+                "assets/*"
+            ],
+            "matches": [
+                "https://claude.ai/*",
+                "https://chatgpt.com/*",
+                "https://chat.openai.com/*",
+                "https://gemini.google.com/*",
+                "https://grok.com/*",
+                "https://grok.x.ai/*"
+            ]
+        }
+    ],
     "content_security_policy": {
         "extension_pages": "script-src 'self'; object-src 'self'"
     },

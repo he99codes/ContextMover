@@ -1,1 +1,56 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    --cf-bg:          #0A0A0A;
+    --cf-surface:     #111111;
+    --cf-card:        #1A1A1A;
+    --cf-border:      #2A2A2A;
+    --cf-text:        #F5F5F5;
+    --cf-muted:       #6B6B6B;
+    --cf-green:       #00FF88;
+    --cf-green-dim:   #00CC6A;
+    --cf-green-glow:  rgba(0, 255, 136, 0.15);
+  }
+
+  body {
+    background-color: #0A0A0A;
+    color: #F5F5F5;
+    font-family: "Inter", "system-ui", "-apple-system", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * { border-color: #2A2A2A; }
+
+  *:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #00FF88;
+  }
+
+  ::selection {
+    background: rgba(0, 255, 136, 0.25);
+    color: #F5F5F5;
+  }
+}
+
+/* ── Dark scrollbars ── */
+::-webkit-scrollbar          { width: 4px; height: 4px; }
+::-webkit-scrollbar-track    { background: #0A0A0A; }
+::-webkit-scrollbar-thumb    { background: #2A2A2A; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #00FF88; }
+
+/* ── Pulse animation for bridge-status green dot ── */
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(0, 255, 136, 0.6); }
+  50%       { box-shadow: 0 0 0 4px rgba(0, 255, 136, 0);   }
+}
+
+@layer utilities {
+  .animate-pulse-green {
+    animation: pulse-green 2s ease-in-out infinite;
+  }
+  .glow-green {
+    box-shadow: 0 0 0 1px #00FF88, 0 0 16px rgba(0, 255, 136, 0.2);
+  }
+}

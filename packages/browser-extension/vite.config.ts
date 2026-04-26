@@ -25,6 +25,8 @@ export default defineConfig({
         "src/content/chatgpt": "src/content/chatgpt.ts",
         "src/content/gemini": "src/content/gemini.ts",
         "src/content/grok": "src/content/grok.ts",
+        "src/content/fetch-interceptor": "src/content/fetch-interceptor.ts",
+        "src/content/interceptor-bridge": "src/content/interceptor-bridge.ts",
       },
     },
     target: "esnext",

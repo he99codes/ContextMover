@@ -1,17 +1,8 @@
 // packages/browser-extension/src/content/shared.ts
-import type { Message } from "@/lib/types";
+import type { Message, Platform } from "@/lib/types";
+import { resolveSessionId, makeLegacyChecker } from "@/lib/session-id";
 
-export function generateSessionId(platform: string): string {
-  // Keep IDs stable for a conversation so revisiting the same thread updates
-  // the existing record instead of creating a brand-new session every time.
-  const { hostname, pathname, search } = window.location;
-  const stableUrl = `${hostname}${pathname}${search}`.replace(/\/$/, "");
-  const hash = stableUrl.split("").reduce((acc, char) => {
-    return (acc * 31 + char.charCodeAt(0)) >>> 0;
-  }, 7);
-
-  return `${platform}-${hash.toString(36)}`;
-}
+const legacyChecker = makeLegacyChecker();
 
 export function createObserver(
   selectorOrElement: string | Element,
@@ -87,22 +78,63 @@ export function startSessionCapture(config: {
     }
   });
 
-  let sessionId = generateSessionId(config.platform);
+  let sessionId: string | null = null;
   let lastSnapshotKey = "";
   let lastHref = window.location.href;
 
-  const capture = () => {
-    // Re-generate session ID on SPA navigation (e.g. Claude pushState from
-    // /new → /chat/abc123 when a conversation starts)
+  // Async-resolve the session id via chrome.storage URL map.  Cached after the
+  // first call; invalidated when the URL changes or when the service worker
+  // broadcasts SESSION_FORGOTTEN (i.e. user deleted the session).
+  async function ensureSessionId(): Promise<string> {
+    if (sessionId) return sessionId;
+    sessionId = await resolveSessionId(
+      config.platform as Platform,
+      window.location.href,
+      legacyChecker
+    );
+    console.log(`[ContextForge] ${config.platform}: resolved sessionId=${sessionId}`);
+    return sessionId;
+  }
+
+  // Listen for forget broadcasts from the SW.  When the user (or web dashboard)
+  // deletes a session matching ours, drop the cached id so the next capture
+  // mints a brand-new session and re-extracts the full conversation.
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg?.type !== "SESSION_FORGOTTEN") return;
+    if (msg.sessionId && sessionId && msg.sessionId === sessionId) {
+      console.log(
+        `[ContextForge] ${config.platform}: received SESSION_FORGOTTEN for ${sessionId} — clearing cache, next capture will mint new id`
+      );
+      sessionId = null;
+      lastSnapshotKey = "";
+    }
+  });
+
+  const FETCH_FALLBACK_WINDOW_MS = 5000;
+  const capture = async () => {
+    // Re-resolve session ID on SPA navigation (e.g. Claude pushState from
+    // /new → /chat/abc123 when a conversation starts).
     const currentHref = window.location.href;
     if (currentHref !== lastHref) {
       lastHref = currentHref;
-      sessionId = generateSessionId(config.platform);
+      sessionId = null;
       lastSnapshotKey = "";
-      console.log(`[ContextForge] URL changed — new sessionId: ${sessionId}`);
+      console.log(`[ContextForge] URL changed — re-resolving sessionId`);
     }
 
-    console.log(`[ContextForge] Capture triggered for ${config.platform}`);
+    // ── Fetch-intercept fallback gate ──────────────────────────────────────
+    // If the MAIN-world fetch interceptor produced a valid capture recently,
+    // skip the DOM scrape — fetch data is bulletproof, DOM data is fragile.
+    const fc = (window as unknown as { __contextForgeFetchCaptured?: { at: number; count: number } })
+      .__contextForgeFetchCaptured;
+    if (fc && Date.now() - fc.at < FETCH_FALLBACK_WINDOW_MS) {
+      console.log(
+        `[ContextForge] ${config.platform}: fetch-intercept active (count=${fc.count}, age=${Date.now() - fc.at}ms), skipping DOM scrape`
+      );
+      return;
+    }
+
+    console.log(`[ContextForge] Capture triggered for ${config.platform} (DOM fallback)`);
     const messages = config.scrapeMessages();
     if (!messages.length) {
       console.log(`[ContextForge] No messages found, skipping capture`);
@@ -133,12 +165,13 @@ export function startSessionCapture(config: {
     }
     lastSnapshotKey = snapshotKey;
 
-    console.log(`[ContextForge] Sending CAPTURE_SESSION for session: ${sessionId}`);
+    const resolvedId = await ensureSessionId();
+    console.log(`[ContextForge] Sending CAPTURE_SESSION for session: ${resolvedId}`);
     chrome.runtime.sendMessage({
       type: "CAPTURE_SESSION",
       payload: {
         platform: config.platform,
-        sessionId,
+        sessionId: resolvedId,
         title,
         messages,
       },

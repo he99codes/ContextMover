@@ -11,7 +11,33 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "./supabase";
 import { db } from "./db";
+import { forgetSession } from "./session-id";
 import type { ContextSession, Platform } from "./types";
+
+const PLATFORM_URL_GLOBS = [
+  "https://claude.ai/*",
+  "https://chatgpt.com/*",
+  "https://chat.openai.com/*",
+  "https://gemini.google.com/*",
+  "https://grok.com/*",
+  "https://grok.x.ai/*",
+];
+
+async function broadcastForgetToTabs(sessionId: string): Promise<void> {
+  try {
+    const tabs = await chrome.tabs.query({ url: PLATFORM_URL_GLOBS });
+    for (const tab of tabs) {
+      if (!tab.id) continue;
+      try {
+        chrome.tabs.sendMessage(
+          tab.id,
+          { type: "SESSION_FORGOTTEN", sessionId },
+          () => { void chrome.runtime.lastError; }
+        );
+      } catch { /* ignore */ }
+    }
+  } catch { /* ignore */ }
+}
 
 let channel: RealtimeChannel | null = null;
 let subscribedUserId: string | null = null;
@@ -89,6 +115,8 @@ export async function startRealtimeSync(): Promise<void> {
             if (!id) return;
             console.log(`[ContextForge:realtime] DELETE ${id}`);
             await db.deleteSession(id);
+            await forgetSession(id);
+            void broadcastForgetToTabs(id);
             notifySidebar();
             return;
           }

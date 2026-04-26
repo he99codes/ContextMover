@@ -56,7 +56,8 @@ create policy "Users can insert their own sessions"
 
 create policy "Users can update their own sessions"
   on sessions for update
-  using (auth.uid() = user_id);
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 create policy "Users can delete their own sessions"
   on sessions for delete

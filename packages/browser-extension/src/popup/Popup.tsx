@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
 import type { ContextSession, Platform } from "@/lib/types";
+import ExportMenu from "@/components/ExportMenu";
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   claude: "Claude",
@@ -439,6 +440,18 @@ export default function Popup() {
                         >
                           {isExpanded ? "Less" : "More"}
                         </button>
+                        <ExportMenu
+                          session={session}
+                          variant="icon"
+                          align="right"
+                          onSuccess={(fmt) =>
+                            setStatusMessage({
+                              tone: "success",
+                              text: `Exported as ${fmt.toUpperCase()} — check your downloads.`,
+                            })
+                          }
+                          onError={(text) => setStatusMessage({ tone: "error", text })}
+                        />
                         <button
                           onClick={() => migrateSession(session.id)}
                           disabled={migrating === session.id}

@@ -54,6 +54,58 @@ function scrapeMessages(): Message[] {
     console.log(`[ContextForge:claude] S3 class: asst=${collected.filter(e=>e.role==="assistant").length}`);
   }
 
+  // ── Strategy 5: sr-only h2 accessibility anchors ──────────────────────────
+  // Claude renders <h2 class="sr-only">You said: ...</h2> for user turns and
+  // a sibling <h2 class="sr-only">Claude said: ...</h2> (or "Claude replied:")
+  // for assistant turns. These are stable since they're a11y-driven.
+  if (!hasAsst()) {
+    document.querySelectorAll<HTMLHeadingElement>('h2.sr-only, h3.sr-only').forEach((h) => {
+      const text = (h.textContent ?? "").trim().toLowerCase();
+      const isAssistantHeading =
+        text.startsWith("claude said") ||
+        text.startsWith("claude replied") ||
+        text.startsWith("assistant said") ||
+        /^claude[: ]/.test(text);
+      if (!isAssistantHeading) return;
+      // The parent div is the assistant turn wrapper.
+      const turn = (h.parentElement as HTMLElement | null) ?? h;
+      if (isStreaming(turn)) return;
+      if (collected.some((entry) => entry.el === turn)) return;
+      collected.push({ el: turn, role: "assistant" });
+    });
+    console.log(`[ContextForge:claude] S5 sr-only: asst=${collected.filter(e=>e.role==="assistant").length}`);
+  }
+
+  // ── Strategy 6: render-root sibling walk ──────────────────────────────────
+  // Use [data-test-render-count] as a stable conversation root anchor.
+  if (!hasAsst()) {
+    const renderRoot = document.querySelector<HTMLElement>("[data-test-render-count]");
+    const turnsContainer =
+      renderRoot?.querySelector<HTMLElement>(":scope > .contents") ?? renderRoot;
+    if (turnsContainer) {
+      const dedup = new Set(collected.map((e) => e.el));
+      const turns = [...turnsContainer.children] as HTMLElement[];
+      for (const turn of turns) {
+        if (isStreaming(turn)) continue;
+        if (dedup.has(turn)) continue;
+        // Skip user turns (they contain user-message-bubble or testid)
+        const isUserTurn =
+          turn.querySelector('[data-user-message-bubble="true"]') ||
+          turn.querySelector('[data-testid="user-message"]') ||
+          turn.matches('[data-user-message-bubble="true"]') ||
+          turn.matches('[data-testid="user-message"]');
+        if (isUserTurn) continue;
+        const text = (turn.textContent ?? "").trim();
+        if (text.length < 20) continue;
+        collected.push({ el: turn, role: "assistant" });
+        dedup.add(turn);
+      }
+      console.log(`[ContextForge:claude] S6 render-root: asst=${collected.filter(e=>e.role==="assistant").length}`);
+    } else {
+      console.log(`[ContextForge:claude] S6 render-root: no [data-test-render-count] found`);
+    }
+  }
+
   // ── Strategy 4: STRUCTURAL — no testid dependency ─────────────────────────
   // Uses the KNOWN-WORKING [data-testid="user-message"] as anchor.
   // Walks UP from the first user element to find the conversation container
