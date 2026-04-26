@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
 import type { ContextSession, Platform } from "@/lib/types";
 import ExportMenu from "@/components/ExportMenu";
@@ -43,6 +43,9 @@ type BridgeState =
     diagnosticsCount: number;
   };
 
+// Rate-limit SYNC_OPEN_TABS to once per 60 s across popup re-mounts
+let _lastTabSyncAt = 0;
+
 export default function Popup() {
   const [sessions, setSessions] = useState<ContextSession[]>([]);
   const [migrating, setMigrating] = useState<string | null>(null);
@@ -54,35 +57,48 @@ export default function Popup() {
     null
   );
   const [tick, setTick] = useState(0);
+  const loadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     void initializePopup();
 
+    // Poll at 30 s — realtime SESSIONS_UPDATED events handle sub-second updates,
+    // so frequent polling is redundant and causes GET_SESSIONS storms.
     const loadInterval = window.setInterval(() => {
-      void loadSessions();
-    }, 4000);
+      loadSessions();
+    }, 30_000);
 
     const clockInterval = window.setInterval(() => {
       setTick((value) => value + 1);
-    }, 30000);
+    }, 30_000);
 
     return () => {
       window.clearInterval(loadInterval);
       window.clearInterval(clockInterval);
+      if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
     };
   }, []);
 
   async function initializePopup() {
-    chrome.runtime.sendMessage({ type: "SYNC_OPEN_TABS" }, () => {
-      void loadSessions();
-    });
+    const now = Date.now();
+    if (now - _lastTabSyncAt > 60_000) {
+      // Only scrape open AI tabs at most once per 60 s
+      _lastTabSyncAt = now;
+      chrome.runtime.sendMessage({ type: "SYNC_OPEN_TABS" }, () => loadSessions());
+    } else {
+      loadSessions();
+    }
     await checkBridge();
   }
 
-  async function loadSessions() {
-    chrome.runtime.sendMessage({ type: "GET_SESSIONS" }, (res) => {
-      setSessions(Array.isArray(res) ? res : []);
-    });
+  function loadSessions() {
+    // Debounce: collapse rapid bursts (e.g. SESSIONS_UPDATED storm) into one call
+    if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
+    loadDebounceRef.current = setTimeout(() => {
+      chrome.runtime.sendMessage({ type: "GET_SESSIONS" }, (res) => {
+        setSessions(Array.isArray(res) ? res : []);
+      });
+    }, 250);
   }
 
   async function checkBridge() {

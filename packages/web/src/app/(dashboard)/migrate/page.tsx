@@ -1,15 +1,16 @@
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/cached";
 import { MigrateView } from "@/components/dashboard/MigrateView";
 import type { Session } from "@/types";
 
 export default async function MigratePage() {
   if (!isSupabaseConfigured()) return null;
 
-  const supabase = createClient();
-  const [{ data: sessionData }, { data: { user } }] = await Promise.all([
-    supabase.from("sessions").select("*").order("updated_at", { ascending: false }),
-    supabase.auth.getUser(),
-  ]);
+  const [supabase, user] = [createClient(), await getCachedUser()];
+  const { data: sessionData } = await supabase
+    .from("sessions")
+    .select("id, title, platform, updated_at, created_at, messages")
+    .order("updated_at", { ascending: false });
 
   return (
     <MigrateView

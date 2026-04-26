@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
 import type { ContextSession, Platform } from "@/lib/types";
 import ExportMenu from "@/components/ExportMenu";
@@ -48,23 +48,26 @@ export default function Sidebar() {
     null
   );
   const [tick, setTick] = useState(0);
+  const loadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    void loadSessions();
+    loadSessions();
     void checkBridge();
 
+    // Poll at 30 s — SESSIONS_UPDATED events already handle real-time updates.
+    // Frequent polling was the main cause of GET_SESSIONS storms.
     const sessionInterval = window.setInterval(() => {
-      void loadSessions();
-    }, 5000);
+      loadSessions();
+    }, 30_000);
 
     const clockInterval = window.setInterval(() => {
       setTick((value) => value + 1);
-    }, 30000);
+    }, 30_000);
 
-    // Instant refresh: service worker broadcasts SESSIONS_UPDATED after every
-    // capture so the list updates in real-time without waiting for the poll.
+    // Instant refresh on SW broadcast, debounced so rapid captures
+    // (e.g. a 150-msg session upsert) don’t fire 140 GET_SESSIONS calls.
     const onMessage = (msg: { type: string }) => {
-      if (msg.type === "SESSIONS_UPDATED") void loadSessions();
+      if (msg.type === "SESSIONS_UPDATED") loadSessions();
     };
     chrome.runtime.onMessage.addListener(onMessage);
 
@@ -72,13 +75,18 @@ export default function Sidebar() {
       window.clearInterval(sessionInterval);
       window.clearInterval(clockInterval);
       chrome.runtime.onMessage.removeListener(onMessage);
+      if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
     };
   }, []);
 
-  async function loadSessions() {
-    chrome.runtime.sendMessage({ type: "GET_SESSIONS" }, (res) => {
-      setSessions(Array.isArray(res) ? res : []);
-    });
+  function loadSessions() {
+    // Collapse rapid bursts into a single GET_SESSIONS call after 250 ms quiet
+    if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
+    loadDebounceRef.current = setTimeout(() => {
+      chrome.runtime.sendMessage({ type: "GET_SESSIONS" }, (res) => {
+        setSessions(Array.isArray(res) ? res : []);
+      });
+    }, 250);
   }
 
   async function checkBridge() {

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/cached";
 import { Sidebar } from "@/components/layout/Sidebar";
 
 export default async function DashboardLayout({
@@ -33,14 +34,8 @@ export default async function DashboardLayout({
     );
   }
 
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/auth");
-  }
+  const user = await getCachedUser();
+  if (!user) redirect("/auth");
 
   return (
     <div className="min-h-screen bg-[#0A0A0A]">

@@ -17,7 +17,7 @@ export default async function AnalyticsPage() {
   const supabase = createClient();
 
   const [{ data: sessionData }, { data: migrationData }] = await Promise.all([
-    supabase.from("sessions").select("*").order("updated_at", { ascending: false }),
+    supabase.from("sessions").select("id, platform, updated_at, messages").order("updated_at", { ascending: false }),
     supabase.from("migrations").select("*").order("migrated_at", { ascending: false }).limit(20),
   ]);
 

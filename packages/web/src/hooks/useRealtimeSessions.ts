@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Session } from "@/types";
 
@@ -9,11 +9,16 @@ export function useRealtimeSessions(
   initialSessions: Session[] = []
 ) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
+  // Track whether the server-rendered prop has changed without JSON.stringify
+  // (which serialises the full messages array on every render — O(n) expensive).
+  const prevInitialRef = useRef<Session[]>(initialSessions);
 
   useEffect(() => {
-    setSessions(initialSessions);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(initialSessions)]);
+    if (prevInitialRef.current !== initialSessions) {
+      prevInitialRef.current = initialSessions;
+      setSessions(initialSessions);
+    }
+  }, [initialSessions]);
 
   useEffect(() => {
     if (!userId) return;
