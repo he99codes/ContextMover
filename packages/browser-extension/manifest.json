@@ -12,7 +12,8 @@
         "alarms",
         "notifications",
         "sidePanel",
-        "webRequest"
+        "webRequest",
+    "downloads"
     ],
     "host_permissions": [
         "https://claude.ai/*",

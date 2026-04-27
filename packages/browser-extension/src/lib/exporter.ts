@@ -281,6 +281,20 @@ export function renderExport(session: ContextSession, format: ExportFormat): str
 
 // ── DOM helpers ─────────────────────────────────────────────────────────────
 export function triggerDownload(content: string, filename: string, mimeType: string): void {
+  // In Chrome extension pages (sidebar / popup) blob: URL clicks are unreliable.
+  // Use the chrome.downloads API when available — it is the correct MV3 approach.
+  if (
+    typeof chrome !== "undefined" &&
+    chrome.downloads &&
+    typeof chrome.downloads.download === "function"
+  ) {
+    // chrome.downloads requires a data URL (not a blob: URL).
+    const dataUrl = `data:${mimeType};charset=utf-8,${encodeURIComponent(content)}`;
+    void chrome.downloads.download({ url: dataUrl, filename, saveAs: false });
+    return;
+  }
+
+  // Fallback: standard blob-URL trick for non-extension contexts (web app).
   const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
