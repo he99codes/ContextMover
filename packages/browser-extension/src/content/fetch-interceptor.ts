@@ -20,7 +20,7 @@
     timestamp: number;
     codeBlocks?: { language: string; code: string }[];
   };
-  type Platform = "chatgpt" | "claude" | "gemini" | "grok";
+  type Platform = "chatgpt" | "claude" | "gemini" | "grok" | "deepseek" | "perplexity";
 
   const TAG = "[ContextForge:fetch]";
 
@@ -50,9 +50,13 @@
     if (!url) return null;
     if (url.includes("chatgpt.com/backend-api/conversation") ||
         url.includes("chat.openai.com/backend-api/conversation")) return "chatgpt";
-    if (url.includes("claude.ai/api") && /completion|append_message|chat_conversations/.test(url)) return "claude";
+    if ((url.includes("claude.ai/api") && /completion|append_message|chat_conversations/.test(url)) ||
+        ((url.includes("a-api.anthropic.com") || url.includes("api.anthropic.com")) && /\/v1\//.test(url))) return "claude";
     if (url.includes("gemini.google.com") && /GenerateContent|StreamGenerate|BardChatUi|assistant\.lamda/i.test(url)) return "gemini";
     if (url.includes("grok.com/api") && /chat|conversation|completion/i.test(url)) return "grok";
+    if (url.includes("chat.deepseek.com/api") && /chat|completion|message/i.test(url)) return "deepseek";
+    // Perplexity uses REST SSE at /api/v3/ or /_next/server-action; socket.io is NOT interceptable via fetch.
+    if (url.includes("perplexity.ai") && /\/api\/|search|ask|completions/i.test(url)) return "perplexity";
     return null;
   }
 
@@ -173,12 +177,48 @@
     }
   }
 
-  function parseClaude(text: string): CapturedMessage[] {
+  // Generic helper: extract the last user message from any OpenAI-compatible
+  // request body ({ messages: [{role, content}] }). Used by Claude, DeepSeek, Grok.
+  function extractOpenAIUserPrompt(requestBody: string | null): CapturedMessage | null {
+    if (!requestBody) return null;
     try {
-      // Anthropic SSE: events alternate `event: name\ndata: {json}`. We track
-      // a single in-flight assistant message (Claude streams one reply at a
-      // time per request).  The matching user prompt is included in the request
-      // body, not the response, so this parser only emits assistant turns.
+      const body = JSON.parse(requestBody) as Record<string, unknown>;
+      // OpenAI / Anthropic format: { messages: [{role, content}] }
+      const msgs = body.messages as Array<Record<string, unknown>> | undefined;
+      if (Array.isArray(msgs)) {
+        for (let i = msgs.length - 1; i >= 0; i--) {
+          const m = msgs[i];
+          if (m?.role !== "user") continue;
+          let text = "";
+          if (typeof m.content === "string") {
+            text = m.content;
+          } else if (Array.isArray(m.content)) {
+            text = (m.content as Array<Record<string, unknown>>)
+              .filter((c) => c.type === "text")
+              .map((c) => String(c.text ?? ""))
+              .join("\n");
+          }
+          const fin = finalize("user", text);
+          if (fin) return fin;
+        }
+      }
+      // Grok / custom format: { message: "...", query: "...", q: "..." }
+      const singleMsg =
+        (typeof body.message === "string" && body.message) ||
+        (typeof body.query === "string" && body.query) ||
+        (typeof body.q === "string" && body.q) ||
+        "";
+      if (singleMsg) {
+        const fin = finalize("user", singleMsg);
+        if (fin) return fin;
+      }
+    } catch { /* non-JSON body — skip */ }
+    return null;
+  }
+
+  function parseClaude(text: string, requestBody?: string | null): CapturedMessage[] {
+    try {
+      // Anthropic SSE: events alternate `event: name\ndata: {json}`.
       const lines = text.split(/\r?\n/);
       let curEvent = "";
       let acc = "";
@@ -200,7 +240,6 @@
         if (!j || typeof j !== "object") continue;
         const obj = j as Record<string, unknown>;
 
-        // message_start → grab role
         if (curEvent === "message_start" || obj.type === "message_start") {
           const m = obj.message as Record<string, unknown> | undefined;
           const r = String((m?.role as string) ?? "assistant");
@@ -208,7 +247,6 @@
           continue;
         }
 
-        // content_block_delta → accumulate text
         if (curEvent === "content_block_delta" || obj.type === "content_block_delta") {
           const delta = obj.delta as Record<string, unknown> | undefined;
           const t = String((delta?.text as string) ?? "");
@@ -216,14 +254,17 @@
           continue;
         }
 
-        // Newer Claude format: { completion: "..." } per chunk
         if (typeof obj.completion === "string") {
           acc += obj.completion;
         }
       }
 
+      const results: CapturedMessage[] = [];
+      const userMsg = extractOpenAIUserPrompt(requestBody ?? null);
+      if (userMsg) results.push(userMsg);
       const fin = finalize(role, acc);
-      return fin ? [fin] : [];
+      if (fin) results.push(fin);
+      return results;
     } catch (err) {
       console.warn(`${TAG} parseClaude failed`, err);
       return [];
@@ -313,10 +354,8 @@
     return "";
   }
 
-  function parseGrok(text: string): CapturedMessage[] {
+  function parseGrok(text: string, requestBody?: string | null): CapturedMessage[] {
     try {
-      // Grok responses are SSE-style newline-delimited JSON with a `token`
-      // (or `content` / `result.response`) field per chunk.
       const lines = text.split(/\r?\n/);
       let acc = "";
       for (const raw of lines) {
@@ -333,6 +372,13 @@
         const result = (obj.result as Record<string, unknown> | undefined) ?? {};
         const response = (result.response as Record<string, unknown> | undefined) ?? {};
 
+        // OpenAI-compatible delta (Grok v2+)
+        if (Array.isArray(obj.choices)) {
+          const ch = (obj.choices as Array<Record<string, unknown>>)[0];
+          const delta = (ch?.delta as Record<string, unknown> | undefined) ?? {};
+          if (typeof delta.content === "string") { acc += delta.content; continue; }
+        }
+
         const piece =
           (typeof obj.token === "string" && obj.token) ||
           (typeof obj.content === "string" && obj.content) ||
@@ -342,16 +388,81 @@
           "";
         if (piece) acc += piece;
       }
+      const results: CapturedMessage[] = [];
+      const userMsg = extractOpenAIUserPrompt(requestBody ?? null);
+      if (userMsg) results.push(userMsg);
       const fin = finalize("assistant", acc);
-      return fin ? [fin] : [];
+      if (fin) results.push(fin);
+      return results;
     } catch (err) {
       console.warn(`${TAG} parseGrok failed`, err);
       return [];
     }
   }
 
+  // DeepSeek uses an OpenAI-compatible streaming API (identical SSE delta format).
+  function parseDeepSeek(text: string, requestBody?: string | null): CapturedMessage[] {
+    try {
+      const results: CapturedMessage[] = [];
+      const userMsg = extractOpenAIUserPrompt(requestBody ?? null);
+      if (userMsg) results.push(userMsg);
+      // Reuse ChatGPT parser — same OpenAI SSE wire format.
+      const asstMsgs = parseChatGPT(text).filter((m) => m.role === "assistant");
+      results.push(...asstMsgs);
+      return results;
+    } catch (err) {
+      console.warn(`${TAG} parseDeepSeek failed`, err);
+      return [];
+    }
+  }
+
+  // Perplexity uses REST SSE for some flows (socket.io calls are not interceptable).
+  // Handles: { chunk: "..." }, { answer: "..." }, { text: "..." }, and OpenAI-delta.
+  function parsePerplexity(text: string, requestBody?: string | null): CapturedMessage[] {
+    try {
+      const lines = text.split(/\r?\n/);
+      let acc = "";
+      let finalAnswer = "";
+      for (const raw of lines) {
+        const line = raw.trim();
+        if (!line) continue;
+        const payload = line.startsWith("data:") ? line.slice(5).trim() : line;
+        if (!payload || payload === "[DONE]") continue;
+        let j: unknown;
+        try { j = JSON.parse(payload); } catch { continue; }
+        if (!j || typeof j !== "object") continue;
+        const obj = j as Record<string, unknown>;
+        // Completed answer — prefer over accumulated chunks
+        if (typeof obj.answer === "string" && obj.answer.length > finalAnswer.length) {
+          finalAnswer = obj.answer;
+        }
+        // Streaming chunk formats
+        if (typeof obj.chunk === "string") { acc += obj.chunk; continue; }
+        if (typeof obj.text === "string") { acc += obj.text; continue; }
+        // OpenAI-delta compat
+        if (Array.isArray(obj.choices)) {
+          const ch = (obj.choices as Array<Record<string, unknown>>)[0];
+          const delta = (ch?.delta as Record<string, unknown> | undefined) ?? {};
+          if (typeof delta.content === "string") { acc += delta.content; continue; }
+          const msg = ch?.message as Record<string, unknown> | undefined;
+          if (typeof msg?.content === "string") { acc += msg.content; continue; }
+        }
+      }
+      const assistantText = finalAnswer || acc;
+      const results: CapturedMessage[] = [];
+      const userMsg = extractOpenAIUserPrompt(requestBody ?? null);
+      if (userMsg) results.push(userMsg);
+      const fin = finalize("assistant", assistantText);
+      if (fin) results.push(fin);
+      return results;
+    } catch (err) {
+      console.warn(`${TAG} parsePerplexity failed`, err);
+      return [];
+    }
+  }
+
   // ── Response handler ───────────────────────────────────────────────────────
-  async function handleAIResponse(platform: Platform, response: Response): Promise<void> {
+  async function handleAIResponse(platform: Platform, response: Response, requestBody?: string | null): Promise<void> {
     try {
       // .text() consumes the body — only safe on a clone (caller guarantees).
       const text = await response.text();
@@ -359,10 +470,12 @@
 
       let messages: CapturedMessage[] = [];
       switch (platform) {
-        case "chatgpt": messages = parseChatGPT(text); break;
-        case "claude":  messages = parseClaude(text);  break;
-        case "gemini":  messages = parseGemini(text);  break;
-        case "grok":    messages = parseGrok(text);    break;
+        case "chatgpt":    messages = parseChatGPT(text);                    break;
+        case "claude":     messages = parseClaude(text, requestBody);         break;
+        case "gemini":     messages = parseGemini(text);                      break;
+        case "grok":       messages = parseGrok(text, requestBody);           break;
+        case "deepseek":   messages = parseDeepSeek(text, requestBody);       break;
+        case "perplexity": messages = parsePerplexity(text, requestBody);     break;
       }
 
       if (messages.length === 0) {
@@ -384,17 +497,29 @@
   // ── Override window.fetch ──────────────────────────────────────────────────
   try {
     window.fetch = async function (input: RequestInfo | URL, init?: RequestInit) {
+      // Read request body BEFORE the fetch (body stream can only be consumed once).
+      let requestBodyText: string | null = null;
+      try {
+        const url = urlOf(input);
+        const earlyPlatform = detectPlatform(url);
+        // Capture request body for all platforms that need user-prompt extraction.
+        if (earlyPlatform && earlyPlatform !== "gemini" && init?.body) {
+          requestBodyText = typeof init.body === "string"
+            ? init.body
+            : init.body instanceof URLSearchParams
+              ? init.body.toString()
+              : null;
+        }
+      } catch { /* never block the request */ }
+
       const response = await _originalFetch(input as RequestInfo, init);
       try {
         const url = urlOf(input);
         const platform = detectPlatform(url);
         if (platform) {
-          // Clone NOW so the caller still gets an unread body. Parsing happens
-          // fully async — we never await it from inside the override.
           const clone = response.clone();
-          // Use queueMicrotask so we never extend the original fetch's promise
-          // chain (defensive — also avoids any chance of throwing into the call site).
-          queueMicrotask(() => { void handleAIResponse(platform, clone); });
+          const body = requestBodyText;
+          queueMicrotask(() => { void handleAIResponse(platform, clone, body); });
         }
       } catch (err) {
         console.warn(`${TAG} intercept side-effect failed (response unaffected)`, err);

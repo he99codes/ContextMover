@@ -16,6 +16,8 @@
     ],
     "host_permissions": [
         "https://claude.ai/*",
+        "https://a-api.anthropic.com/*",
+        "https://api.anthropic.com/*",
         "https://chatgpt.com/*",
         "https://chat.openai.com/*",
         "https://gemini.google.com/*",
