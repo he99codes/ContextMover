@@ -88,7 +88,6 @@ function scrapeMessages(): Message[] {
       for (const turn of turns) {
         if (isStreaming(turn)) continue;
         if (dedup.has(turn)) continue;
-        // Skip user turns (they contain user-message-bubble or testid)
         const isUserTurn =
           turn.querySelector('[data-user-message-bubble="true"]') ||
           turn.querySelector('[data-testid="user-message"]') ||
@@ -106,36 +105,99 @@ function scrapeMessages(): Message[] {
     }
   }
 
+  // ── Strategy 7: action-bar-retry / action-bar-copy as assistant anchors ────
+  // Claude removed ai-turn/assistant-message testids but action-bar-retry and
+  // action-bar-copy are ONLY rendered inside assistant turns. Walk UP from each
+  // action bar until we find a container whose sibling is a user turn — that
+  // container IS the assistant turn, regardless of its own classes/testids.
+  if (!hasAsst()) {
+    const dedup = new Set(collected.map((e) => e.el));
+
+    // Prefer action-bar-retry (retry is unique to assistant); fallback to copy
+    let actionBars = [
+      ...document.querySelectorAll<HTMLElement>('[data-testid="action-bar-retry"]'),
+    ];
+    if (actionBars.length === 0) {
+      actionBars = [
+        ...document.querySelectorAll<HTMLElement>('[data-testid="action-bar-copy"]'),
+      ].filter((el) => !el.closest('[data-testid="user-message"]'));
+    }
+
+    for (const bar of actionBars) {
+      // Guard: never enter user-message territory
+      if (bar.closest('[data-testid="user-message"]')) continue;
+
+      let cur: HTMLElement | null = bar.parentElement;
+      while (cur && cur !== document.body) {
+        if (cur.matches('[data-testid="user-message"]')) break;
+
+        const parent = cur.parentElement;
+        if (!parent) break;
+
+        // Check if any sibling (not cur itself) contains a user-message — that
+        // means `cur` is a peer turn in the conversation container.
+        const hasSiblingUser = ([...parent.children] as HTMLElement[]).some(
+          (s) =>
+            s !== cur &&
+            (s.matches('[data-testid="user-message"]') ||
+              !!s.querySelector('[data-testid="user-message"]'))
+        );
+
+        if (hasSiblingUser) {
+          if (!dedup.has(cur) && !isStreaming(cur)) {
+            const text = (cur.textContent ?? "").trim();
+            if (text.length > 20) {
+              collected.push({ el: cur, role: "assistant" });
+              dedup.add(cur);
+            }
+          }
+          break; // found the right level — stop walking up for this bar
+        }
+
+        cur = cur.parentElement;
+      }
+    }
+    console.log(`[ContextForge:claude] S7 action-bar: asst=${collected.filter(e=>e.role==="assistant").length}`);
+  }
+
   // ── Strategy 4: STRUCTURAL — no testid dependency ─────────────────────────
-  // Uses the KNOWN-WORKING [data-testid="user-message"] as anchor.
-  // Walks UP from the first user element to find the conversation container
-  // (= an ancestor whose children include at least N turns), then tags
-  // every child that does NOT contain a user-message as an assistant turn.
+  // Fixed: only stop at a container that actually has non-user children.
+  // Previously it stopped at the user-messages wrapper (children == userCount,
+  // all user), skipping the real conversation root one level higher.
   if (!hasAsst() && collected.length > 0) {
     const firstUser = collected[0].el;
     let container: HTMLElement | null = null;
     let cur: HTMLElement | null = firstUser;
-    const userCount = collected.filter(e => e.role === "user").length;
+    const userCount = collected.filter((e) => e.role === "user").length;
 
-    // Walk up. The conversation container has at least userCount children.
     for (let depth = 0; depth < 15 && cur?.parentElement; depth++) {
       cur = cur.parentElement;
       if (cur.children.length >= userCount) {
-        container = cur;
-        break;
+        const children = [...cur.children] as HTMLElement[];
+        // Only use this level if at least one child is NOT a user turn
+        const hasNonUser = children.some(
+          (child) =>
+            !child.matches('[data-testid="user-message"]') &&
+            !child.querySelector('[data-testid="user-message"]') &&
+            (child.textContent ?? "").trim().length > 20
+        );
+        if (hasNonUser) {
+          container = cur;
+          break;
+        }
       }
     }
 
     if (container) {
-      const dedup = new Set(collected.map(e => e.el));
+      const dedup = new Set(collected.map((e) => e.el));
       const turns = [...container.children] as HTMLElement[];
       console.log(`[ContextForge:claude] S4 structural: container has ${turns.length} children, userAnchors=${userCount}`);
 
       for (const turn of turns) {
         if (isStreaming(turn)) continue;
-        if (turn.querySelector('[data-testid="user-message"]')) continue; // user turn
+        if (turn.querySelector('[data-testid="user-message"]')) continue;
+        if (turn.matches('[data-testid="user-message"]')) continue;
         if (dedup.has(turn)) continue;
-        // Must have substantial text to be a real message
         const text = (turn.textContent ?? "").trim();
         if (text.length > 20) {
           collected.push({ el: turn, role: "assistant" });
