@@ -532,4 +532,96 @@
     console.error(`${TAG} CRITICAL: failed to install fetch override; restoring original`, err);
     try { window.fetch = _originalFetch as typeof window.fetch; } catch { /* nothing more we can do */ }
   }
+  // ── Override window.WebSocket for Perplexity (socket.io) ────────────────────
+  // Perplexity streams via socket.io — window.fetch sees none of it.  We proxy
+  // the WebSocket constructor so every new WS connection on perplexity.ai gets
+  // a message listener attached.  We only emit when status === "completed" to
+  // avoid spamming partial chunks.
+  try {
+    const _OriginalWS = window.WebSocket;
+
+    function isPerplexityURL(url: string): boolean {
+      try { return new URL(url).hostname.includes("perplexity.ai"); }
+      catch { return url.includes("perplexity.ai"); }
+    }
+
+    function handlePerplexityWSMessage(data: unknown): void {
+      if (typeof data !== "string") return;
+      // socket.io EVENT packet starts with "42"; optional namespace: "42/ns,[...]"
+      if (!data.startsWith("42")) return;
+      try {
+        let jsonStr = data.slice(2);
+        if (jsonStr.startsWith("/")) {
+          const comma = jsonStr.indexOf(",");
+          if (comma === -1) return;
+          jsonStr = jsonStr.slice(comma + 1);
+        }
+        const arr = JSON.parse(jsonStr) as unknown;
+        if (!Array.isArray(arr) || arr.length < 2) return;
+        const eventName = String(arr[0]);
+        const payload = arr[1] as Record<string, unknown>;
+        if (!payload || typeof payload !== "object") return;
+
+        // Only capture the FINAL completed answer — avoids partial-answer noise.
+        const status = String(payload.status ?? "");
+        const isFinal =
+          status === "completed" || status === "done" || status === "final" ||
+          /complet|finish/i.test(eventName);
+        if (!isFinal) return;
+
+        const assistantText =
+          (typeof payload.text === "string" && payload.text) ||
+          (typeof payload.answer === "string" && payload.answer) ||
+          (typeof payload.output === "string" && payload.output) ||
+          "";
+        const userText =
+          (typeof payload.query_str === "string" && payload.query_str) ||
+          (typeof payload.query === "string" && payload.query) ||
+          "";
+
+        const results: CapturedMessage[] = [];
+        const userMsg = finalize("user", userText);
+        if (userMsg) results.push(userMsg);
+        const asstMsg = finalize("assistant", assistantText);
+        if (asstMsg) results.push(asstMsg);
+        if (results.length > 0) {
+          console.log(`${TAG} perplexity WS: captured ${results.length} msg(s) via ${eventName}`);
+          dispatchCaptured("perplexity", results);
+        }
+      } catch { /* skip malformed packet */ }
+    }
+
+    // Proxy the constructor so all `new WebSocket(url)` calls go through us.
+    const OrigWS = _OriginalWS;
+    function PatchedWebSocket(
+      this: WebSocket,
+      url: string,
+      protocols?: string | string[]
+    ) {
+      const ws = protocols != null
+        ? new OrigWS(url, protocols)
+        : new OrigWS(url);
+
+      if (isPerplexityURL(url)) {
+        ws.addEventListener("message", (ev: MessageEvent) => {
+          try { handlePerplexityWSMessage(ev.data); } catch { /* never throw */ }
+        });
+        console.log(`${TAG} perplexity WS: attached listener on ${url}`);
+      }
+      return ws;
+    }
+
+    // Copy static members (CONNECTING, OPEN, CLOSING, CLOSED, prototype)
+    PatchedWebSocket.prototype = _OriginalWS.prototype;
+    Object.setPrototypeOf(PatchedWebSocket, _OriginalWS);
+    (PatchedWebSocket as unknown as { CONNECTING: number }).CONNECTING = _OriginalWS.CONNECTING;
+    (PatchedWebSocket as unknown as { OPEN: number }).OPEN = _OriginalWS.OPEN;
+    (PatchedWebSocket as unknown as { CLOSING: number }).CLOSING = _OriginalWS.CLOSING;
+    (PatchedWebSocket as unknown as { CLOSED: number }).CLOSED = _OriginalWS.CLOSED;
+
+    window.WebSocket = PatchedWebSocket as unknown as typeof WebSocket;
+    console.log(`${TAG} WebSocket override installed (Perplexity socket.io)`);
+  } catch (err) {
+    console.warn(`${TAG} WebSocket override failed (non-critical, Perplexity DOM fallback still active)`, err);
+  }
 })();
