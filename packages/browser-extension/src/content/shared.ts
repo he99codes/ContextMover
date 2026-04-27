@@ -81,6 +81,8 @@ export function startSessionCapture(config: {
   let sessionId: string | null = null;
   let lastSnapshotKey = "";
   let lastHref = window.location.href;
+  let lastUnchangedAt = 0;
+  const UNCHANGED_COOLDOWN_MS = 5_000; // don't re-scrape if last result was unchanged < 5s ago
 
   // Async-resolve the session id via chrome.storage URL map.  Cached after the
   // first call; invalidated when the URL changes or when the service worker
@@ -134,6 +136,11 @@ export function startSessionCapture(config: {
       return;
     }
 
+    // If the last scrape found no change, suppress re-scrape for UNCHANGED_COOLDOWN_MS.
+    if (lastUnchangedAt > 0 && Date.now() - lastUnchangedAt < UNCHANGED_COOLDOWN_MS) {
+      return;
+    }
+
     console.log(`[ContextForge] Capture triggered for ${config.platform} (DOM fallback)`);
     const messages = config.scrapeMessages();
     if (!messages.length) {
@@ -160,9 +167,11 @@ export function startSessionCapture(config: {
     const snapshotKey = `${messages.length}:${lastMessage?.role ?? ""}:${lastMessage?.content ?? ""}`;
 
     if (snapshotKey === lastSnapshotKey) {
+      lastUnchangedAt = Date.now();
       console.log(`[ContextForge] Snapshot unchanged, skipping`);
       return;
     }
+    lastUnchangedAt = 0; // new content — allow immediate re-scrapes
     lastSnapshotKey = snapshotKey;
 
     const resolvedId = await ensureSessionId();

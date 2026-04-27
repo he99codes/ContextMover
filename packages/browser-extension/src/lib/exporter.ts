@@ -329,6 +329,42 @@ export function downloadExport(session: ContextSession, format: ExportFormat): v
   triggerDownload(content, filename, EXPORT_FORMATS[format].mimeType);
 }
 
+export async function downloadExportAsync(session: ContextSession, format: ExportFormat): Promise<void> {
+  const content = renderExport(session, format);
+  const filename = getFilename(session, format);
+  const mimeType = EXPORT_FORMATS[format].mimeType;
+
+  if (
+    typeof chrome !== "undefined" &&
+    chrome.downloads &&
+    typeof chrome.downloads.download === "function"
+  ) {
+    const dataUrl = `data:${mimeType};charset=utf-8,${encodeURIComponent(content)}`;
+    await new Promise<void>((resolve, reject) => {
+      chrome.downloads.download({ url: dataUrl, filename, saveAs: false }, () => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve();
+        }
+      });
+    });
+    return;
+  }
+
+  // Fallback: blob-URL trick for non-extension contexts (web app).
+  const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
 // ── Internals ───────────────────────────────────────────────────────────────
 interface AnalysedContext {
   primaryGoal: string;

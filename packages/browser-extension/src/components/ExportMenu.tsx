@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   EXPORT_FORMATS,
-  downloadExport,
+  downloadExportAsync,
   type ExportFormat,
 } from "@/lib/exporter";
 import type { ContextSession } from "@/lib/types";
@@ -35,6 +35,7 @@ export default function ExportMenu({
   const [pos, setPos] = useState<DropdownPos>({ top: 0 });
   const wrapRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+  const pickingRef = useRef(false); // hard guard against double-fire
 
   // Recompute fixed position whenever the dropdown opens.
   useEffect(() => {
@@ -66,10 +67,12 @@ export default function ExportMenu({
     };
   }, [open]);
 
-  function pick(format: ExportFormat) {
+  async function pick(format: ExportFormat) {
+    if (pickingRef.current) return; // drop extra clicks while download is in-flight
+    pickingRef.current = true;
     setBusy(format);
     try {
-      downloadExport(session, format);
+      await downloadExportAsync(session, format);
       onSuccess?.(format);
       setOpen(false);
     } catch (err) {
@@ -77,6 +80,7 @@ export default function ExportMenu({
       onError?.(message);
     } finally {
       setBusy(null);
+      pickingRef.current = false;
     }
   }
 
