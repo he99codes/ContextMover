@@ -21,6 +21,8 @@ interface Props {
 
 const ORDER: ExportFormat[] = ["xml", "markdown", "plaintext", "json", "txt"];
 
+interface DropdownPos { top: number; left?: number; right?: number; }
+
 export default function ExportMenu({
   session,
   variant = "button",
@@ -30,12 +32,28 @@ export default function ExportMenu({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<ExportFormat | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<DropdownPos>({ top: 0 });
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  // Recompute fixed position whenever the dropdown opens.
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    const dropH = 5 * 32 + 28; // 5 items × ~32px + header
+    const spaceBelow = window.innerHeight - r.bottom;
+    const openUpward = spaceBelow < dropH && r.top > dropH;
+    setPos(
+      openUpward
+        ? { top: r.top - dropH - 4, left: align === "right" ? undefined : r.left, right: align === "right" ? window.innerWidth - r.right : undefined }
+        : { top: r.bottom + 4,      left: align === "right" ? undefined : r.left, right: align === "right" ? window.innerWidth - r.right : undefined }
+    );
+  }, [open, align]);
 
   useEffect(() => {
     if (!open) return;
     function onDocClick(e: MouseEvent) {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
     }
     function onEsc(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
@@ -63,8 +81,9 @@ export default function ExportMenu({
   }
 
   return (
-    <div className="relative" ref={ref} onClick={(e) => e.stopPropagation()}>
+    <div ref={wrapRef} onClick={(e) => e.stopPropagation()}>
       <button
+        ref={btnRef}
         type="button"
         onClick={(e) => {
           e.preventDefault();
@@ -90,9 +109,15 @@ export default function ExportMenu({
 
       {open && (
         <div
-          className={`absolute z-50 mt-1 w-44 rounded-[6px] border border-[#2A2A2A] bg-[#0A0A0A] shadow-[0_8px_24px_rgba(0,0,0,0.6)] ${
-            align === "right" ? "right-0" : "left-0"
-          }`}
+          style={{
+            position: "fixed",
+            top:   pos.top,
+            left:  pos.left,
+            right: pos.right,
+            zIndex: 9999,
+            width: "11rem",
+          }}
+          className="rounded-[6px] border border-[#2A2A2A] bg-[#0A0A0A] shadow-[0_8px_24px_rgba(0,0,0,0.75)]"
           role="menu"
         >
           <div className="border-b border-[#2A2A2A] px-3 py-1.5 text-[9px] uppercase tracking-wider text-[#6B6B6B]">
