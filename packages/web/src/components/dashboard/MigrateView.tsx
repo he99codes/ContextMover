@@ -21,7 +21,7 @@ interface Props {
   userId: string;
 }
 
-function buildMigrationPrompt(session: Session, target: Platform): string {
+function buildMigrationPrompt(session: Session, target: Platform, caveman = false): string {
   const sourceLabel = session.platform.charAt(0).toUpperCase() + session.platform.slice(1);
   const targetLabel = TARGETS.find((t) => t.id === target)?.label ?? target;
   const firstUser =
@@ -54,6 +54,7 @@ function buildMigrationPrompt(session: Session, target: Platform): string {
     "---",
     "",
     `Please continue this conversation in ${targetLabel}. Acknowledge the context, identify anything ambiguous, and ask before making large changes.`,
+    ...(caveman ? [`Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`] : []),
   ].join("\n");
 }
 
@@ -67,6 +68,7 @@ export function MigrateView({ initialSessions, userId }: Props) {
     prefilledId ?? initialSessions[0]?.id ?? null
   );
   const [target, setTarget] = useState<Platform>("grok");
+  const [caveman, setCaveman] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const selected = sessions.find((s) => s.id === selectedId) ?? null;
@@ -83,8 +85,8 @@ export function MigrateView({ initialSessions, userId }: Props) {
 
   const prompt = useMemo(() => {
     if (!selected) return "";
-    return buildMigrationPrompt(selected, target);
-  }, [selected, target]);
+    return buildMigrationPrompt(selected, target, caveman);
+  }, [selected, target, caveman]);
 
   async function copyPrompt() {
     if (!prompt) return;
@@ -178,6 +180,23 @@ export function MigrateView({ initialSessions, userId }: Props) {
                     {selected.platform} · {selected.messages.length} messages
                   </p>
                 </div>
+              </div>
+
+              <div className="mb-3">
+                <button
+                  onClick={() => setCaveman((v) => !v)}
+                  className="flex w-full items-center justify-between rounded-[4px] border px-3 py-2 text-xs transition-all"
+                  style={caveman
+                    ? { borderColor: "#F59E0B40", background: "#F59E0B10", color: "#F59E0B" }
+                    : { borderColor: "#2A2A2A", background: "#1A1A1A", color: "#6B6B6B" }}
+                >
+                  <span className="font-semibold uppercase tracking-[0.15em] text-[10px]">
+                    Caveman mode
+                  </span>
+                  <span className="text-[10px] opacity-70">
+                    {caveman ? "ON \u2014 aggressive compress + blunt instructions" : "OFF"}
+                  </span>
+                </button>
               </div>
 
               <div className="mb-4">

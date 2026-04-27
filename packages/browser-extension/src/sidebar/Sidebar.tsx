@@ -44,6 +44,7 @@ export default function Sidebar() {
   const [filter, setFilter] = useState<Platform | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFullTranscript, setShowFullTranscript] = useState(false);
+  const [caveman, setCaveman] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ tone: StatusTone; text: string } | null>(
     null
   );
@@ -131,7 +132,7 @@ export default function Sidebar() {
     chrome.runtime.sendMessage(
       {
         type: "MIGRATE_CONTEXT",
-        payload: { sessionId: selected.id, targetPlatform, targetTabId: tab.id },
+        payload: { sessionId: selected.id, targetPlatform, targetTabId: tab.id, caveman },
       },
       (response) => {
         setMigrating(false);
@@ -328,6 +329,27 @@ export default function Sidebar() {
                 IDE context attached.
               </div>
             )}
+
+            <button
+              onClick={() => setCaveman((v) => !v)}
+              className="flex w-full items-center justify-between rounded-[4px] border px-3 py-2 text-xs transition-all"
+              style={caveman ? {
+                borderColor: "#F59E0B40",
+                background: "#F59E0B12",
+                color: "#F59E0B",
+              } : {
+                borderColor: "#2A2A2A",
+                background: "#1A1A1A",
+                color: "#6B6B6B",
+              }}
+            >
+              <span className="font-semibold uppercase tracking-[0.15em] text-[10px]">
+                Caveman mode
+              </span>
+              <span className="text-[10px] opacity-70">
+                {caveman ? "ON — compress + blunt" : "OFF"}
+              </span>
+            </button>
 
             <div className="flex gap-2">
               <button

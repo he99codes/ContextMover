@@ -22,7 +22,8 @@ const TOKEN_THRESHOLD = 3000;
 const MAX_VERBATIM_MESSAGES = 6;
 
 export default async function summarize(
-  messages: Message[]
+  messages: Message[],
+  options?: { caveman?: boolean }
 ): Promise<SummaryResult> {
   if (!messages.length) {
     const empty: ExtractedContext = {
@@ -45,7 +46,8 @@ export default async function summarize(
     };
   }
 
-  const extracted = extractContext(messages);
+  const compressed = options?.caveman ? aggressivelyCompressMessages(messages) : undefined;
+  const extracted = extractContext(messages, compressed);
 
   const fullTranscript = messages
     .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
@@ -72,16 +74,61 @@ export default async function summarize(
   };
 }
 
+// ── Aggressive compression (caveman mode) ────────────────────────────────────
+// Body messages (all except last 6) are compressed:
+//   user     → first non-fluff sentence, max 150 chars
+//   assistant → at most 2 decision sentences; code stripped (kept in codeBlocks)
+
+const FLUFF_PREFIX_RE =
+  /^(?:(?:can|could|would|will|please|just|basically|actually|i was wondering|sure|of course|i'd like to|i need to|help me|hi|hello|hey)[,\s]+)+/i;
+
+function stripUserFluff(text: string): string {
+  const clean = text.replace(FLUFF_PREFIX_RE, "").trim();
+  const sentence = clean.split(/[.!?\n]/)[0].trim();
+  return (sentence || clean).slice(0, 150);
+}
+
+function compressAssistant(text: string): string {
+  // Strip code fences — code preserved separately in codeBlocks.
+  const noCode = text.replace(/```[\s\S]*?```/g, "").trim();
+  const sentences = noCode
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 20);
+  // Pick up to 2 decision sentences.
+  const decisions = sentences.filter((s) =>
+    DECISION_RE.some((re) => re.test(s))
+  );
+  const chosen = decisions.slice(0, 2);
+  if (chosen.length === 0 && sentences.length > 0) chosen.push(sentences[0]);
+  return chosen.join(" ");
+}
+
+function aggressivelyCompressMessages(messages: Message[]): Message[] {
+  if (messages.length <= MAX_VERBATIM_MESSAGES) return messages;
+  const tail = messages.slice(-MAX_VERBATIM_MESSAGES);
+  const body = messages.slice(0, -MAX_VERBATIM_MESSAGES);
+  const compressedBody = body.map((msg) => ({
+    ...msg,
+    content:
+      msg.role === "user"
+        ? stripUserFluff(msg.content)
+        : compressAssistant(msg.content),
+  }));
+  return [...compressedBody, ...tail];
+}
+
 // ── Orchestrator ──────────────────────────────────────────────────────────────
 
-function extractContext(messages: Message[]): ExtractedContext {
+function extractContext(messages: Message[], compressed?: Message[]): ExtractedContext {
+  const src = compressed ?? messages;
   return {
     primaryGoal: extractPrimaryGoal(messages),
     currentFocus: extractCurrentFocus(messages),
-    completed: extractCompleted(messages),
-    pending: extractPending(messages),
-    decisions: extractDecisions(messages),
-    facts: extractFacts(messages),
+    completed: extractCompleted(src),
+    pending: extractPending(src),
+    decisions: extractDecisions(src),
+    facts: extractFacts(src),
     codeBlocks: extractAllCodeBlocks(messages),
     conversationTail: messages.slice(-MAX_VERBATIM_MESSAGES),
     messageCount: messages.length,

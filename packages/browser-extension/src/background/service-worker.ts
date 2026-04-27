@@ -327,6 +327,7 @@ async function handleMigrateContext(
     sessionId: string;
     targetPlatform: string;
     targetTabId?: number;
+    caveman?: boolean;
   },
   sendResponse: (r: unknown) => void
 ) {
@@ -347,7 +348,7 @@ async function handleMigrateContext(
 
   // ── DIAGNOSTIC STAGE 5 — summarizer ───────────────────────────────────────
   console.log(`[ContextForge:sw] Stage5 — calling summarizer with ${session.messages.length} messages`);
-  const summaryResult = await summarize(session.messages);
+  const summaryResult = await summarize(session.messages, { caveman: payload.caveman });
   console.log(`[ContextForge:sw] Stage5 — summarizer done: mode=${summaryResult.mode} tokens~${summaryResult.originalTokenEstimate} codeBlocks=${summaryResult.extracted.codeBlocks.length} tailMessages=${summaryResult.extracted.conversationTail.length}`);
   const tailAsst = summaryResult.extracted.conversationTail.filter(m => m.role === "assistant").length;
   if (tailAsst === 0) {
@@ -368,6 +369,7 @@ async function handleMigrateContext(
     ideContext,
     targetPlatform: payload.targetPlatform as ContextSession["platform"],
     sourceSession: session,
+    caveman: payload.caveman,
   });
 
   console.log(`[ContextForge:sw] Stage6 — prompt built: length=${prompt.length} chars, target=${payload.targetPlatform}`);

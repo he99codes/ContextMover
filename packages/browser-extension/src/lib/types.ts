@@ -42,4 +42,5 @@ export interface MigrationPayload {
   ideContext?: string;
   targetPlatform: Platform;
   sourceSession: ContextSession;
+  caveman?: boolean;
 }

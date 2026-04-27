@@ -120,6 +120,9 @@ function buildClaudePrompt(payload: MigrationPayload): string {
     ? `\n  <ide_context>\n${indent(ideContext, 4)}\n  </ide_context>`
     : "";
 
+  const caveatLine = payload.caveman
+    ? `    Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`
+    : "";
   const instructionsBlock = [
     `  <instructions>`,
     `    You are continuing a conversation migrated from ${sourceSession.platform}.`,
@@ -127,6 +130,7 @@ function buildClaudePrompt(payload: MigrationPayload): string {
     `    Pick up exactly where the conversation left off.`,
     `    Do not re-explain what was already decided.`,
     `    Treat all code and decisions above as shared context.`,
+    ...(caveatLine ? [caveatLine] : []),
     `  </instructions>`,
   ].join("\n");
 
@@ -237,7 +241,8 @@ function buildChatGPTPrompt(payload: MigrationPayload): string {
     ``,
     `Continue seamlessly from where the conversation left off.`,
     `Do not re-explain decisions already made.`,
-    `Treat all code above as shared, agreed-upon context.`
+    `Treat all code above as shared, agreed-upon context.`,
+    ...(payload.caveman ? [`Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`] : [])
   );
 
   return out.join("\n");
@@ -324,7 +329,8 @@ function buildGrokPrompt(payload: MigrationPayload): string {
     `The user is currently working on: **${currentFocus}**`,
     ``,
     `Jump straight in — no need to reintroduce yourself or recap what's already done.`,
-    `All the code above is agreed-upon context, treat it as already written and working.`
+    `All the code above is agreed-upon context, treat it as already written and working.`,
+    ...(payload.caveman ? [`Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`] : [])
   );
 
   return out.join("\n");
@@ -387,7 +393,8 @@ function buildGeminiPrompt(payload: MigrationPayload): string {
     `[TASK]`,
     `Continue the conversation from the context above.`,
     `The user is currently focused on: ${currentFocus}`,
-    `Do not recap already-decided items. Pick up exactly where the conversation ended.`
+    `Do not recap already-decided items. Pick up exactly where the conversation ended.`,
+    ...(payload.caveman ? [`Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`] : [])
   );
 
   return out.join("\n");
@@ -462,7 +469,8 @@ function buildPerplexityPrompt(payload: MigrationPayload): string {
     `The user is currently focused on: **${currentFocus}**`,
     ``,
     `Do not treat this as a new search query. Pick up exactly where the conversation ended,`,
-    `treating all code and decisions above as established context.`
+    `treating all code and decisions above as established context.`,
+    ...(payload.caveman ? [`Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`] : [])
   );
 
   return out.join("\n");
@@ -546,7 +554,8 @@ function buildDeepSeekPrompt(payload: MigrationPayload): string {
     `Focus on: **${currentFocus}**`,
     ``,
     `All code above is established context — do not re-explain it.`,
-    `Pick up exactly where the conversation ended.`
+    `Pick up exactly where the conversation ended.`,
+    ...(payload.caveman ? [`Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`] : [])
   );
 
   return out.join("\n");
