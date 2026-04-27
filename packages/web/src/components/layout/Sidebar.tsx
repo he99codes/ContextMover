@@ -46,11 +46,12 @@ export function Sidebar({ user }: SidebarProps) {
     : "CF";
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col border-r border-[#2A2A2A] bg-[#0A0A0A]">
+    <aside className="fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col border-r border-[#2A2A2A] bg-[#0A0A0A]">
       {/* Logo */}
-      <div className="flex h-14 items-center gap-2.5 border-b border-[#2A2A2A] px-4">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#00FF88]">
+      <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-[#2A2A2A] px-4">
+        <div className="relative flex h-7 w-7 items-center justify-center rounded-[6px] bg-[#00FF88]">
           <Zap size={14} className="text-black" />
+          <span className="animate-pulse-green absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#00FF88]" />
         </div>
         <span className="text-[15px] font-semibold text-[#F5F5F5] tracking-tight">
           ContextForge
@@ -69,15 +70,25 @@ export function Sidebar({ user }: SidebarProps) {
               key={item.name}
               href={item.href}
               className={cn(
-                "flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm font-medium transition-all",
+                "group relative flex h-10 items-center gap-2.5 overflow-hidden rounded-[8px] px-3 text-sm font-medium transition-all duration-150",
                 isActive
-                  ? "bg-[#00FF88]/10 text-[#00FF88] shadow-[0_0_12px_rgba(0,255,136,0.12)]"
-                  : "text-[#6B6B6B] hover:bg-[#1A1A1A] hover:text-[#F5F5F5]"
+                  ? "bg-[#1A1A1A] text-[#00FF88]"
+                  : "text-[#6B6B6B] hover:bg-[#111111] hover:text-[#F5F5F5]"
               )}
             >
+              {/* sliding left border */}
+              <span
+                className={cn(
+                  "absolute inset-y-0 left-0 w-[2px] rounded-r-full bg-[#00FF88] transition-all duration-200",
+                  isActive ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0 group-hover:opacity-40 group-hover:scale-y-75"
+                )}
+              />
               <item.icon
                 size={16}
-                className={isActive ? "text-[#00FF88]" : "text-[#6B6B6B]"}
+                className={cn(
+                  "shrink-0 transition-colors duration-150",
+                  isActive ? "text-[#00FF88]" : "text-[#6B6B6B] group-hover:text-[#F5F5F5]"
+                )}
               />
               {item.name}
             </Link>
@@ -86,9 +97,9 @@ export function Sidebar({ user }: SidebarProps) {
       </nav>
 
       {/* User */}
-      <div className="border-t border-[#2A2A2A] p-3">
-        <div className="flex items-center gap-2.5 rounded-[8px] px-2 py-2">
-          <Avatar className="h-7 w-7">
+      <div className="shrink-0 border-t border-[#2A2A2A] p-3">
+        <div className="flex items-center gap-2.5 rounded-[8px] px-2 py-2 transition-colors hover:bg-[#111111]">
+          <Avatar className="h-7 w-7 shrink-0">
             <AvatarFallback className="bg-[#00FF88]/10 text-[#00FF88] text-xs font-semibold border border-[#00FF88]/20">
               {initials}
             </AvatarFallback>
@@ -100,7 +111,7 @@ export function Sidebar({ user }: SidebarProps) {
           </div>
           <button
             onClick={handleSignOut}
-            className="shrink-0 text-[#6B6B6B] transition-colors hover:text-red-400"
+            className="shrink-0 rounded-[4px] p-1 text-[#6B6B6B] transition-colors hover:bg-red-500/10 hover:text-red-400"
             title="Sign out"
           >
             <LogOut size={14} />

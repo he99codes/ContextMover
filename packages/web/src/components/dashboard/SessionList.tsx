@@ -4,20 +4,21 @@ import { useState, useMemo } from "react";
 import { Search, Layers, RefreshCw } from "lucide-react";
 import { useRealtimeSessions } from "@/hooks/useRealtimeSessions";
 import { SessionCard } from "./SessionCard";
-import { Input } from "@/components/ui/input";
+import { PlatformLogo, PLATFORM_COLORS as PCOLORS } from "@/components/ui/PlatformLogo";
 import { cn } from "@/lib/utils";
 import type { Session } from "@/types";
 
-const PLATFORMS = ["All", "Claude", "ChatGPT", "Gemini", "Grok", "Perplexity", "DeepSeek"] as const;
+const PLATFORMS = [
+  { key: "All",        label: "All",          logoKey: null },
+  { key: "Claude",     label: "Claude",        logoKey: "claude" },
+  { key: "ChatGPT",    label: "ChatGPT",       logoKey: "chatgpt" },
+  { key: "Gemini",     label: "Google Gemini", logoKey: "gemini" },
+  { key: "Grok",       label: "xAI Grok",      logoKey: "grok" },
+  { key: "Perplexity", label: "Perplexity",    logoKey: "perplexity" },
+  { key: "DeepSeek",   label: "DeepSeek",      logoKey: "deepseek" },
+] as const;
 
-const PLATFORM_COLORS: Record<string, string> = {
-  Claude:     "#D97706",
-  ChatGPT:    "#10B981",
-  Gemini:     "#6366F1",
-  Grok:       "#F5F5F5",
-  Perplexity: "#20B2AA",
-  DeepSeek:   "#4C8BF5",
-};
+type PlatformKey = typeof PLATFORMS[number]["key"];
 
 interface SessionListProps {
   initialSessions: Session[];
@@ -33,7 +34,7 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
     return sessions.filter((s) => {
       const matchesPlatform =
         filter === "All" ||
-        s.platform.toLowerCase() === filter.toLowerCase();
+        s.platform.toLowerCase() === filter.toLowerCase().replace("google ", "").replace("xai ", "");
       const matchesSearch =
         !search ||
         (s.title ?? "").toLowerCase().includes(search.toLowerCase()) ||
@@ -47,98 +48,109 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
   const counts = useMemo(() => {
     const c: Record<string, number> = { All: sessions.length };
     for (const p of PLATFORMS.slice(1)) {
-      c[p] = sessions.filter(
-        (s) => s.platform.toLowerCase() === p.toLowerCase()
+      c[p.key] = sessions.filter(
+        (s) => s.platform.toLowerCase() === p.key.toLowerCase()
       ).length;
     }
     return c;
   }, [sessions]);
 
+  const [searchFocused, setSearchFocused] = useState(false);
+
   return (
     <div>
       {/* Toolbar */}
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Platform filters */}
-        <div className="flex items-center gap-1 flex-wrap">
+      <div className="mb-5 flex flex-col gap-3">
+        {/* Platform filter tabs with sliding underline */}
+        <div className="flex items-center gap-0 border-b border-[#2A2A2A] overflow-x-auto">
           {PLATFORMS.map((p) => {
-            const pColor = p !== "All" ? PLATFORM_COLORS[p] : null;
-            const isActive = filter === p;
+            const isActive = filter === p.key;
+            const color = p.logoKey ? (PCOLORS[p.logoKey] ?? "#6B6B6B") : "#00FF88";
             return (
               <button
-                key={p}
-                onClick={() => setFilter(p)}
+                key={p.key}
+                onClick={() => setFilter(p.key)}
                 className={cn(
-                  "rounded-[4px] px-3 py-1 text-xs font-medium transition-all duration-150 border",
-                  isActive && p === "All"
-                    ? "bg-[#00FF88]/10 text-[#00FF88] border-[#00FF88]/30 shadow-[0_0_8px_rgba(0,255,136,0.12)]"
-                    : isActive && pColor
-                    ? "border-transparent"
-                    : "bg-[#1A1A1A] border-[#2A2A2A] text-[#6B6B6B] hover:text-[#F5F5F5] hover:border-[#3A3A3A]"
+                  "relative flex shrink-0 items-center gap-1.5 px-3 pb-2.5 pt-1 text-xs font-medium transition-colors duration-150 whitespace-nowrap",
+                  isActive ? "text-[#F5F5F5]" : "text-[#6B6B6B] hover:text-[#A0A0A0]"
                 )}
-                style={isActive && pColor ? {
-                  background: `${pColor}18`,
-                  borderColor: `${pColor}40`,
-                  color: pColor,
-                  boxShadow: `0 0 8px ${pColor}20`,
-                } : {}}
+                style={isActive ? { color } : {}}
               >
-                {p}
-                {counts[p] > 0 && (
-                  <span className="ml-1.5 tabular-nums opacity-60">
-                    {counts[p]}
-                  </span>
+                {p.logoKey && (
+                  <PlatformLogo platform={p.logoKey} size={12} />
                 )}
+                {p.label}
+                {counts[p.key] > 0 && (
+                  <span className="tabular-nums opacity-55 text-[10px]">{counts[p.key]}</span>
+                )}
+                {/* Sliding underline */}
+                <span
+                  className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full transition-all duration-300"
+                  style={{
+                    background: color,
+                    opacity: isActive ? 1 : 0,
+                    transform: isActive ? "scaleX(1)" : "scaleX(0)",
+                    transformOrigin: "left",
+                  }}
+                />
               </button>
             );
           })}
         </div>
 
         {/* Search */}
-        <div className="relative w-full sm:w-56">
+        <div className="relative">
           <Search
             size={13}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6B6B6B]"
+            className={cn(
+              "absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-150",
+              searchFocused ? "text-[#00FF88]" : "text-[#6B6B6B]"
+            )}
           />
-          <Input
+          <input
             placeholder="Search sessions…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 text-sm h-8 bg-[#1A1A1A] border-[#2A2A2A] text-[#F5F5F5] placeholder:text-[#6B6B6B] focus:border-[#00FF88] rounded-[4px]"
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            className={cn(
+              "w-full rounded-[4px] border bg-[#111111] py-2 pl-9 pr-3 text-sm text-[#F5F5F5] placeholder:text-[#6B6B6B] outline-none transition-all duration-150",
+              searchFocused
+                ? "border-[#00FF88] shadow-[0_0_0_3px_rgba(0,255,136,0.08)]"
+                : "border-[#2A2A2A] hover:border-[#3A3A3A]"
+            )}
           />
         </div>
       </div>
 
-      {/* List */}
+      {/* Empty states */}
       {filtered.length === 0 && sessions.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-[8px] border border-dashed border-[#2A2A2A] bg-[#111111] py-20 text-center">
+        <div className="flex flex-col items-center justify-center rounded-[6px] border border-dashed border-[#2A2A2A] bg-[#111111] py-20 text-center animate-fade-in">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[8px] bg-[#00FF88]/10 border border-[#00FF88]/20">
             <Layers size={20} className="text-[#00FF88]" />
           </div>
-          <h3 className="text-sm font-medium text-[#F5F5F5]">
-            No sessions captured yet
-          </h3>
+          <h3 className="text-sm font-medium text-[#F5F5F5]">No sessions captured yet</h3>
           <p className="mt-1.5 max-w-xs text-sm text-[#6B6B6B]">
-            Install the ContextForge extension and visit Claude, ChatGPT, Gemini,
-            Grok, Perplexity, or DeepSeek to start capturing context.
+            Install the ContextForge extension and visit Claude, ChatGPT, Google Gemini,
+            xAI Grok, Perplexity, or DeepSeek to start capturing context.
           </p>
         </div>
       )}
 
       {filtered.length === 0 && sessions.length > 0 && (
-        <div className="flex flex-col items-center justify-center rounded-[8px] border border-dashed border-[#2A2A2A] bg-[#111111] py-16 text-center">
+        <div className="flex flex-col items-center justify-center rounded-[6px] border border-dashed border-[#2A2A2A] bg-[#111111] py-16 text-center animate-fade-in">
           <RefreshCw size={18} className="mb-3 text-[#6B6B6B]" />
-          <p className="text-sm text-[#6B6B6B]">
-            No sessions match your filter.
-          </p>
+          <p className="text-sm text-[#6B6B6B]">No sessions match your filter.</p>
           <button
             onClick={() => { setFilter("All"); setSearch(""); }}
-            className="mt-2 text-xs text-[#00FF88] hover:underline"
+            className="mt-2 text-xs text-[#00FF88] transition-opacity hover:opacity-70"
           >
             Clear filters
           </button>
         </div>
       )}
 
+      {/* Staggered card list */}
       {filtered.length > 0 && (
         <div className="space-y-2">
           {filtered.map((session) => (

@@ -2,8 +2,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
 import type { ContextSession, Platform } from "@/lib/types";
 import ExportMenu from "@/components/ExportMenu";
+import { PlatformBadge, PlatformLogo } from "@/components/PlatformLogo";
 
 const PLATFORM_LABELS: Record<Platform, string> = {
+  claude:     "Claude",
+  chatgpt:    "ChatGPT",
+  gemini:     "Google Gemini",
+  grok:       "xAI Grok",
+  perplexity: "Perplexity",
+  deepseek:   "DeepSeek",
+};
+
+const PLATFORM_SHORT: Record<Platform, string> = {
   claude:     "Claude",
   chatgpt:    "ChatGPT",
   gemini:     "Gemini",
@@ -12,20 +22,11 @@ const PLATFORM_LABELS: Record<Platform, string> = {
   deepseek:   "DeepSeek",
 };
 
-const PLATFORM_SHORT: Record<Platform, string> = {
-  claude:     "CL",
-  chatgpt:    "GPT",
-  gemini:     "GM",
-  grok:       "GK",
-  perplexity: "PPX",
-  deepseek:   "DS",
-};
-
 const PLATFORM_COLORS: Record<Platform, string> = {
   claude:     "#D97706",
   chatgpt:    "#10B981",
   gemini:     "#6366F1",
-  grok:       "#F5F5F5",
+  grok:       "#E5E5E5",
   perplexity: "#20B2AA",
   deepseek:   "#4C8BF5",
 };
@@ -199,23 +200,18 @@ export default function Sidebar() {
     const platformColor = PLATFORM_COLORS[selected.platform];
 
     return (
-      <div className="flex h-full flex-col overflow-hidden bg-[#0A0A0A] text-[#F5F5F5]">
+      <div className="flex h-full flex-col overflow-hidden bg-[#0A0A0A] text-[#F5F5F5] animate-slide-up">
         <div className="flex h-full flex-col">
-          <div className="border-b border-[#2A2A2A] px-4 py-3">
+          <div className="border-b border-[#2A2A2A] px-3 py-3">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setView("sessions")}
-                className="rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-2.5 py-1 text-sm font-medium text-[#F5F5F5] transition hover:border-[#00FF88]/30 hover:text-[#00FF88]"
+                className="flex items-center gap-1 rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-2 py-1 text-[11px] font-medium text-[#6B6B6B] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
               >
-                Back
+                ← Back
               </button>
-              <span
-                className="rounded-[4px] border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em]"
-                style={{ color: platformColor, borderColor: `${platformColor}40`, background: `${platformColor}15` }}
-              >
-                {PLATFORM_LABELS[selected.platform]}
-              </span>
-              <span className="truncate text-sm font-medium text-[#F5F5F5]">{selected.title}</span>
+              <PlatformBadge platform={selected.platform} logoSize={10} />
+              <span className="min-w-0 flex-1 truncate text-xs font-medium text-[#F5F5F5]">{selected.title}</span>
             </div>
           </div>
 
@@ -355,7 +351,7 @@ export default function Sidebar() {
               <button
                 onClick={migrate}
                 disabled={migrating}
-                className="flex-1 rounded-[4px] bg-[#00FF88] py-2 text-xs font-semibold text-black transition hover:bg-[#00CC6A] hover:shadow-[0_0_10px_rgba(0,255,136,0.25)] disabled:opacity-50"
+                className="flex-1 rounded-[4px] bg-[#00FF88] py-2 text-xs font-semibold text-black transition-all hover:bg-[#00CC6A] hover:shadow-[0_0_14px_rgba(0,255,136,0.3)] hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
               >
                 {migrating ? "Migrating..." : `→ ${PLATFORM_LABELS[targetPlatform]}`}
               </button>
@@ -394,52 +390,57 @@ export default function Sidebar() {
     <div className="flex h-full flex-col overflow-hidden bg-[#0A0A0A] text-[#F5F5F5]">
       <div className="flex h-full flex-col">
         {/* Header */}
-        <div className="border-b border-[#2A2A2A] px-4 py-3">
-          <div className="flex items-center justify-between gap-2">
+        <div className="border-b border-[#2A2A2A] px-3 py-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#00FF88] shadow-[0_0_8px_rgba(0,255,136,0.7)]" />
+              <div className="relative flex h-6 w-6 items-center justify-center rounded-[4px] bg-[#00FF88]">
+                <span className="text-[10px] font-bold text-black">CF</span>
+                <span className="animate-pulse-green absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[#00FF88]" />
+              </div>
               <span className="text-xs font-semibold text-[#F5F5F5] tracking-tight">ContextForge</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => { void loadSessions(); }}
-                title="Refresh"
-                className="flex h-6 w-6 items-center justify-center rounded-[4px] border border-[#2A2A2A] text-sm text-[#6B6B6B] transition hover:border-[#00FF88]/30 hover:text-[#00FF88]"
+                title="Refresh sessions"
+                className="flex h-6 w-6 items-center justify-center rounded-[4px] border border-[#2A2A2A] text-[#6B6B6B] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
               >
-                ↻
+                <span className="text-sm">↻</span>
               </button>
               <button
                 onClick={() => { void checkBridge(); void loadSessions(); }}
-                className={`rounded-[4px] px-2 py-1 text-[10px] font-medium transition ${
+                className={`flex items-center gap-1 rounded-[4px] border px-2 py-1 text-[10px] font-medium transition-all ${
                   bridgeStatus === "ok"
-                    ? "bg-[#00FF88]/10 text-[#00FF88] border border-[#00FF88]/20"
-                    : "bg-[#1A1A1A] text-[#6B6B6B] border border-[#2A2A2A]"
+                    ? "border-[#00FF88]/20 bg-[#00FF88]/8 text-[#00FF88]"
+                    : "border-[#2A2A2A] bg-[#1A1A1A] text-[#6B6B6B]"
                 }`}
               >
-                {bridgeStatus === "ok" ? "IDE ●" : "IDE ○"}
+                <span
+                  className={bridgeStatus === "ok" ? "animate-pulse-green inline-block h-1.5 w-1.5 rounded-full bg-[#00FF88]" : "inline-block h-1.5 w-1.5 rounded-full bg-[#3A3A3A]"}
+                />
+                IDE
               </button>
             </div>
           </div>
-          <p className="mt-2 text-xs text-[#6B6B6B]">
+
+          <p className="mt-2 text-[11px] text-[#6B6B6B]">
             {leadSession
-              ? `Latest from ${PLATFORM_LABELS[leadSession.platform]}`
+              ? `Latest: ${PLATFORM_LABELS[leadSession.platform]}`
               : "Open an AI tab to start capturing."}
           </p>
 
-          <div className="mt-3 grid grid-cols-3 gap-1.5">
+          <div className="mt-2.5 grid grid-cols-3 gap-1">
             {sourceCounts.map(({ platform, count }) => (
               <div
                 key={platform}
-                className="rounded-[4px] border px-1.5 py-1.5 text-center transition-all"
+                className="rounded-[4px] border px-1 py-1.5 text-center transition-all"
                 style={{
-                  borderColor: count > 0 ? `${PLATFORM_COLORS[platform]}35` : "#2A2A2A",
-                  background: count > 0 ? `${PLATFORM_COLORS[platform]}0D` : "#111111",
+                  borderColor: count > 0 ? `${PLATFORM_COLORS[platform]}30` : "#1F1F1F",
+                  background: count > 0 ? `${PLATFORM_COLORS[platform]}0A` : "#111111",
                 }}
               >
-                <div className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: PLATFORM_COLORS[platform] }}>
-                  {PLATFORM_SHORT[platform]}
-                </div>
-                <div className="mt-0.5 text-sm font-bold" style={{ color: count > 0 ? "#F5F5F5" : "#3A3A3A" }}>{count}</div>
+                <PlatformLogo platform={platform} size={10} className="mx-auto" />
+                <div className="mt-0.5 text-[11px] font-bold" style={{ color: count > 0 ? "#F5F5F5" : "#3A3A3A" }}>{count}</div>
               </div>
             ))}
           </div>
@@ -497,13 +498,16 @@ export default function Sidebar() {
 
         <div className="flex-1 overflow-y-auto px-3 py-2">
           {filtered.length === 0 ? (
-            <div className="rounded-[8px] border border-dashed border-[#2A2A2A] px-4 py-8 text-center">
+            <div className="rounded-[6px] border border-dashed border-[#2A2A2A] px-4 py-10 text-center animate-fade-in">
+              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-[6px] border border-[#00FF88]/20 bg-[#00FF88]/8">
+                <span className="text-lg">⚡</span>
+              </div>
               <p className="text-xs font-medium text-[#F5F5F5]">
-                {sessions.length === 0 ? "No sessions captured yet." : "No results."}
+                {sessions.length === 0 ? "No sessions yet" : "No results"}
               </p>
-              <p className="mt-1 text-[11px] text-[#6B6B6B]">
+              <p className="mt-1 text-[10px] text-[#6B6B6B]">
                 {sessions.length === 0
-                  ? "Visit Claude, ChatGPT, Gemini, Grok, Perplexity, or DeepSeek."
+                  ? "Visit Claude, ChatGPT, Google Gemini, or xAI Grok."
                   : "Try a different search or filter."}
               </p>
             </div>
@@ -527,27 +531,24 @@ export default function Sidebar() {
                       setView("detail");
                     }
                   }}
-                  className="group block w-full cursor-pointer rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2.5 text-left transition-all duration-150 overflow-hidden relative hover:shadow-[0_2px_14px_rgba(0,0,0,0.3)]"
-                  style={{ borderColor: `${PLATFORM_COLORS[session.platform]}25` }}
-                >  
-                  <span className="absolute inset-y-0 left-0 w-[3px] rounded-l-[8px]" style={{ background: PLATFORM_COLORS[session.platform] }} />
-                  <div className="flex items-start gap-2.5">
-                    <div
-                      className="mt-0.5 h-2 w-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: PLATFORM_COLORS[session.platform] }}
-                    />
+                  className="stagger-item group relative block w-full cursor-pointer overflow-hidden rounded-[6px] border bg-[#1A1A1A] px-3 py-2.5 text-left transition-all duration-150 hover:shadow-[0_0_0_1px_#00FF88,0_4px_16px_rgba(0,255,136,0.08)] hover:-translate-y-px"
+                  style={{ borderColor: `${PLATFORM_COLORS[session.platform]}30` }}
+                >
+                  <span
+                    className="absolute inset-y-0 left-0 w-[3px] rounded-l-[6px]"
+                    style={{ background: PLATFORM_COLORS[session.platform] }}
+                  />
+                  <div className="flex items-start gap-2.5 pl-1">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="text-[10px] font-semibold uppercase tracking-wider"
-                          style={{ color: PLATFORM_COLORS[session.platform] }}
-                        >
-                          {PLATFORM_LABELS[session.platform]}
-                        </span>
-                        <span className="text-[10px] text-[#6B6B6B]">{formatRelativeTime(session.updatedAt)}</span>
+                      <PlatformBadge platform={session.platform} logoSize={9} />
+                      <p className="mt-1.5 truncate text-xs font-medium text-[#F5F5F5] transition-colors duration-150 group-hover:text-[#00FF88]">
+                        {session.title}
+                      </p>
+                      <div className="mt-0.5 flex items-center gap-2 text-[10px] text-[#6B6B6B]">
+                        <span>{session.messages.length} turns</span>
+                        <span>·</span>
+                        <span>{formatRelativeTime(session.updatedAt)}</span>
                       </div>
-                      <p className="mt-1 truncate text-xs font-medium text-[#F5F5F5] group-hover:text-[#00FF88] transition-colors">{session.title}</p>
-                      <p className="mt-0.5 text-[10px] text-[#6B6B6B]">{session.messages.length} turns</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-1 pt-0.5">
                       <ExportMenu
@@ -555,14 +556,11 @@ export default function Sidebar() {
                         variant="icon"
                         align="right"
                         onSuccess={(fmt) =>
-                          setStatusMessage({
-                            tone: "success",
-                            text: `Exported as ${fmt.toUpperCase()} — check your downloads.`,
-                          })
+                          setStatusMessage({ tone: "success", text: `Exported as ${fmt.toUpperCase()} — check downloads.` })
                         }
                         onError={(text) => setStatusMessage({ tone: "error", text })}
                       />
-                      <span className="text-[#2A2A2A] transition group-hover:text-[#00FF88]">›</span>
+                      <span className="text-[#3A3A3A] transition-colors group-hover:text-[#00FF88]">›</span>
                     </div>
                   </div>
                 </div>
@@ -571,8 +569,8 @@ export default function Sidebar() {
           )}
         </div>
 
-        <div className="border-t border-[#2A2A2A] px-4 py-1.5 text-center">
-          <span className="text-[9px] text-[#6B6B6B]/60 uppercase tracking-widest">context routing engine</span>
+        <div className="border-t border-[#2A2A2A] px-4 py-2 text-center">
+          <span className="text-[9px] text-[#3A3A3A] uppercase tracking-widest">context routing engine</span>
         </div>
       </div>
     </div>
