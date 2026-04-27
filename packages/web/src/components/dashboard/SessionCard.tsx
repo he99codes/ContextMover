@@ -76,7 +76,7 @@ export function SessionCard({ session }: SessionCardProps) {
   async function handleDelete(e: MouseEvent) {
     stopLink(e);
     const ok = window.confirm(
-      `Delete this ${style.label} session? This cannot be undone and will also remove it from the extension.`
+      `Delete this ${session.platform} session? This cannot be undone and will also remove it from the extension.`
     );
     if (!ok) return;
     setBusy("delete");
