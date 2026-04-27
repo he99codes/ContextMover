@@ -110,7 +110,7 @@ export function startSessionCapture(config: {
     }
   });
 
-  const FETCH_FALLBACK_WINDOW_MS = 5000;
+  const FETCH_FALLBACK_WINDOW_MS = 60_000;
   const capture = async () => {
     // Re-resolve session ID on SPA navigation (e.g. Claude pushState from
     // /new → /chat/abc123 when a conversation starts).
