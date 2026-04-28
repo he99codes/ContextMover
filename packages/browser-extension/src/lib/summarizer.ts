@@ -4,7 +4,9 @@
 //   extracted — rich structured object used by translator.ts for per-model formatting
 //   content   — legacy plain-text fallback for backward compatibility
 
-import type { CodeBlock, ExtractedContext, Message } from "./types";
+import type { CodeBlock, ContextSession, ExtractedContext, Message } from "./types";
+import { attentionEngine } from "./attention-engine";
+import type { AttentionMap } from "./attention-engine";
 
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
@@ -319,4 +321,107 @@ function buildPlainTextSummary(ex: ExtractedContext): string {
 
 function dedupe<T>(arr: T[]): T[] {
   return [...new Set(arr)];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// summarizeWithAttention — Attention Engine powered summarization.
+//
+// Scores every message against the user's task using semantic embeddings,
+// keeps high-score content verbatim, compresses low-score messages to one
+// sentence, and always preserves the last MAX_VERBATIM_MESSAGES messages.
+// Falls back silently to summarize() on any engine failure.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function summarizeWithAttention(
+  messages: Message[],
+  task: string,
+  strength: "light" | "strict",
+  session: ContextSession
+): Promise<{ summary: string; attentionMap: AttentionMap; compressionRatio: number }> {
+  try {
+    if (!attentionEngine.initialized) {
+      await attentionEngine.initialize();
+    }
+
+    await attentionEngine.indexSession(session);
+    const attentionMap = await attentionEngine.buildAttentionMap(session, task, strength);
+    const threshold = attentionMap.threshold;
+
+    // content → best relevanceScore lookup for message-type chunks
+    const scoreByContent = new Map<string, number>();
+    for (const chunk of attentionMap.topChunks) {
+      if (chunk.type === "message") {
+        const prev = scoreByContent.get(chunk.content) ?? 0;
+        if (chunk.relevanceScore > prev) scoreByContent.set(chunk.content, chunk.relevanceScore);
+      }
+    }
+
+    // code block contents that scored above threshold (kept verbatim)
+    const highScoreCode = new Set<string>(
+      attentionMap.topChunks
+        .filter((c) => c.type === "code" && c.relevanceScore >= threshold)
+        .map((c) => c.content.trim())
+    );
+
+    const tailStart = Math.max(0, messages.length - MAX_VERBATIM_MESSAGES);
+
+    const processed: Message[] = messages.map((msg, idx) => {
+      // Last MAX_VERBATIM_MESSAGES messages: always keep verbatim.
+      if (idx >= tailStart) return msg;
+
+      const score = scoreByContent.get(msg.content) ?? 0;
+
+      if (score >= threshold) {
+        // High relevance — keep full text, strip only low-score code blocks.
+        return { ...msg, content: stripLowScoreCode(msg.content, highScoreCode) };
+      }
+
+      // Low relevance — compress to first meaningful sentence, no code.
+      const noCode = msg.content.replace(/```[\s\S]*?```/g, "").trim();
+      const first = noCode.split(/[.!?\n]/)[0]?.trim() ?? noCode;
+      return { ...msg, content: first.slice(0, 200) };
+    });
+
+    const extracted = extractContext(processed);
+    const summary = buildPlainTextSummary(extracted);
+
+    const originalSize = messages.reduce((s, m) => s + m.content.length, 0);
+    const compressedSize = processed.reduce((s, m) => s + m.content.length, 0);
+    const compressionRatio =
+      originalSize > 0 ? Math.round((1 - compressedSize / originalSize) * 100) : 0;
+
+    console.log(
+      `[ContextForge:summarizer] summarizeWithAttention: task="${task.slice(0, 60)}" ` +
+        `msgs=${messages.length}→${processed.length} compression=${compressionRatio}%`
+    );
+
+    return { summary, attentionMap, compressionRatio };
+  } catch (err) {
+    console.warn(
+      "[ContextForge:summarizer] summarizeWithAttention failed — falling back to summarize():",
+      err
+    );
+    const fallback = await summarize(messages);
+    return {
+      summary: fallback.content,
+      attentionMap: {
+        task,
+        threshold: 0.4,
+        topChunks: [],
+        highlightedFiles: [],
+        highlightedModules: [],
+        structuralContext: { files: [], modules: [], lastUpdated: Date.now() },
+        focusedContext: "",
+        compressionRatio: 0,
+      },
+      compressionRatio: 0,
+    };
+  }
+}
+
+function stripLowScoreCode(content: string, highScoreCode: Set<string>): string {
+  return content.replace(/```[\s\S]*?```/g, (match) => {
+    const inner = match.replace(/^```[\w-]*[ \t]*\n?/, "").replace(/\n?```$/, "").trim();
+    return highScoreCode.has(inner) ? match : "";
+  });
 }

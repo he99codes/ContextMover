@@ -4,30 +4,41 @@
 // back to payload.summary (plain text) for backward compatibility.
 
 import type { ExtractedContext, Message, MigrationPayload } from "./types";
+import type { AttentionMap } from "./attention-engine";
 
 const MAX_VERBATIM = 6;
 
 export default function buildMigrationPrompt(
   payload: MigrationPayload
 ): string {
+  let prompt: string;
   switch (payload.targetPlatform) {
-    case "claude":
-      return buildClaudePrompt(payload);
-    case "chatgpt":
-      return buildChatGPTPrompt(payload);
-    case "gemini":
-      return buildGeminiPrompt(payload);
-    case "grok":
-      return buildGrokPrompt(payload);
-    case "perplexity":
-      return buildPerplexityPrompt(payload);
-    case "deepseek":
-      return buildDeepSeekPrompt(payload);
+    case "claude":     prompt = buildClaudePrompt(payload);      break;
+    case "chatgpt":    prompt = buildChatGPTPrompt(payload);     break;
+    case "gemini":     prompt = buildGeminiPrompt(payload);      break;
+    case "grok":       prompt = buildGrokPrompt(payload);        break;
+    case "perplexity": prompt = buildPerplexityPrompt(payload);  break;
+    case "deepseek":   prompt = buildDeepSeekPrompt(payload);   break;
     default: {
       const _exhaustive: never = payload.targetPlatform;
       void _exhaustive;
-      return buildChatGPTPrompt(payload);
+      prompt = buildChatGPTPrompt(payload);
     }
+  }
+
+  // Inject Attention Engine block when summarizeWithAttention() was used.
+  const map = payload.attentionMap as AttentionMap | undefined;
+  const task = payload.task;
+  if (!map || !task) return prompt;
+
+  switch (payload.targetPlatform) {
+    case "claude":
+      // Inject inside <context_migration>, immediately before <goal>
+      return prompt.replace(/\n  <goal>/, "\n" + buildAttentionBlockClaude(task, map) + "\n  <goal>");
+    case "gemini":
+      return buildAttentionBlockGemini(task, map) + prompt;
+    default:
+      return buildAttentionBlockMarkdown(task, map) + prompt;
   }
 }
 
@@ -561,9 +572,79 @@ function buildDeepSeekPrompt(payload: MigrationPayload): string {
   return out.join("\n");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// Attention Engine prompt blocks
+// ─────────────────────────────────────────────────────────────────
+
+function buildAttentionBlockClaude(task: string, map: AttentionMap): string {
+  const files = map.highlightedFiles.length
+    ? map.highlightedFiles.map((f) => `      <file>${f}</file>`).join("\n")
+    : `      (none)`;
+  const mods = map.highlightedModules.length
+    ? map.highlightedModules.map((m) => `      <module>${m}</module>`).join("\n")
+    : `      (none)`;
+  return [
+    `  <attention_engine>`,
+    `    <task>${task}</task>`,
+    `    <structural_context>`,
+    indent(JSON.stringify(map.structuralContext, null, 2), 6),
+    `    </structural_context>`,
+    `    <attention_map>`,
+    `      <threshold>${map.threshold}</threshold>`,
+    `      <compression_ratio>${map.compressionRatio}%</compression_ratio>`,
+    `      <highlighted_files>`,
+    files,
+    `      </highlighted_files>`,
+    `      <highlighted_modules>`,
+    mods,
+    `      </highlighted_modules>`,
+    `    </attention_map>`,
+    `    <rules>`,
+    `      Structural context above is the full application map.`,
+    `      Keep 100% of it at all times.`,
+    `      Only expand on code and decisions with high attention score.`,
+    `      Compress or ignore everything else.`,
+    `      Your focused task: ${task}`,
+    `      Continuing focused work on: ${task}`,
+    `    </rules>`,
+    `  </attention_engine>`,
+  ].join("\n");
+}
+
+function buildAttentionBlockMarkdown(task: string, map: AttentionMap): string {
+  return [
+    `## Attention Engine`,
+    ``,
+    `**Task:** ${task}`,
+    `**Compression:** ${map.compressionRatio}% of original context`,
+    `**Highlighted files:** ${map.highlightedFiles.join(", ") || "(none)"}`,
+    `**Highlighted modules:** ${map.highlightedModules.join(", ") || "(none)"}`,
+    `**Structural context:** [see JSON below]`,
+    "```json",
+    JSON.stringify(map.structuralContext),
+    "```",
+    `> Focus only on high-attention content. Keep structural context always.`,
+    ``,
+    `---`,
+    ``,
+  ].join("\n");
+}
+
+function buildAttentionBlockGemini(task: string, map: AttentionMap): string {
+  return [
+    `[ATTENTION ENGINE]`,
+    `Task: ${task}`,
+    `Compression: ${map.compressionRatio}%`,
+    `Highlighted: ${map.highlightedFiles.join(", ") || "(none)"}`,
+    `Structural map: ${JSON.stringify(map.structuralContext)}`,
+    `[RULE] Keep structural context. Focus on high-attention content only.`,
+    ``,
+  ].join("\n");
+}
+
+// ─────────────────────────────────────────────────────────────────
 // Utilities
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 
 function tailMessages(
   ex: ExtractedContext | undefined,

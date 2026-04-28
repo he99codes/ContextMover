@@ -22,7 +22,7 @@ interface Props {
   userId: string;
 }
 
-function buildMigrationPrompt(session: Session, target: Platform, caveman = false): string {
+function buildMigrationPrompt(session: Session, target: Platform, caveman = false, task = ""): string {
   const sourceLabel = session.platform.charAt(0).toUpperCase() + session.platform.slice(1);
   const targetLabel = TARGETS.find((t) => t.id === target)?.label ?? target;
   const firstUser =
@@ -48,6 +48,14 @@ function buildMigrationPrompt(session: Session, target: Platform, caveman = fals
     "",
     goal,
     "",
+    ...(task ? [
+      "## Attention Focus",
+      "",
+      `> 🎯 **Task:** ${task}`,
+      "",
+      "Focus exclusively on content relevant to this task. Skip unrelated exchanges.",
+      "",
+    ] : []),
     "## Transcript",
     "",
     transcript,
@@ -71,6 +79,7 @@ export function MigrateView({ initialSessions, userId }: Props) {
   const [target, setTarget] = useState<Platform>("grok");
   const [caveman, setCaveman] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [task, setTask] = useState("");
 
   const selected = sessions.find((s) => s.id === selectedId) ?? null;
 
@@ -80,14 +89,15 @@ export function MigrateView({ initialSessions, userId }: Props) {
     return sessions.filter(
       (s) =>
         (s.title ?? "").toLowerCase().includes(q) ||
-        s.platform.toLowerCase().includes(q)
+        s.platform.toLowerCase().includes(q) ||
+        s.messages.slice(-4).some((m) => m.content.toLowerCase().includes(q))
     );
   }, [sessions, search]);
 
   const prompt = useMemo(() => {
     if (!selected) return "";
-    return buildMigrationPrompt(selected, target, caveman);
-  }, [selected, target, caveman]);
+    return buildMigrationPrompt(selected, target, caveman, task);
+  }, [selected, target, caveman, task]);
 
   async function copyPrompt() {
     if (!prompt) return;
@@ -117,7 +127,7 @@ export function MigrateView({ initialSessions, userId }: Props) {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search sessions…"
+                placeholder="Search sessions by meaning…"
                 className="w-full h-9 pl-8 pr-2 rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] text-sm text-[#F5F5F5] placeholder:text-[#6B6B6B] outline-none focus:border-[#00FF88] transition-colors"
               />
             </div>
@@ -230,6 +240,19 @@ export function MigrateView({ initialSessions, userId }: Props) {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Attention task focus */}
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-[#6B6B6B]">
+                  Task focus <span className="normal-case font-normal text-[#3A3A3A]">(optional)</span>
+                </p>
+                <input
+                  value={task}
+                  onChange={(e) => setTask(e.target.value)}
+                  placeholder="What are you trying to accomplish? Improves context focus."
+                  className="w-full rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-[#F5F5F5] placeholder:text-[#6B6B6B] outline-none focus:border-[#6366f1] transition-colors"
+                />
               </div>
 
               {/* Caveman toggle */}

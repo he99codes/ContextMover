@@ -43,4 +43,10 @@ export interface MigrationPayload {
   targetPlatform: Platform;
   sourceSession: ContextSession;
   caveman?: boolean;
+  task?: string;
+  // Populated by summarizeWithAttention(). Typed as unknown here to avoid a
+  // circular import (attention-engine.ts already imports from this file).
+  // Translator casts to AttentionMap via import type from attention-engine.ts.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  attentionMap?: any;
 }

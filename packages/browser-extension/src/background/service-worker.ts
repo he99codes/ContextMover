@@ -1,8 +1,8 @@
 // packages/browser-extension/src/background/service-worker.ts
 import { db } from "@/lib/db";
-import summarize from "@/lib/summarizer";
+import summarize, { summarizeWithAttention } from "@/lib/summarizer";
 import buildMigrationPrompt from "@/lib/translator";
-import type { ContextSession, Message } from "@/lib/types";
+import type { ContextSession, ExtractedContext, Message } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import {
   upsertSessionToCloud,
@@ -328,6 +328,11 @@ async function handleMigrateContext(
     targetPlatform: string;
     targetTabId?: number;
     caveman?: boolean;
+    task?: string;
+    strength?: "light" | "strict";
+    useAttentionEngine?: boolean;
+    precomputedSummary?: string;
+    precomputedAttentionMap?: unknown;
   },
   sendResponse: (r: unknown) => void
 ) {
@@ -346,13 +351,42 @@ async function handleMigrateContext(
     console.warn(`[ContextForge:sw] Stage4 — assistant messages missing from stored session. Migration will proceed with user-only context (degraded).`);
   }
 
-  // ── DIAGNOSTIC STAGE 5 — summarizer ───────────────────────────────────────
+  // ── DIAGNOSTIC STAGE 5 — summarizer ──────────────────────────────────────
   console.log(`[ContextForge:sw] Stage5 — calling summarizer with ${session.messages.length} messages`);
-  const summaryResult = await summarize(session.messages, { caveman: payload.caveman });
-  console.log(`[ContextForge:sw] Stage5 — summarizer done: mode=${summaryResult.mode} tokens~${summaryResult.originalTokenEstimate} codeBlocks=${summaryResult.extracted.codeBlocks.length} tailMessages=${summaryResult.extracted.conversationTail.length}`);
-  const tailAsst = summaryResult.extracted.conversationTail.filter(m => m.role === "assistant").length;
-  if (tailAsst === 0) {
-    console.error(`[ContextForge:sw] Stage5 — conversationTail has no assistant messages`);
+
+  let summary: string;
+  let extracted: ExtractedContext | undefined;
+  let attentionMap: unknown;
+
+  if (payload.useAttentionEngine && payload.task) {
+    if (payload.precomputedSummary) {
+      // Fast path: sidebar pre-computed the summary — no model inference needed here.
+      summary = payload.precomputedSummary;
+      attentionMap = payload.precomputedAttentionMap;
+      console.log(`[ContextForge:sw] Stage5 — Attention Engine fast path (pre-computed by sidebar)`);
+    } else {
+      // Slow fallback: compute in service worker (first migration with no live preview).
+      console.log(`[ContextForge:sw] Stage5 — Attention Engine path: task="${payload.task.slice(0, 60)}" strength=${payload.strength ?? "light"}`);
+      const atResult = await summarizeWithAttention(
+        session.messages,
+        payload.task,
+        payload.strength ?? "light",
+        session
+      );
+      summary = atResult.summary;
+      attentionMap = atResult.attentionMap;
+      console.log(`[ContextForge:sw] Stage5 — Attention Engine done`);
+      console.log(`[ContextForge:attention] compressionRatio: ${atResult.compressionRatio}%`);
+    }
+  } else {
+    const summaryResult = await summarize(session.messages, { caveman: payload.caveman });
+    summary = summaryResult.content;
+    extracted = summaryResult.extracted;
+    console.log(`[ContextForge:sw] Stage5 — summarizer done: mode=${summaryResult.mode} tokens~${summaryResult.originalTokenEstimate} codeBlocks=${summaryResult.extracted.codeBlocks.length} tailMessages=${summaryResult.extracted.conversationTail.length}`);
+    const tailAsst = summaryResult.extracted.conversationTail.filter(m => m.role === "assistant").length;
+    if (tailAsst === 0) {
+      console.error(`[ContextForge:sw] Stage5 — conversationTail has no assistant messages`);
+    }
   }
 
   // Pull IDE context if bridge is available (fire-and-forget, non-blocking)
@@ -362,14 +396,16 @@ async function handleMigrateContext(
     if (res.ok) ideContext = (await res.json()).ideContext;
   } catch { /* bridge offline is normal */ }
 
-  // ── DIAGNOSTIC STAGE 6 — translator ───────────────────────────────────────
+  // ── DIAGNOSTIC STAGE 6 — translator ──────────────────────────────────────
   const prompt = buildMigrationPrompt({
-    summary: summaryResult.content,
-    extracted: summaryResult.extracted,
+    summary,
+    extracted,
     ideContext,
     targetPlatform: payload.targetPlatform as ContextSession["platform"],
     sourceSession: session,
     caveman: payload.caveman,
+    task: payload.task,
+    attentionMap,
   });
 
   console.log(`[ContextForge:sw] Stage6 — prompt built: length=${prompt.length} chars, target=${payload.targetPlatform}`);

@@ -3,6 +3,8 @@ import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
 import type { ContextSession, Platform } from "@/lib/types";
 import ExportMenu from "@/components/ExportMenu";
 import { PlatformBadge, PlatformLogo } from "@/components/PlatformLogo";
+import AttentionModal from "./AttentionModal";
+import { attentionEngine } from "@/lib/attention-engine";
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   claude:     "Claude",
@@ -50,7 +52,11 @@ export default function Sidebar() {
     null
   );
   const [tick, setTick] = useState(0);
+  const [showAttentionModal, setShowAttentionModal] = useState(false);
+  const [semanticQuery, setSemanticQuery] = useState("");
+  const [semanticResults, setSemanticResults] = useState<{ sessionId: string; score: number }[]>([]);
   const loadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const semanticTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     loadSessions();
@@ -78,8 +84,35 @@ export default function Sidebar() {
       window.clearInterval(clockInterval);
       chrome.runtime.onMessage.removeListener(onMessage);
       if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
+      if (semanticTimerRef.current) clearTimeout(semanticTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (semanticTimerRef.current) clearTimeout(semanticTimerRef.current);
+    if (!semanticQuery.trim() || semanticQuery.length < 3) {
+      setSemanticResults([]);
+      return;
+    }
+    setSemanticResults([]);
+    semanticTimerRef.current = setTimeout(async () => {
+      try {
+        if (!attentionEngine.initialized) await attentionEngine.initialize();
+        const chunks = await attentionEngine.semanticSearch(semanticQuery, 10);
+        const scoreMap = new Map<string, number>();
+        for (const c of chunks) {
+          const prev = scoreMap.get(c.sessionId) ?? 0;
+          if (c.relevanceScore > prev) scoreMap.set(c.sessionId, c.relevanceScore);
+        }
+        setSemanticResults(
+          [...scoreMap.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .map(([sessionId, score]) => ({ sessionId, score }))
+        );
+      } catch { setSemanticResults([]); }
+    }, 300);
+    return () => { if (semanticTimerRef.current) clearTimeout(semanticTimerRef.current); };
+  }, [semanticQuery]);
 
   function loadSessions() {
     // Collapse rapid bursts into a single GET_SESSIONS call after 250 ms quiet
@@ -192,6 +225,17 @@ export default function Sidebar() {
     [sessions]
   );
   const leadSession = filtered[0] ?? sessions[0] ?? null;
+
+  const semanticSessions = useMemo(
+    () =>
+      semanticResults
+        .map(({ sessionId, score }) => {
+          const session = sessions.find((s) => s.id === sessionId);
+          return session ? { session, score } : null;
+        })
+        .filter((x): x is { session: ContextSession; score: number } => x !== null),
+    [semanticResults, sessions]
+  );
 
   void tick;
 
@@ -355,6 +399,14 @@ export default function Sidebar() {
               >
                 {migrating ? "Migrating..." : `→ ${PLATFORM_LABELS[targetPlatform]}`}
               </button>
+              <button
+                onClick={() => setShowAttentionModal(true)}
+                disabled={migrating}
+                title="Migrate with Attention Engine"
+                className="rounded-[4px] border border-[#6366f1]/40 bg-[#6366f1]/10 px-2.5 py-2 text-xs font-semibold text-[#6366f1] transition-all hover:bg-[#6366f1]/20 hover:border-[#6366f1]/60 disabled:opacity-50"
+              >
+                ⚡
+              </button>
               <ExportMenu
                 session={selected}
                 variant="icon"
@@ -382,6 +434,17 @@ export default function Sidebar() {
             )}
           </div>
         </div>
+        {showAttentionModal && selected && (
+          <AttentionModal
+            session={selected}
+            targetPlatform={targetPlatform}
+            onClose={() => setShowAttentionModal(false)}
+            onSuccess={(ratio) => {
+              setShowAttentionModal(false);
+              setStatusMessage({ tone: "success", text: `Migrated with Attention Engine (${ratio}% compressed).` });
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -463,12 +526,18 @@ export default function Sidebar() {
           </div>
         )}
 
-        <div className="px-3 pt-2">
+        <div className="px-3 pt-2 space-y-1.5">
           <input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search sessions…"
             className="w-full rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-1.5 text-xs text-[#F5F5F5] outline-none placeholder:text-[#6B6B6B] focus:border-[#00FF88]"
+          />
+          <input
+            value={semanticQuery}
+            onChange={(e) => setSemanticQuery(e.target.value)}
+            placeholder="Search by meaning (semantic)…"
+            className="w-full rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-1.5 text-xs text-[#F5F5F5] outline-none placeholder:text-[#6B6B6B] focus:border-[#6366f1]"
           />
         </div>
 
@@ -497,6 +566,36 @@ export default function Sidebar() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-2">
+          {semanticSessions.length > 0 && (
+            <div className="mb-2 space-y-1">
+              <div className="pb-1 text-[9px] uppercase tracking-widest text-[#6366f1]">Semantic matches</div>
+              {semanticSessions.map(({ session: s, score }) => (
+                <div
+                  key={s.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => { setSelected(s); setShowFullTranscript(false); setView("detail"); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelected(s); setShowFullTranscript(false); setView("detail"); } }}
+                  className="group relative block w-full cursor-pointer overflow-hidden rounded-[6px] border bg-[#1A1A1A] px-3 py-2.5 text-left transition-all duration-150 hover:shadow-[0_0_0_1px_#6366f1,0_4px_16px_rgba(99,102,241,0.08)] hover:-translate-y-px"
+                  style={{ borderColor: `${PLATFORM_COLORS[s.platform]}30` }}
+                >
+                  <span className="absolute inset-y-0 left-0 w-[3px] rounded-l-[6px]" style={{ background: PLATFORM_COLORS[s.platform] }} />
+                  <div className="flex items-start gap-2.5 pl-1">
+                    <div className="min-w-0 flex-1">
+                      <PlatformBadge platform={s.platform} logoSize={9} />
+                      <p className="mt-1.5 truncate text-xs font-medium text-[#F5F5F5] transition-colors duration-150 group-hover:text-[#6366f1]">{s.title}</p>
+                      <div className="mt-0.5 flex items-center gap-2 text-[10px] text-[#6B6B6B]">
+                        <span>{s.messages.length} turns</span>
+                        <span>·</span>
+                        <span className="font-semibold text-[#6366f1]">{Math.round(score * 100)}% match</span>
+                      </div>
+                    </div>
+                    <span className="text-[#3A3A3A] transition-colors group-hover:text-[#6366f1]">›</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {filtered.length === 0 ? (
             <div className="rounded-[6px] border border-dashed border-[#2A2A2A] px-4 py-10 text-center animate-fade-in">
               <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-[6px] border border-[#00FF88]/20 bg-[#00FF88]/8">
