@@ -216,7 +216,7 @@ export function SessionCard({ session }: SessionCardProps) {
             <MessageSquare size={10} />
             {msgCount} {msgCount === 1 ? "message" : "messages"}
           </span>
-          <span className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-[#1A3A1A]">
+          <span suppressHydrationWarning className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-[#1A3A1A]">
             <Clock size={10} />
             {formatRelativeTime(session.updated_at)}
           </span>
