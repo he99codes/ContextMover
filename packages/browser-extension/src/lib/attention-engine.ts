@@ -448,14 +448,37 @@ export class AttentionEngine {
     try {
       const transformers = await import("@xenova/transformers");
 
-      // Chrome extensions have no SharedArrayBuffer → ONNX RT falls back to a
-      // proxy worker using blob: importScripts, which the extension sandbox blocks.
-      // Disable the proxy and force single-threaded WASM before the first pipeline call.
+      // ── ONNX runtime tuning ───────────────────────────────────────────────
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const envObj = (transformers as any).env;
       if (envObj?.backends?.onnx?.wasm) {
+        // Disable blob: proxy worker — blocked in the Chrome extension sandbox.
         envObj.backends.onnx.wasm.proxy = false;
-        envObj.backends.onnx.wasm.numThreads = 1;
+        // Use as many threads as the hardware allows.
+        // Extension pages support SharedArrayBuffer without COOP/COEP headers,
+        // so multi-threading works when the API is available.
+        const hasSharedBuffer = typeof SharedArrayBuffer !== "undefined";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const threads = hasSharedBuffer
+          ? Math.min(4, (navigator as any).hardwareConcurrency ?? 1)
+          : 1;
+        envObj.backends.onnx.wasm.numThreads = threads;
+        console.log(`${TAG} ONNX WASM threads=${threads} SharedArrayBuffer=${hasSharedBuffer}`);
+      }
+
+      // ── WebGPU auto-detection ─────────────────────────────────────────────
+      // Any machine with a GPU (even integrated) gets 10-50× faster inference.
+      let device: string | undefined;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (typeof navigator !== "undefined" && (navigator as any).gpu) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const adapter = await (navigator as any).gpu.requestAdapter();
+          if (adapter) {
+            device = "webgpu";
+            console.log(`${TAG} WebGPU adapter found — GPU inference enabled`);
+          }
+        } catch { /* WebGPU not available in this context */ }
       }
 
       const pipelineFn = transformers.pipeline ?? (transformers as unknown as Record<string, unknown>).default;
@@ -465,6 +488,7 @@ export class AttentionEngine {
         "feature-extraction",
         MODEL_ID,
         {
+          ...(device ? { device } : {}),
           progress_callback: (info: { status: string; progress?: number }) => {
             if (info.status === "progress" && typeof info.progress === "number") {
               // Map model download 0–100 into overall range 12–78.
@@ -475,7 +499,7 @@ export class AttentionEngine {
       )) as Extractor;
 
       this.modelAvailable = true;
-      console.log(`${TAG} Embedding model loaded (${MODEL_ID})`);
+      console.log(`${TAG} Embedding model loaded (${MODEL_ID}) device=${device ?? "wasm"}`);
     } catch (err) {
       console.warn(`${TAG} Model load failed — keyword fallback active:`, err);
       this.modelAvailable = false;
