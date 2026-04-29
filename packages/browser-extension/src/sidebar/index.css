@@ -1,4 +1,4 @@
-/* Sidebar global styles — migrated from popup/index.css */
+/* ContextForge Command Center — Extension Sidebar */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,7 +9,7 @@ body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #0A0A0A;
+  background: #050505;
   color: #F5F5F5;
   -webkit-font-smoothing: antialiased;
 }
@@ -69,3 +69,88 @@ body {
   100% { transform: translateY(100%); opacity: 0; }
 }
 .animate-scan { animation: scan 2s ease-in-out infinite; }
+
+/* ════════════════════════════════════════
+   SCI-FI COMMAND CENTER KEYFRAMES
+   ════════════════════════════════════════ */
+
+/* CRT moving scanline */
+@keyframes crt-scan {
+  0%   { top: -5%; }
+  100% { top: 105%; }
+}
+
+/* THE CRUCIBLE — pulsing neon border glow */
+@keyframes crucible-pulse {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(0,255,136,0.12), 0 0 16px rgba(0,255,136,0.05), inset 0 0 12px rgba(0,255,136,0.03);
+    border-color: rgba(0,255,136,0.18);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0,255,136,0.45), 0 0 40px rgba(0,255,136,0.15), inset 0 0 24px rgba(0,255,136,0.07);
+    border-color: rgba(0,255,136,0.55);
+  }
+}
+
+/* Neon border breathing */
+@keyframes neon-border {
+  0%, 100% { border-color: rgba(0,255,136,0.12); box-shadow: 0 0 4px rgba(0,255,136,0.06); }
+  50%       { border-color: rgba(0,255,136,0.42); box-shadow: 0 0 14px rgba(0,255,136,0.22); }
+}
+
+/* Neon text glow (title typing effect) */
+@keyframes text-glow {
+  0%, 100% { text-shadow: 0 0 6px rgba(0,255,136,0.3),  0 0 12px rgba(0,255,136,0.12); }
+  50%       { text-shadow: 0 0 14px rgba(0,255,136,0.7), 0 0 28px rgba(0,255,136,0.35), 0 0 42px rgba(0,255,136,0.1); }
+}
+
+/* Occasional neon flicker */
+@keyframes neon-flicker {
+  0%, 91%, 93%, 95%, 100% { opacity: 1; }
+  92%  { opacity: 0.5; }
+  94%  { opacity: 0.85; }
+}
+
+/* XP bar fill on mount */
+@keyframes xp-fill {
+  from { width: 0; opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Utility classes ── */
+.crucible-pulse     { animation: crucible-pulse 2.5s ease-in-out infinite; }
+.neon-border-pulse  { animation: neon-border 3s ease-in-out infinite; }
+.neon-flicker       { animation: neon-flicker 9s linear infinite; }
+.animate-xp-fill    { animation: xp-fill 0.9s ease forwards; }
+
+/* Typing glow triggered by parent group-hover */
+.group:hover .typing-glow {
+  animation: text-glow 2s ease-in-out infinite;
+}
+
+/* CRT overlay — scanlines + moving light band */
+.crt { position: relative; overflow: hidden; }
+.crt::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.07) 2px,
+    rgba(0, 0, 0, 0.07) 4px
+  );
+  pointer-events: none;
+  z-index: 9998;
+}
+.crt::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  height: 80px;
+  background: linear-gradient(to bottom, transparent, rgba(0,255,136,0.012), transparent);
+  animation: crt-scan 10s linear infinite;
+  pointer-events: none;
+  z-index: 9997;
+}

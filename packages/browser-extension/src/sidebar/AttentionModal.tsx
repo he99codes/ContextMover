@@ -203,27 +203,29 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.72)",
+        background: "rgba(0,0,0,0.9)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         zIndex: 1000,
         padding: "16px",
+        backdropFilter: "blur(4px)",
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
         style={{
-          background: "#1a1a2e",
-          border: "1px solid #2e2e4a",
-          borderRadius: "12px",
+          background: "#050505",
+          border: "1px solid rgba(0,255,136,0.18)",
+          borderRadius: "6px",
           padding: "24px",
           maxWidth: "460px",
           width: "100%",
           maxHeight: "90vh",
           overflowY: "auto",
-          color: "#e5e5e5",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+          color: "#F5F5F5",
+          boxShadow: "0 0 0 1px rgba(0,255,136,0.06), 0 24px 80px rgba(0,0,0,0.9), 0 0 60px rgba(0,255,136,0.04)",
+          fontFamily: "'SF Mono','Fira Code',monospace",
         }}
       >
         {/* ── Header ── */}
@@ -236,10 +238,10 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
           }}
         >
           <div>
-            <h2 style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: "#fff", letterSpacing: "-0.01em" }}>
+            <h2 style={{ margin: 0, fontSize: "13px", fontWeight: 900, color: "#00FF88", letterSpacing: "0.18em", textTransform: "uppercase", textShadow: "0 0 12px rgba(0,255,136,0.45)" }}>
               Attention Engine
             </h2>
-            <p style={{ margin: "3px 0 0", fontSize: "11px", color: "#666" }}>
+            <p style={{ margin: "3px 0 0", fontSize: "10px", color: "#1A4A1A", letterSpacing: "0.15em", textTransform: "uppercase" }}>
               Semantic task-aware context migration
             </p>
           </div>
@@ -247,12 +249,14 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
             onClick={onClose}
             style={{
               background: "none",
-              border: "none",
-              color: "#555",
+              border: "1px solid #1A2A1A",
+              borderRadius: "4px",
+              color: "#2A6A2A",
               cursor: "pointer",
-              fontSize: "18px",
+              fontSize: "14px",
               lineHeight: 1,
-              padding: "2px 4px",
+              padding: "3px 6px",
+              transition: "all 0.15s",
             }}
           >
             ✕
@@ -272,16 +276,17 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
               }}
             >
               <span>Loading semantic engine…</span>
-              <span style={{ color: "#6366f1" }}>{engineState.progress}%</span>
+              <span style={{ color: "#00FF88", fontWeight: 700 }}>{engineState.progress}%</span>
             </div>
-            <div style={{ background: "#252540", borderRadius: "4px", height: "3px" }}>
+            <div style={{ background: "#0A1A0A", borderRadius: "4px", height: "3px", border: "1px solid #1A3A1A" }}>
               <div
                 style={{
-                  background: "linear-gradient(90deg, #6366f1, #8b5cf6)",
+                  background: "linear-gradient(90deg, #00FF88, #00CC6A)",
                   height: "3px",
                   borderRadius: "4px",
                   width: `${engineState.progress}%`,
                   transition: "width 0.3s ease",
+                  boxShadow: "0 0 8px rgba(0,255,136,0.5)",
                 }}
               />
             </div>
@@ -293,11 +298,13 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
             style={{
               marginBottom: "16px",
               padding: "8px 12px",
-              background: "#1f1515",
-              border: "1px solid #4a2020",
-              borderRadius: "6px",
-              fontSize: "11px",
-              color: "#cd7b7b",
+              background: "#0A0505",
+              border: "1px solid rgba(239,68,68,0.2)",
+              borderRadius: "4px",
+              fontSize: "10px",
+              color: "#F87171",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
             }}
           >
             ⚠ {engineState.message}
@@ -309,15 +316,15 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
           <label
             style={{
               display: "block",
-              fontSize: "10px",
-              fontWeight: 700,
-              color: "#666",
+              fontSize: "9px",
+              fontWeight: 900,
+              color: "#2A6A2A",
               marginBottom: "8px",
               textTransform: "uppercase",
-              letterSpacing: "0.08em",
+              letterSpacing: "0.22em",
             }}
           >
-            What are you focused on?
+            ◈ What are you focused on?
           </label>
 
           {/* Quick-select chips */}
@@ -330,12 +337,15 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
                   onClick={() => setTask(active ? "" : chip)}
                   style={{
                     padding: "4px 10px",
-                    borderRadius: "20px",
-                    fontSize: "11px",
+                    borderRadius: "3px",
+                    fontSize: "10px",
+                    fontWeight: 700,
                     cursor: "pointer",
-                    background: active ? "#6366f1" : "#1e1e32",
-                    border: `1px solid ${active ? "#6366f1" : "#333"}`,
-                    color: active ? "#fff" : "#aaa",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    background: active ? "#6366f1" : "#080808",
+                    border: `1px solid ${active ? "#6366f1" : "#1A2A1A"}`,
+                    color: active ? "#fff" : "#2A4A2A",
                     transition: "all 0.15s",
                   }}
                 >
@@ -354,11 +364,12 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
             style={{
               width: "100%",
               padding: "9px 12px",
-              background: "#0d0d1a",
-              border: "1px solid #333",
-              borderRadius: "6px",
-              color: "#e5e5e5",
-              fontSize: "13px",
+              background: "#050505",
+              border: "1px solid #1A2A1A",
+              borderRadius: "4px",
+              color: "#F5F5F5",
+              fontSize: "12px",
+              fontFamily: "'SF Mono','Fira Code',monospace",
               boxSizing: "border-box",
               outline: "none",
             }}
@@ -371,11 +382,13 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
             style={{
               marginBottom: "14px",
               padding: "10px 12px",
-              background: "#0d0d1a",
-              border: "1px solid #252540",
-              borderRadius: "6px",
-              fontSize: "12px",
-              color: "#666",
+              background: "#050505",
+              border: "1px solid #1A2A1A",
+              borderRadius: "4px",
+              fontSize: "10px",
+              color: "#2A6A2A",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
             }}
           >
             🔍 Analyzing session…
@@ -387,24 +400,25 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
             style={{
               marginBottom: "14px",
               padding: "10px 12px",
-              background: "#0a1a0f",
-              border: "1px solid #1e3d28",
-              borderRadius: "6px",
-              fontSize: "12px",
+              background: "#050F07",
+              border: "1px solid rgba(0,255,136,0.2)",
+              borderRadius: "4px",
+              fontSize: "11px",
+              boxShadow: "inset 0 0 12px rgba(0,255,136,0.03)",
             }}
           >
-            <div style={{ color: "#5dd87a", fontWeight: 600, marginBottom: "5px" }}>
+            <div style={{ color: "#00FF88", fontWeight: 900, marginBottom: "5px", textShadow: "0 0 8px rgba(0,255,136,0.4)" }}>
               ✓ Context analyzed
             </div>
-            <div style={{ color: "#999", lineHeight: 1.7 }}>
+            <div style={{ color: "#2A6A2A", lineHeight: 1.7, fontSize: "11px" }}>
               Compression:{" "}
-              <strong style={{ color: "#e5e5e5" }}>{preview.compressionRatio}% smaller</strong>
+              <strong style={{ color: "#00FF88" }}>{preview.compressionRatio}% smaller</strong>
               {"  ·  "}
               Highlighted files:{" "}
-              <strong style={{ color: "#e5e5e5" }}>{preview.highlightedFiles}</strong>
+              <strong style={{ color: "#F5F5F5" }}>{preview.highlightedFiles}</strong>
               {"  ·  "}
               Relevant messages:{" "}
-              <strong style={{ color: "#e5e5e5" }}>
+              <strong style={{ color: "#F5F5F5" }}>
                 {preview.relevantMessages}/{preview.totalMessages}
               </strong>
             </div>
@@ -416,11 +430,13 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
             style={{
               marginBottom: "14px",
               padding: "8px 12px",
-              background: "#1f1515",
-              border: "1px solid #4a2020",
-              borderRadius: "6px",
-              fontSize: "11px",
-              color: "#cd7b7b",
+              background: "#0A0505",
+              border: "1px solid rgba(239,68,68,0.2)",
+              borderRadius: "4px",
+              fontSize: "10px",
+              color: "#F87171",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
             }}
           >
             Preview unavailable — will migrate with keyword fallback
@@ -436,7 +452,7 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
             gap: "8px",
           }}
         >
-          <span style={{ fontSize: "11px", color: "#666", flex: 1 }}>
+          <span style={{ fontSize: "9px", fontWeight: 900, color: "#2A6A2A", flex: 1, textTransform: "uppercase", letterSpacing: "0.18em" }}>
             Compression strength
           </span>
           {(["light", "strict"] as const).map((s) => {
@@ -447,13 +463,15 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
                 onClick={() => setStrength(s)}
                 style={{
                   padding: "5px 14px",
-                  borderRadius: "20px",
-                  fontSize: "11px",
+                  borderRadius: "3px",
+                  fontSize: "10px",
+                  fontWeight: 700,
                   cursor: "pointer",
-                  background: active ? "#6366f1" : "#1e1e32",
-                  border: `1px solid ${active ? "#6366f1" : "#333"}`,
-                  color: active ? "#fff" : "#aaa",
-                  textTransform: "capitalize",
+                  background: active ? "#6366f1" : "#080808",
+                  border: `1px solid ${active ? "#6366f1" : "#1A2A1A"}`,
+                  color: active ? "#fff" : "#2A4A2A",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
                   transition: "all 0.15s",
                 }}
               >
@@ -471,18 +489,18 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
               alignItems: "center",
               gap: "8px",
               cursor: "pointer",
-              fontSize: "12px",
-              color: "#777",
+              fontSize: "11px",
+              color: "#2A5A2A",
             }}
           >
             <input
               type="checkbox"
               checked={caveman}
               onChange={(e) => setCaveman(e.target.checked)}
-              style={{ cursor: "pointer", accentColor: "#6366f1" }}
+              style={{ cursor: "pointer", accentColor: "#00FF88" }}
             />
             Caveman Mode 🪨{" "}
-            <span style={{ color: "#444" }}>(ultra-compressed, no filler)</span>
+            <span style={{ color: "#1A3A1A" }}>(ultra-compressed, no filler)</span>
           </label>
         </div>
 
@@ -492,11 +510,13 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
             style={{
               marginBottom: "14px",
               padding: "8px 12px",
-              background: "#1f1515",
-              border: "1px solid #4a2020",
-              borderRadius: "6px",
-              fontSize: "11px",
-              color: "#cd7b7b",
+              background: "#0A0505",
+              border: "1px solid rgba(239,68,68,0.2)",
+              borderRadius: "4px",
+              fontSize: "10px",
+              color: "#F87171",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
             }}
           >
             {migrateState.message}
@@ -508,11 +528,13 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
             style={{
               marginBottom: "14px",
               padding: "10px 12px",
-              background: "#0a1a0f",
-              border: "1px solid #1e3d28",
-              borderRadius: "6px",
-              fontSize: "12px",
-              color: "#5dd87a",
+              background: "#050F07",
+              border: "1px solid rgba(0,255,136,0.2)",
+              borderRadius: "4px",
+              fontSize: "11px",
+              color: "#00FF88",
+              fontWeight: 700,
+              textShadow: "0 0 8px rgba(0,255,136,0.35)",
             }}
           >
             ✓ Context migrated to {PLATFORM_LABELS[targetPlatform]}!
@@ -531,12 +553,15 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
             style={{
               flex: 1,
               padding: "10px",
-              background: "#1e1e32",
-              border: "1px solid #333",
-              borderRadius: "6px",
-              color: "#888",
+              background: "#080808",
+              border: "1px solid #1A2A1A",
+              borderRadius: "4px",
+              color: "#2A4A2A",
               cursor: "pointer",
-              fontSize: "13px",
+              fontSize: "10px",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.12em",
               transition: "all 0.15s",
             }}
           >
@@ -550,16 +575,19 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
               padding: "10px 16px",
               background:
                 migrateState.status === "success"
-                  ? "#0a1a0f"
+                  ? "#050F07"
                   : isBusy
-                  ? "#3d3f7a"
+                  ? "#1e1e3a"
                   : "#6366f1",
-              border: "none",
-              borderRadius: "6px",
-              color: isBusy ? "#888" : "#fff",
+              border: migrateState.status === "success" ? "1px solid rgba(0,255,136,0.2)" : "none",
+              borderRadius: "4px",
+              color: isBusy ? "#3A3A6A" : migrateState.status === "success" ? "#00FF88" : "#fff",
               cursor: isBusy || migrateState.status === "success" ? "not-allowed" : "pointer",
-              fontSize: "13px",
-              fontWeight: 600,
+              fontSize: "11px",
+              fontWeight: 900,
+              textTransform: "uppercase",
+              letterSpacing: "0.14em",
+              boxShadow: (!isBusy && migrateState.status !== "success") ? "0 0 20px rgba(99,102,241,0.4), 0 0 40px rgba(99,102,241,0.1)" : "none",
               transition: "all 0.15s",
             }}
           >

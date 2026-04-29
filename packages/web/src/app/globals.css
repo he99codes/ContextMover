@@ -156,6 +156,66 @@
 .stagger-item:nth-child(7)  { animation-delay: 300ms; }
 .stagger-item:nth-child(8)  { animation-delay: 350ms; }
 
+/* ════════════════════════════════════════
+   SCI-FI COMMAND CENTER KEYFRAMES
+   ════════════════════════════════════════ */
+
+@keyframes crt-scan {
+  0%   { top: -5%; }
+  100% { top: 105%; }
+}
+
+@keyframes crucible-pulse {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(0,255,136,0.1), 0 0 18px rgba(0,255,136,0.04), inset 0 0 12px rgba(0,255,136,0.03);
+    border-color: rgba(0,255,136,0.16);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(0,255,136,0.42), 0 0 44px rgba(0,255,136,0.14), inset 0 0 26px rgba(0,255,136,0.07);
+    border-color: rgba(0,255,136,0.52);
+  }
+}
+
+@keyframes neon-border {
+  0%, 100% { border-color: rgba(0,255,136,0.1); box-shadow: 0 0 4px rgba(0,255,136,0.05); }
+  50%       { border-color: rgba(0,255,136,0.4); box-shadow: 0 0 14px rgba(0,255,136,0.2); }
+}
+
+@keyframes text-glow {
+  0%, 100% { text-shadow: 0 0 6px rgba(0,255,136,0.3), 0 0 12px rgba(0,255,136,0.1); }
+  50%       { text-shadow: 0 0 14px rgba(0,255,136,0.7), 0 0 28px rgba(0,255,136,0.32), 0 0 42px rgba(0,255,136,0.1); }
+}
+
+@keyframes neon-flicker {
+  0%, 91%, 93%, 95%, 100% { opacity: 1; }
+  92%  { opacity: 0.5; }
+  94%  { opacity: 0.85; }
+}
+
+@keyframes xp-fill {
+  from { width: 0; opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@layer utilities {
+  .crucible-pulse    { animation: crucible-pulse 2.5s ease-in-out infinite; }
+  .neon-border-pulse { animation: neon-border 3s ease-in-out infinite; }
+  .neon-flicker      { animation: neon-flicker 9s linear infinite; }
+  .animate-xp-fill   { animation: xp-fill 0.9s ease forwards; }
+
+  .group:hover .typing-glow {
+    animation: text-glow 2s ease-in-out infinite;
+  }
+
+  /* Upgrade card-hover to sci-fi level */
+  .card-hover:hover {
+    transform: translateY(-2px) !important;
+    border-color: rgba(0,255,136,0.6) !important;
+    box-shadow: 0 0 0 1px rgba(0,255,136,0.35), 0 4px 28px rgba(0,255,136,0.12), 0 0 60px rgba(0,255,136,0.04) !important;
+    background-color: #0D1A0D !important;
+  }
+}
+
 /* ── prefers-reduced-motion ── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

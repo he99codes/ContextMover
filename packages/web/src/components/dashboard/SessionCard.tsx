@@ -106,18 +106,18 @@ export function SessionCard({ session }: SessionCardProps) {
         "stagger-item group relative flex items-start gap-4 overflow-hidden rounded-[6px] border px-5 py-4",
         busy === "delete"
           ? "border-red-500/30 bg-red-500/5 opacity-50"
-          : "bg-[#1A1A1A] border-[#2A2A2A] card-hover"
+          : "bg-[#0A0A0A] border-[#1A2A1A] card-hover"
       )}
     >
       {/* Always-visible platform left border */}
       <div
-        className="absolute inset-y-0 left-0 w-[3px] rounded-l-[6px] transition-opacity duration-200"
-        style={{ backgroundColor: color, opacity: 0.6 }}
+        className="absolute inset-y-0 left-0 w-[3px] rounded-l-[6px] transition-all duration-200"
+        style={{ backgroundColor: color, opacity: 0.45, boxShadow: `0 0 6px ${color}` }}
       />
       {/* Hover: brighten border */}
       <div
-        className="pointer-events-none absolute inset-y-0 left-0 w-[3px] rounded-l-[6px] opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-        style={{ backgroundColor: color }}
+        className="pointer-events-none absolute inset-y-0 left-0 w-[3px] rounded-l-[6px] opacity-0 transition-all duration-150 group-hover:opacity-100"
+        style={{ backgroundColor: color, boxShadow: `0 0 12px ${color}80` }}
       />
 
       {/* Content */}
@@ -132,7 +132,7 @@ export function SessionCard({ session }: SessionCardProps) {
                   onChange={(e) => setTitleDraft(e.target.value)}
                   onKeyDown={handleKeyDown}
                   disabled={busy === "save"}
-                  className="flex-1 rounded-[4px] border border-[#00FF88]/30 bg-[#0A0A0A] px-2 py-1 text-sm font-medium text-[#F5F5F5] outline-none focus:border-[#00FF88] transition-colors"
+                  className="flex-1 rounded-[4px] border border-[#00FF88]/30 bg-[#050505] px-2 py-1 text-sm font-mono font-medium text-[#F5F5F5] outline-none focus:border-[#00FF88] focus:shadow-[0_0_8px_rgba(0,255,136,0.2)] transition-all"
                   placeholder="Session title"
                 />
                 <button
@@ -156,11 +156,11 @@ export function SessionCard({ session }: SessionCardProps) {
               </div>
             ) : (
               <Link href={`/session/${session.id}`} className="block min-w-0">
-                <p className="truncate text-sm font-medium text-[#F5F5F5] transition-colors duration-150 group-hover:text-[#00FF88]">
+                <p className="truncate text-sm font-medium text-[#F5F5F5] transition-all duration-200 group-hover:text-[#00FF88] typing-glow">
                   {session.title ?? "Untitled session"}
                 </p>
                 {preview && (
-                  <p className="mt-0.5 text-xs text-[#6B6B6B] line-clamp-1">
+                  <p className="mt-0.5 text-xs font-mono text-[#1A3A1A] line-clamp-1">
                     {truncate(preview, 100)}
                   </p>
                 )}
@@ -178,7 +178,7 @@ export function SessionCard({ session }: SessionCardProps) {
             <Link
               href={`/migrate?session=${session.id}`}
               onClick={(e) => e.stopPropagation()}
-              className="inline-flex h-7 items-center gap-1 rounded-[4px] border border-[#00FF88]/30 bg-[#00FF88]/8 px-2 text-[11px] font-medium text-[#00FF88] transition-all hover:bg-[#00FF88]/15"
+              className="inline-flex h-7 items-center gap-1 rounded-[4px] border border-[#00FF88]/35 bg-[#00FF88]/6 px-2 text-[10px] font-black uppercase tracking-wider text-[#00FF88] transition-all hover:bg-[#00FF88]/12 hover:shadow-[0_0_10px_rgba(0,255,136,0.2)]"
             >
               <ArrowRight size={11} />
               Migrate
@@ -188,7 +188,7 @@ export function SessionCard({ session }: SessionCardProps) {
               onClick={(e) => { stopLink(e); setIsEditing(true); }}
               disabled={busy !== null}
               title="Rename session"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#6B6B6B] transition-colors hover:bg-[#2A2A2A] hover:text-[#F5F5F5] disabled:opacity-50"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#2A4A2A] transition-colors hover:bg-[#1A3A1A] hover:text-[#F5F5F5] disabled:opacity-50"
             >
               <Pencil size={13} />
             </button>
@@ -197,7 +197,7 @@ export function SessionCard({ session }: SessionCardProps) {
               onClick={handleDelete}
               disabled={busy !== null}
               title="Delete session"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#6B6B6B] transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#2A1A1A] transition-colors hover:bg-red-500/10 hover:text-red-400 hover:shadow-[0_0_8px_rgba(239,68,68,0.15)] disabled:opacity-50"
             >
               {busy === "delete" ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
             </button>
@@ -210,17 +210,19 @@ export function SessionCard({ session }: SessionCardProps) {
           )}
         </div>
 
-        <div className="mt-3 flex items-center gap-3">
+        <div className="mt-3 flex items-center gap-3 border-t border-[#0D1A0D] pt-2">
           <PlatformBadge platform={session.platform} logoSize={11} />
-          <span className="flex items-center gap-1 text-[11px] text-[#6B6B6B]">
-            <MessageSquare size={11} />
+          <span className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-[#1A3A1A]">
+            <MessageSquare size={10} />
             {msgCount} {msgCount === 1 ? "message" : "messages"}
           </span>
-          <span className="flex items-center gap-1 text-[11px] text-[#6B6B6B]">
-            <Clock size={11} />
+          <span className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-[#1A3A1A]">
+            <Clock size={10} />
             {formatRelativeTime(session.updated_at)}
           </span>
         </div>
+        {/* XP strip */}
+        <div className="absolute bottom-0 left-0 right-0 h-[1px] opacity-20 group-hover:opacity-70 transition-opacity duration-300 animate-xp-fill" style={{ background: `linear-gradient(to right, transparent, ${color}, transparent)` }} />
       </div>
     </div>
   );

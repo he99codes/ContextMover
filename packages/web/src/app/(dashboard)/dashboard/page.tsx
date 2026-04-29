@@ -35,10 +35,10 @@ export default async function DashboardPage() {
       <div className="mb-6">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-[#F5F5F5]">
+            <h1 className="text-2xl font-black uppercase text-[#00FF88]" style={{ letterSpacing: "0.14em", textShadow: "0 0 24px rgba(0,255,136,0.35)" }}>
               Sessions
             </h1>
-            <p className="mt-1 text-sm text-[#6B6B6B]">
+            <p className="mt-1 text-xs font-mono uppercase text-[#2A6A2A]" style={{ letterSpacing: "0.12em" }}>
               {sessions.length > 0
                 ? `${sessions.length} captured · ${totalMessages} messages`
                 : "Waiting for sessions from the extension"}
@@ -51,16 +51,17 @@ export default async function DashboardPage() {
               {byPlatform.filter((p) => p.count > 0).map((p) => (
                 <div
                   key={p.id}
-                  className="flex items-center gap-1.5 rounded-[4px] border px-2.5 py-1 text-xs font-medium"
+                  className="flex items-center gap-1.5 rounded-[4px] border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition-all hover:scale-[1.04] hover:-translate-y-px"
                   style={{
-                    borderColor: `${p.color}35`,
-                    background: `${p.color}10`,
+                    borderColor: `${p.color}40`,
+                    background: `${p.color}0C`,
                     color: p.color,
+                    boxShadow: `0 0 10px ${p.color}18`,
                   }}
                 >
                   <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{ background: p.color }}
+                    className="h-1.5 w-1.5 rounded-full animate-pulse-green"
+                    style={{ background: p.color, boxShadow: `0 0 5px ${p.color}` }}
                   />
                   {p.label}
                   <span className="tabular-nums opacity-70">{p.count}</span>

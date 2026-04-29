@@ -60,7 +60,7 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
       {/* Toolbar */}
       <div className="mb-5 flex flex-col gap-3">
         {/* Platform filter tabs with sliding underline */}
-        <div className="flex items-center gap-0 border-b border-[#2A2A2A] overflow-x-auto">
+        <div className="flex items-center gap-0 border-b border-[#0D2A0D] overflow-x-auto" style={{ background: "linear-gradient(to right, #050505, #081208, #050505)" }}>
           {PLATFORMS.map((p) => {
             const isActive = filter === p.key;
             const color = p.logoKey ? (PCOLORS[p.logoKey] ?? "#6B6B6B") : "#00FF88";
@@ -69,8 +69,8 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
                 key={p.key}
                 onClick={() => setFilter(p.key)}
                 className={cn(
-                  "relative flex shrink-0 items-center gap-1.5 px-3 pb-2.5 pt-1 text-xs font-medium transition-colors duration-150 whitespace-nowrap",
-                  isActive ? "text-[#F5F5F5]" : "text-[#6B6B6B] hover:text-[#A0A0A0]"
+                  "relative flex shrink-0 items-center gap-1.5 px-3 pb-2.5 pt-1 text-[10px] font-black uppercase tracking-[0.14em] transition-all duration-150 whitespace-nowrap",
+                  isActive ? "text-[#F5F5F5]" : "text-[#2A4A2A] hover:text-[#4A8A4A]"
                 )}
                 style={isActive ? { color } : {}}
               >
@@ -89,6 +89,7 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
                     opacity: isActive ? 1 : 0,
                     transform: isActive ? "scaleX(1)" : "scaleX(0)",
                     transformOrigin: "left",
+                    boxShadow: isActive ? `0 0 8px ${color}` : "none",
                   }}
                 />
               </button>
@@ -112,10 +113,10 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
             className={cn(
-              "w-full rounded-[4px] border bg-[#111111] py-2 pl-9 pr-3 text-sm text-[#F5F5F5] placeholder:text-[#6B6B6B] outline-none transition-all duration-150",
+              "w-full rounded-[4px] border bg-[#080808] py-2 pl-9 pr-3 text-sm font-mono text-[#F5F5F5] placeholder:text-[#1A3A1A] outline-none transition-all duration-150",
               searchFocused
-                ? "border-[#00FF88] shadow-[0_0_0_3px_rgba(0,255,136,0.08)]"
-                : "border-[#2A2A2A] hover:border-[#3A3A3A]"
+                ? "border-[#00FF88] shadow-[0_0_0_2px_rgba(0,255,136,0.1),0_0_20px_rgba(0,255,136,0.05)]"
+                : "border-[#1A2A1A] hover:border-[#2A4A2A]"
             )}
           />
         </div>
@@ -123,12 +124,12 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
 
       {/* Empty states */}
       {filtered.length === 0 && sessions.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-[6px] border border-dashed border-[#2A2A2A] bg-[#111111] py-20 text-center animate-fade-in">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[8px] bg-[#00FF88]/10 border border-[#00FF88]/20">
+        <div className="flex flex-col items-center justify-center rounded-[6px] border border-dashed py-20 text-center animate-fade-in neon-border-pulse" style={{ background: "#070707" }}>
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[8px] bg-[#00FF88]/5 border border-[#00FF88]/25" style={{ boxShadow: "0 0 18px rgba(0,255,136,0.14)" }}>
             <Layers size={20} className="text-[#00FF88]" />
           </div>
-          <h3 className="text-sm font-medium text-[#F5F5F5]">No sessions captured yet</h3>
-          <p className="mt-1.5 max-w-xs text-sm text-[#6B6B6B]">
+          <h3 className="text-sm font-black uppercase tracking-widest text-[#F5F5F5]">No sessions captured yet</h3>
+          <p className="mt-1.5 max-w-xs text-xs font-mono text-[#2A4A2A]">
             Install the ContextForge extension and visit Claude, ChatGPT, Google Gemini,
             xAI Grok, Perplexity, or DeepSeek to start capturing context.
           </p>
@@ -136,9 +137,9 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
       )}
 
       {filtered.length === 0 && sessions.length > 0 && (
-        <div className="flex flex-col items-center justify-center rounded-[6px] border border-dashed border-[#2A2A2A] bg-[#111111] py-16 text-center animate-fade-in">
-          <RefreshCw size={18} className="mb-3 text-[#6B6B6B]" />
-          <p className="text-sm text-[#6B6B6B]">No sessions match your filter.</p>
+        <div className="flex flex-col items-center justify-center rounded-[6px] border border-dashed py-16 text-center animate-fade-in neon-border-pulse" style={{ background: "#070707" }}>
+          <RefreshCw size={18} className="mb-3 text-[#2A6A2A]" />
+          <p className="text-xs font-mono uppercase tracking-wider text-[#2A4A2A]">No sessions match your filter.</p>
           <button
             onClick={() => { setFilter("All"); setSearch(""); }}
             className="mt-2 text-xs text-[#00FF88] transition-opacity hover:opacity-70"
@@ -156,6 +157,21 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
           ))}
         </div>
       )}
+
+      {/* ── THE CRUCIBLE ── */}
+      <div className="mt-4">
+        <div
+          className="crucible-pulse flex cursor-default flex-col items-center justify-center rounded-[6px] border border-dashed py-4 transition-all hover:scale-[1.004]"
+          style={{ borderColor: "rgba(0,255,136,0.16)", background: "rgba(0,255,136,0.014)" }}
+        >
+          <div className="text-[9px] font-black uppercase tracking-[0.4em] text-[#00FF88]" style={{ textShadow: "0 0 10px rgba(0,255,136,0.45)" }}>
+            ⚗ The Crucible
+          </div>
+          <div className="mt-1 text-[8px] font-mono uppercase tracking-[0.2em] text-[#1A3A1A]">
+            Merge sessions · Forge Super Memory
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

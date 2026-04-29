@@ -110,25 +110,25 @@ export function MigrateView({ initialSessions, userId }: Props) {
     <div className="max-w-6xl mx-auto p-8 animate-slide-up">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-1">
-          <ArrowLeftRight size={18} className="text-[#00FF88]" />
-          <h1 className="text-2xl font-semibold text-[#F5F5F5]">Migrate</h1>
+          <ArrowLeftRight size={18} className="text-[#00FF88]" style={{ filter: "drop-shadow(0 0 8px rgba(0,255,136,0.6))" }} />
+          <h1 className="text-2xl font-black uppercase text-[#00FF88]" style={{ letterSpacing: "0.14em", textShadow: "0 0 24px rgba(0,255,136,0.35)" }}>Migrate</h1>
         </div>
-        <p className="text-sm text-[#6B6B6B]">
+        <p className="text-xs font-mono uppercase text-[#2A6A2A]" style={{ letterSpacing: "0.1em" }}>
           Generate a paste-ready prompt that transfers a conversation from one AI to another.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
         {/* ── Session picker ── */}
-        <div className="rounded-[6px] border border-[#2A2A2A] bg-[#111111] overflow-hidden">
-          <div className="p-3 border-b border-[#2A2A2A]">
+        <div className="rounded-[6px] border border-[#0D2A0D] bg-[#060606] overflow-hidden" style={{ boxShadow: "0 0 20px rgba(0,255,136,0.04)" }}>
+          <div className="p-3 border-b border-[#0D1A0D]">
             <div className="relative">
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6B6B6B]" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search sessions by meaning…"
-                className="w-full h-9 pl-8 pr-2 rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] text-sm text-[#F5F5F5] placeholder:text-[#6B6B6B] outline-none focus:border-[#00FF88] transition-colors"
+                className="w-full h-9 pl-8 pr-2 rounded-[4px] border border-[#1A2A1A] bg-[#050505] text-sm font-mono text-[#F5F5F5] placeholder:text-[#1A3A1A] outline-none focus:border-[#00FF88] focus:shadow-[0_0_8px_rgba(0,255,136,0.15)] transition-all"
               />
             </div>
           </div>
@@ -146,8 +146,8 @@ export function MigrateView({ initialSessions, userId }: Props) {
                     key={s.id}
                     onClick={() => setSelectedId(s.id)}
                     className={cn(
-                      "group relative w-full text-left px-3 py-3 border-b border-[#2A2A2A] last:border-b-0 transition-colors overflow-hidden",
-                      isSelected ? "bg-[#1A1A1A]" : "hover:bg-[#141414]"
+                      "group relative w-full text-left px-3 py-3 border-b border-[#0D1A0D] last:border-b-0 transition-all overflow-hidden",
+                      isSelected ? "bg-[#0D1A0D]" : "hover:bg-[#090E09]"
                     )}
                   >
                     <span
@@ -158,12 +158,12 @@ export function MigrateView({ initialSessions, userId }: Props) {
                       <PlatformBadge platform={s.platform} logoSize={10} />
                     </div>
                     <p className={cn(
-                      "text-sm font-medium truncate transition-colors",
-                      isSelected ? "text-[#00FF88]" : "text-[#F5F5F5] group-hover:text-[#00FF88]"
+                      "text-sm font-medium truncate transition-all",
+                      isSelected ? "text-[#00FF88] typing-glow" : "text-[#F5F5F5] group-hover:text-[#00FF88]"
                     )}>
                       {s.title ?? "Untitled session"}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-[#6B6B6B]">
+                    <p className="mt-0.5 text-[10px] font-mono text-[#1A3A1A]">
                       {s.messages.length} msgs · {formatRelativeTime(s.updated_at)}
                     </p>
                   </button>
@@ -174,24 +174,24 @@ export function MigrateView({ initialSessions, userId }: Props) {
         </div>
 
         {/* ── Prompt builder ── */}
-        <div className="rounded-[6px] border border-[#2A2A2A] bg-[#111111] p-6">
+        <div className="rounded-[6px] border border-[#0D2A0D] bg-[#060606] p-6" style={{ boxShadow: "0 0 20px rgba(0,255,136,0.03)" }}>
           {!selected ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A]">
-                <ArrowLeftRight size={22} className="text-[#3A3A3A]" />
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-[8px] border border-[#1A2A1A] bg-[#080808] neon-border-pulse">
+                <ArrowLeftRight size={22} className="text-[#2A6A2A]" />
               </div>
-              <p className="text-sm font-medium text-[#6B6B6B]">Select a session on the left to begin</p>
+              <p className="text-sm font-mono font-medium uppercase tracking-wider text-[#2A4A2A]">Select a session on the left to begin</p>
             </div>
           ) : (
             <div className="space-y-5">
               {/* From */}
               <div>
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-[#6B6B6B]">From</p>
-                <div className="flex items-start gap-3 rounded-[6px] border border-[#2A2A2A] bg-[#1A1A1A] px-4 py-3">
+                <p className="mb-2 text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">◈ From</p>
+                <div className="flex items-start gap-3 rounded-[6px] border border-[#1A2A1A] bg-[#080808] px-4 py-3" style={{ boxShadow: "inset 0 0 0 1px rgba(0,255,136,0.04)" }}>
                   <PlatformLogo platform={selected.platform} size={20} className="mt-0.5 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-[#F5F5F5] truncate">{selected.title ?? "Untitled session"}</p>
-                    <p className="text-[11px] text-[#6B6B6B] mt-0.5">
+                    <p className="text-[10px] font-mono text-[#1A3A1A] mt-0.5">
                       {PLATFORM_FULL_NAMES[selected.platform] ?? selected.platform} · {selected.messages.length} messages
                     </p>
                   </div>
@@ -200,7 +200,7 @@ export function MigrateView({ initialSessions, userId }: Props) {
 
               {/* Target platform — large cards */}
               <div>
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-[#6B6B6B]">To</p>
+                <p className="mb-2 text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">◈ To</p>
                 <div className="grid grid-cols-3 gap-2">
                   {TARGETS.map((t) => {
                     const isActive = target === t.id;
@@ -211,31 +211,37 @@ export function MigrateView({ initialSessions, userId }: Props) {
                         onClick={() => setTarget(t.id)}
                         disabled={isSame}
                         className={cn(
-                          "group relative flex flex-col items-center gap-2 rounded-[6px] border p-3 transition-all duration-150",
-                          isSame && "opacity-30 cursor-not-allowed",
+                          "group relative flex flex-col items-center gap-2 rounded-[6px] border p-3 transition-all duration-200 overflow-hidden",
+                          isSame && "opacity-20 cursor-not-allowed",
                           isActive
-                            ? "bg-[#1A1A1A]"
-                            : "border-[#2A2A2A] bg-[#0F0F0F] hover:bg-[#141414] hover:border-[#3A3A3A]"
+                            ? "bg-[#0A0A0A] scale-[1.02]"
+                            : "border-[#0D1A0D] bg-[#060606] hover:bg-[#090E09] hover:-translate-y-[2px] hover:scale-[1.02]"
                         )}
                         style={isActive ? {
-                          borderColor: `${t.color}50`,
-                          boxShadow: `0 0 16px ${t.color}14`,
+                          borderColor: `${t.color}55`,
+                          boxShadow: `0 0 22px ${t.color}30, inset 0 0 14px ${t.color}08`,
                         } : {}}
                         title={isSame ? "Same as source" : undefined}
                       >
                         <PlatformLogo platform={t.id} size={24} />
                         <span
-                          className="text-xs font-medium transition-colors"
-                          style={{ color: isActive ? t.color : "#6B6B6B" }}
+                          className="text-[10px] font-black uppercase tracking-wider transition-colors"
+                          style={{ color: isActive ? t.color : "#2A4A2A" }}
                         >
                           {t.label}
                         </span>
                         {isActive && (
                           <span
-                            className="absolute top-2 right-2 text-[9px] font-bold"
-                            style={{ color: t.color }}
+                            className="absolute top-2 right-2 text-[9px] font-black"
+                            style={{ color: t.color, textShadow: `0 0 6px ${t.color}` }}
                           >✓</span>
                         )}
+                        {/* XP strip */}
+                        <span className="absolute bottom-0 left-0 right-0 h-[2px] transition-all duration-200" style={{
+                          background: isActive ? `linear-gradient(to right, transparent, ${t.color}, transparent)` : `linear-gradient(to right, transparent, ${t.color}25, transparent)`,
+                          boxShadow: isActive ? `0 0 8px ${t.color}80` : "none",
+                          opacity: isActive ? 1 : 0.3,
+                        }} />
                       </button>
                     );
                   })}
@@ -244,24 +250,24 @@ export function MigrateView({ initialSessions, userId }: Props) {
 
               {/* Attention task focus */}
               <div>
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-[#6B6B6B]">
-                  Task focus <span className="normal-case font-normal text-[#3A3A3A]">(optional)</span>
+                <p className="mb-2 text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">
+                  Task focus <span className="normal-case font-normal text-[#1A2A1A]">(optional)</span>
                 </p>
                 <input
                   value={task}
                   onChange={(e) => setTask(e.target.value)}
                   placeholder="What are you trying to accomplish? Improves context focus."
-                  className="w-full rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-[#F5F5F5] placeholder:text-[#6B6B6B] outline-none focus:border-[#6366f1] transition-colors"
+                  className="w-full rounded-[4px] border border-[#1A1A2A] bg-[#060606] px-3 py-2 text-sm font-mono text-[#F5F5F5] placeholder:text-[#1A1A3A] outline-none focus:border-[#6366f1] focus:shadow-[0_0_8px_rgba(99,102,241,0.2)] transition-all"
                 />
               </div>
 
               {/* Caveman toggle */}
               <button
                 onClick={() => setCaveman((v) => !v)}
-                className="flex w-full items-center justify-between rounded-[6px] border px-4 py-2.5 text-xs transition-all duration-150"
+                className="flex w-full items-center justify-between rounded-[6px] border px-4 py-2.5 text-xs transition-all duration-200 hover:-translate-y-px"
                 style={caveman
-                  ? { borderColor: "#F59E0B40", background: "#F59E0B0C", color: "#F59E0B" }
-                  : { borderColor: "#2A2A2A", background: "#1A1A1A", color: "#6B6B6B" }}
+                  ? { borderColor: "rgba(245,158,11,0.4)", background: "rgba(245,158,11,0.07)", color: "#F59E0B", boxShadow: "0 0 14px rgba(245,158,11,0.2)" }
+                  : { borderColor: "#1A2A1A", background: "#060606", color: "#2A4A2A" }}
               >
                 <div className="flex items-center gap-2">
                   <span className="text-base">🪨</span>
@@ -273,7 +279,7 @@ export function MigrateView({ initialSessions, userId }: Props) {
                   </span>
                   <div
                     className="relative h-4 w-7 rounded-full transition-colors"
-                    style={{ background: caveman ? "#F59E0B" : "#2A2A2A" }}
+                    style={{ background: caveman ? "#F59E0B" : "#1A1A1A" }}
                   >
                     <div
                       className="absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-200"
@@ -286,19 +292,19 @@ export function MigrateView({ initialSessions, userId }: Props) {
               {/* Prompt output */}
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[#6B6B6B]">Migration prompt</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">◈ Migration prompt</p>
                   <button
                     onClick={copyPrompt}
-                    className="btn-primary inline-flex items-center gap-1.5 rounded-[4px] bg-[#00FF88] px-3 py-1.5 text-xs font-semibold text-black"
+                    className="btn-primary inline-flex items-center gap-1.5 rounded-[4px] bg-[#00FF88] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-black"
                   >
                     {copied ? <Check size={12} /> : <Copy size={12} />}
                     {copied ? "Copied!" : "Copy"}
                   </button>
                 </div>
-                <pre className="rounded-[4px] border border-[#2A2A2A] bg-[#0A0A0A] p-4 text-xs font-mono text-[#F5F5F5]/80 whitespace-pre-wrap break-words max-h-[380px] overflow-y-auto">
+                <pre className="rounded-[4px] border border-[#1A2A1A] bg-[#050505] p-4 text-xs font-mono text-[#8AFF8A]/80 whitespace-pre-wrap break-words max-h-[380px] overflow-y-auto" style={{ boxShadow: "inset 0 0 20px rgba(0,255,136,0.025)" }}>
                   {prompt}
                 </pre>
-                <p className="mt-2 text-xs text-[#6B6B6B]">
+                <p className="mt-2 text-[10px] font-mono text-[#1A3A1A]">
                   Paste into a new chat on{" "}
                   <strong className="text-[#F5F5F5]">{TARGETS.find((t) => t.id === target)?.label}</strong>.
                   The browser extension injects this automatically from the sidebar.
@@ -306,6 +312,21 @@ export function MigrateView({ initialSessions, userId }: Props) {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ── THE CRUCIBLE ── */}
+      <div className="mt-8">
+        <div
+          className="crucible-pulse flex cursor-default flex-col items-center justify-center rounded-[6px] border border-dashed py-5 transition-all hover:scale-[1.002]"
+          style={{ borderColor: "rgba(0,255,136,0.16)", background: "rgba(0,255,136,0.012)" }}
+        >
+          <div className="text-[10px] font-black uppercase tracking-[0.4em] text-[#00FF88]" style={{ textShadow: "0 0 12px rgba(0,255,136,0.5)" }}>
+            ⚗ The Crucible
+          </div>
+          <div className="mt-1 text-[9px] font-mono uppercase tracking-[0.2em] text-[#1A3A1A]">
+            Merge sessions · Forge Super Memory
+          </div>
         </div>
       </div>
     </div>
