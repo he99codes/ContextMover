@@ -18,8 +18,6 @@ const PLATFORMS = [
   { key: "DeepSeek",   label: "DeepSeek",      logoKey: "deepseek" },
 ] as const;
 
-type PlatformKey = typeof PLATFORMS[number]["key"];
-
 interface SessionListProps {
   initialSessions: Session[];
   userId: string;

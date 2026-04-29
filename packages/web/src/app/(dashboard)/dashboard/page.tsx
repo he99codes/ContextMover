@@ -6,8 +6,8 @@ import type { Session } from "@/types";
 const PLATFORM_META = [
   { id: "claude",     label: "Claude",     color: "#D97706" },
   { id: "chatgpt",    label: "ChatGPT",    color: "#10B981" },
-  { id: "gemini",     label: "Gemini",     color: "#6366F1" },
-  { id: "grok",       label: "Grok",       color: "#F5F5F5" },
+  { id: "gemini",     label: "Google Gemini", color: "#6366F1" },
+  { id: "grok",       label: "xAI Grok",      color: "#F5F5F5" },
   { id: "perplexity", label: "Perplexity", color: "#20B2AA" },
   { id: "deepseek",   label: "DeepSeek",   color: "#4C8BF5" },
 ] as const;

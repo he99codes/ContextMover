@@ -40,6 +40,8 @@ let _lastTabSyncAt = 0;
 
 export default function Popup() {
   const [sessions, setSessions] = useState<ContextSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [caveman, setCaveman] = useState(false);
   const [migrating, setMigrating] = useState<string | null>(null);
   const [targetPlatform, setTargetPlatform] = useState<Platform>("claude");
   const [bridgeStatus, setBridgeStatus] = useState<BridgeState>({ state: "checking" });
@@ -89,6 +91,7 @@ export default function Popup() {
     loadDebounceRef.current = setTimeout(() => {
       chrome.runtime.sendMessage({ type: "GET_SESSIONS" }, (res) => {
         setSessions(Array.isArray(res) ? res : []);
+        setSessionsLoading(false);
       });
     }, 250);
   }
@@ -140,6 +143,7 @@ export default function Popup() {
           sessionId,
           targetPlatform,
           targetTabId: tab.id,
+          caveman,
         },
       },
       (response) => {
@@ -352,7 +356,7 @@ export default function Popup() {
                     className="text-[10px] font-medium leading-tight text-center"
                     style={{ color: isTarget ? pColor : "#6B6B6B" }}
                   >
-                    {platform === "gemini" ? "Gemini" : platform === "grok" ? "Grok" : PLATFORM_LABELS[platform]}
+                    {PLATFORM_LABELS[platform]}
                   </span>
                   {isTarget && (
                     <span className="absolute right-1.5 top-1.5 text-[8px] font-bold" style={{ color: pColor }}>✓</span>
@@ -361,6 +365,22 @@ export default function Popup() {
               );
             })}
           </div>
+          <button
+            onClick={() => setCaveman((v) => !v)}
+            className="mt-2.5 flex w-full items-center justify-between rounded-[4px] border px-3 py-1.5 text-[11px] transition-all"
+            style={caveman ? {
+              borderColor: "#F59E0B40",
+              background: "#F59E0B0E",
+              color: "#F59E0B",
+            } : {
+              borderColor: "#2A2A2A",
+              background: "#111111",
+              color: "#6B6B6B",
+            }}
+          >
+            <span className="font-semibold tracking-[0.12em] uppercase text-[10px]">Caveman Mode 🪨</span>
+            <span className="text-[10px] opacity-70">{caveman ? "ON" : "OFF"}</span>
+          </button>
         </section>
 
         {/* Sessions */}
@@ -380,7 +400,23 @@ export default function Popup() {
           </div>
 
           <div className="space-y-2">
-            {filteredSessions.length === 0 ? (
+            {sessionsLoading ? (
+              <div className="space-y-2">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="overflow-hidden rounded-[6px] border border-[#2A2A2A] bg-[#1A1A1A] p-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-20 rounded-[20px] bg-[#2A2A2A] animate-pulse" />
+                      <div className="h-3.5 w-12 rounded bg-[#2A2A2A] animate-pulse" />
+                    </div>
+                    <div className="mt-2 h-3 w-[70%] rounded bg-[#2A2A2A] animate-pulse" />
+                    <div className="mt-1.5 flex justify-end gap-1.5">
+                      <div className="h-6 w-16 rounded-[4px] bg-[#2A2A2A] animate-pulse" />
+                      <div className="h-6 w-14 rounded-[4px] bg-[#1F2B1F] animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredSessions.length === 0 ? (
               <div className="rounded-[6px] border border-dashed border-[#2A2A2A] px-4 py-8 text-center animate-fade-in">
                 <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-[6px] border border-[#00FF88]/20 bg-[#00FF88]/8">
                   <span className="text-base">⚡</span>
@@ -395,7 +431,7 @@ export default function Popup() {
                 </p>
               </div>
             ) : (
-              filteredSessions.slice(0, 6).map((session) => {
+              <div className="space-y-2">{filteredSessions.slice(0, 6).map((session) => {
                 const latestMessage = session.messages[session.messages.length - 1]?.content ?? "";
                 const isExpanded = expandedSessionId === session.id;
                 const previewText = isExpanded
@@ -474,7 +510,7 @@ export default function Popup() {
                     )}
                   </article>
                 );
-              })
+              })}</div>
             )}
           </div>
         </section>

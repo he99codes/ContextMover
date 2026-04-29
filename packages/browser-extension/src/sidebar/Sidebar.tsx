@@ -38,6 +38,7 @@ type StatusTone = "info" | "success" | "error";
 
 export default function Sidebar() {
   const [sessions, setSessions] = useState<ContextSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
   const [selected, setSelected] = useState<ContextSession | null>(null);
   const [view, setView] = useState<View>("sessions");
   const [targetPlatform, setTargetPlatform] = useState<Platform>("claude");
@@ -120,6 +121,7 @@ export default function Sidebar() {
     loadDebounceRef.current = setTimeout(() => {
       chrome.runtime.sendMessage({ type: "GET_SESSIONS" }, (res) => {
         setSessions(Array.isArray(res) ? res : []);
+        setSessionsLoading(false);
       });
     }, 250);
   }
@@ -596,7 +598,22 @@ export default function Sidebar() {
               ))}
             </div>
           )}
-          {filtered.length === 0 ? (
+          {sessionsLoading ? (
+            <div className="space-y-1.5">
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className="overflow-hidden rounded-[6px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2.5"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-16 rounded-[20px] bg-[#2A2A2A] animate-pulse" />
+                  </div>
+                  <div className="mt-2 h-3 w-[75%] rounded bg-[#2A2A2A] animate-pulse" />
+                  <div className="mt-1.5 h-2.5 w-[40%] rounded bg-[#1F1F1F] animate-pulse" />
+                </div>
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="rounded-[6px] border border-dashed border-[#2A2A2A] px-4 py-10 text-center animate-fade-in">
               <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-[6px] border border-[#00FF88]/20 bg-[#00FF88]/8">
                 <span className="text-lg">⚡</span>
