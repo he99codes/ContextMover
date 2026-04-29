@@ -88,33 +88,6 @@ export default function Sidebar() {
     };
   }, []);
 
-  // ── Background engine warm-up ────────────────────────────────────────────
-  // Start model initialization 2 s after the sidebar loads (UI settles first).
-  // By the time the user opens AttentionModal the model is already in memory.
-  useEffect(() => {
-    const id = window.setTimeout(() => {
-      if (!attentionEngine.initialized) {
-        attentionEngine.initialize().catch(() => { /* silent */ });
-      }
-    }, 2_000);
-    return () => window.clearTimeout(id);
-  }, []);
-
-  // ── Background session pre-indexing ──────────────────────────────────────
-  // Index the selected session 1 s after it is chosen so the AttentionModal
-  // live-preview triggers instantly (indexSession is idempotent).
-  useEffect(() => {
-    if (!selected) return;
-    const id = window.setTimeout(async () => {
-      try {
-        if (!attentionEngine.initialized) await attentionEngine.initialize();
-        await attentionEngine.indexSession(selected);
-      } catch { /* silent */ }
-    }, 1_000);
-    return () => window.clearTimeout(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected?.id]);
-
   useEffect(() => {
     if (semanticTimerRef.current) clearTimeout(semanticTimerRef.current);
     if (!semanticQuery.trim() || semanticQuery.length < 3) {
