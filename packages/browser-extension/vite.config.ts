@@ -19,7 +19,6 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        popup: "src/popup/index.html",
         sidebar: "src/sidebar/index.html",
         "src/content/claude": "src/content/claude.ts",
         "src/content/chatgpt": "src/content/chatgpt.ts",
