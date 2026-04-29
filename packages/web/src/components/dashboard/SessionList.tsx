@@ -58,7 +58,7 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
   return (
     <div>
       {/* Toolbar */}
-      <div className="mb-5 flex flex-col gap-3">
+      <div className="mb-7 flex flex-col gap-4">
         {/* Platform filter tabs with sliding underline */}
         <div className="flex items-center gap-0 border-b border-[#0D2A0D] overflow-x-auto" style={{ background: "linear-gradient(to right, #050505, #081208, #050505)" }}>
           {PLATFORMS.map((p) => {
@@ -69,7 +69,7 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
                 key={p.key}
                 onClick={() => setFilter(p.key)}
                 className={cn(
-                  "relative flex shrink-0 items-center gap-1.5 px-3 pb-2.5 pt-1 text-[10px] font-black uppercase tracking-[0.14em] transition-all duration-150 whitespace-nowrap",
+                  "relative flex shrink-0 items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-black uppercase tracking-[0.14em] transition-all duration-150 whitespace-nowrap",
                   isActive ? "text-[#F5F5F5]" : "text-[#2A4A2A] hover:text-[#4A8A4A]"
                 )}
                 style={isActive ? { color } : {}}
@@ -113,7 +113,7 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
             className={cn(
-              "w-full rounded-[4px] border bg-[#080808] py-2 pl-9 pr-3 text-sm font-mono text-[#F5F5F5] placeholder:text-[#1A3A1A] outline-none transition-all duration-150",
+              "w-full rounded-[5px] border bg-[#080808] py-3 pl-9 pr-4 text-sm font-mono text-[#F5F5F5] placeholder:text-[#1A3A1A] outline-none transition-all duration-150",
               searchFocused
                 ? "border-[#00FF88] shadow-[0_0_0_2px_rgba(0,255,136,0.1),0_0_20px_rgba(0,255,136,0.05)]"
                 : "border-[#1A2A1A] hover:border-[#2A4A2A]"
@@ -124,8 +124,8 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
 
       {/* Empty states */}
       {filtered.length === 0 && sessions.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-[6px] border border-dashed py-20 text-center animate-fade-in neon-border-pulse" style={{ background: "#070707" }}>
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[8px] bg-[#00FF88]/5 border border-[#00FF88]/25" style={{ boxShadow: "0 0 18px rgba(0,255,136,0.14)" }}>
+        <div className="flex flex-col items-center justify-center rounded-[8px] border border-dashed py-24 text-center animate-fade-in neon-border-pulse" style={{ background: "#070707" }}>
+          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-[10px] bg-[#00FF88]/5 border border-[#00FF88]/25" style={{ boxShadow: "0 0 18px rgba(0,255,136,0.14)" }}>
             <Layers size={20} className="text-[#00FF88]" />
           </div>
           <h3 className="text-sm font-black uppercase tracking-widest text-[#F5F5F5]">No sessions captured yet</h3>
@@ -137,7 +137,7 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
       )}
 
       {filtered.length === 0 && sessions.length > 0 && (
-        <div className="flex flex-col items-center justify-center rounded-[6px] border border-dashed py-16 text-center animate-fade-in neon-border-pulse" style={{ background: "#070707" }}>
+        <div className="flex flex-col items-center justify-center rounded-[8px] border border-dashed py-20 text-center animate-fade-in neon-border-pulse" style={{ background: "#070707" }}>
           <RefreshCw size={18} className="mb-3 text-[#2A6A2A]" />
           <p className="text-xs font-mono uppercase tracking-wider text-[#2A4A2A]">No sessions match your filter.</p>
           <button
@@ -151,7 +151,7 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
 
       {/* Staggered card list */}
       {filtered.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {filtered.map((session) => (
             <SessionCard key={session.id} session={session} />
           ))}
@@ -161,13 +161,13 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
       {/* ── THE CRUCIBLE ── */}
       <div className="mt-4">
         <div
-          className="crucible-pulse flex cursor-default flex-col items-center justify-center rounded-[6px] border border-dashed py-4 transition-all hover:scale-[1.004]"
+          className="crucible-pulse flex cursor-default flex-col items-center justify-center rounded-[8px] border border-dashed py-6 transition-all hover:scale-[1.004]"
           style={{ borderColor: "rgba(0,255,136,0.16)", background: "rgba(0,255,136,0.014)" }}
         >
-          <div className="text-[9px] font-black uppercase tracking-[0.4em] text-[#00FF88]" style={{ textShadow: "0 0 10px rgba(0,255,136,0.45)" }}>
+          <div className="text-[11px] font-black uppercase tracking-[0.4em] text-[#00FF88]" style={{ textShadow: "0 0 10px rgba(0,255,136,0.45)" }}>
             ⚗ The Crucible
           </div>
-          <div className="mt-1 text-[8px] font-mono uppercase tracking-[0.2em] text-[#1A3A1A]">
+          <div className="mt-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-[#1A3A1A]">
             Merge sessions · Forge Super Memory
           </div>
         </div>

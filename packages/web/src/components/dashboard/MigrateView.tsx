@@ -107,8 +107,8 @@ export function MigrateView({ initialSessions, userId }: Props) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-8 animate-slide-up">
-      <div className="mb-8">
+    <div className="max-w-6xl mx-auto p-10 animate-slide-up">
+      <div className="mb-10">
         <div className="flex items-center gap-2 mb-1">
           <ArrowLeftRight size={18} className="text-[#00FF88]" style={{ filter: "drop-shadow(0 0 8px rgba(0,255,136,0.6))" }} />
           <h1 className="text-2xl font-black uppercase text-[#00FF88]" style={{ letterSpacing: "0.14em", textShadow: "0 0 24px rgba(0,255,136,0.35)" }}>Migrate</h1>
@@ -118,17 +118,17 @@ export function MigrateView({ initialSessions, userId }: Props) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8">
         {/* ── Session picker ── */}
         <div className="rounded-[6px] border border-[#0D2A0D] bg-[#060606] overflow-hidden" style={{ boxShadow: "0 0 20px rgba(0,255,136,0.04)" }}>
-          <div className="p-3 border-b border-[#0D1A0D]">
+          <div className="p-4 border-b border-[#0D1A0D]">
             <div className="relative">
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6B6B6B]" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search sessions by meaning…"
-                className="w-full h-9 pl-8 pr-2 rounded-[4px] border border-[#1A2A1A] bg-[#050505] text-sm font-mono text-[#F5F5F5] placeholder:text-[#1A3A1A] outline-none focus:border-[#00FF88] focus:shadow-[0_0_8px_rgba(0,255,136,0.15)] transition-all"
+                className="w-full h-10 pl-8 pr-2 rounded-[5px] border border-[#1A2A1A] bg-[#050505] text-sm font-mono text-[#F5F5F5] placeholder:text-[#1A3A1A] outline-none focus:border-[#00FF88] focus:shadow-[0_0_8px_rgba(0,255,136,0.15)] transition-all"
               />
             </div>
           </div>
@@ -146,7 +146,7 @@ export function MigrateView({ initialSessions, userId }: Props) {
                     key={s.id}
                     onClick={() => setSelectedId(s.id)}
                     className={cn(
-                      "group relative w-full text-left px-3 py-3 border-b border-[#0D1A0D] last:border-b-0 transition-all overflow-hidden",
+                      "group relative w-full text-left px-4 py-4 border-b border-[#0D1A0D] last:border-b-0 transition-all overflow-hidden",
                       isSelected ? "bg-[#0D1A0D]" : "hover:bg-[#090E09]"
                     )}
                   >
@@ -174,7 +174,7 @@ export function MigrateView({ initialSessions, userId }: Props) {
         </div>
 
         {/* ── Prompt builder ── */}
-        <div className="rounded-[6px] border border-[#0D2A0D] bg-[#060606] p-6" style={{ boxShadow: "0 0 20px rgba(0,255,136,0.03)" }}>
+        <div className="rounded-[6px] border border-[#0D2A0D] bg-[#060606] p-8" style={{ boxShadow: "0 0 20px rgba(0,255,136,0.03)" }}>
           {!selected ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-[8px] border border-[#1A2A1A] bg-[#080808] neon-border-pulse">
@@ -183,11 +183,11 @@ export function MigrateView({ initialSessions, userId }: Props) {
               <p className="text-sm font-mono font-medium uppercase tracking-wider text-[#2A4A2A]">Select a session on the left to begin</p>
             </div>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-7">
               {/* From */}
               <div>
                 <p className="mb-2 text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">◈ From</p>
-                <div className="flex items-start gap-3 rounded-[6px] border border-[#1A2A1A] bg-[#080808] px-4 py-3" style={{ boxShadow: "inset 0 0 0 1px rgba(0,255,136,0.04)" }}>
+                <div className="flex items-start gap-4 rounded-[6px] border border-[#1A2A1A] bg-[#080808] px-5 py-4" style={{ boxShadow: "inset 0 0 0 1px rgba(0,255,136,0.04)" }}>
                   <PlatformLogo platform={selected.platform} size={20} className="mt-0.5 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-[#F5F5F5] truncate">{selected.title ?? "Untitled session"}</p>
@@ -201,7 +201,7 @@ export function MigrateView({ initialSessions, userId }: Props) {
               {/* Target platform — large cards */}
               <div>
                 <p className="mb-2 text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">◈ To</p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-3">
                   {TARGETS.map((t) => {
                     const isActive = target === t.id;
                     const isSame  = t.id === selected.platform;
@@ -211,7 +211,7 @@ export function MigrateView({ initialSessions, userId }: Props) {
                         onClick={() => setTarget(t.id)}
                         disabled={isSame}
                         className={cn(
-                          "group relative flex flex-col items-center gap-2 rounded-[6px] border p-3 transition-all duration-200 overflow-hidden",
+                          "group relative flex flex-col items-center gap-2.5 rounded-[6px] border p-4 transition-all duration-200 overflow-hidden",
                           isSame && "opacity-20 cursor-not-allowed",
                           isActive
                             ? "bg-[#0A0A0A] scale-[1.02]"
@@ -257,14 +257,14 @@ export function MigrateView({ initialSessions, userId }: Props) {
                   value={task}
                   onChange={(e) => setTask(e.target.value)}
                   placeholder="What are you trying to accomplish? Improves context focus."
-                  className="w-full rounded-[4px] border border-[#1A1A2A] bg-[#060606] px-3 py-2 text-sm font-mono text-[#F5F5F5] placeholder:text-[#1A1A3A] outline-none focus:border-[#6366f1] focus:shadow-[0_0_8px_rgba(99,102,241,0.2)] transition-all"
+                  className="w-full rounded-[5px] border border-[#1A1A2A] bg-[#060606] px-4 py-3 text-sm font-mono text-[#F5F5F5] placeholder:text-[#1A1A3A] outline-none focus:border-[#6366f1] focus:shadow-[0_0_8px_rgba(99,102,241,0.2)] transition-all"
                 />
               </div>
 
               {/* Caveman toggle */}
               <button
                 onClick={() => setCaveman((v) => !v)}
-                className="flex w-full items-center justify-between rounded-[6px] border px-4 py-2.5 text-xs transition-all duration-200 hover:-translate-y-px"
+                className="flex w-full items-center justify-between rounded-[6px] border px-5 py-3.5 text-xs transition-all duration-200 hover:-translate-y-px"
                 style={caveman
                   ? { borderColor: "rgba(245,158,11,0.4)", background: "rgba(245,158,11,0.07)", color: "#F59E0B", boxShadow: "0 0 14px rgba(245,158,11,0.2)" }
                   : { borderColor: "#1A2A1A", background: "#060606", color: "#2A4A2A" }}
@@ -301,7 +301,7 @@ export function MigrateView({ initialSessions, userId }: Props) {
                     {copied ? "Copied!" : "Copy"}
                   </button>
                 </div>
-                <pre className="rounded-[4px] border border-[#1A2A1A] bg-[#050505] p-4 text-xs font-mono text-[#8AFF8A]/80 whitespace-pre-wrap break-words max-h-[380px] overflow-y-auto" style={{ boxShadow: "inset 0 0 20px rgba(0,255,136,0.025)" }}>
+                <pre className="rounded-[5px] border border-[#1A2A1A] bg-[#050505] p-5 text-xs font-mono text-[#8AFF8A]/80 whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto" style={{ boxShadow: "inset 0 0 20px rgba(0,255,136,0.025)" }}>
                   {prompt}
                 </pre>
                 <p className="mt-2 text-[10px] font-mono text-[#1A3A1A]">
@@ -318,13 +318,13 @@ export function MigrateView({ initialSessions, userId }: Props) {
       {/* ── THE CRUCIBLE ── */}
       <div className="mt-8">
         <div
-          className="crucible-pulse flex cursor-default flex-col items-center justify-center rounded-[6px] border border-dashed py-5 transition-all hover:scale-[1.002]"
+          className="crucible-pulse flex cursor-default flex-col items-center justify-center rounded-[8px] border border-dashed py-8 transition-all hover:scale-[1.002]"
           style={{ borderColor: "rgba(0,255,136,0.16)", background: "rgba(0,255,136,0.012)" }}
         >
-          <div className="text-[10px] font-black uppercase tracking-[0.4em] text-[#00FF88]" style={{ textShadow: "0 0 12px rgba(0,255,136,0.5)" }}>
+          <div className="text-[12px] font-black uppercase tracking-[0.4em] text-[#00FF88]" style={{ textShadow: "0 0 12px rgba(0,255,136,0.5)" }}>
             ⚗ The Crucible
           </div>
-          <div className="mt-1 text-[9px] font-mono uppercase tracking-[0.2em] text-[#1A3A1A]">
+          <div className="mt-2 text-[10px] font-mono uppercase tracking-[0.2em] text-[#1A3A1A]">
             Merge sessions · Forge Super Memory
           </div>
         </div>

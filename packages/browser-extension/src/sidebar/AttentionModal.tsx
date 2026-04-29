@@ -217,9 +217,9 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
         style={{
           background: "#050505",
           border: "1px solid rgba(0,255,136,0.18)",
-          borderRadius: "6px",
-          padding: "24px",
-          maxWidth: "460px",
+          borderRadius: "8px",
+          padding: "32px",
+          maxWidth: "500px",
           width: "100%",
           maxHeight: "90vh",
           overflowY: "auto",
@@ -234,14 +234,14 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            marginBottom: "20px",
+            marginBottom: "28px",
           }}
         >
           <div>
-            <h2 style={{ margin: 0, fontSize: "13px", fontWeight: 900, color: "#00FF88", letterSpacing: "0.18em", textTransform: "uppercase", textShadow: "0 0 12px rgba(0,255,136,0.45)" }}>
+            <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 900, color: "#00FF88", letterSpacing: "0.18em", textTransform: "uppercase", textShadow: "0 0 12px rgba(0,255,136,0.45)" }}>
               Attention Engine
             </h2>
-            <p style={{ margin: "3px 0 0", fontSize: "10px", color: "#1A4A1A", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+            <p style={{ margin: "5px 0 0", fontSize: "11px", color: "#1A4A1A", letterSpacing: "0.15em", textTransform: "uppercase" }}>
               Semantic task-aware context migration
             </p>
           </div>
@@ -265,7 +265,7 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
 
         {/* ── Engine initialisation progress ── */}
         {engineState.status === "loading" && (
-          <div style={{ marginBottom: "16px" }}>
+          <div style={{ marginBottom: "22px" }}>
             <div
               style={{
                 fontSize: "11px",
@@ -296,8 +296,8 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
         {engineState.status === "error" && (
           <div
             style={{
-              marginBottom: "16px",
-              padding: "8px 12px",
+              marginBottom: "22px",
+              padding: "12px 16px",
               background: "#0A0505",
               border: "1px solid rgba(239,68,68,0.2)",
               borderRadius: "4px",
@@ -312,14 +312,14 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
         )}
 
         {/* ── Task input ── */}
-        <div style={{ marginBottom: "16px" }}>
+        <div style={{ marginBottom: "22px" }}>
           <label
             style={{
               display: "block",
-              fontSize: "9px",
+              fontSize: "10px",
               fontWeight: 900,
               color: "#2A6A2A",
-              marginBottom: "8px",
+              marginBottom: "12px",
               textTransform: "uppercase",
               letterSpacing: "0.22em",
             }}
@@ -328,7 +328,7 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
           </label>
 
           {/* Quick-select chips */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "10px" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "14px" }}>
             {TASK_CHIPS.map((chip) => {
               const active = task === chip;
               return (
@@ -336,8 +336,8 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
                   key={chip}
                   onClick={() => setTask(active ? "" : chip)}
                   style={{
-                    padding: "4px 10px",
-                    borderRadius: "3px",
+                    padding: "7px 14px",
+                    borderRadius: "4px",
                     fontSize: "10px",
                     fontWeight: 700,
                     cursor: "pointer",
@@ -363,7 +363,7 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
             placeholder="Or describe your task…"
             style={{
               width: "100%",
-              padding: "9px 12px",
+              padding: "12px 16px",
               background: "#050505",
               border: "1px solid #1A2A1A",
               borderRadius: "4px",
@@ -380,8 +380,8 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
         {preview.status === "analyzing" && (
           <div
             style={{
-              marginBottom: "14px",
-              padding: "10px 12px",
+              marginBottom: "20px",
+              padding: "14px 16px",
               background: "#050505",
               border: "1px solid #1A2A1A",
               borderRadius: "4px",
@@ -398,8 +398,8 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
         {preview.status === "done" && (
           <div
             style={{
-              marginBottom: "14px",
-              padding: "10px 12px",
+              marginBottom: "20px",
+              padding: "16px 18px",
               background: "#050F07",
               border: "1px solid rgba(0,255,136,0.2)",
               borderRadius: "4px",
@@ -428,8 +428,8 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
         {preview.status === "error" && (
           <div
             style={{
-              marginBottom: "14px",
-              padding: "8px 12px",
+              marginBottom: "20px",
+              padding: "12px 16px",
               background: "#0A0505",
               border: "1px solid rgba(239,68,68,0.2)",
               borderRadius: "4px",
@@ -446,10 +446,10 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
         {/* ── Strength toggle ── */}
         <div
           style={{
-            marginBottom: "12px",
+            marginBottom: "20px",
             display: "flex",
             alignItems: "center",
-            gap: "8px",
+            gap: "10px",
           }}
         >
           <span style={{ fontSize: "9px", fontWeight: 900, color: "#2A6A2A", flex: 1, textTransform: "uppercase", letterSpacing: "0.18em" }}>
@@ -462,9 +462,9 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
                 key={s}
                 onClick={() => setStrength(s)}
                 style={{
-                  padding: "5px 14px",
-                  borderRadius: "3px",
-                  fontSize: "10px",
+                  padding: "8px 18px",
+                  borderRadius: "4px",
+                  fontSize: "11px",
                   fontWeight: 700,
                   cursor: "pointer",
                   background: active ? "#6366f1" : "#080808",
@@ -482,7 +482,7 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
         </div>
 
         {/* ── Caveman toggle ── */}
-        <div style={{ marginBottom: "20px" }}>
+        <div style={{ marginBottom: "28px" }}>
           <label
             style={{
               display: "flex",
@@ -547,12 +547,12 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
         )}
 
         {/* ── Action buttons ── */}
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "12px" }}>
           <button
             onClick={onClose}
             style={{
               flex: 1,
-              padding: "10px",
+              padding: "14px 16px",
               background: "#080808",
               border: "1px solid #1A2A1A",
               borderRadius: "4px",
@@ -572,7 +572,7 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
             disabled={isBusy || migrateState.status === "success"}
             style={{
               flex: 2,
-              padding: "10px 16px",
+              padding: "14px 20px",
               background:
                 migrateState.status === "success"
                   ? "#050F07"

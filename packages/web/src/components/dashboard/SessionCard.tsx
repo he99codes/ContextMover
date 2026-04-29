@@ -103,7 +103,7 @@ export function SessionCard({ session }: SessionCardProps) {
   return (
     <div
       className={cn(
-        "stagger-item group relative flex items-start gap-4 overflow-hidden rounded-[6px] border px-5 py-4",
+        "stagger-item group relative flex items-start gap-4 overflow-hidden rounded-[8px] border px-6 py-5",
         busy === "delete"
           ? "border-red-500/30 bg-red-500/5 opacity-50"
           : "bg-[#0A0A0A] border-[#1A2A1A] card-hover"
@@ -156,11 +156,11 @@ export function SessionCard({ session }: SessionCardProps) {
               </div>
             ) : (
               <Link href={`/session/${session.id}`} className="block min-w-0">
-                <p className="truncate text-sm font-medium text-[#F5F5F5] transition-all duration-200 group-hover:text-[#00FF88] typing-glow">
+                <p className="truncate text-base font-semibold text-[#F5F5F5] transition-all duration-200 group-hover:text-[#00FF88] typing-glow">
                   {session.title ?? "Untitled session"}
                 </p>
                 {preview && (
-                  <p className="mt-0.5 text-xs font-mono text-[#1A3A1A] line-clamp-1">
+                  <p className="mt-1 text-xs font-mono text-[#1A3A1A] line-clamp-1">
                     {truncate(preview, 100)}
                   </p>
                 )}
@@ -178,7 +178,7 @@ export function SessionCard({ session }: SessionCardProps) {
             <Link
               href={`/migrate?session=${session.id}`}
               onClick={(e) => e.stopPropagation()}
-              className="inline-flex h-7 items-center gap-1 rounded-[4px] border border-[#00FF88]/35 bg-[#00FF88]/6 px-2 text-[10px] font-black uppercase tracking-wider text-[#00FF88] transition-all hover:bg-[#00FF88]/12 hover:shadow-[0_0_10px_rgba(0,255,136,0.2)]"
+              className="inline-flex h-8 items-center gap-1.5 rounded-[5px] border border-[#00FF88]/35 bg-[#00FF88]/6 px-3 text-[10px] font-black uppercase tracking-wider text-[#00FF88] transition-all hover:bg-[#00FF88]/12 hover:shadow-[0_0_10px_rgba(0,255,136,0.2)]"
             >
               <ArrowRight size={11} />
               Migrate
@@ -210,7 +210,7 @@ export function SessionCard({ session }: SessionCardProps) {
           )}
         </div>
 
-        <div className="mt-3 flex items-center gap-3 border-t border-[#0D1A0D] pt-2">
+        <div className="mt-4 flex items-center gap-4 border-t border-[#0D1A0D] pt-3">
           <PlatformBadge platform={session.platform} logoSize={11} />
           <span className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-[#1A3A1A]">
             <MessageSquare size={10} />

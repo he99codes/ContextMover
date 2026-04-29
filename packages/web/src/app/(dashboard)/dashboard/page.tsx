@@ -31,9 +31,9 @@ export default async function DashboardPage() {
   const totalMessages = sessions.reduce((sum, s) => sum + (s.messages?.length ?? 0), 0);
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <div className="flex items-end justify-between gap-4">
+    <div className="p-10">
+      <div className="mb-10">
+        <div className="flex items-end justify-between gap-6">
           <div>
             <h1 className="text-2xl font-black uppercase text-[#00FF88]" style={{ letterSpacing: "0.14em", textShadow: "0 0 24px rgba(0,255,136,0.35)" }}>
               Sessions
@@ -51,7 +51,7 @@ export default async function DashboardPage() {
               {byPlatform.filter((p) => p.count > 0).map((p) => (
                 <div
                   key={p.id}
-                  className="flex items-center gap-1.5 rounded-[4px] border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition-all hover:scale-[1.04] hover:-translate-y-px"
+                  className="flex items-center gap-2 rounded-[5px] border px-3.5 py-2 text-[10px] font-black uppercase tracking-wider transition-all hover:scale-[1.04] hover:-translate-y-px"
                   style={{
                     borderColor: `${p.color}40`,
                     background: `${p.color}0C`,
