@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
 import type { ContextSession, Platform } from "@/lib/types";
 import ExportMenu from "@/components/ExportMenu";
@@ -48,6 +48,7 @@ export default function Sidebar() {
   const [filter, setFilter] = useState<Platform | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFullTranscript, setShowFullTranscript] = useState(false);
+  const [expandedMessages, setExpandedMessages] = useState<Set<number>>(new Set());
   const [caveman, setCaveman] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ tone: StatusTone; text: string } | null>(
     null
@@ -226,7 +227,7 @@ export default function Sidebar() {
       })),
     [sessions]
   );
-  const leadSession = filtered[0] ?? sessions[0] ?? null;
+  const leadSession = sessions.slice().sort((a, b) => b.updatedAt - a.updatedAt)[0] ?? null;
 
   const semanticSessions = useMemo(
     () =>
@@ -248,16 +249,17 @@ export default function Sidebar() {
     return (
       <div className="flex h-full flex-col overflow-hidden bg-[#0A0A0A] text-[#F5F5F5] animate-slide-up">
         <div className="flex h-full flex-col">
-          <div className="border-b border-[#2A2A2A] px-3 py-3">
+          {/* ── Detail Header ── */}
+          <div className="border-b border-[#2A2A2A] px-3 py-2.5" style={{ background: `linear-gradient(135deg, ${platformColor}08 0%, #0A0A0A 60%)` }}>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setView("sessions")}
-                className="flex items-center gap-1 rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-2 py-1 text-[11px] font-medium text-[#6B6B6B] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
+                onClick={() => { setView("sessions"); setExpandedMessages(new Set()); }}
+                className="flex shrink-0 items-center gap-1 rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-2 py-1 text-[10px] font-medium text-[#6B6B6B] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
               >
                 ← Back
               </button>
-              <PlatformBadge platform={selected.platform} logoSize={10} />
-              <span className="min-w-0 flex-1 truncate text-xs font-medium text-[#F5F5F5]">{selected.title}</span>
+              <PlatformBadge platform={selected.platform} logoSize={11} />
+              <span className="min-w-0 flex-1 truncate text-xs font-semibold text-[#F5F5F5]" title={selected.title}>{selected.title}</span>
             </div>
           </div>
 
@@ -283,21 +285,22 @@ export default function Sidebar() {
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-2 border-b border-[#2A2A2A] px-3 py-3 text-center">
-            <div className="rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] px-2 py-2">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-[#6B6B6B]">Turns</div>
-              <div className="mt-1 text-lg font-semibold text-[#F5F5F5]">{selected.messages.length}</div>
+          {/* ── Session stats bar ── */}
+          <div className="grid grid-cols-3 divide-x divide-[#2A2A2A] border-b border-[#2A2A2A] text-center">
+            <div className="px-2 py-2.5">
+              <div className="text-[9px] uppercase tracking-widest text-[#6B6B6B]">Turns</div>
+              <div className="mt-0.5 text-xl font-bold tabular-nums" style={{ color: platformColor }}>{selected.messages.length}</div>
             </div>
-            <div className="rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] px-2 py-2">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-[#6B6B6B]">Created</div>
-              <div className="mt-1 text-xs font-medium text-[#F5F5F5]/80">
-                {new Date(selected.createdAt).toLocaleDateString()}
+            <div className="px-2 py-2.5">
+              <div className="text-[9px] uppercase tracking-widest text-[#6B6B6B]">Created</div>
+              <div className="mt-0.5 text-[11px] font-medium text-[#F5F5F5]">
+                {new Date(selected.createdAt).toLocaleDateString("en", { month: "short", day: "numeric" })}
               </div>
             </div>
-            <div className="rounded-[8px] border border-[#00FF88]/20 bg-[#00FF88]/5 px-2 py-2">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-[#6B6B6B]">Route</div>
-              <div className="mt-1 text-xs font-medium text-[#F5F5F5]">
-                {`${PLATFORM_SHORT[selected.platform]} → ${PLATFORM_SHORT[targetPlatform]}`}
+            <div className="px-2 py-2.5" style={{ background: `${platformColor}08` }}>
+              <div className="text-[9px] uppercase tracking-widest text-[#6B6B6B]">Route</div>
+              <div className="mt-0.5 text-[11px] font-semibold text-[#00FF88]">
+                {PLATFORM_SHORT[selected.platform]} → {PLATFORM_SHORT[targetPlatform]}
               </div>
             </div>
           </div>
@@ -314,28 +317,57 @@ export default function Sidebar() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-            {visibleMessages.map((msg, index) => (
-              <div
-                key={`${msg.role}-${index}-${msg.timestamp}`}
-                className={`rounded-[8px] border px-3 py-2.5 text-xs overflow-hidden relative ${
-                  msg.role === "user"
-                    ? "ml-4 bg-[#1A1A1A] text-[#F5F5F5]"
-                    : "mr-4 border-[#00FF88]/10 bg-[#00FF88]/5 text-[#F5F5F5]/90"
-                }`}
-                style={msg.role === "user" ? { borderColor: `${platformColor}30` } : {}}
-              >
-                <div className="mb-1 flex items-center justify-between gap-2">
-                  <div className={`text-[10px] font-semibold uppercase tracking-[0.18em] ${
-                    msg.role === "user" ? "text-[#6B6B6B]" : "text-[#00FF88]"
+          <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+            {visibleMessages.map((msg, index) => {
+              const MAX_LEN = 480;
+              const isLong = msg.content.length > MAX_LEN;
+              const isExpanded = expandedMessages.has(index);
+              const displayContent = isLong && !isExpanded ? msg.content.slice(0, MAX_LEN) : msg.content;
+              const isUser = msg.role === "user";
+              return (
+                <div
+                  key={`${msg.role}-${index}-${msg.timestamp}`}
+                  className={`rounded-[6px] border text-xs overflow-hidden relative transition-all animate-fade-in ${
+                    isUser
+                      ? "ml-3 bg-[#161616]"
+                      : "mr-3 bg-[#0D1A12]"
+                  }`}
+                  style={{ borderColor: isUser ? `${platformColor}28` : "rgba(0,255,136,0.12)" }}
+                >
+                  <div className={`flex items-center justify-between gap-2 border-b px-3 py-1.5 ${
+                    isUser ? "border-[#2A2A2A]" : "border-[#00FF88]/10"
                   }`}>
-                    {msg.role === "user" ? "You" : "Assistant"}
+                    <div className={`flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.2em] ${
+                      isUser ? "text-[#6B6B6B]" : "text-[#00FF88]"
+                    }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${
+                        isUser ? "bg-[#6B6B6B]" : "bg-[#00FF88] animate-pulse-green"
+                      }`} />
+                      {isUser ? "You" : "AI"}
+                    </div>
+                    <div className="text-[9px] text-[#3A3A3A]">{formatRelativeTime(msg.timestamp)}</div>
                   </div>
-                  <div className="text-[10px] text-[#6B6B6B]">{formatRelativeTime(msg.timestamp)}</div>
+                  <div className="px-3 py-2 text-[11px] leading-[1.65] text-[#D4D4D4]">
+                    {renderMd(displayContent)}
+                    {isLong && !isExpanded && (
+                      <span className="text-[#3A3A3A]"> …</span>
+                    )}
+                  </div>
+                  {isLong && (
+                    <button
+                      onClick={() => setExpandedMessages((prev) => {
+                        const next = new Set(prev);
+                        isExpanded ? next.delete(index) : next.add(index);
+                        return next;
+                      })}
+                      className="w-full border-t border-[#2A2A2A] py-1 text-[9px] uppercase tracking-widest text-[#3A3A3A] transition-colors hover:text-[#00FF88]"
+                    >
+                      {isExpanded ? "▲ collapse" : `▼ +${msg.content.length - MAX_LEN} chars`}
+                    </button>
+                  )}
                 </div>
-                <div className="whitespace-pre-wrap leading-5">{msg.content}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="border-t border-[#2A2A2A] px-3 py-3 space-y-3">
@@ -343,26 +375,30 @@ export default function Sidebar() {
               <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-[#6B6B6B]">
                 Route to
               </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {(Object.keys(PLATFORM_LABELS) as Platform[]).map((platform) => (
-                  <button
-                    key={platform}
-                    onClick={() => setTargetPlatform(platform)}
-                    className="rounded-[4px] border px-2.5 py-2 text-left transition-all"
-                    style={targetPlatform === platform ? {
-                      borderColor: `${PLATFORM_COLORS[platform]}40`,
-                      background: `${PLATFORM_COLORS[platform]}15`,
-                      color: PLATFORM_COLORS[platform],
-                    } : {
-                      borderColor: "#2A2A2A",
-                      background: "#1A1A1A",
-                      color: "#6B6B6B",
-                    }}
-                  >
-                    <div className="text-xs font-semibold">{PLATFORM_LABELS[platform]}</div>
-                    <div className="text-[9px] uppercase tracking-wider opacity-60 mt-0.5">{PLATFORM_SHORT[platform]}</div>
-                  </button>
-                ))}
+              <div className="grid grid-cols-3 gap-1">
+                {(Object.keys(PLATFORM_LABELS) as Platform[]).map((platform) => {
+                  const isTarget = targetPlatform === platform;
+                  const pc = PLATFORM_COLORS[platform];
+                  return (
+                    <button
+                      key={platform}
+                      onClick={() => setTargetPlatform(platform)}
+                      className="flex flex-col items-center gap-1 rounded-[4px] border p-2 transition-all duration-150 hover:scale-[1.03]"
+                      style={isTarget ? {
+                        borderColor: `${pc}50`,
+                        background: `${pc}12`,
+                        boxShadow: `0 0 10px ${pc}18`,
+                      } : {
+                        borderColor: "#2A2A2A",
+                        background: "#111111",
+                      }}
+                    >
+                      <PlatformLogo platform={platform} size={16} />
+                      <div className="text-[9px] font-medium leading-tight" style={{ color: isTarget ? pc : "#6B6B6B" }}>{PLATFORM_SHORT[platform]}</div>
+                      {isTarget && <div className="h-0.5 w-3 rounded-full" style={{ background: pc }} />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -386,10 +422,13 @@ export default function Sidebar() {
               }}
             >
               <span className="font-semibold uppercase tracking-[0.15em] text-[10px]">
-                Caveman mode
+                Caveman Mode 🪨
               </span>
-              <span className="text-[10px] opacity-70">
-                {caveman ? "ON — compress + blunt" : "OFF"}
+              <span
+                className="rounded-[3px] px-1.5 py-0.5 text-[9px] font-bold uppercase"
+                style={caveman ? { background: "#F59E0B30", color: "#F59E0B" } : { background: "#1F1F1F", color: "#3A3A3A" }}
+              >
+                {caveman ? "ON" : "OFF"}
               </span>
             </button>
 
@@ -397,9 +436,14 @@ export default function Sidebar() {
               <button
                 onClick={migrate}
                 disabled={migrating}
-                className="flex-1 rounded-[4px] bg-[#00FF88] py-2 text-xs font-semibold text-black transition-all hover:bg-[#00CC6A] hover:shadow-[0_0_14px_rgba(0,255,136,0.3)] hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                className="relative flex flex-1 items-center justify-center gap-1.5 overflow-hidden rounded-[4px] py-2 text-xs font-bold text-black transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                style={{ background: migrating ? "#00CC6A" : "#00FF88", boxShadow: migrating ? "none" : "0 0 18px rgba(0,255,136,0.25)" }}
               >
-                {migrating ? "Migrating..." : `→ ${PLATFORM_LABELS[targetPlatform]}`}
+                {migrating && <span className="animate-spin text-[10px]">↻</span>}
+                {migrating ? "Migrating…" : `Migrate → ${PLATFORM_SHORT[targetPlatform]}`}
+                {migrating && (
+                  <span className="absolute inset-0 animate-shimmer opacity-30" />
+                )}
               </button>
               <button
                 onClick={() => setShowAttentionModal(true)}
@@ -488,25 +532,33 @@ export default function Sidebar() {
             </div>
           </div>
 
-          <p className="mt-2 text-[11px] text-[#6B6B6B]">
-            {leadSession
-              ? `Latest: ${PLATFORM_LABELS[leadSession.platform]}`
-              : "Open an AI tab to start capturing."}
-          </p>
+          {leadSession ? (
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#00FF88] animate-pulse-green" />
+              <span className="text-[10px] text-[#6B6B6B]">
+                Last active: <span className="text-[#F5F5F5] font-medium">{PLATFORM_LABELS[leadSession.platform]}</span>
+                {" · "}{formatRelativeTime(leadSession.updatedAt)}
+              </span>
+            </div>
+          ) : (
+            <p className="mt-2 text-[10px] text-[#6B6B6B]">Open Claude, ChatGPT or Gemini to start capturing.</p>
+          )}
 
-          <div className="mt-2.5 grid grid-cols-3 gap-1">
+          <div className="mt-2.5 grid grid-cols-6 gap-1">
             {sourceCounts.map(({ platform, count }) => (
-              <div
+              <button
                 key={platform}
-                className="rounded-[4px] border px-1 py-1.5 text-center transition-all"
+                onClick={() => setFilter(platform)}
+                className="flex flex-col items-center gap-0.5 rounded-[4px] border py-1.5 transition-all hover:scale-[1.04]"
                 style={{
-                  borderColor: count > 0 ? `${PLATFORM_COLORS[platform]}30` : "#1F1F1F",
-                  background: count > 0 ? `${PLATFORM_COLORS[platform]}0A` : "#111111",
+                  borderColor: count > 0 ? `${PLATFORM_COLORS[platform]}35` : "#1F1F1F",
+                  background: count > 0 ? `${PLATFORM_COLORS[platform]}0C` : "#111111",
                 }}
+                title={PLATFORM_LABELS[platform]}
               >
-                <PlatformLogo platform={platform} size={10} className="mx-auto" />
-                <div className="mt-0.5 text-[11px] font-bold" style={{ color: count > 0 ? "#F5F5F5" : "#3A3A3A" }}>{count}</div>
-              </div>
+                <PlatformLogo platform={platform} size={13} className="mx-auto" />
+                <div className="text-[10px] font-bold tabular-nums" style={{ color: count > 0 ? PLATFORM_COLORS[platform] : "#3A3A3A" }}>{count}</div>
+              </button>
             ))}
           </div>
         </div>
@@ -560,7 +612,7 @@ export default function Sidebar() {
                   : { background: "#1A1A1A", borderColor: "#2A2A2A", color: "#6B6B6B" }
                 }
               >
-                {item === "all" ? "All" : PLATFORM_LABELS[item]}
+                {item === "all" ? "All" : PLATFORM_SHORT[item]}
                 <span className="ml-1 opacity-55">{count}</span>
               </button>
             );
@@ -690,6 +742,45 @@ export default function Sidebar() {
         </div>
       </div>
     </div>
+  );
+}
+
+function renderInline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/);
+  return parts.map((p, i) => {
+    if (p.startsWith("**") && p.endsWith("**"))
+      return <strong key={i} className="font-semibold text-[#F5F5F5]">{p.slice(2, -2)}</strong>;
+    if (p.startsWith("`") && p.endsWith("`"))
+      return <code key={i} className="rounded px-1 py-0.5 bg-[#1F1F1F] font-mono text-[#00FF88] text-[10px]">{p.slice(1, -1)}</code>;
+    if (p.startsWith("*") && p.endsWith("*"))
+      return <em key={i} className="italic text-[#B0B0B0]">{p.slice(1, -1)}</em>;
+    return <span key={i}>{p}</span>;
+  });
+}
+
+function renderMd(text: string): React.ReactNode {
+  if (!text) return null;
+  const lines = text.split("\n");
+  return (
+    <>
+      {lines.map((line, i) => {
+        if (line.startsWith("### "))
+          return <p key={i} className="mt-1.5 mb-0.5 text-[11px] font-bold text-[#F5F5F5]">{renderInline(line.slice(4))}</p>;
+        if (line.startsWith("## "))
+          return <p key={i} className="mt-1.5 mb-0.5 text-[12px] font-bold text-[#F5F5F5]">{renderInline(line.slice(3))}</p>;
+        if (line.startsWith("# "))
+          return <p key={i} className="mt-2 mb-1 text-[13px] font-bold text-[#F5F5F5]">{renderInline(line.slice(2))}</p>;
+        if (line.startsWith("```") || line === "```")
+          return <div key={i} className="my-1 h-px bg-[#2A2A2A]" />;
+        if (line === "..." || line === "…")
+          return <div key={i} className="my-0.5 text-center text-[10px] text-[#3A3A3A]">· · ·</div>;
+        if (!line.trim())
+          return <div key={i} className="h-1.5" />;
+        if (line.trimStart().startsWith("{") || line.trimStart().startsWith("["))
+          return <code key={i} className="block rounded-[3px] bg-[#111] px-2 py-0.5 font-mono text-[9px] text-[#6B6B6B] whitespace-pre-wrap break-all">{line}</code>;
+        return <p key={i} className="leading-[1.65]">{renderInline(line)}</p>;
+      })}
+    </>
   );
 }
 
