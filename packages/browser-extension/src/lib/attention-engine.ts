@@ -287,9 +287,7 @@ export class AttentionEngine {
     task: string,
     strength: "light" | "strict"
   ): Promise<AttentionMap> {
-    console.log(
-      `${TAG} buildAttentionMap — task="${task.slice(0, 80)}" strength=${strength}`
-    );
+    console.log(`${TAG} buildAttentionMap — strength=${strength}`);
 
     const threshold = THRESHOLDS[strength];
 
@@ -378,7 +376,7 @@ export class AttentionEngine {
    * Falls back to keyword scoring when the model is not loaded.
    */
   async semanticSearch(query: string, limit = 10): Promise<AttentionChunk[]> {
-    console.log(`${TAG} semanticSearch — "${query.slice(0, 60)}" limit=${limit}`);
+    console.log(`${TAG} semanticSearch — limit=${limit}`);
     const db = await this.openIdb();
     const allChunks = (await (db.getAll(CHUNKS_STORE) as Promise<AttentionChunk[]>));
     const queryEmb = await this.getEmbedding(query);

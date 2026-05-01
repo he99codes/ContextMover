@@ -391,8 +391,7 @@ export async function summarizeWithAttention(
       originalSize > 0 ? Math.round((1 - compressedSize / originalSize) * 100) : 0;
 
     console.log(
-      `[ContextForge:summarizer] summarizeWithAttention: task="${task.slice(0, 60)}" ` +
-        `msgs=${messages.length}→${processed.length} compression=${compressionRatio}%`
+      `[ContextForge:summarizer] summarizeWithAttention: msgs=${messages.length}→${processed.length} compression=${compressionRatio}%`
     );
 
     return { summary, attentionMap, compressionRatio };
