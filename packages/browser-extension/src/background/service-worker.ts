@@ -126,12 +126,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   (async () => {
     switch (msg.type) {
       case "CAPTURE_SESSION":
-        console.log(`[ContextForge ServiceWorker] CAPTURE_SESSION payload:`, msg.payload);
+        console.log(`[ContextForge ServiceWorker] CAPTURE_SESSION: ${msg.payload.platform} ${msg.payload.sessionId}`);
         await handleCaptureSession(msg.payload);
         sendResponse({ ok: true });
         break;
 
       case "CAPTURE_MESSAGE":
+        console.log(`[ContextForge ServiceWorker] CAPTURE_MESSAGE: ${msg.payload.platform} ${msg.payload.sessionId}`);
         await handleCaptureMessage(msg.payload);
         sendResponse({ ok: true });
         break;
@@ -366,7 +367,7 @@ async function handleMigrateContext(
       console.log(`[ContextForge:sw] Stage5 — Attention Engine fast path (pre-computed by sidebar)`);
     } else {
       // Slow fallback: compute in service worker (first migration with no live preview).
-      console.log(`[ContextForge:sw] Stage5 — Attention Engine path: task="${payload.task.slice(0, 60)}" strength=${payload.strength ?? "light"}`);
+      console.log(`[ContextForge:sw] Stage5 — Attention Engine path: strength=${payload.strength ?? "light"}`);
       const atResult = await summarizeWithAttention(
         session.messages,
         payload.task,
@@ -415,7 +416,6 @@ async function handleMigrateContext(
       error: `Migration prompt is too short (${prompt.length} chars) — context was lost during summarization. Check console for Stage1–5 errors.`,
     });
   }
-  console.log(`[ContextForge:sw] Stage6 — prompt preview (first 400 chars):\n${prompt.slice(0, 400)}`);
 
   // ── Inject into target tab ─────────────────────────────────────────────────
   if (payload.targetTabId) {

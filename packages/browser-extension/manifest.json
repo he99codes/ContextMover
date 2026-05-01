@@ -133,7 +133,12 @@
         {
             "resources": [
                 "src/content/fetch-interceptor.ts",
-                "assets/*"
+                "assets/*.js",
+                "assets/*.css",
+                "assets/*.png",
+                "assets/*.svg",
+                "assets/*.woff2",
+                "public/grammars/*.wasm"
             ],
             "matches": [
                 "https://claude.ai/*",

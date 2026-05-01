@@ -24,10 +24,24 @@ export class BridgeServer extends EventEmitter {
     if (this._isRunning) return;
 
     this.server = http.createServer((req, res) => {
-      // CORS — only allow localhost origins (browser extension content scripts)
-      res.setHeader("Access-Control-Allow-Origin", "*");
+      // CORS — only allow requests from chrome-extension:// origins.
+      // Any regular website can make fetch() calls to 127.0.0.1:49152 in the
+      // user's browser; the Origin header is the only browser-enforced gate.
+      const origin = req.headers["origin"] ?? "";
+      const allowed = origin.startsWith("chrome-extension://") || origin === "";
+
+      if (!allowed) {
+        res.writeHead(403, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Forbidden: untrusted origin" }));
+        return;
+      }
+
+      if (origin) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+      }
       res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
       res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      res.setHeader("Vary", "Origin");
 
       if (req.method === "OPTIONS") {
         res.writeHead(204);
@@ -112,9 +126,23 @@ export class BridgeServer extends EventEmitter {
     req: http.IncomingMessage,
     res: http.ServerResponse
   ) {
+    const MAX_BODY_BYTES = 1_048_576; // 1 MB
     let body = "";
-    req.on("data", (chunk: Buffer) => (body += chunk.toString()));
+    let size = 0;
+
+    req.on("data", (chunk: Buffer) => {
+      size += chunk.length;
+      if (size > MAX_BODY_BYTES) {
+        res.writeHead(413, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Request body too large" }));
+        req.destroy();
+        return;
+      }
+      body += chunk.toString();
+    });
+
     req.on("end", () => {
+      if (res.headersSent) return;
       try {
         this.lastBrowserContext = JSON.parse(body);
         res.writeHead(200, { "Content-Type": "application/json" });
