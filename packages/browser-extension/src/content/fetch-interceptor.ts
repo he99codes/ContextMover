@@ -24,6 +24,27 @@
 
   const TAG = "[ContextForge:fetch]";
 
+  // [SECURITY] Hard cap on response body size processed by the interceptor.
+  // Anything larger is dropped silently to prevent memory exhaustion.
+  const MAX_PAYLOAD_BYTES = 512_000; // 500 KB
+
+  // [SECURITY] Patterns that look like credentials or secrets.
+  // Strip them from captured message content before storage.
+  const CREDENTIAL_PATTERNS: RegExp[] = [
+    /Bearer\s+[A-Za-z0-9\-._~+/]+=*/g,
+    /Authorization:\s*\S+/gi,
+    /sk-[A-Za-z0-9]{20,}/g,
+    /api[_-]?key[\s:=]+["']?[A-Za-z0-9\-._]{16,}["']?/gi,
+  ];
+
+  function scrubCredentials(text: string): string {
+    let out = text;
+    for (const re of CREDENTIAL_PATTERNS) {
+      out = out.replace(re, "[CREDENTIAL REDACTED]");
+    }
+    return out;
+  }
+
   // Idempotency guard — avoid double-installing if the script is injected twice.
   const w = window as unknown as { __contextForgeFetchInstalled?: boolean };
   if (w.__contextForgeFetchInstalled) {
@@ -468,6 +489,12 @@
       const text = await response.text();
       if (!text) return;
 
+      // [SECURITY] Drop payloads exceeding size limit to prevent memory exhaustion.
+      if (text.length > MAX_PAYLOAD_BYTES) {
+        console.warn(`${TAG} ${platform}: payload exceeds ${MAX_PAYLOAD_BYTES} bytes — dropped`);
+        return;
+      }
+
       let messages: CapturedMessage[] = [];
       switch (platform) {
         case "chatgpt":    messages = parseChatGPT(text);                    break;
@@ -486,6 +513,9 @@
       // Filter empty / no-role
       messages = messages.filter((m) => m.role && m.content && m.content.length > 0);
       if (messages.length === 0) return;
+
+      // [SECURITY] Scrub credential patterns from captured content before dispatch.
+      messages = messages.map((m) => ({ ...m, content: scrubCredentials(m.content) }));
 
       console.log(`${TAG} ${platform}: parsed ${messages.length} msg(s)`);
       dispatchCaptured(platform, messages);

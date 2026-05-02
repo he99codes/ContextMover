@@ -29,7 +29,11 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      // [SECURITY] unsafe-inline required for Next.js SSR hydration inline scripts.
+      // unsafe-eval removed — Next.js App Router does not require it.
+      // To fully eliminate unsafe-inline, implement nonce-based CSP with
+      // next.config nonce generation and middleware header injection.
+      "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self'",

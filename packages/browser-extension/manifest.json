@@ -7,18 +7,12 @@
         "activeTab",
         "scripting",
         "storage",
-        "nativeMessaging",
         "tabs",
-        "alarms",
-        "notifications",
         "sidePanel",
-        "webRequest",
-    "downloads"
+        "downloads"
     ],
     "host_permissions": [
         "https://claude.ai/*",
-        "https://a-api.anthropic.com/*",
-        "https://api.anthropic.com/*",
         "https://chatgpt.com/*",
         "https://chat.openai.com/*",
         "https://gemini.google.com/*",
@@ -153,7 +147,7 @@
         }
     ],
     "content_security_policy": {
-        "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+        "extension_pages": "script-src 'self' 'wasm-unsafe-eval' 'strict-dynamic'; object-src 'none'; base-uri 'none'"
     },
     "icons": {}
 }

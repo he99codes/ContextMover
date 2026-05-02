@@ -5,6 +5,12 @@
 
 import type { ExtractedContext, Message, MigrationPayload } from "./types";
 import type { AttentionMap } from "./attention-engine";
+import {
+  ANTI_INJECTION_PREAMBLE,
+  sanitizeForXml,
+  sanitizeForMarkdown,
+  wrapArchivedContent,
+} from "./prompt-sanitizer";
 
 const MAX_VERBATIM = 6;
 
@@ -121,11 +127,12 @@ function buildClaudePrompt(payload: MigrationPayload): string {
   }
   codeBlock += `\n  </code>`;
 
-  const tailBlock = [
+  // [SECURITY] XML-escape verbatim user content to prevent tag injection.
+  const tailBlock = wrapArchivedContent([
     `  <conversation_tail>`,
-    ...tail.map((m) => `    <message role="${m.role}">${m.content}</message>`),
+    ...tail.map((m) => `    <message role="${m.role}">${sanitizeForXml(m.content)}</message>`),
     `  </conversation_tail>`,
-  ].join("\n");
+  ].join("\n"));
 
   const ideBlock = ideContext
     ? `\n  <ide_context>\n${indent(ideContext, 4)}\n  </ide_context>`
@@ -145,7 +152,9 @@ function buildClaudePrompt(payload: MigrationPayload): string {
     `  </instructions>`,
   ].join("\n");
 
+  // [SECURITY] Prepend anti-injection preamble before the structured prompt.
   return [
+    `<!-- ${ANTI_INJECTION_PREAMBLE} -->`,
     `<context_migration>`,
     ``,
     metaBlock,
@@ -237,12 +246,17 @@ function buildChatGPTPrompt(payload: MigrationPayload): string {
     ``,
     `## Where We Left Off`,
     ``,
-    ...tail.flatMap((m) => [
-      `**${m.role === "user" ? "User" : "Assistant"}:**`,
-      ``,
-      m.content,
-      ``,
-    ]),
+    // [SECURITY] Sanitize and delimit verbatim user messages.
+    ...(() => [
+      wrapArchivedContent(
+        tail.flatMap((m) => [
+          `**${m.role === "user" ? "User" : "Assistant"}:**`,
+          ``,
+          sanitizeForMarkdown(m.content),
+          ``,
+        ]).join("\n")
+      ),
+    ])(),
     `---`,
     ``,
     `## Instructions`,
@@ -326,12 +340,17 @@ function buildGrokPrompt(payload: MigrationPayload): string {
     ``,
     `## Where We Left Off`,
     ``,
-    ...tail.flatMap((m) => [
-      `**${m.role === "user" ? "You" : "Previous AI"}:**`,
-      ``,
-      m.content,
-      ``,
-    ]),
+    // [SECURITY] Sanitize and delimit verbatim messages.
+    ...(() => [
+      wrapArchivedContent(
+        tail.flatMap((m) => [
+          `**${m.role === "user" ? "You" : "Previous AI"}:**`,
+          ``,
+          sanitizeForMarkdown(m.content),
+          ``,
+        ]).join("\n")
+      ),
+    ])(),
     `---`,
     ``,
     `## Instructions`,
@@ -400,7 +419,10 @@ function buildGeminiPrompt(payload: MigrationPayload): string {
     currentFocus,
     ``,
     `[RECENT MESSAGES]`,
-    ...tail.flatMap((m) => [`${m.role.toUpperCase()}: ${m.content}`, ``]),
+    // [SECURITY] Sanitize and delimit verbatim messages.
+    wrapArchivedContent(
+      tail.flatMap((m) => [`${m.role.toUpperCase()}: ${sanitizeForMarkdown(m.content)}`, ``]).join("\n")
+    ),
     `[TASK]`,
     `Continue the conversation from the context above.`,
     `The user is currently focused on: ${currentFocus}`,
@@ -466,12 +488,17 @@ function buildPerplexityPrompt(payload: MigrationPayload): string {
     ``,
     `## Where We Left Off`,
     ``,
-    ...tail.flatMap((m) => [
-      `**${m.role === "user" ? "User" : "Perplexity"}:**`,
-      ``,
-      m.content,
-      ``,
-    ]),
+    // [SECURITY] Sanitize and delimit verbatim messages.
+    ...(() => [
+      wrapArchivedContent(
+        tail.flatMap((m) => [
+          `**${m.role === "user" ? "User" : "Perplexity"}:**`,
+          ``,
+          sanitizeForMarkdown(m.content),
+          ``,
+        ]).join("\n")
+      ),
+    ])(),
     `---`,
     ``,
     `## Instructions`,
@@ -551,12 +578,17 @@ function buildDeepSeekPrompt(payload: MigrationPayload): string {
     ``,
     `## Recent Conversation`,
     ``,
-    ...tail.flatMap((m) => [
-      `**${m.role === "user" ? "User" : "Assistant"}:**`,
-      ``,
-      m.content,
-      ``,
-    ]),
+    // [SECURITY] Sanitize and delimit verbatim messages.
+    ...(() => [
+      wrapArchivedContent(
+        tail.flatMap((m) => [
+          `**${m.role === "user" ? "User" : "Assistant"}:**`,
+          ``,
+          sanitizeForMarkdown(m.content),
+          ``,
+        ]).join("\n")
+      ),
+    ])(),
     `---`,
     ``,
     `## Task`,
