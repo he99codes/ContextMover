@@ -23,6 +23,65 @@ export interface SummaryResult {
 const TOKEN_THRESHOLD = 3000;
 const MAX_VERBATIM_MESSAGES = 6;
 
+// ── Tier 1 compression helpers ────────────────────────────────────────────────
+
+// Patterns that indicate the message is an error report or stack trace.
+// Rule: these messages are ALWAYS kept verbatim — never summarised.
+const ERROR_STACKTRACE_RE = [
+  /\b(?:Traceback|TypeError|ValueError|ReferenceError|SyntaxError|RuntimeError|AttributeError|NameError|ImportError|KeyError|IndexError|ZeroDivisionError)\b/,
+  /\bat\s+\w[\w.]*\s+\([^)]+:\d+:\d+\)/,   // JS/TS stack frames: at fn (file:line:col)
+  /\bError:\s+\S/,                             // "Error: <message>" (any variant)
+  /Exception\s+in\s+thread/,                  // Java thread exceptions
+];
+
+function hasErrorOrStackTrace(content: string): boolean {
+  return ERROR_STACKTRACE_RE.some((re) => re.test(content));
+}
+
+// Compress an assistant message body to at most `maxSentences` of prose.
+// CODE BLOCKS are ALWAYS preserved verbatim and appended in full, even if
+// they fall outside the kept sentence window.  Error / stack-trace messages
+// bypass compression entirely and are returned unchanged.
+function compressTier1Assistant(content: string, maxSentences: number): string {
+  if (hasErrorOrStackTrace(content)) return content;
+
+  const SENTINEL = "__CF_CODE_";
+  const blocks: string[] = [];
+
+  // Replace each code fence with a sentinel so sentence-splitting ignores it.
+  const sanitized = content.replace(/```[\s\S]*?```/g, (match) => {
+    const idx = blocks.length;
+    blocks.push(match);
+    return `${SENTINEL}${idx}__`;
+  });
+
+  // Split prose into sentences / paragraphs and keep the first N.
+  const sentences = sanitized
+    .split(/(?<=[.!?])\s+|\n{2,}/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  const textSlice = sentences.slice(0, maxSentences).join(" ");
+
+  // Identify which sentinels are already referenced in the kept text slice.
+  const mentionedIndices = new Set<number>();
+  for (const m of textSlice.matchAll(new RegExp(`${SENTINEL}(\\d+)__`, "g"))) {
+    mentionedIndices.add(Number(m[1]));
+  }
+
+  // Restore referenced code blocks in-place.
+  let result = textSlice.replace(
+    new RegExp(`${SENTINEL}(\\d+)__`, "g"),
+    (_, idx) => blocks[Number(idx)]
+  );
+
+  // Append code blocks that were cut out by sentence-slicing — NEVER omit code.
+  const missed = blocks.filter((_, i) => !mentionedIndices.has(i)).join("\n\n");
+  if (missed) result = `${result}\n\n${missed}`;
+
+  return result.trim() || content.slice(0, 200);
+}
+
 export default async function summarize(
   messages: Message[],
   options?: { caveman?: boolean }
@@ -58,14 +117,44 @@ export default async function summarize(
 
   let content: string;
   let mode: "verbatim" | "summarized";
+  const msgCount = messages.length;
+  const originalLen = fullTranscript.length;
 
-  if (originalTokenEstimate < TOKEN_THRESHOLD) {
+  if (msgCount < 30) {
+    // Tier 1a — short session: return full conversation verbatim.
     content = fullTranscript;
     mode = "verbatim";
   } else {
-    content = buildPlainTextSummary(extracted);
+    // Tier 1b (30–100 msgs): keep first 3 + last 10 verbatim; compress middle assistant to 2 sentences.
+    // Tier 1c (>100 msgs):   keep first 3 + last 6  verbatim; compress middle assistant to 1 sentence.
     mode = "summarized";
+    const tailCount    = msgCount <= 100 ? 10 : 6;
+    const maxSentences = msgCount <= 100 ? 2  : 1;
+    const tailStart    = Math.max(3, messages.length - tailCount);
+
+    const head   = messages.slice(0, 3);
+    const middle = messages.slice(3, tailStart);
+    const tail   = messages.slice(tailStart);
+
+    const processedMiddle: Message[] = middle.map((msg) => {
+      // User messages: verbatim always.
+      if (msg.role === "user") return msg;
+      // Assistant messages: compress prose; code blocks + errors always preserved.
+      return { ...msg, content: compressTier1Assistant(msg.content, maxSentences) };
+    });
+
+    const assembled = [...head, ...processedMiddle, ...tail];
+    content = assembled
+      .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
+      .join("\n\n");
   }
+
+  const summaryLen = content.length;
+  const compressionPct =
+    originalLen > 0 ? Math.round((1 - summaryLen / originalLen) * 100) : 0;
+  console.log(
+    `[ContextForge:tier1] ${msgCount} msgs → ${summaryLen} chars (${compressionPct}% compressed)`
+  );
 
   return {
     mode,
@@ -321,6 +410,146 @@ function buildPlainTextSummary(ex: ExtractedContext): string {
 
 function dedupe<T>(arr: T[]): T[] {
   return [...new Set(arr)];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// summarizeIntelligent — Tier 2: pure-logic structured extraction.
+//
+// No ML. No async. Completes in < 500 ms.
+// Extracts goal, decisions, bugs fixed, all code blocks, current state,
+// and a verbatim tail.  Compression rules:
+//   • Code blocks   → 100% full content, always.
+//   • User messages → scanned for goal / state, never compressed.
+//   • Error msgs    → verbatim wherever detected.
+//   • Decisions     → verbatim sentence kept (never < 1 full sentence).
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TIER2_DECISION_RE = [
+  /\bi['\u2019]ll use\b/i,
+  /\bbest approach\b/i,
+  /\bwe decided\b/i,
+  /\bthe fix is\b/i,
+  /\buse\s+\S+\s+for\b/i,
+  /\bthis works because\b/i,
+];
+
+const TIER2_BUG_RE = [
+  /\bthe issue was\b/i,
+  /\bbug was caused\b/i,
+  /\bfixed by\b/i,
+  /\berror occurs because\b/i,
+  /\broot cause\b/i,
+];
+
+export interface IntelligentSummary {
+  goal: string;
+  currentState: string;
+  decisions: string[];
+  bugsFixed: string[];
+  codeBlocks: { language: string; path?: string; code: string }[];
+  tail: Message[];
+  originalCount: number;
+  compressionRatio: number;
+}
+
+export function summarizeIntelligent(messages: Message[]): IntelligentSummary {
+  const t0 = Date.now();
+
+  // ── 1. Goal — first user message, up to 600 chars ─────────────────────────
+  const userMessages = messages.filter((m) => m.role === "user");
+  const goal =
+    userMessages.length > 0
+      ? userMessages[0].content.trim().slice(0, 600) || "Not specified"
+      : "Not specified";
+
+  // ── 5. Current state — last 6 user messages ───────────────────────────────
+  const lastUserMessages = userMessages.slice(-6);
+  const currentState =
+    lastUserMessages.length > 0
+      ? lastUserMessages
+          .map((m) => {
+            const t = m.content.trim();
+            return t.length > 250 ? t.slice(0, 250) + "\u2026" : t;
+          })
+          .join(" \u2192 ")
+      : "Not specified";
+
+  // ── 2. Decisions — verbatim sentences from ALL assistant messages ──────────
+  const rawDecisions: string[] = [];
+  for (const msg of messages) {
+    if (msg.role !== "assistant") continue;
+    const sentences = msg.content
+      .split(/(?<=[.!?])\s+|\n+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 20);
+    for (const s of sentences) {
+      if (TIER2_DECISION_RE.some((re) => re.test(s))) rawDecisions.push(s);
+    }
+  }
+  const decisions = dedupe(rawDecisions).slice(0, 20);
+
+  // ── 3. Bugs fixed — verbatim sentences from ALL messages ──────────────────
+  const rawBugs: string[] = [];
+  for (const msg of messages) {
+    const sentences = msg.content
+      .split(/(?<=[.!?])\s+|\n+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 20);
+    for (const s of sentences) {
+      if (TIER2_BUG_RE.some((re) => re.test(s))) rawBugs.push(s);
+    }
+  }
+  const bugsFixed = dedupe(rawBugs).slice(0, 15);
+
+  // ── 4. Code blocks — ALL ``` fences, 100% content, language + path ────────
+  const codeBlocks: { language: string; path?: string; code: string }[] = [];
+  const codeRe = /```([\w-]*)[ \t]*\n([\s\S]*?)```/g;
+  for (const msg of messages) {
+    let match: RegExpExecArray | null;
+    codeRe.lastIndex = 0;
+    while ((match = codeRe.exec(msg.content)) !== null) {
+      const language = match[1].trim() || "text";
+      const code = match[2]; // Never truncated.
+      const firstLine = code.split("\n")[0]?.trim() ?? "";
+      const pathMatch =
+        firstLine.match(/^(?:\/\/|#|--) ([\w./\\-]+\.\w+)\s*$/) ??
+        firstLine.match(/^\/\*\*?\s*([\w./\\-]+\.\w+)\s*\*\//);
+      codeBlocks.push({ language, path: pathMatch?.[1], code });
+    }
+  }
+
+  // ── 6. Tail — last 8 messages verbatim, both roles ────────────────────────
+  const tail = messages.slice(-8);
+
+  // ── Compression ratio ─────────────────────────────────────────────────────
+  const originalSize = messages.reduce((s, m) => s + m.content.length, 0);
+  const extractedSize =
+    goal.length +
+    currentState.length +
+    decisions.reduce((s, d) => s + d.length, 0) +
+    bugsFixed.reduce((s, b) => s + b.length, 0) +
+    codeBlocks.reduce((s, c) => s + c.code.length, 0) +
+    tail.reduce((s, m) => s + m.content.length, 0);
+  const compressionRatio =
+    originalSize > 0 ? Math.round((1 - extractedSize / originalSize) * 100) : 0;
+
+  console.log(
+    `[ContextForge:tier2] ${messages.length} msgs \u2192 extracted:\n` +
+    `  goals=1 decisions=${decisions.length} bugs=${bugsFixed.length} ` +
+    `code_blocks=${codeBlocks.length} \u2192 ${extractedSize} chars ` +
+    `(${compressionRatio}% compressed) [${Date.now() - t0}ms]`
+  );
+
+  return {
+    goal,
+    currentState,
+    decisions,
+    bugsFixed,
+    codeBlocks,
+    tail,
+    originalCount: messages.length,
+    compressionRatio,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
