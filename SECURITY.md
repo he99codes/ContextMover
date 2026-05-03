@@ -22,6 +22,9 @@
 
 | Date | Change | File(s) Affected |
 |------|--------|-----------------|
+| 2026-05-03 | Next.js upgraded 14.2.5 → 14.2.35 (fixes CVE-2025-29927 critical auth bypass + 8 other CVEs) | `packages/web/package.json` |
+| 2026-05-03 | Added `'strict-dynamic'` to extension CSP (aligns code with SECURITY.md documentation) | `packages/browser-extension/manifest.json` |
+| 2026-05-03 | Auth callback hardened: open-redirect guard on `?next=`, explicit error redirect on failed code exchange | `packages/web/src/app/auth/callback/route.ts` |
 | 2026-05-02 | Initial security hardening pass | All files below |
 | 2026-05-02 | Supabase RLS consolidated to FOR ALL policies | `supabase/schema.sql` |
 | 2026-05-02 | Manifest permissions minimised; CSP tightened | `manifest.json` |
@@ -279,3 +282,7 @@ Applied to all routes via `next.config.mjs`:
 | Prompt injection defense is heuristic | ✅ Accepted | No sanitizer is perfect against all LLM injection. The preamble + delimiters + escaping reduce the attack surface significantly. Defense-in-depth: AI platforms themselves also have system prompts. |
 | Extension content scripts can read page DOM | ✅ Accepted | Required for conversation capture. Scripts are scoped to specific AI platform URLs only. |
 | Bridge server accessible from any local process | ✅ Accepted | Binding to `127.0.0.1` limits exposure to the local machine. CORS prevents browser-origin attacks. No auth token added — adding one would require a shared secret between extension and VS Code, creating a new attack surface. |
+| `protobufjs` arbitrary code execution (GHSA-xq3m-2v4x-88gg) | ✅ Accepted | Transitive dependency of `@xenova/transformers`. Exploitable only if untrusted protobuf data is parsed — we do not parse any network protobuf. Tracked for resolution when `@xenova/transformers` ships a patch. |
+| Next.js DoS via Server Components / HTTP deserialization (2 high CVEs) | ✅ Accepted | Patches exist only in Next.js 15.x. Upgrading to v15 requires breaking-change migration work. Running latest 14.x (14.2.35). Mitigated by hosting-provider function timeout limits (Vercel/Netlify default 10–30 s). |
+| `rollup` path traversal (GHSA-mw96-cpmx-2vgc) | ✅ Accepted | Dev dependency in `@crxjs/vite-plugin`. Not present in any production build artifact. No user-supplied file paths are passed to rollup at runtime. |
+| `glob` / `minimatch` ReDoS + command injection | ✅ Accepted | Dev dependencies (eslint-config-next transitive). Not present in production build. ESLint runs in developer environments only, never on untrusted user input. |
