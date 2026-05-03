@@ -44,6 +44,8 @@ export interface MigrationPayload {
   sourceSession: ContextSession;
   caveman?: boolean;
   task?: string;
+  // Prompt Engine — null or omitted = skip template injection.
+  promptTemplateId?: string | null;
   // Tier 1 | 2 | 3 summarizer branch used for this migration.
   tier?: 1 | 2 | 3;
   // Compression ratio reported by the summarizer (0–100).

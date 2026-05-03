@@ -2,6 +2,7 @@
 import { db } from "@/lib/db";
 import summarize, { summarizeIntelligent, summarizeWithAttention } from "@/lib/summarizer";
 import buildMigrationPrompt from "@/lib/translator";
+import { promptEngine } from "@/lib/prompt-engine/engine";
 import type { ContextSession, ExtractedContext, Message } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import {
@@ -335,6 +336,7 @@ async function handleMigrateContext(
     useAttentionEngine?: boolean;
     precomputedSummary?: string;
     precomputedAttentionMap?: unknown;
+    promptTemplateId?: string | null;
   },
   sendResponse: (r: unknown) => void
 ) {
@@ -438,11 +440,32 @@ async function handleMigrateContext(
     });
   }
 
+  // ── Prompt Engine template injection (never blocks migration) ─────────────
+  let finalPrompt = prompt;
+  if (payload.promptTemplateId) {
+    try {
+      const mergeResult = await promptEngine.mergeWithContext(
+        prompt,
+        payload.promptTemplateId,
+        payload.targetPlatform,
+        payload.caveman ?? false
+      );
+      finalPrompt = mergeResult.finalContext;
+      console.log(
+        `[ContextForge:prompt-engine] template="${mergeResult.templateName}"`,
+        `totalChars=${mergeResult.stats.totalLength}`,
+        `estimatedTokens=${mergeResult.stats.estimatedTokens}`
+      );
+    } catch (err) {
+      console.warn("[ContextForge:prompt-engine] failed, migrating without template:", err);
+    }
+  }
+
   // ── Inject into target tab ─────────────────────────────────────────────────
   if (payload.targetTabId) {
     const injectionResult = await sendMessageToTab(payload.targetTabId, {
       type: "INJECT_CONTEXT",
-      prompt,
+      prompt: finalPrompt,
       platform: payload.targetPlatform,
     });
 
@@ -455,7 +478,7 @@ async function handleMigrateContext(
     console.log(`[ContextForge:sw] Stage6 — injection confirmed in tab ${payload.targetTabId}`);
   }
 
-  sendResponse({ ok: true, prompt, compressionRatio });
+  sendResponse({ ok: true, prompt: finalPrompt, compressionRatio });
 }
 
 async function handleFetchIdeContext(sendResponse: (r: unknown) => void) {

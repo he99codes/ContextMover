@@ -3,19 +3,31 @@ import { openDB, type IDBPDatabase } from "idb";
 import type { ContextSession } from "./types";
 
 const DB_NAME = "contextforge";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const SESSIONS_STORE = "sessions";
 
 let _db: IDBPDatabase | null = null;
 
-async function getDb() {
+export async function getDb() {
   if (_db) return _db;
   _db = await openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(SESSIONS_STORE)) {
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) {
         const store = db.createObjectStore(SESSIONS_STORE, { keyPath: "id" });
         store.createIndex("platform", "platform");
         store.createIndex("updatedAt", "updatedAt");
+      }
+      if (oldVersion < 2) {
+        const ptStore = db.createObjectStore("prompt_templates", { keyPath: "id" });
+        ptStore.createIndex("userId", "userId");
+        ptStore.createIndex("isDefault", "isDefault");
+        ptStore.createIndex("usageCount", "usageCount");
+        ptStore.createIndex("updatedAt", "updatedAt");
+
+        const paStore = db.createObjectStore("prompt_assignments", { keyPath: "id" });
+        paStore.createIndex("sessionId", "sessionId");
+        paStore.createIndex("platform", "platform");
+        paStore.createIndex("templateId", "templateId");
       }
     },
   });

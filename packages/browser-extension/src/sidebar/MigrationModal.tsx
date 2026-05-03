@@ -8,7 +8,11 @@ import { createPortal } from "react-dom";
 import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
 import { attentionEngine } from "@/lib/attention-engine";
 import { summarizeWithAttention } from "@/lib/summarizer";
+import { promptEngine } from "@/lib/prompt-engine/engine";
+import type { PromptTemplate } from "@/lib/prompt-engine/types";
 import type { ContextSession, Platform } from "@/lib/types";
+
+const WEB_APP_URL = "https://contextforge.app";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -142,12 +146,23 @@ export default function MigrationModal({
   const [migrateState, setMigrateState] = useState<MigrateState>({ status: "idle" });
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Prompt Engine state
+  const [promptTemplateId, setPromptTemplateId] = useState<string | null>(null);
+  const [promptExpanded, setPromptExpanded] = useState(false);
+  const [allTemplates, setAllTemplates] = useState<{ system: PromptTemplate[]; user: PromptTemplate[] }>({ system: [], user: [] });
 
   // ── Lock body scroll while modal is open ────────────────────────────────────
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // ── Load prompt templates on mount ──────────────────────────────────────────
+  useEffect(() => {
+    promptEngine.getAllTemplates()
+      .then(setAllTemplates)
+      .catch((err) => console.warn("[MigrationModal] template load failed:", err));
   }, []);
 
   function setTier(t: 1 | 2 | 3) {
@@ -243,6 +258,7 @@ export default function MigrationModal({
           targetTabId: tab.id,
           tier,
           caveman,
+          promptTemplateId: promptTemplateId ?? undefined,
           ...(tier === 3 && {
             useAttentionEngine: true,
             task: task.trim() || undefined,
@@ -515,6 +531,106 @@ export default function MigrationModal({
             </span>
           </div>
         )}
+
+        {/* ── Prompt Engine section ── */}
+        {(() => {
+          const selectedTemplate = promptTemplateId
+            ? ([...allTemplates.system, ...allTemplates.user].find((t) => t.id === promptTemplateId) ?? null)
+            : null;
+          return (
+            <div style={{ marginBottom: "6px" }}>
+              {/* Collapsed row */}
+              <button
+                onClick={() => setPromptExpanded((v) => !v)}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "4px 10px", height: "32px", borderRadius: "5px", cursor: "pointer",
+                  border: `1px solid ${selectedTemplate ? "rgba(0,255,136,0.35)" : "#222"}`,
+                  background: selectedTemplate ? "rgba(0,255,136,0.05)" : "#111",
+                  outline: "none", transition: "all 0.15s ease",
+                }}
+              >
+                <span style={{ fontSize: "9px", fontWeight: 900, color: selectedTemplate ? "#00FF88" : "#888", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                  ⚙ Prompt Engine
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                  <span style={{ fontSize: "9px", color: selectedTemplate ? "#00FF88" : "#555", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {selectedTemplate ? `${selectedTemplate.icon} ${selectedTemplate.name}` : "None"}
+                  </span>
+                  <span style={{ fontSize: "8px", color: "#444" }}>{promptExpanded ? "▲" : "▼"}</span>
+                </div>
+              </button>
+
+              {/* Expanded panel */}
+              {promptExpanded && (
+                <div style={{ marginTop: "4px", padding: "8px 10px", border: "1px solid #1A1A1A", borderRadius: "5px", background: "#0D0D0D" }}>
+                  <div style={{ fontSize: "9px", fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "5px" }}>Template</div>
+                  <select
+                    value={promptTemplateId ?? ""}
+                    onChange={(e) => {
+                      if (e.target.value === "__create") {
+                        window.open(`${WEB_APP_URL}/settings/prompts`, "_blank");
+                        return;
+                      }
+                      setPromptTemplateId(e.target.value || null);
+                    }}
+                    style={{ width: "100%", padding: "4px 8px", background: "#111", border: "1px solid #2A2A2A", borderRadius: "4px", color: "#F5F5F5", fontSize: "10px", outline: "none", cursor: "pointer", fontFamily: "Inter, sans-serif" }}
+                  >
+                    <option value="">─── None ───</option>
+                    <optgroup label="─── System Templates ───">
+                      {allTemplates.system.map((t) => (
+                        <option key={t.id} value={t.id}>{t.icon} {t.name}</option>
+                      ))}
+                    </optgroup>
+                    {allTemplates.user.length > 0 && (
+                      <optgroup label="─── My Templates ───">
+                        {allTemplates.user.map((t) => (
+                          <option key={t.id} value={t.id}>{t.icon} {t.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <option value="__create">+ Create template</option>
+                  </select>
+
+                  {/* Preview */}
+                  {selectedTemplate ? (
+                    <>
+                      <div style={{ marginTop: "5px", padding: "5px 8px", background: "#111", border: "1px solid #1A1A1A", borderRadius: "4px", fontSize: "9px", color: "#6B6B6B", fontStyle: "italic", lineHeight: 1.5 }}>
+                        {selectedTemplate.content.slice(0, 100)}&hellip;
+                      </div>
+                      {selectedTemplate.tags.length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "4px" }}>
+                          {selectedTemplate.tags.map((tag) => (
+                            <span key={tag} style={{ padding: "1px 5px", borderRadius: "3px", background: "#1A1A1A", border: "1px solid #2A2A2A", fontSize: "8px", color: "#555" }}>{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ marginTop: "5px", fontSize: "9px", color: "#444", fontStyle: "italic" }}>
+                      No prompt template — migrating context only
+                    </div>
+                  )}
+
+                  <a
+                    href={`${WEB_APP_URL}/settings/prompts`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      if ((e.target as HTMLSelectElement).value === "__create") {
+                        e.preventDefault();
+                        window.open(`${WEB_APP_URL}/settings/prompts`, "_blank");
+                      }
+                    }}
+                    style={{ display: "block", marginTop: "6px", fontSize: "9px", color: "#00FF88", textDecoration: "none" }}
+                  >
+                    Manage templates →
+                  </a>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── Caveman toggle — all tiers ── */}
         <div style={{ marginBottom: "6px" }}>

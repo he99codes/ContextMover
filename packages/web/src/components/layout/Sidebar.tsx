@@ -10,6 +10,7 @@ import {
   Settings,
   LogOut,
   Zap,
+  FileCode,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -20,6 +21,7 @@ const navigation = [
   { name: "Migrate", href: "/migrate", icon: ArrowLeftRight },
   { name: "Agents", href: "/agents", icon: Bot },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Prompts", href: "/settings/prompts", icon: FileCode },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -63,7 +65,14 @@ export function Sidebar({ user }: SidebarProps) {
         {navigation.map((item) => {
           const isActive =
             pathname === item.href ||
-            (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            (item.href !== "/dashboard" &&
+              pathname.startsWith(item.href + "/") &&
+              !navigation.some(
+                (other) =>
+                  other.href !== item.href &&
+                  other.href.length > item.href.length &&
+                  pathname.startsWith(other.href)
+              ));
 
           return (
             <Link
