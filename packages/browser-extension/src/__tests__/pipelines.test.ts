@@ -248,8 +248,11 @@ describe("1 · Summarizer pipeline", () => {
 // 2. TRANSLATOR PIPELINE
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CAVEMAN_LINE =
-  "Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.";
+// Claude uses a multi-line XML block; all other platforms use a single-line markdown sentence.
+const CAVEMAN_CLAUDE = "Response style: Caveman mode.";
+const CAVEMAN_MD     = "Caveman mode. No filler. No pleasantries. No hedging.";
+// Universal absence-check: this substring never appears in any platform when caveman=false.
+const CAVEMAN_OFF    = "No filler. No pleasantries. No hedging.";
 
 describe("2 · Translator pipeline", () => {
   describe("universal requirements (all 6 platforms)", () => {
@@ -269,11 +272,13 @@ describe("2 · Translator pipeline", () => {
       it(`${p}: contains key decision`, () =>
         expect(buildMigrationPrompt(payload(p))).toContain("RS256"));
 
-      it(`${p}: caveman=true → caveman line present`, () =>
-        expect(buildMigrationPrompt(payload(p, { caveman: true }))).toContain(CAVEMAN_LINE));
+      it(`${p}: caveman=true → caveman line present`, () => {
+        const prompt = buildMigrationPrompt(payload(p, { caveman: true }));
+        expect(prompt).toContain(p === "claude" ? CAVEMAN_CLAUDE : CAVEMAN_MD);
+      });
 
       it(`${p}: caveman=false → caveman line absent`, () =>
-        expect(buildMigrationPrompt(payload(p, { caveman: false }))).not.toContain(CAVEMAN_LINE));
+        expect(buildMigrationPrompt(payload(p, { caveman: false }))).not.toContain(CAVEMAN_OFF));
     }
   });
 
@@ -651,7 +656,7 @@ describe("4 · End-to-end pipeline", () => {
       sourceSession: { ...BASE_SESSION, messages: CAVEMAN_LONG },
       caveman:       true,
     });
-    expect(prompt).toContain(CAVEMAN_LINE);
+    expect(prompt).toContain(CAVEMAN_MD);
   });
 
   it("empty session: produces short but valid prompt", async () => {
