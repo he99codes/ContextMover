@@ -44,6 +44,13 @@ export interface MigrationPayload {
   sourceSession: ContextSession;
   caveman?: boolean;
   task?: string;
+  // Tier 1 | 2 | 3 summarizer branch used for this migration.
+  tier?: 1 | 2 | 3;
+  // Compression ratio reported by the summarizer (0–100).
+  compressionRatio?: number;
+  // Structured output from summarizeIntelligent() — present only for tier 2.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  intelligentSummary?: any;
   // Populated by summarizeWithAttention(). Typed as unknown here to avoid a
   // circular import (attention-engine.ts already imports from this file).
   // Translator casts to AttentionMap via import type from attention-engine.ts.

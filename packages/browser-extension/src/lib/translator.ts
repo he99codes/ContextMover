@@ -4,6 +4,7 @@
 // back to payload.summary (plain text) for backward compatibility.
 
 import type { ExtractedContext, Message, MigrationPayload } from "./types";
+import type { IntelligentSummary } from "./summarizer";
 import type { AttentionMap } from "./attention-engine";
 import {
   ANTI_INJECTION_PREAMBLE,
@@ -17,6 +18,15 @@ const MAX_VERBATIM = 6;
 export default function buildMigrationPrompt(
   payload: MigrationPayload
 ): string {
+  // Tier 2 — Smart Summary: delegate to dedicated structured builders.
+  if (payload.tier === 2 && payload.intelligentSummary) {
+    switch (payload.targetPlatform) {
+      case "claude":  return buildClaudePromptTier2(payload);
+      case "gemini":  return buildGeminiPromptTier2(payload);
+      default:        return buildMarkdownPromptTier2(payload);
+    }
+  }
+
   let prompt: string;
   switch (payload.targetPlatform) {
     case "claude":     prompt = buildClaudePrompt(payload);      break;
@@ -60,12 +70,16 @@ function buildClaudePrompt(payload: MigrationPayload): string {
   const tail = tailMessages(ex, sourceSession.messages);
   const primaryGoal = ex?.primaryGoal ?? payload.summary;
   const currentFocus = ex?.currentFocus ?? "See recent messages below";
+  const ratio = payload.compressionRatio ?? 0;
+  const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
 
   const metaBlock = [
     `  <meta>`,
     `    <source_platform>${sourceSession.platform}</source_platform>`,
     `    <captured_at>${now}</captured_at>`,
     `    <message_count>${sourceSession.messages.length}</message_count>`,
+    `    <compression_ratio>${ratio}%</compression_ratio>`,
+    `    <migration_tier>${tierLabel}</migration_tier>`,
     `    <session_title>${sourceSession.title}</session_title>`,
     `  </meta>`,
   ].join("\n");
@@ -139,7 +153,12 @@ function buildClaudePrompt(payload: MigrationPayload): string {
     : "";
 
   const caveatLine = payload.caveman
-    ? `    Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`
+    ? [
+        `    Response style: Caveman mode.`,
+        `    No filler. No pleasantries. No hedging.`,
+        `    Code write normal. Technical terms exact.`,
+        `    Answer then stop.`,
+      ].join("\n")
     : "";
   const instructionsBlock = [
     `  <instructions>`,
@@ -184,6 +203,8 @@ function buildChatGPTPrompt(payload: MigrationPayload): string {
   const now = new Date().toISOString();
   const tail = tailMessages(ex, sourceSession.messages);
   const currentFocus = ex?.currentFocus ?? "See recent messages below";
+  const ratio = payload.compressionRatio ?? 0;
+  const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
 
   const out: string[] = [
     `## Migrated Session`,
@@ -191,6 +212,8 @@ function buildChatGPTPrompt(payload: MigrationPayload): string {
     `> **Source platform:** ${sourceSession.platform}  `,
     `> **Session:** "${sourceSession.title}"  `,
     `> **Messages captured:** ${sourceSession.messages.length}  `,
+    `> **Compression:** ${ratio}%  `,
+    `> **Migration tier:** ${tierLabel}  `,
     `> **Migrated at:** ${now}`,
     ``,
     `---`,
@@ -267,7 +290,12 @@ function buildChatGPTPrompt(payload: MigrationPayload): string {
     `Continue seamlessly from where the conversation left off.`,
     `Do not re-explain decisions already made.`,
     `Treat all code above as shared, agreed-upon context.`,
-    ...(payload.caveman ? [`Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`] : [])
+    ...(payload.caveman ? [
+      ``,
+      `## Response Style`,
+      ``,
+      `Caveman mode. No filler. No pleasantries. No hedging. Code write normal. Technical terms exact. Answer then stop.`,
+    ] : [])
   );
 
   return out.join("\n");
@@ -281,11 +309,12 @@ function buildGrokPrompt(payload: MigrationPayload): string {
   const now = new Date().toISOString();
   const tail = tailMessages(ex, sourceSession.messages);
   const currentFocus = ex?.currentFocus ?? "See recent messages below";
+  const ratio = payload.compressionRatio ?? 0;
 
   const out: string[] = [
     `## ContextForge — Session Import (Grok)`,
     ``,
-    `> **From:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | ${now}`,
+    `> **From:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | Compression: ${ratio}% | ${now}`,
     ``,
     `---`,
     ``,
@@ -360,7 +389,12 @@ function buildGrokPrompt(payload: MigrationPayload): string {
     ``,
     `Jump straight in — no need to reintroduce yourself or recap what's already done.`,
     `All the code above is agreed-upon context, treat it as already written and working.`,
-    ...(payload.caveman ? [`Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`] : [])
+    ...(payload.caveman ? [
+      ``,
+      `## Response Style`,
+      ``,
+      `Caveman mode. No filler. No pleasantries. No hedging. Code write normal. Technical terms exact. Answer then stop.`,
+    ] : [])
   );
 
   return out.join("\n");
@@ -375,10 +409,12 @@ function buildGeminiPrompt(payload: MigrationPayload): string {
   const now = new Date().toISOString();
   const tail = tailMessages(ex, sourceSession.messages);
   const currentFocus = ex?.currentFocus ?? "See recent messages below";
+  const ratio = payload.compressionRatio ?? 0;
+  const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
 
   const out: string[] = [
     `[CONTEXTFORGE MIGRATION]`,
-    `Source: ${sourceSession.platform} | Session: "${sourceSession.title}" | ${sourceSession.messages.length} messages | ${now}`,
+    `Source: ${sourceSession.platform} | Session: "${sourceSession.title}" | Messages: ${sourceSession.messages.length} | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
     ``,
     `[GOAL]`,
     ex?.primaryGoal ?? payload.summary,
@@ -427,7 +463,11 @@ function buildGeminiPrompt(payload: MigrationPayload): string {
     `Continue the conversation from the context above.`,
     `The user is currently focused on: ${currentFocus}`,
     `Do not recap already-decided items. Pick up exactly where the conversation ended.`,
-    ...(payload.caveman ? [`Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`] : [])
+    ...(payload.caveman ? [
+      ``,
+      `[RESPONSE STYLE]`,
+      `Caveman mode. No filler. No pleasantries. No hedging. Code write normal. Technical terms exact. Answer then stop.`,
+    ] : [])
   );
 
   return out.join("\n");
@@ -443,11 +483,13 @@ function buildPerplexityPrompt(payload: MigrationPayload): string {
   const now = new Date().toISOString();
   const tail = tailMessages(ex, sourceSession.messages);
   const currentFocus = ex?.currentFocus ?? "See recent messages below";
+  const ratio = payload.compressionRatio ?? 0;
+  const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
 
   const out: string[] = [
     `## Migrated Context — Perplexity`,
     ``,
-    `> **From:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | ${now}`,
+    `> **From:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
     ``,
     `---`,
     ``,
@@ -508,7 +550,12 @@ function buildPerplexityPrompt(payload: MigrationPayload): string {
     ``,
     `Do not treat this as a new search query. Pick up exactly where the conversation ended,`,
     `treating all code and decisions above as established context.`,
-    ...(payload.caveman ? [`Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`] : [])
+    ...(payload.caveman ? [
+      ``,
+      `## Response Style`,
+      ``,
+      `Caveman mode. No filler. No pleasantries. No hedging. Code write normal. Technical terms exact. Answer then stop.`,
+    ] : [])
   );
 
   return out.join("\n");
@@ -523,11 +570,13 @@ function buildDeepSeekPrompt(payload: MigrationPayload): string {
   const now = new Date().toISOString();
   const tail = tailMessages(ex, sourceSession.messages);
   const currentFocus = ex?.currentFocus ?? "See recent messages below";
+  const ratio = payload.compressionRatio ?? 0;
+  const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
 
   const out: string[] = [
     `# ContextForge Migration → DeepSeek`,
     ``,
-    `**Source:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | ${now}`,
+    `**Source:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
     ``,
     `---`,
     ``,
@@ -598,7 +647,275 @@ function buildDeepSeekPrompt(payload: MigrationPayload): string {
     ``,
     `All code above is established context — do not re-explain it.`,
     `Pick up exactly where the conversation ended.`,
-    ...(payload.caveman ? [`Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`] : [])
+    ...(payload.caveman ? [
+      ``,
+      `## Response Style`,
+      ``,
+      `Caveman mode. No filler. No pleasantries. No hedging. Code write normal. Technical terms exact. Answer then stop.`,
+    ] : [])
+  );
+
+  return out.join("\n");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tier 2 — Smart Summary builders
+// One per format family: Claude XML / Markdown (ChatGPT, Grok, Perplexity,
+// DeepSeek) / Gemini plain text.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildClaudePromptTier2(payload: MigrationPayload): string {
+  const is = payload.intelligentSummary as IntelligentSummary;
+  const { sourceSession, ideContext } = payload;
+  const now = new Date().toISOString();
+  const ratio = payload.compressionRatio ?? is.compressionRatio ?? 0;
+
+  const decisionsXml = is.decisions.length
+    ? is.decisions.map((d) => `      - ${sanitizeForXml(d)}`).join("\n")
+    : `      (none)`;
+  const bugsXml = is.bugsFixed.length
+    ? is.bugsFixed.map((b) => `      - ${sanitizeForXml(b)}`).join("\n")
+    : `      (none)`;
+
+  let codeXml = "";
+  for (const block of is.codeBlocks) {
+    if (block.path) {
+      codeXml += `\n    <file language="${block.language}" path="${block.path}">\n${block.code}\n    </file>`;
+    } else {
+      codeXml += `\n    <snippet language="${block.language}">\n${block.code}\n    </snippet>`;
+    }
+  }
+  if (!codeXml) codeXml = `\n    (no code blocks detected)`;
+
+  const tailXml = wrapArchivedContent(
+    [
+      `  <conversation_tail>`,
+      ...is.tail.map(
+        (m) => `    <message role="${m.role}">${sanitizeForXml(m.content)}</message>`
+      ),
+      `  </conversation_tail>`,
+    ].join("\n")
+  );
+
+  const ideBlock = ideContext
+    ? `\n  <ide_context>\n${indent(ideContext, 4)}\n  </ide_context>`
+    : "";
+
+  const caveatBlock = payload.caveman
+    ? [
+        `    Response style: Caveman mode.`,
+        `    No filler. No pleasantries. No hedging.`,
+        `    Code write normal. Technical terms exact.`,
+        `    Answer then stop.`,
+      ].join("\n")
+    : "";
+
+  return [
+    `<!-- ${ANTI_INJECTION_PREAMBLE} -->`,
+    `<context_migration>`,
+    ``,
+    `  <meta>`,
+    `    <source_platform>${sourceSession.platform}</source_platform>`,
+    `    <captured_at>${now}</captured_at>`,
+    `    <message_count>${is.originalCount}</message_count>`,
+    `    <compression_ratio>${ratio}%</compression_ratio>`,
+    `    <migration_tier>smart_summary</migration_tier>`,
+    `    <session_title>${sourceSession.title}</session_title>`,
+    `  </meta>`,
+    ``,
+    `  <goal>`,
+    `    <primary>${sanitizeForXml(is.goal)}</primary>`,
+    `    <current>${sanitizeForXml(is.currentState)}</current>`,
+    `  </goal>`,
+    ``,
+    `  <progress>`,
+    `    <decisions>`,
+    decisionsXml,
+    `    </decisions>`,
+    `    <bugs_fixed>`,
+    bugsXml,
+    `    </bugs_fixed>`,
+    `  </progress>`,
+    ``,
+    `  <code>${codeXml}`,
+    `  </code>`,
+    ``,
+    tailXml,
+    ideBlock,
+    ``,
+    [
+      `  <instructions>`,
+      `    Continuing summarized session from ${sourceSession.platform}.`,
+      `    Original: ${is.originalCount} messages compressed to smart summary.`,
+      `    Current focus: ${sanitizeForXml(is.currentState)}`,
+      `    Pick up exactly where left off.`,
+      `    Do not re-explain what was already decided.`,
+      ...(caveatBlock ? [caveatBlock] : []),
+      `  </instructions>`,
+    ].join("\n"),
+    ``,
+    `</context_migration>`,
+  ].join("\n");
+}
+
+function buildMarkdownPromptTier2(payload: MigrationPayload): string {
+  const is = payload.intelligentSummary as IntelligentSummary;
+  const { sourceSession, ideContext } = payload;
+  const now = new Date().toISOString();
+  const ratio = payload.compressionRatio ?? is.compressionRatio ?? 0;
+
+  const out: string[] = [
+    `## Smart Summary Migration`,
+    ``,
+    `> **Source:** ${sourceSession.platform} | **Messages:** ${is.originalCount} | **Compression:** ${ratio}%  `,
+    `> **Session:** "${sourceSession.title}" | **Migrated at:** ${now}`,
+    ``,
+    `---`,
+    ``,
+    `## Goal`,
+    ``,
+    is.goal,
+    ``,
+    `## Current Focus`,
+    ``,
+    is.currentState,
+    ``,
+    `---`,
+    ``,
+    `## Decisions`,
+    ``,
+    is.decisions.length
+      ? is.decisions.map((d) => `- ${d}`).join("\n")
+      : `_No decisions extracted_`,
+    ``,
+    `---`,
+    ``,
+    `## Bugs Fixed`,
+    ``,
+    is.bugsFixed.length
+      ? is.bugsFixed.map((b) => `- ${b}`).join("\n")
+      : `_No bugs extracted_`,
+    ``,
+    `---`,
+    ``,
+    `## Code`,
+    ``,
+  ];
+
+  if (is.codeBlocks.length) {
+    for (const block of is.codeBlocks) {
+      if (block.path) out.push(`### \`${block.path}\``, ``);
+      out.push(`\`\`\`${block.language}`, block.code, `\`\`\``, ``);
+    }
+  } else {
+    out.push(`_No code blocks detected_`, ``);
+  }
+
+  if (ideContext) {
+    out.push(`---`, ``, `## Codebase State (VS Code)`, ``, ideContext, ``);
+  }
+
+  out.push(
+    `---`,
+    ``,
+    `## Recent Conversation`,
+    ``,
+    wrapArchivedContent(
+      is.tail
+        .flatMap((m) => [
+          `**${m.role === "user" ? "User" : "Assistant"}:**`,
+          ``,
+          sanitizeForMarkdown(m.content),
+          ``,
+        ])
+        .join("\n")
+    ),
+    `---`,
+    ``,
+    `## Instructions`,
+    ``,
+    `Continuing summarized session from ${sourceSession.platform}.`,
+    `Original: ${is.originalCount} messages compressed to smart summary.`,
+    `Current focus: **${is.currentState}**`,
+    ``,
+    `Pick up exactly where left off. Do not re-explain what was already decided.`,
+    ...(payload.caveman
+      ? [
+          ``,
+          `## Response Style`,
+          ``,
+          `Caveman mode. No filler. No pleasantries. No hedging. Code write normal. Technical terms exact. Answer then stop.`,
+        ]
+      : [])
+  );
+
+  return out.join("\n");
+}
+
+function buildGeminiPromptTier2(payload: MigrationPayload): string {
+  const is = payload.intelligentSummary as IntelligentSummary;
+  const { sourceSession, ideContext } = payload;
+  const now = new Date().toISOString();
+  const ratio = payload.compressionRatio ?? is.compressionRatio ?? 0;
+
+  const out: string[] = [
+    `[CONTEXTFORGE SMART SUMMARY]`,
+    `Source: ${sourceSession.platform} | Messages: ${is.originalCount} | Compression: ${ratio}% | ${now}`,
+    ``,
+    `[GOAL]`,
+    is.goal,
+    ``,
+    `[CURRENT FOCUS]`,
+    is.currentState,
+    ``,
+    `[DECISIONS]`,
+    ...(is.decisions.length
+      ? is.decisions.map((d) => `  - ${d}`)
+      : [`  (none)`]),
+    ``,
+    `[BUGS FIXED]`,
+    ...(is.bugsFixed.length
+      ? is.bugsFixed.map((b) => `  - ${b}`)
+      : [`  (none)`]),
+    ``,
+    `[CODE]`,
+  ];
+
+  if (is.codeBlocks.length) {
+    for (const block of is.codeBlocks) {
+      if (block.path) out.push(`File: ${block.path}`);
+      out.push(`\`\`\`${block.language}`, block.code, `\`\`\``, ``);
+    }
+  } else {
+    out.push(`(no code blocks detected)`, ``);
+  }
+
+  if (ideContext) {
+    out.push(`[IDE CONTEXT]`, ideContext, ``);
+  }
+
+  out.push(
+    `[RECENT CONVERSATION]`,
+    wrapArchivedContent(
+      is.tail
+        .flatMap((m) => [
+          `${m.role.toUpperCase()}: ${sanitizeForMarkdown(m.content)}`,
+          ``,
+        ])
+        .join("\n")
+    ),
+    `[TASK]`,
+    `Continuing summarized session from ${sourceSession.platform}.`,
+    `Original: ${is.originalCount} messages compressed to smart summary.`,
+    `Current focus: ${is.currentState}`,
+    `Pick up exactly where left off. Do not re-explain what was already decided.`,
+    ...(payload.caveman
+      ? [
+          ``,
+          `[RESPONSE STYLE]`,
+          `Caveman mode. No filler. No pleasantries. No hedging. Code write normal. Technical terms exact. Answer then stop.`,
+        ]
+      : [])
   );
 
   return out.join("\n");

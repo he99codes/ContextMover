@@ -1,6 +1,6 @@
 // packages/browser-extension/src/background/service-worker.ts
 import { db } from "@/lib/db";
-import summarize, { summarizeWithAttention } from "@/lib/summarizer";
+import summarize, { summarizeIntelligent, summarizeWithAttention } from "@/lib/summarizer";
 import buildMigrationPrompt from "@/lib/translator";
 import type { ContextSession, ExtractedContext, Message } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
@@ -114,9 +114,9 @@ chrome.runtime.onInstalled.addListener(async () => {
 // Fallback: explicitly open the panel when the toolbar icon is clicked.
 // Handles edge cases where setPanelBehavior alone isn't triggered.
 chrome.action.onClicked.addListener((tab) => {
-  if (tab.windowId == null) return;
+  if (tab.id == null) return;
   chrome.sidePanel
-    .open({ windowId: tab.windowId })
+    .open({ tabId: tab.id })
     .catch((err: unknown) => console.warn("[ContextForge] sidePanel.open failed:", err));
 });
 
@@ -328,6 +328,7 @@ async function handleMigrateContext(
     sessionId: string;
     targetPlatform: string;
     targetTabId?: number;
+    tier?: 1 | 2 | 3;
     caveman?: boolean;
     task?: string;
     strength?: "light" | "strict";
@@ -358,31 +359,47 @@ async function handleMigrateContext(
   let summary: string;
   let extracted: ExtractedContext | undefined;
   let attentionMap: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let intelligentSummary: any;
+  let compressionRatio = 0;
+  const tier = payload.tier ?? (payload.useAttentionEngine ? 3 : 1);
 
-  if (payload.useAttentionEngine && payload.task) {
+  if (tier === 3 || (payload.useAttentionEngine && payload.task)) {
+    // Tier 3 — Attention Engine
     if (payload.precomputedSummary) {
-      // Fast path: sidebar pre-computed the summary — no model inference needed here.
       summary = payload.precomputedSummary;
       attentionMap = payload.precomputedAttentionMap;
+      compressionRatio = (payload.precomputedAttentionMap as any)?.compressionRatio ?? 0;
       console.log(`[ContextForge:sw] Stage5 — Attention Engine fast path (pre-computed by sidebar)`);
     } else {
-      // Slow fallback: compute in service worker (first migration with no live preview).
       console.log(`[ContextForge:sw] Stage5 — Attention Engine path: strength=${payload.strength ?? "light"}`);
       const atResult = await summarizeWithAttention(
         session.messages,
-        payload.task,
+        payload.task ?? "",
         payload.strength ?? "light",
         session
       );
       summary = atResult.summary;
       attentionMap = atResult.attentionMap;
+      compressionRatio = atResult.compressionRatio;
       console.log(`[ContextForge:sw] Stage5 — Attention Engine done`);
       console.log(`[ContextForge:attention] compressionRatio: ${atResult.compressionRatio}%`);
     }
+  } else if (tier === 2) {
+    // Tier 2 — summarizeIntelligent (synchronous, no ML)
+    const isResult = summarizeIntelligent(session.messages);
+    intelligentSummary = isResult;
+    compressionRatio = isResult.compressionRatio;
+    summary = isResult.goal;
+    console.log(`[ContextForge:sw] tier=2 compression=${compressionRatio}% chars=${JSON.stringify(isResult).length}`);
   } else {
+    // Tier 1 — summarize
     const summaryResult = await summarize(session.messages, { caveman: payload.caveman });
     summary = summaryResult.content;
     extracted = summaryResult.extracted;
+    compressionRatio = summaryResult.originalTokenEstimate > 0
+      ? Math.round((1 - summaryResult.summaryTokenEstimate / summaryResult.originalTokenEstimate) * 100)
+      : 0;
     console.log(`[ContextForge:sw] Stage5 — summarizer done: mode=${summaryResult.mode} tokens~${summaryResult.originalTokenEstimate} codeBlocks=${summaryResult.extracted.codeBlocks.length} tailMessages=${summaryResult.extracted.conversationTail.length}`);
     const tailAsst = summaryResult.extracted.conversationTail.filter(m => m.role === "assistant").length;
     if (tailAsst === 0) {
@@ -407,7 +424,11 @@ async function handleMigrateContext(
     caveman: payload.caveman,
     task: payload.task,
     attentionMap,
+    tier,
+    compressionRatio,
+    intelligentSummary,
   });
+  console.log(`[ContextForge:sw] tier=${tier} compression=${compressionRatio}% chars=${prompt.length}`);
 
   console.log(`[ContextForge:sw] Stage6 — prompt built: length=${prompt.length} chars, target=${payload.targetPlatform}`);
   if (prompt.length < 500) {
@@ -434,7 +455,7 @@ async function handleMigrateContext(
     console.log(`[ContextForge:sw] Stage6 — injection confirmed in tab ${payload.targetTabId}`);
   }
 
-  sendResponse({ ok: true, prompt });
+  sendResponse({ ok: true, prompt, compressionRatio });
 }
 
 async function handleFetchIdeContext(sendResponse: (r: unknown) => void) {

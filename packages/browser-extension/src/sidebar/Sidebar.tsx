@@ -3,7 +3,7 @@ import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
 import type { ContextSession, Platform } from "@/lib/types";
 import ExportMenu from "@/components/ExportMenu";
 import { PlatformBadge, PlatformLogo } from "@/components/PlatformLogo";
-import AttentionModal from "./AttentionModal";
+import MigrationModal from "./MigrationModal";
 import { attentionEngine } from "@/lib/attention-engine";
 
 const PLATFORM_LABELS: Record<Platform, string> = {
@@ -42,19 +42,18 @@ export default function Sidebar() {
   const [selected, setSelected] = useState<ContextSession | null>(null);
   const [view, setView] = useState<View>("sessions");
   const [targetPlatform, setTargetPlatform] = useState<Platform>("claude");
-  const [migrating, setMigrating] = useState(false);
+  const [migrationTiers, setMigrationTiers] = useState<Record<string, 1 | 2 | 3>>({});
   const [bridgeStatus, setBridgeStatus] = useState<"ok" | "offline">("offline");
   const [ideContext, setIdeContext] = useState<string | null>(null);
   const [filter, setFilter] = useState<Platform | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFullTranscript, setShowFullTranscript] = useState(false);
   const [expandedMessages, setExpandedMessages] = useState<Set<number>>(new Set());
-  const [caveman, setCaveman] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ tone: StatusTone; text: string } | null>(
     null
   );
   const [tick, setTick] = useState(0);
-  const [showAttentionModal, setShowAttentionModal] = useState(false);
+  const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [semanticQuery, setSemanticQuery] = useState("");
   const [semanticResults, setSemanticResults] = useState<{ sessionId: string; score: number }[]>([]);
   const loadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -141,52 +140,6 @@ export default function Sidebar() {
     }
   }
 
-  async function migrate() {
-    if (!selected) return;
-
-    setMigrating(true);
-    setStatusMessage({
-      tone: "info",
-      text: `Routing this ${PLATFORM_LABELS[selected.platform]} context into ${PLATFORM_LABELS[targetPlatform]}...`,
-    });
-
-    const tab = await findTargetPlatformTab(targetPlatform);
-
-    if (!tab?.id) {
-      setMigrating(false);
-      setStatusMessage({
-        tone: "error",
-        text: `Open a ${PLATFORM_LABELS[targetPlatform]} tab, then try again.`,
-      });
-      return;
-    }
-
-    await focusTab(tab.id);
-    // Give the OS/browser a moment to bring the target tab to front before
-    // the service worker attempts to send a message to its content script.
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    chrome.runtime.sendMessage(
-      {
-        type: "MIGRATE_CONTEXT",
-        payload: { sessionId: selected.id, targetPlatform, targetTabId: tab.id, caveman },
-      },
-      (response) => {
-        setMigrating(false);
-
-        if (response?.error) {
-          setStatusMessage({ tone: "error", text: response.error });
-          return;
-        }
-
-        setStatusMessage({
-          tone: "success",
-          text: `Context from ${PLATFORM_LABELS[selected.platform]} is now staged in ${PLATFORM_LABELS[targetPlatform]}.`,
-        });
-      }
-    );
-  }
-
   async function deleteSession(id: string) {
     await chrome.runtime.sendMessage({ type: "DELETE_SESSION", sessionId: id });
     setSessions((prev) => prev.filter((session) => session.id !== id));
@@ -247,7 +200,7 @@ export default function Sidebar() {
     const platformColor = PLATFORM_COLORS[selected.platform];
 
     return (
-      <div className="flex h-full flex-col overflow-hidden bg-[#050505] text-[#F5F5F5] animate-slide-up crt">
+      <div className="relative flex h-full flex-col overflow-hidden bg-[#050505] text-[#F5F5F5] animate-slide-up crt">
         <div className="flex h-full flex-col">
           {/* ── Detail Header ── */}
           <div className="border-b px-4 py-4" style={{ background: `linear-gradient(135deg, ${platformColor}12 0%, #050505 70%)`, borderColor: `${platformColor}20`, boxShadow: `0 1px 0 ${platformColor}12` }}>
@@ -408,51 +361,13 @@ export default function Sidebar() {
               </div>
             )}
 
-            <button
-              onClick={() => setCaveman((v) => !v)}
-              className="flex w-full items-center justify-between rounded-[4px] border px-3 py-2 text-xs transition-all duration-200 hover:-translate-y-px"
-              style={caveman ? {
-                borderColor: "rgba(245,158,11,0.4)",
-                background: "rgba(245,158,11,0.07)",
-                color: "#F59E0B",
-                boxShadow: "0 0 14px rgba(245,158,11,0.2)",
-              } : {
-                borderColor: "#1A2A1A",
-                background: "#060606",
-                color: "#2A4A2A",
-              }}
-            >
-              <span className="font-semibold uppercase tracking-[0.15em] text-[10px]">
-                Caveman Mode 🪨
-              </span>
-              <span
-                className="rounded-[3px] px-1.5 py-0.5 text-[9px] font-bold uppercase"
-                style={caveman ? { background: "#F59E0B30", color: "#F59E0B" } : { background: "#1F1F1F", color: "#3A3A3A" }}
-              >
-                {caveman ? "ON" : "OFF"}
-              </span>
-            </button>
-
             <div className="flex gap-2">
               <button
-                onClick={migrate}
-                disabled={migrating}
-                className="relative flex flex-1 items-center justify-center gap-1.5 overflow-hidden rounded-[5px] py-3 text-[11px] font-black uppercase tracking-widest text-black transition-all hover:scale-[1.02] hover:-translate-y-px active:scale-[0.98] disabled:opacity-50"
-                style={{ background: migrating ? "#00CC6A" : "#00FF88", boxShadow: migrating ? "none" : "0 0 22px rgba(0,255,136,0.5), 0 0 44px rgba(0,255,136,0.15)" }}
+                onClick={() => setShowMigrationModal(true)}
+                className="relative flex flex-1 items-center justify-center gap-1.5 overflow-hidden rounded-[5px] py-3 text-[11px] font-black uppercase tracking-widest text-black transition-all hover:scale-[1.02] hover:-translate-y-px active:scale-[0.98]"
+                style={{ background: "#00FF88", boxShadow: "0 0 22px rgba(0,255,136,0.5), 0 0 44px rgba(0,255,136,0.15)" }}
               >
-                {migrating && <span className="animate-spin text-[10px]">↻</span>}
-                {migrating ? "Migrating…" : `Migrate → ${PLATFORM_SHORT[targetPlatform]}`}
-                {migrating && (
-                  <span className="absolute inset-0 animate-shimmer opacity-30" />
-                )}
-              </button>
-              <button
-                onClick={() => setShowAttentionModal(true)}
-                disabled={migrating}
-                title="Migrate with Attention Engine"
-                className="rounded-[5px] border border-[#6366f1]/40 bg-[#6366f1]/10 px-3 py-3 text-sm font-semibold text-[#6366f1] transition-all hover:bg-[#6366f1]/20 hover:border-[#6366f1]/60 disabled:opacity-50"
-              >
-                ⚡
+                Migrate → {PLATFORM_SHORT[targetPlatform]}
               </button>
               <ExportMenu
                 session={selected}
@@ -473,22 +388,18 @@ export default function Sidebar() {
                 Delete
               </button>
             </div>
-
-            {migrating && (
-              <div className="overflow-hidden rounded-full bg-[#1A1A1A]">
-                <div className="h-1 w-full animate-pulse bg-[#00FF88]" />
-              </div>
-            )}
           </div>
         </div>
-        {showAttentionModal && selected && (
-          <AttentionModal
+        {showMigrationModal && selected && (
+          <MigrationModal
             session={selected}
             targetPlatform={targetPlatform}
-            onClose={() => setShowAttentionModal(false)}
-            onSuccess={(ratio) => {
-              setShowAttentionModal(false);
-              setStatusMessage({ tone: "success", text: `Migrated with Attention Engine (${ratio}% compressed).` });
+            onClose={() => setShowMigrationModal(false)}
+            onSuccess={(tier, _compressionRatio, chars) => {
+              setShowMigrationModal(false);
+              setMigrationTiers((prev) => ({ ...prev, [selected.id]: tier }));
+              const tierName = tier === 3 ? "Attention Engine" : tier === 2 ? "Smart Summary" : "Full Context";
+              setStatusMessage({ tone: "success", text: `Migrated via ${tierName} — ${chars.toLocaleString()} chars injected.` });
             }}
           />
         )}
@@ -722,6 +633,23 @@ export default function Sidebar() {
                         <span>{session.messages.length} turns</span>
                         <span>·</span>
                         <span>{formatRelativeTime(session.updatedAt)}</span>
+                        {migrationTiers[session.id] && (
+                          <>
+                            <span>·</span>
+                            <span style={{
+                              padding: "1px 6px",
+                              borderRadius: "10px",
+                              background: (migrationTiers[session.id] ?? 1) >= 2 ? "rgba(0,255,136,0.12)" : "rgba(255,255,255,0.06)",
+                              border: `1px solid ${(migrationTiers[session.id] ?? 1) >= 2 ? "rgba(0,255,136,0.3)" : "#2A2A2A"}`,
+                              color: (migrationTiers[session.id] ?? 1) >= 2 ? "#00FF88" : "#666",
+                              fontSize: "8px",
+                              letterSpacing: "0.06em",
+                              fontWeight: 700,
+                            }}>
+                              {migrationTiers[session.id] === 1 ? "Full" : migrationTiers[session.id] === 2 ? "Smart" : "⚡"}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-1 pt-0.5">

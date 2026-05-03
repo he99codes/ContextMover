@@ -5,6 +5,8 @@ import type { Message } from "@/lib/types";
 console.log("[ContextForge] Claude content script loaded");
 
 function scrapeMessages(): Message[] {
+  if (window.location.pathname === "/new") return [];
+
   // ── Diagnostics: dump testids so we know what Claude exposes ──────────────
   const allTestIds = new Set(
     [...document.querySelectorAll("[data-testid]")]
@@ -210,10 +212,7 @@ function scrapeMessages(): Message[] {
     }
   }
 
-  if (collected.length === 0) {
-    console.warn(`[ContextForge:claude] NO messages found at all`);
-    return [];
-  }
+  if (collected.length === 0) return [];
 
   // Sort by DOM position
   collected.sort((a, b) => {

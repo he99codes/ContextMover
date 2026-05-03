@@ -1,0 +1,621 @@
+// packages/browser-extension/src/sidebar/MigrationModal.tsx
+// Unified 3-tier migration modal.
+// Tier 1: Full Context — fast verbatim, Tier 2: Smart Summary — auto-extracted,
+// Tier 3: Attention Engine — semantic task-aware.
+
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
+import { attentionEngine } from "@/lib/attention-engine";
+import { summarizeWithAttention } from "@/lib/summarizer";
+import type { ContextSession, Platform } from "@/lib/types";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+const LAST_TIER_KEY = "contextforge_last_tier";
+
+const PLATFORM_LABELS: Record<Platform, string> = {
+  claude:     "Claude",
+  chatgpt:    "ChatGPT",
+  gemini:     "Google Gemini",
+  grok:       "xAI Grok",
+  perplexity: "Perplexity",
+  deepseek:   "DeepSeek",
+};
+
+const TASK_CHIPS = [
+  "Fix the current bug",
+  "Continue implementing the feature",
+  "Refactor the code",
+  "Write tests",
+  "Debug and optimize",
+  "Review and critique",
+];
+
+const TIER_LABELS: Record<1 | 2 | 3, string> = {
+  1: "Full Context",
+  2: "Smart Summary",
+  3: "Attention Engine",
+};
+
+const MIGRATE_BTN_LABELS: Record<1 | 2 | 3, string> = {
+  1: "Migrate Full Context",
+  2: "Migrate Smart Summary",
+  3: "Migrate with Attention Engine",
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface Props {
+  session: ContextSession;
+  targetPlatform: Platform;
+  onClose: () => void;
+  onSuccess?: (tier: 1 | 2 | 3, compressionRatio: number, chars: number) => void;
+}
+
+type EngineState =
+  | { status: "idle" }
+  | { status: "loading"; progress: number }
+  | { status: "ready" }
+  | { status: "error"; message: string };
+
+type PreviewState =
+  | { status: "idle" }
+  | { status: "analyzing" }
+  | { status: "done"; compressionRatio: number; highlightedFiles: number; relevantMessages: number }
+  | { status: "error" };
+
+type MigrateState =
+  | { status: "idle" }
+  | { status: "migrating" }
+  | { status: "success"; tier: 1 | 2 | 3; chars: number; compressionRatio: number }
+  | { status: "error"; message: string };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hardware detection
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface HardwareProfile {
+  cores: number;
+  memory: number;
+  hasGPU: boolean;
+  isSlowDevice: boolean;
+  isFastDevice: boolean;
+}
+
+function detectHardware(): HardwareProfile {
+  const cores = navigator.hardwareConcurrency ?? 2;
+  const memory = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? -1;
+  let hasGPU = false;
+  try {
+    const canvas = document.createElement("canvas");
+    const gl = (
+      canvas.getContext("webgl") || canvas.getContext("experimental-webgl")
+    ) as WebGLRenderingContext | null;
+    if (gl) {
+      const ext = gl.getExtension("WEBGL_debug_renderer_info");
+      if (ext) {
+        const renderer = (gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) as string).toLowerCase();
+        if (!renderer.includes("swiftshader") && !renderer.includes("software")) {
+          hasGPU = renderer.includes("nvidia") || renderer.includes("amd") ||
+                   renderer.includes("intel") || renderer.includes("apple");
+        }
+      }
+    }
+  } catch { /* ignore */ }
+  const isSlowDevice = cores <= 4 && memory !== -1 && memory <= 8;
+  const isFastDevice = cores >= 8 || hasGPU;
+  return { cores, memory, hasGPU, isSlowDevice, isFastDevice };
+}
+
+const HW_PROFILE = detectHardware();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Component
+// ─────────────────────────────────────────────────────────────────────────────
+
+export default function MigrationModal({
+  session,
+  targetPlatform,
+  onClose,
+  onSuccess,
+}: Props) {
+  const savedTier = (): 1 | 2 | 3 => {
+    try {
+      const v = Number(localStorage.getItem(LAST_TIER_KEY));
+      if (v === 1 || v === 2 || v === 3) return v;
+    } catch { /* ignore */ }
+    return HW_PROFILE.isFastDevice ? 3 : 2;
+  };
+
+  const [tier, setTierRaw] = useState<1 | 2 | 3>(savedTier);
+  const [caveman, setCaveman] = useState(false);
+  const [task, setTask] = useState("");
+  const [strength, setStrength] = useState<"light" | "strict">("light");
+  const [hw] = useState<HardwareProfile>(() => HW_PROFILE);
+  const [engineState, setEngineState] = useState<EngineState>({ status: "idle" });
+  const [preview, setPreview] = useState<PreviewState>({ status: "idle" });
+  const [migrateState, setMigrateState] = useState<MigrateState>({ status: "idle" });
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Lock body scroll while modal is open ────────────────────────────────────
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  function setTier(t: 1 | 2 | 3) {
+    setTierRaw(t);
+    try { localStorage.setItem(LAST_TIER_KEY, String(t)); } catch { /* ignore */ }
+    setMigrateState({ status: "idle" });
+    setPreview({ status: "idle" });
+  }
+
+  // ── Init attention engine when tier 3 is selected ──────────────────────────
+  useEffect(() => {
+    if (tier !== 3) return;
+    if (attentionEngine.initialized) {
+      setEngineState({ status: "ready" });
+      return;
+    }
+    setEngineState({ status: "loading", progress: 0 });
+    attentionEngine
+      .initialize((p) => setEngineState({ status: "loading", progress: p }))
+      .then(() => setEngineState({ status: "ready" }))
+      .catch((err) => {
+        console.warn("[MigrationModal] engine init failed:", err);
+        setEngineState({ status: "error", message: "Engine unavailable — keyword fallback will be used" });
+      });
+  }, [tier]);
+
+  // ── Debounced live preview (tier 3 only) ────────────────────────────────────
+  useEffect(() => {
+    if (tier !== 3) return;
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    if (!task.trim() || engineState.status !== "ready") {
+      setPreview({ status: "idle" });
+      return;
+    }
+    setPreview({ status: "analyzing" });
+    previewTimerRef.current = setTimeout(async () => {
+      try {
+        await attentionEngine.indexSession(session);
+        const map = await attentionEngine.buildAttentionMap(session, task, strength);
+        const relevantMessages = map.topChunks.filter(
+          (c) => c.type === "message" && c.relevanceScore >= map.threshold
+        ).length;
+        setPreview({ status: "done", compressionRatio: map.compressionRatio, highlightedFiles: map.highlightedFiles.length, relevantMessages });
+      } catch {
+        setPreview({ status: "error" });
+      }
+    }, 600);
+    return () => { if (previewTimerRef.current) clearTimeout(previewTimerRef.current); };
+  }, [task, strength, engineState.status, session, tier]);
+
+  // ── Auto-dismiss on success ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (migrateState.status !== "success") return;
+    dismissTimerRef.current = setTimeout(() => onClose(), 3000);
+    return () => { if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current); };
+  }, [migrateState.status, onClose]);
+
+  // ── Migration handler ───────────────────────────────────────────────────────
+  async function handleMigrate() {
+    setMigrateState({ status: "migrating" });
+
+    const tab = await findTargetPlatformTab(targetPlatform);
+    if (!tab?.id) {
+      setMigrateState({
+        status: "error",
+        message: `Open a ${PLATFORM_LABELS[targetPlatform]} tab, then try again.`,
+      });
+      return;
+    }
+
+    await focusTab(tab.id);
+    await new Promise((r) => setTimeout(r, 300));
+
+    let precomputedSummary: string | undefined;
+    let precomputedAttentionMap: unknown;
+
+    if (tier === 3 && task.trim() && attentionEngine.initialized) {
+      try {
+        const result = await summarizeWithAttention(session.messages, task.trim(), strength, session);
+        precomputedSummary = result.summary;
+        precomputedAttentionMap = result.attentionMap;
+      } catch (err) {
+        console.warn("[MigrationModal] pre-computation failed, service worker will recompute:", err);
+      }
+    }
+
+    chrome.runtime.sendMessage(
+      {
+        type: "MIGRATE_CONTEXT",
+        payload: {
+          sessionId: session.id,
+          targetPlatform,
+          targetTabId: tab.id,
+          tier,
+          caveman,
+          ...(tier === 3 && {
+            useAttentionEngine: true,
+            task: task.trim() || undefined,
+            strength,
+            precomputedSummary,
+            precomputedAttentionMap,
+          }),
+        },
+      },
+      (response) => {
+        if (response?.error) {
+          setMigrateState({ status: "error", message: response.error });
+          return;
+        }
+        const chars = (response?.prompt as string | undefined)?.length ?? 0;
+        const ratio =
+          tier === 3 && preview.status === "done"
+            ? preview.compressionRatio
+            : (response?.compressionRatio as number | undefined) ?? 0;
+        setMigrateState({ status: "success", tier, chars, compressionRatio: ratio });
+        onSuccess?.(tier, ratio, chars);
+      }
+    );
+  }
+
+  const isBusy = migrateState.status === "migrating" || engineState.status === "loading";
+  const isDone = migrateState.status === "success";
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+  // Portal to document.body so the overlay escapes the sidebar's animate-slide-up
+  // transform ancestor, which would otherwise break position:fixed centering.
+  return createPortal(
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.88)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: "16px",
+        backdropFilter: "blur(4px)",
+        overflow: "hidden",
+        overscrollBehavior: "contain",
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onWheel={(e) => { e.stopPropagation(); }}
+      onTouchMove={(e) => { e.stopPropagation(); }}
+    >
+      <div
+        style={{
+          background: "#0A0A0A",
+          border: "1px solid rgba(0,255,136,0.14)",
+          borderRadius: "8px",
+          padding: "12px",
+          maxWidth: "480px",
+          width: "100%",
+          maxHeight: "480px",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          color: "#F5F5F5",
+          fontFamily: "Inter, 'SF Pro Display', sans-serif",
+          boxShadow: "0 0 0 1px rgba(0,255,136,0.05), 0 24px 80px rgba(0,0,0,0.9)",
+        }}
+      >
+        {/* ── Header ── */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: "11px", fontWeight: 900, color: "#00FF88", letterSpacing: "0.18em", textTransform: "uppercase", textShadow: "0 0 10px rgba(0,255,136,0.4)" }}>
+              Migrate Context
+            </h2>
+            <p style={{ margin: "2px 0 0", fontSize: "9px", color: "#2A5A2A", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              → {PLATFORM_LABELS[targetPlatform]}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ background: "none", border: "1px solid #1A2A1A", borderRadius: "4px", color: "#2A6A2A", cursor: "pointer", fontSize: "12px", padding: "2px 6px", transition: "all 0.15s" }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* ── Hardware recommendation banner ── */}
+        {hw.isFastDevice && (
+          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)", borderRadius: "4px", fontSize: "9px", color: "#00FF88", letterSpacing: "0.06em", lineHeight: "1" }}>
+            ⚡ GPU detected — Attention Engine ready
+          </div>
+        )}
+        {!hw.isFastDevice && hw.isSlowDevice && (
+          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F59E0B", letterSpacing: "0.06em", lineHeight: "1" }}>
+            ⚠️ Slow device detected — Smart Summary recommended
+          </div>
+        )}
+
+        {/* ── Tier cards ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px", marginBottom: "6px" }}>
+          {([
+            { t: 1 as const, dot: "#666",    label: "Full Context", speed: "Fastest" },
+            { t: 2 as const, dot: "#00FF88", label: "Smart",        speed: "Fast"    },
+            { t: 3 as const, dot: "#F59E0B", label: "⚡ Attention", speed: "Smart"   },
+          ] as const).map(({ t, dot, label, speed }) => {
+            const active = tier === t;
+            return (
+              <button
+                key={t}
+                onClick={() => setTier(t)}
+                style={{
+                  background: "#1A1A1A",
+                  border: `1px solid ${active ? "#00FF88" : "#2A2A2A"}`,
+                  borderRadius: "6px",
+                  padding: "4px 6px",
+                  cursor: "pointer",
+                  textAlign: "center",
+                  transition: "border-color 0.15s ease",
+                  boxShadow: active ? "0 0 8px rgba(0,255,136,0.18), inset 0 0 6px rgba(0,255,136,0.04)" : "none",
+                  outline: "none",
+                  height: "44px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "3px",
+                }}
+                onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.borderColor = "#3A3A3A"; }}
+                onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.borderColor = "#2A2A2A"; }}
+              >
+                <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: active ? dot : "#333", flexShrink: 0 }} />
+                <div style={{ fontSize: "9px", fontWeight: 900, color: active ? "#00FF88" : "#888", textTransform: "uppercase", letterSpacing: "0.04em", lineHeight: 1.2 }}>
+                  {label}
+                </div>
+                <div style={{ fontSize: "8px", color: active ? "#00CC6A" : "#333" }}>{speed}</div>
+              </button>
+            );
+          })}
+        </div>
+
+
+        {/* ── Tier 3: engine init progress ── */}
+        {tier === 3 && engineState.status === "loading" && (
+          <div style={{ marginBottom: "4px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#666", marginBottom: "4px" }}>
+              <span>Loading semantic engine…</span>
+              <span style={{ color: "#00FF88", fontWeight: 700 }}>{engineState.progress}%</span>
+            </div>
+            <div style={{ background: "#111", borderRadius: "4px", height: "2px" }}>
+              <div style={{ background: "linear-gradient(90deg, #00FF88, #00CC6A)", height: "2px", borderRadius: "4px", width: `${engineState.progress}%`, transition: "width 0.3s ease", boxShadow: "0 0 6px rgba(0,255,136,0.5)" }} />
+            </div>
+          </div>
+        )}
+
+        {tier === 3 && engineState.status === "error" && (
+          <div style={{ marginBottom: "4px", padding: "4px 10px", background: "#110505", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F87171", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            ⚠ {engineState.message}
+          </div>
+        )}
+
+        {/* ── Tier 3: task input ── */}
+        {tier === 3 && (
+          <div style={{ marginBottom: "6px" }}>
+            <div className="cf-chips-row" style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "4px", marginBottom: "4px", scrollbarWidth: "none", height: "24px", alignItems: "center" }}>
+              {TASK_CHIPS.map((chip) => {
+                const active = task === chip;
+                return (
+                  <button
+                    key={chip}
+                    onClick={() => setTask(active ? "" : chip)}
+                    style={{
+                      flexShrink: 0,
+                      padding: "2px 7px",
+                      borderRadius: "4px",
+                      fontSize: "8px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      background: active ? "rgba(0,255,136,0.12)" : "#111",
+                      border: `1px solid ${active ? "rgba(0,255,136,0.4)" : "#222"}`,
+                      color: active ? "#00FF88" : "#555",
+                      transition: "all 0.15s",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {chip}
+                  </button>
+                );
+              })}
+            </div>
+            <input
+              type="text"
+              value={task}
+              onChange={(e) => setTask(e.target.value)}
+              placeholder="Or describe your task…"
+              style={{ width: "100%", padding: "3px 8px", height: "28px", background: "#111", border: "1px solid #222", borderRadius: "4px", color: "#F5F5F5", fontSize: "10px", fontFamily: "Inter, sans-serif", boxSizing: "border-box", outline: "none" }}
+            />
+          </div>
+        )}
+
+        {/* ── Tier 3: live preview ── */}
+        {tier === 3 && preview.status === "analyzing" && (
+          <div style={{ marginBottom: "6px", padding: "5px 10px", background: "#111", border: "1px solid #1A2A1A", borderRadius: "4px", fontSize: "9px", color: "#2A6A2A", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            🔍 Analyzing…
+          </div>
+        )}
+
+        {tier === 3 && preview.status === "done" && (
+          <div style={{ marginBottom: "6px", padding: "5px 10px", background: "#060F07", border: "1px solid rgba(0,255,136,0.18)", borderRadius: "4px", fontSize: "9px" }}>
+            <span style={{ color: "#00FF88", fontWeight: 900 }}>✓ </span>
+            <span style={{ color: "#2A6A2A" }}>
+              <strong style={{ color: "#00FF88" }}>{preview.compressionRatio}% compressed</strong>
+              {" · "}<strong style={{ color: "#F5F5F5" }}>{preview.highlightedFiles}</strong> files
+              {" · "}<strong style={{ color: "#F5F5F5" }}>{preview.relevantMessages}/{session.messages.length}</strong> msgs
+            </span>
+          </div>
+        )}
+
+        {tier === 3 && preview.status === "error" && (
+          <div style={{ marginBottom: "6px", padding: "5px 10px", background: "#110505", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F87171", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Preview unavailable — keyword fallback
+          </div>
+        )}
+
+        {/* ── Tier 3: strength + GPU on one row ── */}
+        {tier === 3 && (
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+            {(["light", "strict"] as const).map((s) => {
+              const active = strength === s;
+              return (
+                <button
+                  key={s}
+                  onClick={() => setStrength(s)}
+                  style={{
+                    padding: "3px 10px",
+                    borderRadius: "4px",
+                    fontSize: "9px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    background: active ? "rgba(0,255,136,0.12)" : "#111",
+                    border: `1px solid ${active ? "rgba(0,255,136,0.4)" : "#222"}`,
+                    color: active ? "#00FF88" : "#555",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {s}
+                </button>
+              );
+            })}
+            <div style={{ flex: 1 }} />
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "3px",
+                padding: "3px 8px",
+                borderRadius: "20px",
+                fontSize: "8px",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                background: hw.hasGPU ? "rgba(0,255,136,0.1)" : "#111",
+                border: `1px solid ${hw.hasGPU ? "rgba(0,255,136,0.3)" : "#222"}`,
+                color: hw.hasGPU ? "#00FF88" : "#555",
+              }}
+            >
+              {hw.hasGPU ? "⚡ GPU" : "🔲 CPU"}
+            </span>
+          </div>
+        )}
+
+        {/* ── Caveman toggle — all tiers ── */}
+        <div style={{ marginBottom: "6px" }}>
+          <button
+            onClick={() => setCaveman((v) => !v)}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "4px 10px",
+              height: "32px",
+              borderRadius: "5px",
+              border: `1px solid ${caveman ? "rgba(0,255,136,0.35)" : "#222"}`,
+              background: caveman ? "rgba(0,255,136,0.07)" : "#111",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+              outline: "none",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontSize: "13px" }}>🪨</span>
+              <span style={{ fontSize: "9px", fontWeight: 900, color: caveman ? "#00FF88" : "#888", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                Caveman Mode
+              </span>
+              <span style={{ fontSize: "8px", color: "#444" }}>— removes filler</span>
+            </div>
+            <div style={{ position: "relative", width: "28px", height: "16px", borderRadius: "8px", background: caveman ? "#00FF88" : "#222", transition: "background 0.2s ease", flexShrink: 0 }}>
+              <div style={{ position: "absolute", top: "2px", left: caveman ? "12px" : "2px", width: "12px", height: "12px", borderRadius: "50%", background: caveman ? "#0A0A0A" : "#555", transition: "left 0.2s ease" }} />
+            </div>
+          </button>
+        </div>
+
+        {/* ── Error banner ── */}
+        {migrateState.status === "error" && (
+          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "#110505", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F87171", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            {migrateState.message}
+          </div>
+        )}
+
+        {/* ── Success banner ── */}
+        {migrateState.status === "success" && (
+          <div style={{ marginBottom: "6px", padding: "5px 10px", background: "#060F07", border: "1px solid rgba(0,255,136,0.25)", borderRadius: "5px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px" }}>
+              <span style={{ fontSize: "14px" }}>✅</span>
+              <span style={{ fontSize: "10px", fontWeight: 900, color: "#00FF88", textShadow: "0 0 8px rgba(0,255,136,0.4)" }}>Context migrated!</span>
+            </div>
+            <div style={{ fontSize: "9px", color: "#2A6A2A" }}>
+              <strong style={{ color: "#F5F5F5" }}>{migrateState.chars.toLocaleString()} chars</strong>
+              {migrateState.compressionRatio > 0 && <> · <strong style={{ color: "#00FF88" }}>{migrateState.compressionRatio}% of original</strong></>}
+              {" · "}Tier: <span style={{ color: "#00FF88" }}>{TIER_LABELS[migrateState.tier]}</span>
+            </div>
+            <div style={{ marginTop: "4px", fontSize: "8px", color: "#333" }}>Auto-closing in 3s…</div>
+          </div>
+        )}
+
+        {/* ── Action buttons ── */}
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button
+            onClick={onClose}
+            style={{ flex: 1, height: "36px", padding: "0 12px", background: "#111", border: "1px solid #222", borderRadius: "4px", color: "#555", cursor: "pointer", fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", transition: "all 0.15s" }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleMigrate}
+            disabled={isBusy || isDone}
+            style={{
+              flex: 2,
+              height: "36px",
+              padding: "0 16px",
+              background: isDone ? "#060F07" : isBusy ? "#0D2A0D" : "#00FF88",
+              border: isDone ? "1px solid rgba(0,255,136,0.25)" : "none",
+              borderRadius: "4px",
+              color: isDone ? "#00FF88" : isBusy ? "#2A6A2A" : "#0A0A0A",
+              cursor: isBusy || isDone ? "not-allowed" : "pointer",
+              fontSize: "10px",
+              fontWeight: 900,
+              textTransform: "uppercase",
+              letterSpacing: "0.12em",
+              boxShadow: (!isBusy && !isDone) ? "0 0 18px rgba(0,255,136,0.45), 0 0 36px rgba(0,255,136,0.12)" : "none",
+              transition: "all 0.15s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+            }}
+          >
+            {migrateState.status === "migrating" && (
+              <span style={{ display: "inline-block", animation: "spin 0.7s linear infinite" }}>↻</span>
+            )}
+            {migrateState.status === "migrating"
+              ? "Migrating…"
+              : isDone
+              ? "✓ Done"
+              : MIGRATE_BTN_LABELS[tier]}
+          </button>
+        </div>
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } } .cf-chips-row::-webkit-scrollbar { display: none; }`}</style>
+    </div>,
+    document.body
+  );
+}

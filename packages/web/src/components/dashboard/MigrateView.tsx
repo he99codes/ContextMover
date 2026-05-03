@@ -17,17 +17,31 @@ const TARGETS: { id: Platform; label: string; color: string }[] = [
   { id: "deepseek",   label: "DeepSeek",       color: "#4C8BF5" },
 ];
 
+const TIER_CONFIG = [
+  { t: 1 as const, icon: "📄", label: "Full Context",  speed: "Fastest", desc: "Complete conversation" },
+  { t: 2 as const, icon: "🧠", label: "Smart Summary", speed: "Fast",    desc: "Auto-extracted"       },
+  { t: 3 as const, icon: "⚡", label: "Attention",     speed: "Smart",   desc: "Task-focused"         },
+] as const;
+
+const TASK_CHIPS = [
+  "Fix the current bug",
+  "Continue implementing the feature",
+  "Refactor the code",
+  "Write tests",
+];
+
 interface Props {
   initialSessions: Session[];
   userId: string;
 }
 
-function buildMigrationPrompt(session: Session, target: Platform, caveman = false, task = ""): string {
+function buildMigrationPrompt(session: Session, target: Platform, tier: 1 | 2 | 3, caveman = false, task = ""): string {
   const sourceLabel = session.platform.charAt(0).toUpperCase() + session.platform.slice(1);
   const targetLabel = TARGETS.find((t) => t.id === target)?.label ?? target;
   const firstUser =
     session.messages.find((m) => m.role === "user")?.content.trim() ?? "";
   const goal = firstUser.slice(0, 400) || "(no explicit goal captured)";
+  const tierLabel = tier === 3 ? "attention_engine" : tier === 2 ? "smart_summary" : "tier1";
 
   const transcript = session.messages
     .map((m) => {
@@ -42,13 +56,14 @@ function buildMigrationPrompt(session: Session, target: Platform, caveman = fals
     `> **Source:** ${sourceLabel}  `,
     `> **Session:** ${session.title ?? "Untitled"}  `,
     `> **Messages:** ${session.messages.length}  `,
+    `> **Migration tier:** ${tierLabel}  `,
     `> **Exported:** ${new Date().toISOString()}`,
     "",
     "## Original goal",
     "",
     goal,
     "",
-    ...(task ? [
+    ...(tier === 3 && task ? [
       "## Attention Focus",
       "",
       `> 🎯 **Task:** ${task}`,
@@ -63,7 +78,7 @@ function buildMigrationPrompt(session: Session, target: Platform, caveman = fals
     "---",
     "",
     `Please continue this conversation in ${targetLabel}. Acknowledge the context, identify anything ambiguous, and ask before making large changes.`,
-    ...(caveman ? [`Caveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`] : []),
+    ...(caveman ? [`\nCaveman mode: no filler, no pleasantries, answer then stop, code write normal, technical terms keep exact.`] : []),
   ].join("\n");
 }
 
@@ -77,9 +92,11 @@ export function MigrateView({ initialSessions, userId }: Props) {
     prefilledId ?? initialSessions[0]?.id ?? null
   );
   const [target, setTarget] = useState<Platform>("grok");
+  const [tier, setTier] = useState<1 | 2 | 3>(2);
   const [caveman, setCaveman] = useState(false);
   const [copied, setCopied] = useState(false);
   const [task, setTask] = useState("");
+  const [copyStats, setCopyStats] = useState<{ chars: number; tier: 1 | 2 | 3 } | null>(null);
 
   const selected = sessions.find((s) => s.id === selectedId) ?? null;
 
@@ -96,14 +113,16 @@ export function MigrateView({ initialSessions, userId }: Props) {
 
   const prompt = useMemo(() => {
     if (!selected) return "";
-    return buildMigrationPrompt(selected, target, caveman, task);
-  }, [selected, target, caveman, task]);
+    return buildMigrationPrompt(selected, target, tier, caveman, task);
+  }, [selected, target, tier, caveman, task]);
 
   async function copyPrompt() {
     if (!prompt) return;
     await navigator.clipboard.writeText(prompt);
     setCopied(true);
+    setCopyStats({ chars: prompt.length, tier });
     setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopyStats(null), 4000);
   }
 
   return (
@@ -248,44 +267,92 @@ export function MigrateView({ initialSessions, userId }: Props) {
                 </div>
               </div>
 
-              {/* Attention task focus */}
+              {/* Migration tier selector */}
               <div>
-                <p className="mb-2 text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">
-                  Task focus <span className="normal-case font-normal text-[#1A2A1A]">(optional)</span>
-                </p>
-                <input
-                  value={task}
-                  onChange={(e) => setTask(e.target.value)}
-                  placeholder="What are you trying to accomplish? Improves context focus."
-                  className="w-full rounded-[5px] border border-[#1A1A2A] bg-[#060606] px-4 py-3 text-sm font-mono text-[#F5F5F5] placeholder:text-[#1A1A3A] outline-none focus:border-[#6366f1] focus:shadow-[0_0_8px_rgba(99,102,241,0.2)] transition-all"
-                />
+                <p className="mb-2 text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">◈ Migration tier</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {TIER_CONFIG.map(({ t, icon, label, speed, desc }) => {
+                    const active = tier === t;
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => setTier(t)}
+                        className="flex flex-col items-center gap-1.5 rounded-[6px] border p-4 text-center transition-all duration-150 outline-none"
+                        style={{
+                          background: "#111",
+                          borderColor: active ? "#00FF88" : "#1E1E1E",
+                          boxShadow: active ? "0 0 12px rgba(0,255,136,0.18), inset 0 0 8px rgba(0,255,136,0.04)" : "none",
+                        }}
+                      >
+                        <span className="text-xl">{icon}</span>
+                        <span className="text-[9px] font-black uppercase tracking-wider" style={{ color: active ? "#00FF88" : "#888" }}>{label}</span>
+                        <span className="text-[9px] font-semibold" style={{ color: active ? "#00CC6A" : "#444" }}>{speed}</span>
+                        <span className="text-[8px]" style={{ color: "#333" }}>{desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {tier === 2 && (
+                  <p className="mt-2 text-[10px] text-[#555] leading-relaxed">
+                    Automatically extracts goals, decisions, bugs and code into a structured summary.
+                  </p>
+                )}
               </div>
+
+              {/* Task focus — tier 3 only */}
+              {tier === 3 && (
+                <div>
+                  <p className="mb-2 text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">
+                    Task focus <span className="normal-case font-normal text-[#1A2A1A]">(optional)</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {TASK_CHIPS.map((chip) => (
+                      <button
+                        key={chip}
+                        onClick={() => setTask(task === chip ? "" : chip)}
+                        className="rounded-[4px] border px-3 py-1.5 text-[9px] font-semibold uppercase tracking-wide transition-all"
+                        style={{
+                          background: task === chip ? "rgba(0,255,136,0.1)" : "#0A0A0A",
+                          borderColor: task === chip ? "rgba(0,255,136,0.35)" : "#1A1A1A",
+                          color: task === chip ? "#00FF88" : "#555",
+                        }}
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    value={task}
+                    onChange={(e) => setTask(e.target.value)}
+                    placeholder="Or describe your task…"
+                    className="w-full rounded-[5px] border border-[#1A1A1A] bg-[#060606] px-4 py-3 text-sm font-mono text-[#F5F5F5] placeholder:text-[#333] outline-none focus:border-[#00FF88] focus:shadow-[0_0_8px_rgba(0,255,136,0.15)] transition-all"
+                  />
+                </div>
+              )}
 
               {/* Caveman toggle */}
               <button
                 onClick={() => setCaveman((v) => !v)}
                 className="flex w-full items-center justify-between rounded-[6px] border px-5 py-3.5 text-xs transition-all duration-200 hover:-translate-y-px"
                 style={caveman
-                  ? { borderColor: "rgba(245,158,11,0.4)", background: "rgba(245,158,11,0.07)", color: "#F59E0B", boxShadow: "0 0 14px rgba(245,158,11,0.2)" }
+                  ? { borderColor: "rgba(0,255,136,0.35)", background: "rgba(0,255,136,0.07)", color: "#00FF88", boxShadow: "0 0 12px rgba(0,255,136,0.15)" }
                   : { borderColor: "#1A2A1A", background: "#060606", color: "#2A4A2A" }}
               >
                 <div className="flex items-center gap-2">
                   <span className="text-base">🪨</span>
-                  <span className="font-semibold uppercase tracking-[0.15em] text-[10px]">Caveman mode</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] opacity-70">
-                    {caveman ? "ON — aggressive compress + blunt" : "OFF"}
-                  </span>
-                  <div
-                    className="relative h-4 w-7 rounded-full transition-colors"
-                    style={{ background: caveman ? "#F59E0B" : "#1A1A1A" }}
-                  >
-                    <div
-                      className="absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-200"
-                      style={{ transform: caveman ? "translateX(14px)" : "translateX(2px)" }}
-                    />
+                  <div className="text-left">
+                    <div className="font-semibold uppercase tracking-[0.15em] text-[10px]">Caveman mode</div>
+                    <div className="text-[9px] opacity-60 mt-0.5">Removes filler from AI responses</div>
                   </div>
+                </div>
+                <div
+                  className="relative h-4 w-7 rounded-full transition-colors"
+                  style={{ background: caveman ? "#00FF88" : "#1A1A1A" }}
+                >
+                  <div
+                    className="absolute top-0.5 h-3 w-3 rounded-full transition-transform duration-200"
+                    style={{ background: caveman ? "#0A0A0A" : "#555", transform: caveman ? "translateX(14px)" : "translateX(2px)" }}
+                  />
                 </div>
               </button>
 
@@ -301,6 +368,19 @@ export function MigrateView({ initialSessions, userId }: Props) {
                     {copied ? "Copied!" : "Copy"}
                   </button>
                 </div>
+                {copyStats && (
+                  <div className="mb-2 flex items-center gap-3 rounded-[5px] border border-[#00FF88]/20 bg-[#060F07] px-4 py-2.5 text-[10px]">
+                    <span className="text-lg">✅</span>
+                    <div>
+                      <span className="font-semibold text-[#00FF88]">Copied!</span>
+                      <span className="ml-2 text-[#2A6A2A]">
+                        {copyStats.chars.toLocaleString()} chars
+                        {" · "}
+                        Tier: <span className="text-[#F5F5F5]">{copyStats.tier === 1 ? "Full Context" : copyStats.tier === 2 ? "Smart Summary" : "Attention Engine"}</span>
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <pre className="rounded-[5px] border border-[#1A2A1A] bg-[#050505] p-5 text-xs font-mono text-[#8AFF8A]/80 whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto" style={{ boxShadow: "inset 0 0 20px rgba(0,255,136,0.025)" }}>
                   {prompt}
                 </pre>
