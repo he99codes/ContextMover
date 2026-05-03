@@ -23,7 +23,7 @@
 | Date | Change | File(s) Affected |
 |------|--------|-----------------|
 | 2026-05-03 | Next.js upgraded 14.2.5 → 14.2.35 (fixes CVE-2025-29927 critical auth bypass + 8 other CVEs) | `packages/web/package.json` |
-| 2026-05-03 | Added `'strict-dynamic'` to extension CSP (aligns code with SECURITY.md documentation) | `packages/browser-extension/manifest.json` |
+| 2026-05-03 | Reverted `'strict-dynamic'` from extension CSP — Chrome MV3 explicitly rejects it; not valid in `extension_pages` | `packages/browser-extension/manifest.json` |
 | 2026-05-03 | Auth callback hardened: open-redirect guard on `?next=`, explicit error redirect on failed code exchange | `packages/web/src/app/auth/callback/route.ts` |
 | 2026-05-02 | Initial security hardening pass | All files below |
 | 2026-05-02 | Supabase RLS consolidated to FOR ALL policies | `supabase/schema.sql` |
@@ -78,16 +78,16 @@ All three Supabase tables are locked with `FOR ALL` owner-only policies:
 
 ### CSP Policy in Effect
 ```
-script-src 'self' 'wasm-unsafe-eval' 'strict-dynamic';
+script-src 'self' 'wasm-unsafe-eval';
 object-src 'none';
 base-uri 'none'
 ```
 
 - `'wasm-unsafe-eval'`: Required for tree-sitter WASM (Attention Engine grammar parsing). Cannot be removed without eliminating tree-sitter.
-- `'strict-dynamic'`: Scripts loaded by trusted scripts are trusted; inline scripts and `eval()` are still blocked.
 - `object-src 'none'`: No Flash, PDF plugins, etc.
 - `base-uri 'none'`: Prevents base tag injection attacks.
 - **Removed**: `unsafe-eval`, `unsafe-inline`.
+- **Not applicable**: `'strict-dynamic'` — Chrome MV3 explicitly rejects this keyword in `extension_pages` CSP with "Insecure CSP value". MV3 only permits `'self'`, `'wasm-unsafe-eval'`, nonce-sources, and hash-sources.
 
 ### Whitelisted Domains and Justification
 
