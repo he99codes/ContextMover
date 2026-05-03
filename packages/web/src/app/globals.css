@@ -216,6 +216,31 @@
   }
 }
 
+/* ── Landing page: scroll reveal ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.65s cubic-bezier(0.16,1,0.3,1),
+              transform 0.65s cubic-bezier(0.16,1,0.3,1);
+}
+.reveal.is-visible          { opacity: 1; transform: translateY(0); }
+.reveal-d1.is-visible       { transition-delay: 100ms; }
+.reveal-d2.is-visible       { transition-delay: 200ms; }
+.reveal-d3.is-visible       { transition-delay: 300ms; }
+.reveal-d4.is-visible       { transition-delay: 400ms; }
+
+/* ── Landing page: animated flow lines ── */
+@keyframes flow-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.flow-line {
+  background: linear-gradient(90deg, transparent 0%, #00FF88 50%, transparent 100%);
+  background-size: 60% 100%;
+  animation: flow-shimmer 2s linear infinite;
+}
+.flow-line-delay { animation-delay: 1s; }
+
 /* ── prefers-reduced-motion ── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

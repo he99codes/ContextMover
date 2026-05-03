@@ -44,7 +44,8 @@ export async function middleware(request: NextRequest) {
     !user &&
     !pathname.startsWith("/auth") &&
     !pathname.startsWith("/_next") &&
-    pathname !== "/favicon.ico"
+    pathname !== "/favicon.ico" &&
+    pathname !== "/"
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth";
