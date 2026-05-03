@@ -79,7 +79,7 @@ function TerminalDemo() {
       <div className="flex flex-row sm:flex-col items-center justify-center gap-1.5 py-2">
         <div style={lineStyle(step >= 4, "left")} className="text-[#00FF88] text-2xl font-bold hidden sm:block">→</div>
         <div style={{ opacity: step >= 5 ? 1 : 0, transition: "opacity 0.4s ease" }} className="text-center">
-          <div className="text-[10px] text-[#00FF88] font-semibold leading-tight whitespace-nowrap">⚡ Smart</div>
+          <div className="text-[10px] text-[#00FF88] font-semibold leading-tight whitespace-nowrap">▸ Smart</div>
           <div className="text-[10px] text-[#00FF88] font-semibold leading-tight">Summary</div>
         </div>
       </div>
@@ -168,9 +168,9 @@ const PLATFORMS = [
 ];
 
 const STEPS = [
-  { icon: "👁️", num: "01", title: "Capture", body: "Browse any AI platform. ContextForge silently captures your conversation in the background. Supports Claude, ChatGPT, Gemini, Grok and more — with zero setup." },
-  { icon: "🧠", num: "02", title: "Compress", body: "Choose your intelligence tier: Full Context, Smart Summary, or the Attention Engine. Your context is optimized entirely on your device — never sent to our servers." },
-  { icon: "⚡", num: "03", title: "Migrate", body: "One click. Your context is perfectly formatted for the target AI and injected directly into its input field. Continue exactly where you left off, instantly." },
+  { icon: "◉", num: "01", title: "Capture", body: "Browse any AI platform. ContextForge silently captures your conversation in the background. Supports Claude, ChatGPT, Gemini, Grok and more — with zero setup." },
+  { icon: "◈", num: "02", title: "Compress", body: "Choose your intelligence tier: Full Context, Smart Summary, or the Attention Engine. Your context is optimized entirely on your device — never sent to our servers." },
+  { icon: "▶", num: "03", title: "Migrate", body: "One click. Your context is perfectly formatted for the target AI and injected directly into its input field. Continue exactly where you left off, instantly." },
 ];
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -190,7 +190,6 @@ export default function LandingPage() {
             <span className="font-bold text-[#F5F5F5] tracking-tight">ContextForge</span>
           </a>
           <div className="hidden md:flex items-center gap-7">
-            <a href="https://github.com/he99codes/Context_flow" target="_blank" rel="noopener noreferrer" className="text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors">GitHub</a>
             <a href="#pricing" className="text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors">Pricing</a>
             <a href="#pricing" className="bg-[#00FF88] text-[#0A0A0A] font-semibold text-sm px-4 py-1.5 rounded-md hover:bg-[#00CC6A] transition-colors">Get for free</a>
           </div>
@@ -200,7 +199,6 @@ export default function LandingPage() {
         </div>
         {menuOpen && (
           <div className="md:hidden border-t border-[#2A2A2A] bg-[#0A0A0A] px-5 py-4 space-y-3">
-            <a href="https://github.com/he99codes/Context_flow" target="_blank" rel="noopener noreferrer" className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-2">GitHub</a>
             <a href="#pricing" className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-2" onClick={() => setMenuOpen(false)}>Pricing</a>
             <a href="#pricing" className="block text-center bg-[#00FF88] text-[#0A0A0A] font-semibold text-sm px-4 py-2.5 rounded-md" onClick={() => setMenuOpen(false)}>Get for free</a>
           </div>
@@ -234,7 +232,7 @@ export default function LandingPage() {
             </a>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#6B6B6B] mb-14 animate-fade-in" style={{ animationDelay: "380ms" }}>
-            {["🔒 Local-first", "⚡ Works offline", "🧠 3-tier intelligence", "No account needed"].map((t, i) => (
+            {["■ Local-first", "▸ Works offline", "◈ 3-tier intelligence", "No account needed"].map((t, i) => (
               <span key={i}>{t}</span>
             ))}
           </div>
@@ -251,9 +249,9 @@ export default function LandingPage() {
           <p className="reveal text-[#6B6B6B] mb-14 max-w-lg mx-auto">You&apos;ve been there. You know how frustrating it is.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-14">
             {[
-              { emoji: "😤", title: "Context window full", body: "You hit the limit. Start over. Re-explain everything from scratch. Hours of work, reduced to a blank chat." },
-              { emoji: "🔀", title: "Wrong model for the job", body: "Started in ChatGPT but Claude is better for this. No way to bring your context along. Pick a model and commit forever." },
-              { emoji: "⏱️", title: "Hours of context lost", body: "Long debugging sessions. Complex architectural decisions. All gone the moment you switch tabs or close the browser." },
+              { emoji: "⊘", title: "Context window full", body: "You hit the limit. Start over. Re-explain everything from scratch. Hours of work, reduced to a blank chat." },
+              { emoji: "⇄", title: "Wrong model for the job", body: "Started in ChatGPT but Claude is better for this. No way to bring your context along. Pick a model and commit forever." },
+              { emoji: "◷", title: "Hours of context lost", body: "Long debugging sessions. Complex architectural decisions. All gone the moment you switch tabs or close the browser." },
             ].map((card, i) => (
               <div key={i} className={`reveal reveal-d${i + 1} card-hover bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-7 text-left`}>
                 <div className="text-3xl mb-4">{card.emoji}</div>
@@ -292,7 +290,7 @@ export default function LandingPage() {
               </div>
               {/* Center */}
               <div className="border border-[rgba(0,255,136,0.3)] bg-[#0A0F0A] rounded-2xl px-7 py-5 text-center shrink-0 shadow-[0_0_32px_rgba(0,255,136,0.08)]">
-                <div className="text-[#00FF88] font-bold text-base mb-1">⚡ ContextForge</div>
+                <div className="text-[#00FF88] font-bold text-base mb-1">▸ ContextForge</div>
                 <div className="text-[#6B6B6B] text-xs leading-5">captures<br />compresses<br />migrates</div>
               </div>
               {/* Flow line right */}
@@ -322,9 +320,9 @@ export default function LandingPage() {
           <p className="reveal text-[#6B6B6B] mb-14">Three tiers. Every situation covered.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
-              { icon: "📄", tier: "Full Context",    badge: null,          speed: "⚡⚡⚡ Instant", desc: "Send the complete conversation verbatim. Every word, every code block, zero compression. When you need absolutely everything." },
-              { icon: "🧠", tier: "Smart Summary",   badge: "Recommended", speed: "⚡⚡⚡ Fast",    desc: "Automatically extracts goals, key decisions, bugs fixed, and all code blocks. The smart default for most sessions — 60–80% compression." },
-              { icon: "⚡", tier: "Attention Engine", badge: null,          speed: "⚡⚡ Smart",    desc: "Semantic AI understands your task and finds exactly what's relevant. GPU-accelerated on your device. Best for 1000+ message sessions." },
+              { icon: "□", tier: "Full Context",    badge: null,          speed: "▸▸▸ Instant", desc: "Send the complete conversation verbatim. Every word, every code block, zero compression. When you need absolutely everything." },
+              { icon: "◆", tier: "Smart Summary",   badge: "Recommended", speed: "▸▸▸ Fast",    desc: "Automatically extracts goals, key decisions, bugs fixed, and all code blocks. The smart default for most sessions — 60–80% compression." },
+              { icon: "▸", tier: "Attention Engine", badge: null,          speed: "▸▸ Smart",    desc: "Semantic AI understands your task and finds exactly what's relevant. GPU-accelerated on your device. Best for 1000+ message sessions." },
             ].map((card, i) => (
               <div key={i} className={`reveal reveal-d${i + 1} relative card-hover bg-[#1A1A1A] border-l-2 border border-[#2A2A2A] border-l-[#00FF88] rounded-2xl p-7 text-left flex flex-col gap-4 ${i === 1 ? "ring-1 ring-[rgba(0,255,136,0.2)]" : ""}`}>
                 {card.badge && (
@@ -340,7 +338,7 @@ export default function LandingPage() {
             ))}
           </div>
           <div className="reveal mt-8 inline-flex items-center gap-2 bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.2)] rounded-full px-4 py-2 text-xs text-[#00FF88]">
-            + Caveman Mode 🪨 — strips AI filler words for 65% faster responses
+            + Caveman Mode — strips AI filler words for 65% faster responses
           </div>
         </div>
       </section>
@@ -402,7 +400,7 @@ export default function LandingPage() {
                 "No VC funding — we earn when you pay, not from your data",
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
-                  <span className="text-[#00FF88] text-base mt-0.5 shrink-0">✅</span>
+                  <span className="text-[#00FF88] text-base mt-0.5 shrink-0">✓</span>
                   <span className="text-sm text-[#F5F5F5] leading-relaxed">{item}</span>
                 </div>
               ))}
@@ -434,7 +432,7 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-          <p className="reveal text-sm text-[#6B6B6B]">More platforms coming. <a href="https://github.com/he99codes/Context_flow/issues" target="_blank" rel="noopener noreferrer" className="text-[#00FF88] hover:underline">Request one →</a></p>
+          <p className="reveal text-sm text-[#6B6B6B]">More platforms coming soon.</p>
         </div>
       </section>
 
@@ -494,7 +492,7 @@ export default function LandingPage() {
           </div>
           {/* Early bird */}
           <div className="reveal inline-flex flex-col sm:flex-row items-center gap-3 bg-[#1A1A1A] border border-[#F59E0B]/30 rounded-2xl px-6 py-4 text-sm">
-            <span className="text-lg">🔥</span>
+            <span className="text-lg">★</span>
             <span className="text-[#F59E0B] font-semibold">Early Bird: Lifetime Pro for $149</span>
             <span className="text-[#6B6B6B]">— first 500 only</span>
             <span className="text-[#F59E0B] font-mono font-bold"><Countdown /></span>
@@ -527,18 +525,17 @@ export default function LandingPage() {
             <div className="flex flex-wrap gap-x-8 gap-y-3 text-sm text-[#6B6B6B]">
               <a href="#" className="hover:text-[#F5F5F5] transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-[#F5F5F5] transition-colors">Terms</a>
-              <a href="https://github.com/he99codes/Context_flow" target="_blank" rel="noopener noreferrer" className="hover:text-[#F5F5F5] transition-colors">GitHub</a>
               <a href="mailto:hello@contextforge.ai" className="hover:text-[#F5F5F5] transition-colors">Contact</a>
             </div>
             {/* Tagline */}
             <div className="text-sm text-[#6B6B6B] text-right hidden md:block">
               <p>Built by developers, for developers.</p>
-              <p className="mt-1">Pune, India 🇮🇳</p>
+              <p className="mt-1">Pune, India</p>
             </div>
           </div>
           <div className="border-t border-[#2A2A2A] pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-[#6B6B6B]">
             <p>© 2026 ContextForge. Your context. Your control.</p>
-            <p className="md:hidden">Built by developers, for developers. Pune, India 🇮🇳</p>
+            <p className="md:hidden">Built by developers, for developers. Pune, India</p>
           </div>
         </div>
       </footer>

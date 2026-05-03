@@ -585,7 +585,7 @@ export default function Sidebar() {
           ) : filtered.length === 0 ? (
             <div className="rounded-[6px] border border-dashed px-4 py-10 text-center animate-fade-in neon-border-pulse" style={{ background: "#070707" }}>
               <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-[6px] border border-[#00FF88]/30 bg-[#00FF88]/5" style={{ boxShadow: "0 0 16px rgba(0,255,136,0.15)" }}>
-                <span className="text-lg">⚡</span>
+                <span className="text-lg">◆</span>
               </div>
               <p className="text-xs font-medium text-[#F5F5F5]">
                 {sessions.length === 0 ? "No sessions yet" : "No results"}
@@ -646,7 +646,7 @@ export default function Sidebar() {
                               letterSpacing: "0.06em",
                               fontWeight: 700,
                             }}>
-                              {migrationTiers[session.id] === 1 ? "Full" : migrationTiers[session.id] === 2 ? "Smart" : "⚡"}
+                              {migrationTiers[session.id] === 1 ? "Full" : migrationTiers[session.id] === 2 ? "Smart" : "▸ AE"}
                             </span>
                           </>
                         )}

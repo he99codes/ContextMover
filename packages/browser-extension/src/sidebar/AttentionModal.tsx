@@ -391,7 +391,7 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
               letterSpacing: "0.1em",
             }}
           >
-            🔍 Analyzing session…
+            · Analyzing session…
           </div>
         )}
 
@@ -499,7 +499,7 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
               onChange={(e) => setCaveman(e.target.checked)}
               style={{ cursor: "pointer", accentColor: "#00FF88" }}
             />
-            Caveman Mode 🪨{" "}
+            Caveman Mode{" "}
             <span style={{ color: "#1A3A1A" }}>(ultra-compressed, no filler)</span>
           </label>
         </div>

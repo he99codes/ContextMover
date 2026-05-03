@@ -331,12 +331,12 @@ export default function MigrationModal({
         {/* ── Hardware recommendation banner ── */}
         {hw.isFastDevice && (
           <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)", borderRadius: "4px", fontSize: "9px", color: "#00FF88", letterSpacing: "0.06em", lineHeight: "1" }}>
-            ⚡ GPU detected — Attention Engine ready
+            ▸ GPU detected — Attention Engine ready
           </div>
         )}
         {!hw.isFastDevice && hw.isSlowDevice && (
           <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F59E0B", letterSpacing: "0.06em", lineHeight: "1" }}>
-            ⚠️ Slow device detected — Smart Summary recommended
+            ⚠ Slow device detected — Smart Summary recommended
           </div>
         )}
 
@@ -345,7 +345,7 @@ export default function MigrationModal({
           {([
             { t: 1 as const, dot: "#666",    label: "Full Context", speed: "Fastest" },
             { t: 2 as const, dot: "#00FF88", label: "Smart",        speed: "Fast"    },
-            { t: 3 as const, dot: "#F59E0B", label: "⚡ Attention", speed: "Smart"   },
+            { t: 3 as const, dot: "#F59E0B", label: "▸ Attention", speed: "Smart"   },
           ] as const).map(({ t, dot, label, speed }) => {
             const active = tier === t;
             return (
@@ -446,7 +446,7 @@ export default function MigrationModal({
         {/* ── Tier 3: live preview ── */}
         {tier === 3 && preview.status === "analyzing" && (
           <div style={{ marginBottom: "6px", padding: "5px 10px", background: "#111", border: "1px solid #1A2A1A", borderRadius: "4px", fontSize: "9px", color: "#2A6A2A", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            🔍 Analyzing…
+            · Analyzing…
           </div>
         )}
 
@@ -511,7 +511,7 @@ export default function MigrationModal({
                 color: hw.hasGPU ? "#00FF88" : "#555",
               }}
             >
-              {hw.hasGPU ? "⚡ GPU" : "🔲 CPU"}
+              {hw.hasGPU ? "▸ GPU" : "□ CPU"}
             </span>
           </div>
         )}
@@ -536,7 +536,6 @@ export default function MigrationModal({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "13px" }}>🪨</span>
               <span style={{ fontSize: "9px", fontWeight: 900, color: caveman ? "#00FF88" : "#888", textTransform: "uppercase", letterSpacing: "0.1em" }}>
                 Caveman Mode
               </span>
@@ -559,7 +558,7 @@ export default function MigrationModal({
         {migrateState.status === "success" && (
           <div style={{ marginBottom: "6px", padding: "5px 10px", background: "#060F07", border: "1px solid rgba(0,255,136,0.25)", borderRadius: "5px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px" }}>
-              <span style={{ fontSize: "14px" }}>✅</span>
+              <span style={{ fontSize: "14px" }}>✓</span>
               <span style={{ fontSize: "10px", fontWeight: 900, color: "#00FF88", textShadow: "0 0 8px rgba(0,255,136,0.4)" }}>Context migrated!</span>
             </div>
             <div style={{ fontSize: "9px", color: "#2A6A2A" }}>
