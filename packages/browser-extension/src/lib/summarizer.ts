@@ -333,16 +333,23 @@ function extractFacts(messages: Message[]): string {
   return dedupe(items).slice(0, 8).join("\n");
 }
 
-// ── Code extraction — NEVER truncate code content ────────────────────────────
+// ── Code extraction — NEVER truncate individual code block content ───────────
+// At 1000+ messages a session can contain hundreds of code fences.
+// Cap at MAX_CODE_BLOCKS to prevent the assembled prompt from overflowing
+// AI platform context windows.  The most recent messages are processed last,
+// so we process messages in reverse and then reverse again to preserve order.
+const MAX_CODE_BLOCKS = 30;
 
 function extractAllCodeBlocks(messages: Message[]): CodeBlock[] {
   const blocks: CodeBlock[] = [];
   const codeRe = /```([\w-]*)[ \t]*\n([\s\S]*?)```/g;
 
-  for (const msg of messages) {
+  for (const msg of [...messages].reverse()) {
+    if (blocks.length >= MAX_CODE_BLOCKS) break;
     let match: RegExpExecArray | null;
     codeRe.lastIndex = 0;
     while ((match = codeRe.exec(msg.content)) !== null) {
+      if (blocks.length >= MAX_CODE_BLOCKS) break;
       const language = match[1].trim();
       const content = match[2]; // Full content — never truncated
 
@@ -365,7 +372,7 @@ function extractAllCodeBlocks(messages: Message[]): CodeBlock[] {
     }
   }
 
-  return blocks;
+  return blocks.reverse(); // restore chronological order (collected newest-first)
 }
 
 // ── Legacy plain-text summary (content field, backward compat) ───────────────

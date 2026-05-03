@@ -90,9 +90,9 @@ const STRUCTURE_KEY = "singleton";
 
 const MODEL_ID = "Xenova/all-MiniLM-L6-v2";
 const EMBEDDING_DIM = 384;
-const MAX_CHUNKS_PER_SESSION = 500;
+const MAX_CHUNKS_PER_SESSION = 2000;
 const BATCH_SIZE = 32;
-const SEARCH_TOP_K = 20;
+const SEARCH_TOP_K = 30;
 const TAIL_SIZE = 6;
 
 const THRESHOLDS: Record<"light" | "strict", number> = { light: 0.4, strict: 0.7 };
