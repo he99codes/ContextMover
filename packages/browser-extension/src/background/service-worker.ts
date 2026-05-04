@@ -461,6 +461,30 @@ async function handleMigrateContext(
     }
   }
 
+  // ── Hard cap on final prompt size ─────────────────────────────────────────
+  // 30k chars is the practical safe limit for AI chat inputs:
+  // ProseMirror/Lexical/Quill freeze for 30+ seconds on larger pastes,
+  // which causes the chrome.tabs.sendMessage port to time out and produces
+  // the "message channel closed" error users see as "migration failed".
+  // We keep the head (goals/decisions/code) and tail (recent conversation
+  // + instructions) and drop the middle — these are the highest-signal parts.
+  const MAX_PROMPT_CHARS = 30_000;
+  if (finalPrompt.length > MAX_PROMPT_CHARS) {
+    const beforeChars = finalPrompt.length;
+    const headChars = Math.floor(MAX_PROMPT_CHARS * 0.7);
+    const tailChars = MAX_PROMPT_CHARS - headChars - 200; // 200 chars for the marker
+    const head = finalPrompt.slice(0, headChars);
+    const tail = finalPrompt.slice(-tailChars);
+    const dropped = beforeChars - headChars - tailChars;
+    finalPrompt =
+      head +
+      `\n\n... [ContextForge: truncated ${dropped.toLocaleString()} characters from middle to fit chat input — head and tail preserved] ...\n\n` +
+      tail;
+    console.warn(
+      `[ContextForge:sw] Prompt size cap applied: ${beforeChars.toLocaleString()} → ${finalPrompt.length.toLocaleString()} chars`
+    );
+  }
+
   // ── Inject into target tab ─────────────────────────────────────────────────
   if (payload.targetTabId) {
     const injectionResult = await sendMessageToTab(payload.targetTabId, {
