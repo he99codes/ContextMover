@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import summarize, { summarizeIntelligent, summarizeWithAttention } from "@/lib/summarizer";
 import buildMigrationPrompt from "@/lib/translator";
 import { promptEngine } from "@/lib/prompt-engine/engine";
+import { capabilityDetector, type Tier } from "@/lib/capability-detector";
 import type { ContextSession, ExtractedContext, Message } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import {
@@ -364,8 +365,36 @@ async function handleMigrateContext(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let intelligentSummary: any;
   let compressionRatio = 0;
-  const tier = payload.tier ?? (payload.useAttentionEngine ? 3 : 1);
 
+  // ── Resolve tier: explicit > attention-engine flag > capability auto-detect ──
+  // Capability detector returns minimal | balanced | full — we map back to the
+  // existing 1 | 2 | 3 numeric tier the summarizer/translator already speak:
+  //   minimal  → 2 (summarizeIntelligent, regex extraction, <100ms)
+  //   balanced → 3 (Attention Engine, WASM, 2 threads)
+  //   full     → 3 (Attention Engine, WebGPU when available, 4 threads)
+  let tier: 1 | 2 | 3;
+  let detectedTier: Tier | null = null;
+  if (payload.tier) {
+    tier = payload.tier;
+  } else if (payload.useAttentionEngine) {
+    tier = 3;
+  } else {
+    detectedTier = await capabilityDetector.getEffectiveTier().catch(() => "balanced" as Tier);
+    tier = detectedTier === "minimal" ? 2 : 3;
+    console.log(`[ContextForge:sw] Auto-tier: capability=${detectedTier} → numeric tier=${tier}`);
+  }
+
+  // ── Start the load watchdog around tier-3 work — it can fire at any time ──
+  // and the AttentionEngine listens via capabilityDetector.onDowngrade(). When
+  // it fires, the engine drops its model and subsequent embed calls fall
+  // through to keyword scoring — same behavior as if minimal had been picked
+  // from the start, but without aborting the in-flight migration.
+  const stopWatchdog =
+    tier === 3
+      ? capabilityDetector.monitorLoad(detectedTier ?? "balanced")
+      : () => { /* tier 1/2 finish in <500ms, no watchdog needed */ };
+
+  try {
   if (tier === 3 || (payload.useAttentionEngine && payload.task)) {
     // Tier 3 — Attention Engine
     if (payload.precomputedSummary) {
@@ -375,6 +404,13 @@ async function handleMigrateContext(
       console.log(`[ContextForge:sw] Stage5 — Attention Engine fast path (pre-computed by sidebar)`);
     } else {
       console.log(`[ContextForge:sw] Stage5 — Attention Engine path: strength=${payload.strength ?? "light"}`);
+      // Warm up the singleton engine at the resolved tier so the model + ONNX
+      // settings match capability detection.  No-op if already initialized.
+      const { attentionEngine } = await import("@/lib/attention-engine");
+      const engineTier: Tier = detectedTier ?? (payload.useAttentionEngine ? "balanced" : "balanced");
+      await attentionEngine.initialize(undefined, engineTier).catch((err) => {
+        console.warn("[ContextForge:sw] attention engine init failed, will fallback:", err);
+      });
       const atResult = await summarizeWithAttention(
         session.messages,
         payload.task ?? "",
@@ -407,6 +443,11 @@ async function handleMigrateContext(
     if (tailAsst === 0) {
       console.error(`[ContextForge:sw] Stage5 — conversationTail has no assistant messages`);
     }
+  }
+  } finally {
+    // Always stop the load watchdog — even on summarizer error — to avoid a
+    // dangling setInterval bleeding CPU between migrations.
+    stopWatchdog();
   }
 
   // Pull IDE context if bridge is available (fire-and-forget, non-blocking)

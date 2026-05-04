@@ -20,6 +20,12 @@
 
 import { openDB, type IDBPDatabase } from "idb";
 import type { ContextSession, Message, CodeBlock } from "./types";
+import {
+  capabilityDetector,
+  getTierConfig,
+  type Tier,
+  type TierConfig,
+} from "./capability-detector";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public interfaces
@@ -88,10 +94,9 @@ const STRUCTURE_STORE = "ae_structure";
 const SESSIONS_META_STORE = "ae_sessions_meta";
 const STRUCTURE_KEY = "singleton";
 
-const MODEL_ID = "Xenova/all-MiniLM-L6-v2";
+// Default model ID — overridden per-tier by TIER_CONFIGS at initialize() time.
+const DEFAULT_MODEL_ID = "Xenova/all-MiniLM-L6-v2";
 const EMBEDDING_DIM = 384;
-const MAX_CHUNKS_PER_SESSION = 2000;
-const BATCH_SIZE = 32;
 const SEARCH_TOP_K = 30;
 const TAIL_SIZE = 6;
 
@@ -144,6 +149,13 @@ export class AttentionEngine {
   private modelAvailable = false;
   initialized = false;
 
+  /** Active tier — set by initialize() and mutated by downgradeToMinimal(). */
+  private tier: Tier = "balanced";
+  /** Resolved tier configuration (model id, device, thread count, etc.). */
+  private tierConfig: TierConfig = getTierConfig("balanced");
+  /** Unsubscribe fn for capabilityDetector.onDowngrade(). */
+  private offDowngrade: (() => void) | null = null;
+
   // ─── initialize ──────────────────────────────────────────────────────────
 
   /**
@@ -151,10 +163,27 @@ export class AttentionEngine {
    * Safe to call multiple times — subsequent calls are no-ops.
    * Reports 0→100 progress via onProgress.
    */
-  async initialize(onProgress?: (progress: number) => void): Promise<void> {
+  async initialize(
+    onProgress?: (progress: number) => void,
+    tier?: Tier,
+  ): Promise<void> {
     if (this.initialized) return;
-    console.log(`${TAG} Initializing...`);
+
+    // Resolve the tier — explicit arg wins; otherwise ask the detector.
+    this.tier = tier ?? (await capabilityDetector.getEffectiveTier().catch(() => "balanced"));
+    this.tierConfig = getTierConfig(this.tier);
+    console.log(`${TAG} Initializing tier=${this.tier} config=`, this.tierConfig);
     onProgress?.(0);
+
+    // Subscribe to mid-migration downgrade events so we can react in flight.
+    this.offDowngrade?.();
+    this.offDowngrade = capabilityDetector.onDowngrade((from, to, reason) => {
+      if (from === this.tier) {
+        console.warn(`${TAG} live downgrade ${from}→${to} (${reason})`);
+        if (to === "minimal") this.downgradeToMinimal(reason);
+        else { this.tier = to; this.tierConfig = getTierConfig(to); }
+      }
+    });
 
     try {
       await this.openIdb();
@@ -163,17 +192,30 @@ export class AttentionEngine {
       this.appStructure = await this.loadAppStructure();
       onProgress?.(12);
 
+      // Minimal tier skips the model + tree-sitter entirely — it relies on the
+      // keyword scoring path and the regex code-block extractor.
+      if (!this.tierConfig.useEmbeddings) {
+        this.modelAvailable = false;
+        this.treeSitterAvailable = false;
+        onProgress?.(100);
+        this.initialized = true;
+        console.log(`${TAG} Ready (minimal tier — no model, regex only)`);
+        return;
+      }
+
       // Model download is the heavy step (~23 MB on first run).
       // Progress is mapped into the 12–80 range.
       await this.loadEmbeddingModel(onProgress);
       onProgress?.(80);
 
-      await this.initTreeSitter();
+      if (this.tierConfig.useTreeSitter) {
+        await this.initTreeSitter();
+      }
       onProgress?.(100);
 
       this.initialized = true;
       console.log(
-        `${TAG} Ready — model=${this.modelAvailable} treeSitter=${this.treeSitterAvailable}`
+        `${TAG} Ready tier=${this.tier} model=${this.modelAvailable} treeSitter=${this.treeSitterAvailable}`
       );
     } catch (err) {
       // Partial init still produces a working engine (keyword fallback active).
@@ -181,6 +223,27 @@ export class AttentionEngine {
       this.initialized = true;
       onProgress?.(100);
     }
+  }
+
+  // ─── downgradeToMinimal ───────────────────────────────────────────────────
+
+  /**
+   * Live-downgrade the running engine to the minimal tier without re-initializing.
+   * Drops the loaded model so subsequent embedding calls return zero-vectors and
+   * fall through to the keyword scoring path.  Idempotent.
+   */
+  downgradeToMinimal(reason = "manual"): void {
+    if (this.tier === "minimal") return;
+    console.warn(`${TAG} downgradeToMinimal: ${reason}`);
+    this.tier = "minimal";
+    this.tierConfig = getTierConfig("minimal");
+    this.extractor = null;
+    this.modelAvailable = false;
+  }
+
+  /** Currently active tier — read by callers for telemetry/UI. */
+  getActiveTier(): Tier {
+    return this.tier;
   }
 
   // ─── buildStructure ───────────────────────────────────────────────────────
@@ -252,8 +315,9 @@ export class AttentionEngine {
 
     // Build raw chunks (no embeddings yet).
     const rawChunks = this.sessionToChunks(session);
-    const toIndex = rawChunks.slice(0, MAX_CHUNKS_PER_SESSION);
-    console.log(`${TAG} Embedding ${toIndex.length} chunk(s) for session ${session.id}`);
+    const cap = this.tierConfig.maxChunksPerSession || rawChunks.length;
+    const toIndex = rawChunks.slice(0, cap);
+    console.log(`${TAG} Embedding ${toIndex.length} chunk(s) for session ${session.id} (tier=${this.tier} cap=${cap})`);
 
     // Embed in batches of BATCH_SIZE.
     const embedded = await this.embedChunks(toIndex);
@@ -443,6 +507,9 @@ export class AttentionEngine {
   private async loadEmbeddingModel(
     onProgress?: (progress: number) => void
   ): Promise<void> {
+    const cfg = this.tierConfig;
+    const modelId = cfg.modelId || DEFAULT_MODEL_ID;
+
     try {
       const transformers = await import("@xenova/transformers");
 
@@ -452,31 +519,34 @@ export class AttentionEngine {
       if (envObj?.backends?.onnx?.wasm) {
         // Disable blob: proxy worker — blocked in the Chrome extension sandbox.
         envObj.backends.onnx.wasm.proxy = false;
-        // Use as many threads as the hardware allows.
-        // Extension pages support SharedArrayBuffer without COOP/COEP headers,
-        // so multi-threading works when the API is available.
+        // Thread count comes from the active tier config, capped by the
+        // hardware concurrency reported by the browser.
         const hasSharedBuffer = typeof SharedArrayBuffer !== "undefined";
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const hwThreads = (navigator as any).hardwareConcurrency ?? 1;
         const threads = hasSharedBuffer
-          ? Math.min(4, (navigator as any).hardwareConcurrency ?? 1)
+          ? Math.min(cfg.maxWasmThreads, hwThreads)
           : 1;
         envObj.backends.onnx.wasm.numThreads = threads;
-        console.log(`${TAG} ONNX WASM threads=${threads} SharedArrayBuffer=${hasSharedBuffer}`);
+        console.log(`${TAG} ONNX WASM threads=${threads}/${hwThreads} (tier cap=${cfg.maxWasmThreads}) SAB=${hasSharedBuffer}`);
       }
 
-      // ── WebGPU auto-detection ─────────────────────────────────────────────
-      // Any machine with a GPU (even integrated) gets 10-50× faster inference.
+      // ── Device selection — driven by tier config ─────────────────────────
+      // Full tier requests WebGPU; balanced tier stays on WASM for predictable
+      // memory + thermal behavior on mid-range laptops.
       let device: string | undefined;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (typeof navigator !== "undefined" && (navigator as any).gpu) {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const adapter = await (navigator as any).gpu.requestAdapter();
-          if (adapter) {
-            device = "webgpu";
-            console.log(`${TAG} WebGPU adapter found — GPU inference enabled`);
-          }
-        } catch { /* WebGPU not available in this context */ }
+      if (cfg.device === "webgpu") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const gpu = typeof navigator !== "undefined" ? (navigator as any).gpu : null;
+        if (gpu?.requestAdapter) {
+          try {
+            const adapter = await gpu.requestAdapter();
+            if (adapter) {
+              device = "webgpu";
+              console.log(`${TAG} WebGPU adapter acquired — GPU inference enabled`);
+            }
+          } catch { /* WebGPU not available — fall back to wasm */ }
+        }
       }
 
       const pipelineFn = transformers.pipeline ?? (transformers as unknown as Record<string, unknown>).default;
@@ -484,7 +554,7 @@ export class AttentionEngine {
 
       this.extractor = (await pipelineFn(
         "feature-extraction",
-        MODEL_ID,
+        modelId,
         {
           ...(device ? { device } : {}),
           progress_callback: (info: { status: string; progress?: number }) => {
@@ -497,7 +567,7 @@ export class AttentionEngine {
       )) as Extractor;
 
       this.modelAvailable = true;
-      console.log(`${TAG} Embedding model loaded (${MODEL_ID}) device=${device ?? "wasm"}`);
+      console.log(`${TAG} Embedding model loaded (${modelId}) device=${device ?? "wasm"} tier=${this.tier}`);
     } catch (err) {
       console.warn(`${TAG} Model load failed — keyword fallback active:`, err);
       this.modelAvailable = false;
@@ -808,9 +878,10 @@ export class AttentionEngine {
     }
 
     const result: AttentionChunk[] = [];
+    const batchSize = this.tierConfig.batchSize || 32;
 
-    for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
-      const batch = chunks.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < chunks.length; i += batchSize) {
+      const batch = chunks.slice(i, i + batchSize);
       try {
         // Truncate to 512 chars to keep sequence lengths reasonable.
         const texts = batch.map((c) => c.content.slice(0, 512));
@@ -823,7 +894,7 @@ export class AttentionEngine {
           result.push({ ...batch[j], embedding });
         }
       } catch (err) {
-        console.warn(`${TAG} Batch ${Math.floor(i / BATCH_SIZE)} embed failed:`, err);
+        console.warn(`${TAG} Batch ${Math.floor(i / batchSize)} embed failed:`, err);
         for (const c of batch) {
           result.push({ ...c, embedding: new Array(EMBEDDING_DIM).fill(0) });
         }
