@@ -27,7 +27,7 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-black uppercase tracking-wider text-[#00FF88]">Zero-Knowledge Architecture</h2>
           </div>
           <p className="text-sm text-[#B0B0B0] leading-relaxed mb-4">
-            ContextForge operates on a <strong className="text-[#F5F5F5]">zero-knowledge privacy model</strong> for your conversation data. Your AI conversations are captured and stored exclusively in your browser extension's local IndexedDB. They never travel through ContextForge servers.
+            ContextForge operates on a <strong className="text-[#F5F5F5]">zero-knowledge privacy model</strong> for your conversation data. Your AI conversations are captured and stored exclusively in your browser extension&apos;s local IndexedDB. They never travel through ContextForge servers.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
@@ -48,7 +48,7 @@ export default function PrivacyPage() {
         <div className="space-y-10 text-sm text-[#B0B0B0] leading-relaxed">
 
           <section>
-            <h2 className="mb-3 text-base font-semibold text-[#F5F5F5]">1. What We Collect — and What We Don't</h2>
+            <h2 className="mb-3 text-base font-semibold text-[#F5F5F5]">1. What We Collect &mdash; and What We Don&apos;t</h2>
             <p className="mb-4">ContextForge is built on the principle of minimal data collection. Here is a precise breakdown:</p>
 
             <div className="rounded-[8px] border border-[#2A2A2A] bg-[#111] overflow-hidden mb-4">
@@ -90,12 +90,12 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="mb-3 text-base font-semibold text-[#F5F5F5]">2. Local Storage and the Browser Extension</h2>
-            <p>When you install the ContextForge browser extension, your AI conversations are captured and stored in your browser's IndexedDB — a local database accessible only to the extension on your own machine. This data never leaves your device unless you explicitly connect a personal Supabase vault.</p>
+            <p>When you install the ContextForge browser extension, your AI conversations are captured and stored in your browser&apos;s IndexedDB &mdash; a local database accessible only to the extension on your own machine. This data never leaves your device unless you explicitly connect a personal Supabase vault.</p>
           </section>
 
           <section>
             <h2 className="mb-3 text-base font-semibold text-[#F5F5F5]">3. Personal Vault (Optional)</h2>
-            <p className="mb-3">If you choose to connect your own Supabase project as a "personal vault," your session data syncs to your Supabase project — not ContextForge's. The vault URL and anon key are stored with AES-256-GCM encryption in your local browser storage, with the decryption key derived from your account credentials via PBKDF2. The encrypted credentials are never transmitted to ContextForge servers.</p>
+            <p className="mb-3">If you choose to connect your own Supabase project as a &ldquo;personal vault,&rdquo; your session data syncs to your Supabase project &mdash; not ContextForge&apos;s. The vault URL and anon key are stored with AES-256-GCM encryption in your local browser storage, with the decryption key derived from your account credentials via PBKDF2. The encrypted credentials are never transmitted to ContextForge servers.</p>
             <p>You may disconnect or delete your vault data at any time from Settings → Personal Vault. Disconnecting does not delete local or vault data — you retain full control.</p>
           </section>
 
