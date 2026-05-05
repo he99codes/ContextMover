@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -40,6 +41,9 @@ interface SidebarProps {
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -53,16 +57,51 @@ export function Sidebar({ user }: SidebarProps) {
     : "CF";
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col border-r border-[#2A2A2A] bg-[#0A0A0A]">
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed top-3.5 left-4 z-50 flex h-8 w-8 items-center justify-center rounded-[6px] bg-[#111] border border-[#2A2A2A] text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors"
+        aria-label="Open menu"
+      >
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      <aside
+        className={[
+          "fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col border-r border-[#2A2A2A] bg-[#0A0A0A]",
+          "transition-transform duration-250 ease-in-out",
+          "-translate-x-full md:translate-x-0",
+          mobileOpen ? "translate-x-0" : "",
+        ].join(" ")}>
       {/* Logo */}
       <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-[#2A2A2A] px-4">
         <div className="relative flex h-7 w-7 items-center justify-center rounded-[6px] bg-[#00FF88]">
           <Zap size={14} className="text-black" />
           <span className="animate-pulse-green absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#00FF88]" />
         </div>
-        <span className="text-[15px] font-semibold text-[#F5F5F5] tracking-tight">
+        <span className="text-[15px] font-semibold text-[#F5F5F5] tracking-tight flex-1">
           ContextForge
         </span>
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="md:hidden ml-auto text-[#6B6B6B] hover:text-[#F5F5F5] p-1 transition-colors"
+          aria-label="Close menu"
+        >
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       {/* Nav */}
@@ -138,6 +177,7 @@ export function Sidebar({ user }: SidebarProps) {
           </button>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

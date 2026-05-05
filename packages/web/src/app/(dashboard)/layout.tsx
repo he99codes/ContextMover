@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/cached";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { PageTransition } from "@/components/layout/PageTransition";
 
 export default async function DashboardLayout({
   children,
@@ -40,8 +41,10 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-[#0A0A0A]">
       <Sidebar user={user} />
-      <main className="pl-[240px]">
-        <div className="min-h-screen">{children}</div>
+      <main className="md:pl-[240px] pt-14 md:pt-0">
+        <div className="min-h-screen">
+          <PageTransition>{children}</PageTransition>
+        </div>
       </main>
     </div>
   );

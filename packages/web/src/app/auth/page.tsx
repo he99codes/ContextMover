@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Zap, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function AuthPage() {
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+function AuthForm() {
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<"signin" | "signup">(
+    searchParams.get("mode") === "signup" ? "signup" : "signin"
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -185,9 +188,20 @@ export default function AuthPage() {
         </Card>
 
         <p className="mt-6 text-center text-xs text-[#6B6B6B]/60">
-          By signing in you agree to our Terms of Service and Privacy Policy.
+          By signing in you agree to our{" "}
+          <a href="/terms" className="hover:text-[#00FF88] transition-colors">Terms of Service</a>{" "}
+          and{" "}
+          <a href="/privacy" className="hover:text-[#00FF88] transition-colors">Privacy Policy</a>.
         </p>
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#0A0A0A]" />}>
+      <AuthForm />
+    </Suspense>
   );
 }

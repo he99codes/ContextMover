@@ -1,0 +1,18 @@
+export const WEBAPP_BASE      = "https://context-flow-peach.vercel.app";
+export const CHROME_STORE_URL = "https://chromewebstore.google.com/detail/contextforge/"; // append extension ID when published
+
+export const ROUTES = {
+  home:      "/",
+  dashboard: "/dashboard",
+  login:     "/auth",
+  signup:    "/auth?mode=signup",
+  pricing:   "/pricing",
+  docs:      "/docs",
+  analytics: "/analytics",
+  settings:  "/settings",
+  vault:     "/settings/vault",
+  agents:    "/settings/agents",
+  prompts:   "/settings/prompts",
+  privacy:   "/privacy",
+  terms:     "/terms",
+} as const;

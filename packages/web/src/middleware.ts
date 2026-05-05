@@ -39,14 +39,15 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Public paths — no auth required
+  const PUBLIC_PATHS = ["/", "/auth", "/pricing", "/privacy", "/docs", "/terms", "/login", "/signup"];
+  const isPublic =
+    PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
+    pathname.startsWith("/_next") ||
+    pathname === "/favicon.ico";
+
   // Redirect unauthenticated users to /auth (except public paths)
-  if (
-    !user &&
-    !pathname.startsWith("/auth") &&
-    !pathname.startsWith("/_next") &&
-    pathname !== "/favicon.ico" &&
-    pathname !== "/"
-  ) {
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth";
     return NextResponse.redirect(url);
