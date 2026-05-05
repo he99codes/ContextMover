@@ -12,8 +12,6 @@ import {
 } from "@/lib/user-vault/web-client";
 import { cn } from "@/lib/utils";
 
-const SCHEMA_SQL_URL = "https://raw.githubusercontent.com/contextforge/contextforge/main/packages/browser-extension/src/lib/user-vault/schema.sql";
-
 type Screen = "status" | "choose" | "manual-entry" | "manual-testing" | "success" | "delete-confirm";
 
 interface ManualForm {
@@ -382,7 +380,7 @@ alter publication supabase_realtime add table cf_sessions;`;
         </div>
         <h2 className="text-xl font-black text-[#F5F5F5]">Connect your Personal Vault</h2>
         <p className="mt-2 text-sm text-[#6B6B6B] leading-relaxed">
-          Your conversation data is stored ONLY in your browser extension's local storage. Connect your own Supabase project to enable cross-device sync and Super Memory — ContextForge never sees it.
+          Your conversation data is stored ONLY in your browser extension&apos;s local storage. Connect your own Supabase project to enable cross-device sync and Super Memory — ContextForge never sees it.
         </p>
       </div>
 

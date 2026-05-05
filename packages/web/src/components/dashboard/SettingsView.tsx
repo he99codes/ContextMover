@@ -86,7 +86,7 @@ export function SettingsView({ email, userId }: Props) {
           <Shield size={14} className="mt-0.5 shrink-0 text-[#00FF88]" />
           <p className="text-xs text-[#6B6B6B] leading-relaxed">
             Your session data is <strong className="text-[#F5F5F5]">never stored on ContextForge servers</strong>.
-            It lives in the extension's local IndexedDB and, optionally, your own personal Supabase vault.
+            It lives in the extension&apos;s local IndexedDB and, optionally, your own personal Supabase vault.
           </p>
         </div>
         <Link

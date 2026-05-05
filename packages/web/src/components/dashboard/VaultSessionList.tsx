@@ -130,7 +130,7 @@ export function VaultSessionList() {
         </div>
         <h3 className="text-sm font-black uppercase tracking-widest text-[#F5F5F5]">Your sessions are stored locally</h3>
         <p className="mt-2 max-w-sm text-xs font-mono text-[#2A4A2A] leading-relaxed">
-          Your conversations live in the browser extension's local storage.<br />
+          Your conversations live in the browser extension&apos;s local storage.<br />
           Connect your personal Supabase vault to view sessions here and unlock Super Memory.
         </p>
         <Link

@@ -490,7 +490,7 @@ function buildPerplexityPrompt(payload: MigrationPayload): string {
   const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
 
   const out: string[] = [
-    `CONTEXTFORGE MIGRATION`,
+    `Migrated Context — Perplexity`,
     `Source: ${sourceSession.platform} | Session: "${sourceSession.title}" | Messages: ${sourceSession.messages.length} | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
     ``,
     `GOAL`,
