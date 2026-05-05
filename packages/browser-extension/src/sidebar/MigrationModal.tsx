@@ -12,8 +12,7 @@ import { summarizeWithAttention } from "@/lib/summarizer";
 import { promptEngine } from "@/lib/prompt-engine/engine";
 import type { PromptTemplate } from "@/lib/prompt-engine/types";
 import type { ContextSession, Platform } from "@/lib/types";
-
-const WEB_APP_URL = "https://contextforge.app";
+import { PROMPTS_URL } from "@/config/urls";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -601,7 +600,7 @@ export default function MigrationModal({
                     value={promptTemplateId ?? ""}
                     onChange={(e) => {
                       if (e.target.value === "__create") {
-                        window.open(`${WEB_APP_URL}/settings/prompts`, "_blank");
+                        chrome.tabs.create({ url: PROMPTS_URL });
                         return;
                       }
                       setPromptTemplateId(e.target.value || null);
@@ -644,20 +643,13 @@ export default function MigrationModal({
                     </div>
                   )}
 
-                  <a
-                    href={`${WEB_APP_URL}/settings/prompts`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => {
-                      if ((e.target as HTMLSelectElement).value === "__create") {
-                        e.preventDefault();
-                        window.open(`${WEB_APP_URL}/settings/prompts`, "_blank");
-                      }
-                    }}
-                    style={{ display: "block", marginTop: "6px", fontSize: "9px", color: "#00FF88", textDecoration: "none" }}
+                  <button
+                    type="button"
+                    onClick={() => chrome.tabs.create({ url: PROMPTS_URL })}
+                    style={{ display: "block", marginTop: "6px", fontSize: "9px", color: "#00FF88", background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "none" }}
                   >
                     Manage templates →
-                  </a>
+                  </button>
                 </div>
               )}
             </div>

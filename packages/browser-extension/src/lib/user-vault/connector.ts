@@ -8,7 +8,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
-const APP_URL = "https://contextforge.app";
+import { WEBAPP_URL as APP_URL } from "@/config/urls";
 const MANAGEMENT_API = "https://api.supabase.com/v1";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CF_CLIENT_ID: string = (import.meta as any).env?.VITE_SUPABASE_MANAGEMENT_CLIENT_ID ?? "";

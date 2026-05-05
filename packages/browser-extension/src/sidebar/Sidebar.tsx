@@ -6,6 +6,7 @@ import { PlatformBadge, PlatformLogo } from "@/components/PlatformLogo";
 import MigrationModal from "./MigrationModal";
 import { attentionEngine } from "@/lib/attention-engine";
 import { capabilityDetector } from "@/lib/capability-detector";
+import { VAULT_URL, DASHBOARD_URL, PRICING_URL } from "@/config/urls";
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   claude:     "Claude",
@@ -440,7 +441,7 @@ export default function Sidebar() {
               setShowMigrationModal(false);
               setMigrationTiers((prev) => ({ ...prev, [selected.id]: tier }));
               const tierName = tier === 3 ? "Attention Engine" : tier === 2 ? "Smart Summary" : "Full Context";
-              setStatusMessage({ tone: "success", text: `Migrated via ${tierName} — ${chars.toLocaleString()} chars injected.` });
+              setStatusMessage({ tone: "success", text: `✅ Migrated via ${tierName} · Stayed in your browser` });
             }}
           />
         )}
@@ -501,24 +502,31 @@ export default function Sidebar() {
           </div>
 
           {vaultConnected === false && (
-            <a
-              href="https://contextforge.app/settings/vault"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 flex items-center gap-1.5 text-[9px] uppercase transition-colors hover:text-[#00FF88]"
-              style={{ letterSpacing: '0.12em', color: '#1A3A1A' }}
+            <button
+              type="button"
+              onClick={() => chrome.tabs.create({ url: VAULT_URL })}
+              className="mt-2 flex items-center gap-1.5 text-[9px] uppercase transition-colors hover:text-[#00FF88] text-left"
+              style={{ letterSpacing: '0.12em', color: '#4A4A4A', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
             >
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#1A3A1A]" />
-              Sessions stored locally · Connect vault →
-            </a>
+              <span style={{ fontSize: '10px' }}>&#128274;</span>
+              <span style={{ color: '#4A4A4A' }}>Local only</span>
+              <span style={{ color: '#2A4A2A', marginLeft: '4px' }}>· Connect vault →</span>
+            </button>
           )}
 
           {vaultConnected === true && (
             <div className="mt-2 flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#00FF88]" style={{ boxShadow: '0 0 6px #00FF88' }} />
-              <span className="text-[9px] uppercase" style={{ letterSpacing: '0.12em', color: '#2A6A2A' }}>
-                Vault syncing · <span style={{ color: '#6AFF6A' }}>{vaultName ?? 'Personal Vault'}</span>
+              <span style={{ fontSize: '10px' }}>&#128274;</span>
+              <span className="text-[9px] uppercase" style={{ letterSpacing: '0.12em', color: '#00FF88' }}>
+                Your vault · <span style={{ color: '#6AFF6A' }}>{vaultName ?? 'Personal Vault'}</span>
               </span>
+            </div>
+          )}
+
+          {vaultConnected === null && (
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#1A3A1A]" />
+              <span className="text-[9px] uppercase" style={{ letterSpacing: '0.12em', color: '#1A3A1A' }}>Checking vault…</span>
             </div>
           )}
 
@@ -708,6 +716,10 @@ export default function Sidebar() {
                         <span>{session.messages.length} turns</span>
                         <span>·</span>
                         <span>{formatRelativeTime(session.updatedAt)}</span>
+                        <span>·</span>
+                        <span style={{ fontSize: "8px", color: vaultConnected === true ? "#00AA55" : "#4A4A4A" }}>
+                          {vaultConnected === true ? "🔒 Vault" : "📱 Local"}
+                        </span>
                         {migrationTiers[session.id] && (
                           <>
                             <span>·</span>
@@ -746,7 +758,7 @@ export default function Sidebar() {
           )}
         </div>
 
-        <div className="border-t border-[#0D2A0D] px-4 py-3">
+        <div className="border-t border-[#0D2A0D] px-4 py-3 space-y-2">
           <div
             className="crucible-pulse flex cursor-default flex-col items-center justify-center rounded-[6px] border border-dashed py-5 transition-all hover:scale-[1.01]"
             style={{ borderColor: "rgba(0,255,136,0.2)", background: "rgba(0,255,136,0.018)" }}
@@ -757,6 +769,23 @@ export default function Sidebar() {
             <div className="mt-1 text-[9px] uppercase tracking-[0.18em]" style={{ color: "#1A3A1A" }}>
               Drop sessions to merge · Super Memory
             </div>
+          </div>
+          {/* Quick links */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => chrome.tabs.create({ url: DASHBOARD_URL })}
+              className="flex-1 rounded-[4px] border border-[#1A3A1A] bg-[#060606] py-1.5 text-[9px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
+            >
+              Dashboard ↗
+            </button>
+            <button
+              type="button"
+              onClick={() => chrome.tabs.create({ url: PRICING_URL })}
+              className="flex-1 rounded-[4px] border border-[#1A3A1A] bg-[#060606] py-1.5 text-[9px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
+            >
+              Upgrade ⚡
+            </button>
           </div>
         </div>
       </div>

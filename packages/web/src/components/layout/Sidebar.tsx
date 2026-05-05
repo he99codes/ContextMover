@@ -12,19 +12,22 @@ import {
   Zap,
   FileCode,
   Database,
+  CreditCard,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
 
 const navigation = [
-  { name: "Sessions",  href: "/dashboard",        icon: LayoutDashboard },
-  { name: "Migrate",   href: "/migrate",           icon: ArrowLeftRight },
-  { name: "Agents",    href: "/agents",            icon: Bot },
-  { name: "Analytics", href: "/analytics",         icon: BarChart3 },
-  { name: "Prompts",   href: "/settings/prompts",  icon: FileCode },
-  { name: "Vault",     href: "/settings/vault",    icon: Database },
-  { name: "Settings",  href: "/settings",          icon: Settings },
+  { name: "Sessions",  href: "/dashboard",          icon: LayoutDashboard },
+  { name: "Migrate",   href: "/migrate",             icon: ArrowLeftRight },
+  { name: "Agents",    href: "/settings/agents",    icon: Bot },
+  { name: "Analytics", href: "/analytics",           icon: BarChart3 },
+  { name: "Prompts",   href: "/settings/prompts",   icon: FileCode },
+  { name: "Vault",     href: "/settings/vault",     icon: Database },
+  { name: "Settings",  href: "/settings",            icon: Settings },
+  { name: "Pricing",   href: "/pricing",             icon: CreditCard },
 ];
 
 interface SidebarProps {
@@ -106,6 +109,12 @@ export function Sidebar({ user }: SidebarProps) {
           );
         })}
       </nav>
+
+      {/* Zero-knowledge footer */}
+      <div className="px-4 py-2 flex items-center gap-1.5">
+        <Shield size={9} className="text-[#1A3A1A] shrink-0" />
+        <p className="text-[9px] font-mono text-[#1A3A1A] leading-tight">Your data never touches our servers</p>
+      </div>
 
       {/* User */}
       <div className="shrink-0 border-t border-[#2A2A2A] p-3">
