@@ -32,8 +32,12 @@ function scrapeMessages(): Message[] {
 
   const userCount = messages.filter(m => m.role === "user").length;
   const asstCount = messages.filter(m => m.role === "assistant").length;
-  console.log(`[ContextForge:chatgpt] FINAL: ${messages.length} msgs (user=${userCount} asst=${asstCount})`);
-  console.log(`[ContextForge:chatgpt] preview:`, messages.map(m => ({ role: m.role, preview: m.content.slice(0, 60) })));
+  console.log('[CF:capture]', 'chatgpt', {
+    total: messages.length,
+    user: userCount,
+    assistant: asstCount,
+    preview: messages.map(m => ({ role: m.role, len: m.content.length }))
+  });
   if (asstCount === 0 && userCount > 0) {
     console.error(`[ContextForge:chatgpt] ASSISTANT MESSAGES MISSING`);
   }

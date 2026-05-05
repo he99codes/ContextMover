@@ -460,9 +460,10 @@ export interface IntelligentSummary {
 }
 
 export function summarizeIntelligent(messages: Message[]): IntelligentSummary {
+  if (!messages.length) throw new Error('[CF:summarizer:tier2] Empty messages array — nothing to summarize');
   const t0 = Date.now();
 
-  // ── 1. Goal — first user message, up to 600 chars ─────────────────────────
+  // ── 1. Goal — first user message, up to 600 chars ─────────────────────────────
   const userMessages = messages.filter((m) => m.role === "user");
   const goal =
     userMessages.length > 0
@@ -519,14 +520,14 @@ export function summarizeIntelligent(messages: Message[]): IntelligentSummary {
       const code = match[2]; // Never truncated.
       const firstLine = code.split("\n")[0]?.trim() ?? "";
       const pathMatch =
-        firstLine.match(/^(?:\/\/|#|--) ([\w./\\-]+\.\w+)\s*$/) ??
+        firstLine.match(/^(?:\/\/|#|--)\s+([\w./\\-]+\.\w+)\s*$/) ??
         firstLine.match(/^\/\*\*?\s*([\w./\\-]+\.\w+)\s*\*\//);
       codeBlocks.push({ language, path: pathMatch?.[1], code });
     }
   }
 
-  // ── 6. Tail — last 8 messages verbatim, both roles ────────────────────────
-  const tail = messages.slice(-8);
+  // ── 6. Tail — last MAX_VERBATIM_MESSAGES verbatim, both roles ───────────────────────
+  const tail = messages.slice(-MAX_VERBATIM_MESSAGES);
 
   // ── Compression ratio ─────────────────────────────────────────────────────
   const originalSize = messages.reduce((s, m) => s + m.content.length, 0);

@@ -2,18 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, Trash2, Loader2, Copy, Check, User as UserIcon, Database } from "lucide-react";
+import { LogOut, Loader2, Copy, Check, User as UserIcon, Database, ExternalLink, Shield } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 interface Props {
   email: string;
   userId: string;
-  sessionCount: number;
 }
 
-export function SettingsView({ email, userId, sessionCount }: Props) {
+export function SettingsView({ email, userId }: Props) {
   const router = useRouter();
-  const [busy, setBusy] = useState<"signout" | "wipe" | null>(null);
+  const [busy, setBusy] = useState<"signout" | null>(null);
   const [copied, setCopied] = useState(false);
 
   async function handleSignOut() {
@@ -22,25 +22,6 @@ export function SettingsView({ email, userId, sessionCount }: Props) {
     await supabase.auth.signOut();
     router.push("/auth");
     router.refresh();
-  }
-
-  async function handleWipe() {
-    const ok = window.confirm(
-      `Delete ALL ${sessionCount} sessions from the cloud? This also removes them from the browser extension. This cannot be undone.`
-    );
-    if (!ok) return;
-    setBusy("wipe");
-    try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("sessions")
-        .delete()
-        .eq("user_id", userId);
-      if (error) throw new Error(error.message);
-      router.refresh();
-    } finally {
-      setBusy(null);
-    }
   }
 
   async function copyUserId() {
@@ -95,31 +76,25 @@ export function SettingsView({ email, userId, sessionCount }: Props) {
         </div>
       </section>
 
-      {/* Data */}
+      {/* Data — Vault */}
       <section className="rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] p-5 mb-4">
         <div className="flex items-center gap-2 mb-4">
           <Database size={15} className="text-[#6B6B6B]" />
-          <h2 className="text-sm font-semibold text-[#F5F5F5]">Data</h2>
+          <h2 className="text-sm font-semibold text-[#F5F5F5]">Data &amp; Vault</h2>
         </div>
-        <p className="text-sm text-[#6B6B6B]">
-          You have <strong className="text-[#F5F5F5]">{sessionCount}</strong> session{sessionCount === 1 ? "" : "s"} synced across the web dashboard and the browser extension.
-        </p>
-      </section>
-
-      {/* Danger zone */}
-      <section className="rounded-[8px] border border-red-500/30 bg-red-500/5 p-5">
-        <h2 className="text-sm font-semibold text-red-400 mb-2">Danger zone</h2>
-        <p className="text-sm text-[#6B6B6B] mb-4">
-          Permanently delete every captured session. This also clears them from the browser extension via realtime sync.
-        </p>
-        <button
-          onClick={handleWipe}
-          disabled={busy !== null || sessionCount === 0}
-          className="inline-flex h-9 px-3.5 items-center gap-1.5 rounded-[4px] bg-red-600/80 text-white text-sm font-medium hover:bg-red-600 disabled:opacity-50 transition-colors"
+        <div className="flex items-start gap-3 rounded-[6px] border border-[#00FF88]/15 bg-[#00FF88]/5 p-3 mb-4">
+          <Shield size={14} className="mt-0.5 shrink-0 text-[#00FF88]" />
+          <p className="text-xs text-[#6B6B6B] leading-relaxed">
+            Your session data is <strong className="text-[#F5F5F5]">never stored on ContextForge servers</strong>.
+            It lives in the extension's local IndexedDB and, optionally, your own personal Supabase vault.
+          </p>
+        </div>
+        <Link
+          href="/settings/vault"
+          className="inline-flex items-center gap-1.5 text-sm text-[#00FF88] hover:opacity-70 transition-opacity"
         >
-          {busy === "wipe" ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-          Delete all sessions
-        </button>
+          Manage Personal Vault <ExternalLink size={12} />
+        </Link>
       </section>
     </div>
   );

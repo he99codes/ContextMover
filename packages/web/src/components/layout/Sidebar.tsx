@@ -11,18 +11,20 @@ import {
   LogOut,
   Zap,
   FileCode,
+  Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
 
 const navigation = [
-  { name: "Sessions", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Migrate", href: "/migrate", icon: ArrowLeftRight },
-  { name: "Agents", href: "/agents", icon: Bot },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  { name: "Prompts", href: "/settings/prompts", icon: FileCode },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Sessions",  href: "/dashboard",        icon: LayoutDashboard },
+  { name: "Migrate",   href: "/migrate",           icon: ArrowLeftRight },
+  { name: "Agents",    href: "/agents",            icon: Bot },
+  { name: "Analytics", href: "/analytics",         icon: BarChart3 },
+  { name: "Prompts",   href: "/settings/prompts",  icon: FileCode },
+  { name: "Vault",     href: "/settings/vault",    icon: Database },
+  { name: "Settings",  href: "/settings",          icon: Settings },
 ];
 
 interface SidebarProps {

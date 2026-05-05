@@ -2,26 +2,45 @@
 import { extractMessageContent, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
 
+function isStreaming(el: HTMLElement): boolean {
+  return (
+    el.classList.contains("result-streaming") ||
+    el.querySelector(".result-streaming") !== null ||
+    el.closest("[data-is-streaming]") !== null ||
+    el.closest(".loading") !== null
+  );
+}
+
 // ── DIAGNOSTIC STAGE 1 ────────────────────────────────────────────────────────
 function scrapeMessages(): Message[] {
   const messages: Message[] = [];
 
-  document.querySelectorAll<HTMLElement>(
-    "user-query .query-text, model-response .response-content"
-  ).forEach((el) => {
-    const role = el.closest("user-query") ? "user" : "assistant";
+  // User queries — outermost only to avoid double-counting nested .query-text
+  document.querySelectorAll<HTMLElement>("user-query").forEach((container) => {
+    if (isStreaming(container)) return;
+    const el = container.querySelector<HTMLElement>(".query-text");
+    if (!el) return;
     const content = extractMessageContent(el);
-    if (content) {
-      messages.push({ role, content, timestamp: Date.now() });
-    } else {
-      console.warn(`[ContextForge:gemini] Stage1 — empty content for role=${role}`);
-    }
+    if (content) messages.push({ role: "user", content, timestamp: Date.now() });
+  });
+
+  // Model responses — outermost only to avoid double-counting nested .response-content
+  document.querySelectorAll<HTMLElement>("model-response").forEach((container) => {
+    if (isStreaming(container)) return;
+    const el = container.querySelector<HTMLElement>(".response-content");
+    if (!el) return;
+    const content = extractMessageContent(el);
+    if (content) messages.push({ role: "assistant", content, timestamp: Date.now() });
   });
 
   const userCount = messages.filter(m => m.role === "user").length;
   const asstCount = messages.filter(m => m.role === "assistant").length;
-  console.log(`[ContextForge:gemini] FINAL: ${messages.length} msgs (user=${userCount} asst=${asstCount})`);
-  console.log(`[ContextForge:gemini] preview:`, messages.map(m => ({ role: m.role, preview: m.content.slice(0, 60) })));
+  console.log('[CF:capture]', 'gemini', {
+    total: messages.length,
+    user: userCount,
+    assistant: asstCount,
+    preview: messages.map(m => ({ role: m.role, len: m.content.length }))
+  });
   if (asstCount === 0 && userCount > 0) {
     console.error(`[ContextForge:gemini] ASSISTANT MESSAGES MISSING`);
   }

@@ -4,6 +4,15 @@ import type { Message } from "@/lib/types";
 
 console.log("[ContextForge] Grok content script loaded");
 
+function isStreaming(el: HTMLElement): boolean {
+  return (
+    el.classList.contains("result-streaming") ||
+    el.querySelector(".result-streaming") !== null ||
+    el.closest("[data-is-streaming]") !== null ||
+    el.closest("[class*='streaming']") !== null
+  );
+}
+
 function scrapeMessages(): Message[] {
   type Entry = { el: HTMLElement; role: "user" | "assistant" };
   const collected: Entry[] = [];
@@ -14,7 +23,7 @@ function scrapeMessages(): Message[] {
   {
     const sel = '[class*="UserMessage"], [class*="AssistantMessage"]';
     const els = [...document.querySelectorAll<HTMLElement>(sel)]
-      .filter(el => !el.parentElement?.closest(sel));
+      .filter(el => !el.parentElement?.closest(sel) && !isStreaming(el));
     for (const el of els) {
       const role = el.className.includes("User") ? "user" : "assistant";
       collected.push({ el, role });
@@ -25,7 +34,7 @@ function scrapeMessages(): Message[] {
   // ── Strategy B: data-message-author-role (ChatGPT-style) ──────────────────
   if (!hasAsst()) {
     const els = [...document.querySelectorAll<HTMLElement>("[data-message-author-role]")]
-      .filter(el => !el.parentElement?.closest("[data-message-author-role]"));
+      .filter(el => !el.parentElement?.closest("[data-message-author-role]") && !isStreaming(el));
     for (const el of els) {
       const role = el.dataset.messageAuthorRole;
       if (role === "user" || role === "assistant") collected.push({ el, role });
@@ -39,9 +48,9 @@ function scrapeMessages(): Message[] {
     const asstSel = '[class*="bot-message"], [class*="assistant-message"], [class*="response-bubble"], [class*="model-response"], [class*="message-bubble"][class*="assistant"]';
 
     const userEls = [...document.querySelectorAll<HTMLElement>(userSel)]
-      .filter(el => !el.parentElement?.closest(userSel));
+      .filter(el => !el.parentElement?.closest(userSel) && !isStreaming(el));
     const asstEls = [...document.querySelectorAll<HTMLElement>(asstSel)]
-      .filter(el => !el.parentElement?.closest(asstSel));
+      .filter(el => !el.parentElement?.closest(asstSel) && !isStreaming(el));
 
     for (const el of userEls) collected.push({ el, role: "user" });
     for (const el of asstEls) collected.push({ el, role: "assistant" });
@@ -55,7 +64,7 @@ function scrapeMessages(): Message[] {
       '[class*="message"], [class*="bubble"], [class*="turn"], [class*="chat-item"]'
     )].filter(el => {
       // Must be a leaf-ish message container, not its inner wrappers
-      return !el.parentElement?.closest('[class*="message"], [class*="bubble"], [class*="turn"], [class*="chat-item"]');
+      return !el.parentElement?.closest('[class*="message"], [class*="bubble"], [class*="turn"], [class*="chat-item"]') && !isStreaming(el);
     });
     // Heuristic: alternate user/assistant by document order
     candidates.forEach((el, i) => {
@@ -99,8 +108,12 @@ function scrapeMessages(): Message[] {
 
   const userCount = messages.filter(m => m.role === "user").length;
   const asstCount = messages.filter(m => m.role === "assistant").length;
-  console.log(`[ContextForge:grok] FINAL: ${messages.length} msgs (user=${userCount} asst=${asstCount})`);
-  console.log(`[ContextForge:grok] preview:`, messages.map(m => ({ role: m.role, preview: m.content.slice(0, 60) })));
+  console.log('[CF:capture]', 'grok', {
+    total: messages.length,
+    user: userCount,
+    assistant: asstCount,
+    preview: messages.map(m => ({ role: m.role, len: m.content.length }))
+  });
   if (asstCount === 0 && userCount > 0) {
     console.error(`[ContextForge:grok] ASSISTANT MESSAGES MISSING`);
   }

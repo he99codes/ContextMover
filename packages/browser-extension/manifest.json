@@ -147,7 +147,7 @@
         }
     ],
     "content_security_policy": {
-        "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; base-uri 'none'"
+        "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; base-uri 'none'; connect-src 'self' https://*.supabase.co wss://*.supabase.co http://localhost:49152 http://localhost:54321; form-action 'none'; frame-src 'none'"
     },
     "icons": {}
 }

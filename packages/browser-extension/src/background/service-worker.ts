@@ -6,18 +6,12 @@ import { promptEngine } from "@/lib/prompt-engine/engine";
 import { capabilityDetector, type Tier } from "@/lib/capability-detector";
 import type { ContextSession, ExtractedContext, Message } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
-import {
-  upsertSessionToCloud,
-  deleteSessionFromCloud,
-  bulkSyncToCloud,
-} from "@/lib/cloud-sync";
-import { startRealtimeSync, stopRealtimeSync } from "@/lib/realtime-sync";
+import { syncPromptTemplates, syncPromptAssignments } from "@/lib/cloud-sync";
+import { userVault } from "@/lib/user-vault/connector";
 import { forgetSession, resolveSessionId } from "@/lib/session-id";
 
-// Start realtime sync as soon as the service worker wakes up — if the user is
-// already signed in, edits/deletes from the web dashboard will mirror into the
-// local IndexedDB without needing a sign-in round-trip.
-void startRealtimeSync();
+// Sessions are stored ONLY in local IndexedDB.
+// Optional: synced to user's personal Supabase vault via userVault.getClient().
 
 // Broadcast a message to any OPEN extension view (sidebar, popup, options).
 // Using chrome.runtime.sendMessage with no open view rejects with "Receiving
@@ -51,6 +45,37 @@ const PLATFORM_URLS = {
 
 const ALL_PLATFORM_URL_GLOBS: string[] = Object.values(PLATFORM_URLS).flatMap((p) => [...p]);
 
+// [SECURITY] Pre-compiled regex from all platform globs — used in sender validation.
+const PLATFORM_GLOB_RE = new RegExp(
+  ALL_PLATFORM_URL_GLOBS
+    .map((g) => "^" + g.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$")
+    .join("|"),
+  "i"
+);
+
+// [SECURITY] Sender origin helpers — every sensitive message handler must call one of these.
+function isFromOwnExtension(sender: chrome.runtime.MessageSender): boolean {
+  return sender.id === chrome.runtime.id;
+}
+function isFromExtensionUI(sender: chrome.runtime.MessageSender): boolean {
+  return sender.id === chrome.runtime.id && !sender.tab;
+}
+function isFromPlatformTab(sender: chrome.runtime.MessageSender): boolean {
+  return sender.id === chrome.runtime.id &&
+    Boolean(sender.tab?.url && PLATFORM_GLOB_RE.test(sender.tab.url));
+}
+function payloadPlatformMatchesSender(
+  platform: string,
+  sender: chrome.runtime.MessageSender
+): boolean {
+  const url = sender.tab?.url ?? "";
+  const globs = PLATFORM_URLS[platform as keyof typeof PLATFORM_URLS] ?? [];
+  return globs.some((g) => {
+    const re = new RegExp("^" + g.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$", "i");
+    return re.test(url);
+  });
+}
+
 // Broadcast SESSION_FORGOTTEN to every open AI tab so live content scripts
 // drop their cached session id and let the next capture mint a fresh one.
 async function broadcastForgetToTabs(sessionId: string): Promise<void> {
@@ -82,7 +107,8 @@ chrome.sidePanel
 // ── Lifecycle ──────────────────────────────────────────────────────────────────
 chrome.runtime.onInstalled.addListener(async () => {
   console.log("[ContextForge] Extension installed.");
-  chrome.storage.local.set({ sessions: [] });
+  const existing = await chrome.storage.local.get(["sessions"]);
+  if (!existing.sessions) await chrome.storage.local.set({ sessions: [] });
 
   // MV3 does NOT auto-inject content scripts into already-open tabs after a
   // reload. Re-inject only into tabs that DON'T already have a live listener —
@@ -123,21 +149,54 @@ chrome.action.onClicked.addListener((tab) => {
 });
 
 // ── Message Router ─────────────────────────────────────────────────────────────
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   console.log(`[ContextForge ServiceWorker] Received message: ${msg.type}`);
   (async () => {
+    try {
+    // [SECURITY] Reject messages from any source that is not our own extension.
+    if (!isFromOwnExtension(sender)) {
+      console.warn('[CF:sw] Rejected message from unknown sender:', sender.id, msg.type);
+      sendResponse({ error: 'Unauthorized sender' });
+      return;
+    }
     switch (msg.type) {
-      case "CAPTURE_SESSION":
-        console.log(`[ContextForge ServiceWorker] CAPTURE_SESSION: ${msg.payload.platform} ${msg.payload.sessionId}`);
+      case "CAPTURE_SESSION": {
+        // [SECURITY] Must come from a known platform tab.
+        if (!isFromPlatformTab(sender)) {
+          console.warn('[CF:sw] CAPTURE_SESSION from non-platform sender, rejected. url:', sender.tab?.url);
+          sendResponse({ error: 'Sender is not a known platform tab' });
+          break;
+        }
+        // [SECURITY] Validate payload schema before any DB write.
+        const p = msg.payload as Record<string, unknown> | undefined;
+        if (!p || typeof p.platform !== 'string' || typeof p.sessionId !== 'string' || !Array.isArray(p.messages)) {
+          console.warn('[CF:sw] CAPTURE_SESSION invalid payload schema');
+          sendResponse({ error: 'CAPTURE_SESSION: invalid payload schema' });
+          break;
+        }
+        // [SECURITY] Claimed platform must match the actual tab URL.
+        if (!payloadPlatformMatchesSender(p.platform, sender)) {
+          console.warn(`[CF:sw] CAPTURE_SESSION platform mismatch: claimed=${p.platform} tab=${sender.tab?.url}`);
+          sendResponse({ error: 'Platform claim does not match sender tab URL' });
+          break;
+        }
+        console.log(`[CF:sw] CAPTURE_SESSION: ${p.platform} ${p.sessionId}`);
         await handleCaptureSession(msg.payload);
         sendResponse({ ok: true });
         break;
+      }
 
-      case "CAPTURE_MESSAGE":
+      case "CAPTURE_MESSAGE": {
+        // [SECURITY] Must come from a known platform tab.
+        if (!isFromPlatformTab(sender)) {
+          sendResponse({ error: 'Sender is not a known platform tab' });
+          break;
+        }
         console.log(`[ContextForge ServiceWorker] CAPTURE_MESSAGE: ${msg.payload.platform} ${msg.payload.sessionId}`);
         await handleCaptureMessage(msg.payload);
         sendResponse({ ok: true });
         break;
+      }
 
       case "GET_SESSIONS":
         sendResponse(await db.getAllSessions());
@@ -153,15 +212,31 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         break;
 
       case "DELETE_SESSION":
+        // [SECURITY] Destructive operation — only extension UI may trigger deletion.
+        if (!isFromExtensionUI(sender)) {
+          sendResponse({ error: 'DELETE_SESSION must originate from extension UI' });
+          break;
+        }
         await db.deleteSession(msg.sessionId);
         await forgetSession(msg.sessionId);
-        void deleteSessionFromCloud(msg.sessionId);
+        void (async () => {
+          try {
+            const vaultClient = await userVault.getClient();
+            if (!vaultClient) return;
+            await vaultClient.from('cf_sessions').delete().eq('id', msg.sessionId);
+          } catch { /* vault failure never blocks */ }
+        })();
         void broadcastForgetToTabs(msg.sessionId);
         void broadcastToViews({ type: "SESSIONS_UPDATED" });
         sendResponse({ ok: true });
         break;
 
       case "SESSION_EXISTS": {
+        // [SECURITY] Allow only from platform content scripts or extension UI.
+        if (!isFromPlatformTab(sender) && !isFromExtensionUI(sender)) {
+          sendResponse({ exists: false });
+          break;
+        }
         // Used by content scripts to check if a legacy hash-based session id
         // already exists so we can adopt it instead of orphaning it.
         const existing = await db.getSession(msg.sessionId);
@@ -170,6 +245,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       }
 
       case "MIGRATE_CONTEXT":
+        // [SECURITY] Migration must come from extension UI (sidebar/popup), never a content script.
+        if (!isFromExtensionUI(sender)) {
+          sendResponse({ error: 'MIGRATE_CONTEXT must originate from extension UI' });
+          break;
+        }
         await handleMigrateContext(msg.payload, sendResponse);
         break;
 
@@ -196,9 +276,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           // Bulk-sync any locally-captured sessions to the cloud now that we
           // have an authenticated user, then begin listening for remote edits.
           void (async () => {
-            const local = await db.getAllSessions();
-            await bulkSyncToCloud(local);
-            await startRealtimeSync();
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            const uid = authUser?.id;
+            if (uid) {
+              void syncPromptTemplates(uid);
+              void syncPromptAssignments(uid);
+            }
             void broadcastToViews({ type: "AUTH_STATE_CHANGED" });
           })();
         }
@@ -217,7 +300,6 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       }
 
       case "AUTH_SIGN_OUT": {
-        await stopRealtimeSync();
         await supabase.auth.signOut();
         sendResponse({ ok: true });
         void broadcastToViews({ type: "AUTH_STATE_CHANGED" });
@@ -225,14 +307,94 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       }
 
       case "CLOUD_RESYNC_ALL": {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const uid = authUser?.id;
+        if (uid) { void syncPromptTemplates(uid); void syncPromptAssignments(uid); }
         const local = await db.getAllSessions();
-        await bulkSyncToCloud(local);
-        sendResponse({ ok: true, count: local.length });
+        let vaultSynced = 0;
+        const vaultClient = await userVault.getClient();
+        if (vaultClient) {
+          for (const session of local) {
+            try {
+              await vaultClient.from('cf_sessions').upsert({
+                id: session.id, platform: session.platform, title: session.title,
+                messages: session.messages,
+                message_count: session.messages.length,
+                user_message_count: session.messages.filter((m) => m.role === 'user').length,
+                assistant_message_count: session.messages.filter((m) => m.role === 'assistant').length,
+                updated_at: new Date().toISOString(),
+              }, { onConflict: 'id' });
+              vaultSynced++;
+            } catch { /* vault failure never blocks */ }
+          }
+          console.log(`[ContextForge:vault] Bulk synced ${vaultSynced}/${local.length} sessions to personal vault`);
+        }
+        sendResponse({ ok: true, count: local.length, vaultSynced });
+        break;
+      }
+
+      case "VAULT_GET_STATUS": {
+        const status = await userVault.testConnection();
+        const config = await userVault.getConfig();
+        sendResponse({ ...status, config });
+        break;
+      }
+
+      case "VAULT_CONNECT_MANUAL": {
+        // [SECURITY] Only from extension UI.
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: 'Unauthorized' }); break; }
+        try {
+          const config = await userVault.connectManual(msg.url, msg.anonKey);
+          sendResponse({ ok: true, config });
+        } catch (err) {
+          sendResponse({ error: err instanceof Error ? err.message : String(err) });
+        }
+        break;
+      }
+
+      case "VAULT_INITIATE_OAUTH": {
+        // [SECURITY] Only from extension UI.
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: 'Unauthorized' }); break; }
+        try {
+          await userVault.initiateOAuth();
+          sendResponse({ ok: true });
+        } catch (err) {
+          sendResponse({ error: err instanceof Error ? err.message : String(err) });
+        }
+        break;
+      }
+
+      case "VAULT_DISCONNECT": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: 'Unauthorized' }); break; }
+        await userVault.disconnect();
+        sendResponse({ ok: true });
+        break;
+      }
+
+      case "VAULT_DELETE_DATA": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: 'Unauthorized' }); break; }
+        try {
+          await userVault.deleteAllVaultData();
+          sendResponse({ ok: true });
+        } catch (err) {
+          sendResponse({ error: err instanceof Error ? err.message : String(err) });
+        }
+        break;
+      }
+
+      case "VAULT_GET_CONFIG": {
+        const cfg = await userVault.getConfig();
+        sendResponse({ config: cfg });
         break;
       }
 
       default:
         sendResponse({ error: `Unknown message type: ${msg.type}` });
+    }
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error(`[CF:sw] Unhandled error in ${msg.type} handler:`, err);
+      sendResponse({ error: errMsg });
     }
   })();
   return true; // keep channel open for async
@@ -262,8 +424,21 @@ async function handleCaptureMessage(payload: {
   session.updatedAt = Date.now();
   await db.saveSession(session);
 
-  // Mirror to Supabase so the web dashboard sees it in realtime.
-  void upsertSessionToCloud(session);
+  // Sync to user's personal vault if connected. Never blocks local capture.
+  void (async () => {
+    try {
+      const vaultClient = await userVault.getClient();
+      if (!vaultClient) return;
+      await vaultClient.from('cf_sessions').upsert({
+        id: session.id, platform: session.platform, title: session.title,
+        messages: session.messages,
+        message_count: session.messages.length,
+        user_message_count: session.messages.filter((m) => m.role === 'user').length,
+        assistant_message_count: session.messages.filter((m) => m.role === 'assistant').length,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+    } catch (err) { console.warn('[ContextForge:vault] CAPTURE_MESSAGE sync failed:', err); }
+  })();
 
   // Mirror to VS Code bridge (fire-and-forget — bridge may not be running)
   fetch(`${BRIDGE_URL}/context`, {
@@ -279,12 +454,12 @@ async function handleCaptureSession(payload: {
   title: string;
   messages: Message[];
 }) {
-  // ── DIAGNOSTIC STAGE 2 — service worker received the capture ────────────────
+  // ── [CF:sw] received ────────────────────────────────────────────────────────
   const rxUser = payload.messages.filter(m => m.role === "user").length;
   const rxAsst = payload.messages.filter(m => m.role === "assistant").length;
-  console.log(`[ContextForge:sw] Stage2 — CAPTURE_SESSION received: platform=${payload.platform} session=${payload.sessionId} total=${payload.messages.length} user=${rxUser} assistant=${rxAsst}`);
+  console.log('[CF:sw] received', { platform: payload.platform, session: payload.sessionId, total: payload.messages.length, user: rxUser, assistant: rxAsst });
   if (rxAsst === 0 && rxUser > 0) {
-    console.error(`[ContextForge:sw] Stage2 — ASSISTANT MESSAGES MISSING in incoming payload. Bug is in Stage1 (content script).`);
+    console.error('[CF:sw] received — ASSISTANT MESSAGES MISSING in payload (Stage1 content script bug)');
   }
 
   const existing = await db.getSession(payload.sessionId);
@@ -302,17 +477,36 @@ async function handleCaptureSession(payload: {
   };
 
   await db.saveSession(session);
+  console.log('[CF:sw] saved', { session: session.id, total: session.messages.length });
 
-  // Mirror to Supabase so the web dashboard sees it in realtime.
-  void upsertSessionToCloud(session);
+  console.log('[ContextForge] Session stored locally only. No cloud sync unless user connects personal Supabase.');
 
-  // ── DIAGNOSTIC STAGE 3 — read back from IndexedDB to verify persistence ────
+  // Sync to user's personal vault if connected. Never blocks local capture.
+  void (async () => {
+    try {
+      const vaultClient = await userVault.getClient();
+      if (!vaultClient) return;
+      await vaultClient.from('cf_sessions').upsert({
+        id: session.id, platform: session.platform, title: session.title,
+        messages: session.messages,
+        message_count: session.messages.length,
+        user_message_count: session.messages.filter((m) => m.role === 'user').length,
+        assistant_message_count: session.messages.filter((m) => m.role === 'assistant').length,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+      console.log(`[ContextForge:vault] Synced session ${session.id} to user's Supabase (${session.messages.length} messages)`);
+    } catch (err) { console.warn('[ContextForge:vault] Sync failed:', err); }
+  })();
+
+  // ── [CF:sw] verified — read back from IndexedDB to confirm integrity ─────
   const saved = await db.getSession(payload.sessionId);
   const savedUser = saved?.messages.filter(m => m.role === "user").length ?? 0;
   const savedAsst = saved?.messages.filter(m => m.role === "assistant").length ?? 0;
-  console.log(`[ContextForge:sw] Stage3 — DB readback: total=${saved?.messages.length ?? 0} user=${savedUser} assistant=${savedAsst}`);
-  if (savedAsst === 0 && savedUser > 0) {
-    console.error(`[ContextForge:sw] Stage3 — ASSISTANT MESSAGES MISSING after DB save. IndexedDB corruption or payload was already broken.`);
+  console.log('[CF:sw] verified', { total: saved?.messages.length ?? 0, user: savedUser, assistant: savedAsst, ok: saved !== undefined });
+  if (!saved) {
+    console.error('[CF:sw] verified — FAILED: session not found in IndexedDB after save');
+  } else if (savedAsst === 0 && savedUser > 0) {
+    console.error('[CF:sw] verified — ASSISTANT MESSAGES MISSING after DB save');
   }
 
   // Push an instant refresh notification to any open extension view (sidebar).
@@ -528,6 +722,21 @@ async function handleMigrateContext(
 
   // ── Inject into target tab ─────────────────────────────────────────────────
   if (payload.targetTabId) {
+    // Domain whitelist guard — INJECT_CONTEXT must only fire on a known platform page.
+    const targetTab = await chrome.tabs.get(payload.targetTabId).catch(() => null);
+    if (!targetTab?.url) {
+      return sendResponse({ error: "Target tab not found or URL unavailable." });
+    }
+    const allowedGlobs = PLATFORM_URLS[payload.targetPlatform as keyof typeof PLATFORM_URLS] ?? [];
+    const domainAllowed = allowedGlobs.some((glob) => {
+      const pattern = new RegExp("^" + glob.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$");
+      return pattern.test(targetTab.url!);
+    });
+    if (!domainAllowed) {
+      console.error(`[CF:sw] injection blocked — tab ${payload.targetTabId} (${targetTab.url}) not whitelisted for platform=${payload.targetPlatform}`);
+      return sendResponse({ error: `The active tab (${targetTab.url}) is not a ${payload.targetPlatform} page. Open ${payload.targetPlatform} in the target tab and try again.` });
+    }
+    console.log(`[CF:sw] injection domain verified: ${targetTab.url} → ${payload.targetPlatform}`);
     const injectionResult = await sendMessageToTab(payload.targetTabId, {
       type: "INJECT_CONTEXT",
       prompt: finalPrompt,
@@ -698,6 +907,7 @@ function injectPromptInPage(
 ): { ok: boolean; error?: string } {
   const SELECTORS: Record<string, string[]> = {
     perplexity: [
+      'textarea#ask',
       'textarea[placeholder*="Ask"]',
       'textarea[placeholder*="ask"]',
       'textarea[placeholder*="Search"]',
@@ -708,8 +918,9 @@ function injectPromptInPage(
     ],
     deepseek: [
       '#chat-input',
-      'textarea[placeholder*="Send"]',
       'textarea[placeholder*="Message"]',
+      'textarea[placeholder*="message"]',
+      'textarea[placeholder*="Ask"]',
       '[contenteditable="true"]',
       'textarea:not([readonly])',
     ],

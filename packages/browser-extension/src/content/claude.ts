@@ -234,13 +234,14 @@ function scrapeMessages(): Message[] {
   // ── Diagnostic: preview every message ──────────────────────────────────────
   const userC = messages.filter(m => m.role === "user").length;
   const asstC = messages.filter(m => m.role === "assistant").length;
-  console.log(`[ContextForge:claude] FINAL: ${messages.length} msgs (user=${userC} asst=${asstC})`);
-  console.log(
-    `[ContextForge:claude] preview:`,
-    messages.map(m => ({ role: m.role, preview: m.content.slice(0, 60) }))
-  );
+  console.log('[CF:capture]', 'claude', {
+    total: messages.length,
+    user: userC,
+    assistant: asstC,
+    preview: messages.map(m => ({ role: m.role, len: m.content.length }))
+  });
   if (asstC === 0 && userC > 0) {
-    console.error(`[ContextForge:claude] ASSISTANT MESSAGES STILL MISSING after all 4 strategies`);
+    console.error(`[ContextForge:claude] ASSISTANT MESSAGES STILL MISSING after all strategies`);
   }
 
   return messages;

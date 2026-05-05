@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
 import { attentionEngine } from "@/lib/attention-engine";
+import { capabilityDetector } from "@/lib/capability-detector";
 import { summarizeWithAttention } from "@/lib/summarizer";
 import { promptEngine } from "@/lib/prompt-engine/engine";
 import type { PromptTemplate } from "@/lib/prompt-engine/types";
@@ -144,6 +145,8 @@ export default function MigrationModal({
   const [engineState, setEngineState] = useState<EngineState>({ status: "idle" });
   const [preview, setPreview] = useState<PreviewState>({ status: "idle" });
   const [migrateState, setMigrateState] = useState<MigrateState>({ status: "idle" });
+  const [isWeakDevice, setIsWeakDevice] = useState(false);
+  const [preindexed, setPreindexed] = useState(false);
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Prompt Engine state
@@ -156,6 +159,13 @@ export default function MigrationModal({
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // ── Detect weak device on mount ─────────────────────────────────────────────
+  useEffect(() => {
+    capabilityDetector.getEffectiveTier()
+      .then((tier) => setIsWeakDevice(tier === "minimal"))
+      .catch(() => setIsWeakDevice(false));
   }, []);
 
   // ── Load prompt templates on mount ──────────────────────────────────────────
@@ -175,32 +185,48 @@ export default function MigrationModal({
   // ── Init attention engine when tier 3 is selected ──────────────────────────
   useEffect(() => {
     if (tier !== 3) return;
+    // If sidebar already preloaded the engine, jump straight to ready.
     if (attentionEngine.initialized) {
       setEngineState({ status: "ready" });
+      // Warm the session index so typing the task is instant.
+      if (!preindexed) {
+        attentionEngine.indexSession(session)
+          .then(() => setPreindexed(true))
+          .catch(() => { /* ignore */ });
+      }
       return;
     }
     setEngineState({ status: "loading", progress: 0 });
     attentionEngine
       .initialize((p) => setEngineState({ status: "loading", progress: p }))
-      .then(() => setEngineState({ status: "ready" }))
+      .then(() => {
+        setEngineState({ status: "ready" });
+        attentionEngine.indexSession(session)
+          .then(() => setPreindexed(true))
+          .catch(() => { /* ignore */ });
+      })
       .catch((err) => {
         console.warn("[MigrationModal] engine init failed:", err);
         setEngineState({ status: "error", message: "Engine unavailable — keyword fallback will be used" });
       });
-  }, [tier]);
+  }, [tier, session, preindexed]);
 
   // ── Debounced live preview (tier 3 only) ────────────────────────────────────
+  // DISABLED on weak devices: embedding the task query on every keystroke
+  // freezes the UI on slow CPUs. The full attention map is still computed
+  // when the user clicks Migrate.
   useEffect(() => {
     if (tier !== 3) return;
+    if (isWeakDevice) return; // skip entirely on weak devices
     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
     if (!task.trim() || engineState.status !== "ready") {
       setPreview({ status: "idle" });
       return;
     }
     setPreview({ status: "analyzing" });
+    // Longer debounce (1200 ms) on non-weak devices to reduce mid-typing jank.
     previewTimerRef.current = setTimeout(async () => {
       try {
-        await attentionEngine.indexSession(session);
         const map = await attentionEngine.buildAttentionMap(session, task, strength);
         const relevantMessages = map.topChunks.filter(
           (c) => c.type === "message" && c.relevanceScore >= map.threshold
@@ -209,9 +235,9 @@ export default function MigrationModal({
       } catch {
         setPreview({ status: "error" });
       }
-    }, 600);
+    }, 1200);
     return () => { if (previewTimerRef.current) clearTimeout(previewTimerRef.current); };
-  }, [task, strength, engineState.status, session, tier]);
+  }, [task, strength, engineState.status, session, tier, isWeakDevice]);
 
   // ── Auto-dismiss on success ─────────────────────────────────────────────────
   useEffect(() => {
@@ -460,7 +486,13 @@ export default function MigrationModal({
         )}
 
         {/* ── Tier 3: live preview ── */}
-        {tier === 3 && preview.status === "analyzing" && (
+        {tier === 3 && isWeakDevice && engineState.status === "ready" && (
+          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F59E0B", letterSpacing: "0.06em", lineHeight: "1" }}>
+            ⚠ Live preview disabled — keeps typing responsive on this device. Analysis runs on Migrate.
+          </div>
+        )}
+
+        {tier === 3 && !isWeakDevice && preview.status === "analyzing" && (
           <div style={{ marginBottom: "6px", padding: "5px 10px", background: "#111", border: "1px solid #1A2A1A", borderRadius: "4px", fontSize: "9px", color: "#2A6A2A", textTransform: "uppercase", letterSpacing: "0.08em" }}>
             · Analyzing…
           </div>

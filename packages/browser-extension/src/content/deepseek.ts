@@ -4,6 +4,16 @@ import type { Message } from "@/lib/types";
 
 console.log("[ContextForge] DeepSeek content script loaded");
 
+function isStreaming(el: HTMLElement): boolean {
+  return (
+    el.classList.contains("result-streaming") ||
+    el.querySelector(".result-streaming") !== null ||
+    el.closest("[data-is-streaming]") !== null ||
+    el.closest("[class*='streaming']") !== null ||
+    el.closest("[class*='loading']") !== null
+  );
+}
+
 function scrapeMessages(): Message[] {
   type Entry = { el: HTMLElement; role: "user" | "assistant" };
   const collected: Entry[] = [];
@@ -12,7 +22,7 @@ function scrapeMessages(): Message[] {
   // ── Strategy A: data-message-author-role (ChatGPT-compatible) ───────────────
   {
     const els = [...document.querySelectorAll<HTMLElement>("[data-message-author-role]")]
-      .filter((el) => !el.parentElement?.closest("[data-message-author-role]"));
+      .filter((el) => !el.parentElement?.closest("[data-message-author-role]") && !isStreaming(el));
     for (const el of els) {
       const role = el.dataset.messageAuthorRole;
       if (role === "user" || role === "assistant") collected.push({ el, role });
@@ -26,9 +36,9 @@ function scrapeMessages(): Message[] {
     const asstSel = '[class*="ds-markdown"], [class*="markdown-content"], [class*="assistantMessage"], [class*="assistant-message"], [class*="AssistantMessage"], [class*="model-response"]';
 
     const userEls = [...document.querySelectorAll<HTMLElement>(userSel)]
-      .filter((el) => !el.parentElement?.closest(userSel));
+      .filter((el) => !el.parentElement?.closest(userSel) && !isStreaming(el));
     const asstEls = [...document.querySelectorAll<HTMLElement>(asstSel)]
-      .filter((el) => !el.parentElement?.closest(asstSel));
+      .filter((el) => !el.parentElement?.closest(asstSel) && !isStreaming(el));
 
     for (const el of userEls) collected.push({ el, role: "user" });
     for (const el of asstEls) collected.push({ el, role: "assistant" });
@@ -38,7 +48,7 @@ function scrapeMessages(): Message[] {
   // ── Strategy C: data-role / role attributes ──────────────────────────────────
   if (!hasAsst()) {
     const els = [...document.querySelectorAll<HTMLElement>("[data-role], [role='listitem']")]
-      .filter((el) => !el.parentElement?.closest("[data-role]"));
+      .filter((el) => !el.parentElement?.closest("[data-role]") && !isStreaming(el));
     for (const el of els) {
       const role = (el.dataset.role ?? "").toLowerCase();
       if (role === "user" || role === "human") collected.push({ el, role: "user" });
@@ -54,7 +64,7 @@ function scrapeMessages(): Message[] {
   if (!hasAsst()) {
     const msgEls = [...document.querySelectorAll<HTMLElement>(
       '[class*="message"], [class*="chat-item"], [class*="turn"], [class*="bubble"]'
-    )].filter((el) => !el.parentElement?.closest('[class*="message"], [class*="chat-item"], [class*="turn"], [class*="bubble"]'));
+    )].filter((el) => !el.parentElement?.closest('[class*="message"], [class*="chat-item"], [class*="turn"], [class*="bubble"]') && !isStreaming(el));
 
     for (const el of msgEls) {
       const text = (el.textContent ?? "").trim();
@@ -99,7 +109,12 @@ function scrapeMessages(): Message[] {
 
   const u = messages.filter((m) => m.role === "user").length;
   const a = messages.filter((m) => m.role === "assistant").length;
-  console.log(`[ContextForge:deepseek] FINAL: ${messages.length} msgs (user=${u} asst=${a})`);
+  console.log('[CF:capture]', 'deepseek', {
+    total: messages.length,
+    user: u,
+    assistant: a,
+    preview: messages.map(m => ({ role: m.role, len: m.content.length }))
+  });
   if (a === 0 && u > 0) console.error("[ContextForge:deepseek] ASSISTANT MESSAGES MISSING");
 
   return messages;

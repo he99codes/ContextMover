@@ -571,8 +571,13 @@
     const _OriginalWS = window.WebSocket;
 
     function isPerplexityURL(url: string): boolean {
-      try { return new URL(url).hostname.includes("perplexity.ai"); }
-      catch { return url.includes("perplexity.ai"); }
+      // [SECURITY] Use exact match — .includes() would match evilperplexity.ai
+      try {
+        const host = new URL(url).hostname;
+        return host === "perplexity.ai" || host.endsWith(".perplexity.ai");
+      } catch {
+        return /^https?:\/\/(?:[\w-]+\.)?perplexity\.ai(?:\/|$)/.test(url);
+      }
     }
 
     function handlePerplexityWSMessage(data: unknown): void {

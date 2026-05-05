@@ -5,6 +5,7 @@ import ExportMenu from "@/components/ExportMenu";
 import { PlatformBadge, PlatformLogo } from "@/components/PlatformLogo";
 import MigrationModal from "./MigrationModal";
 import { attentionEngine } from "@/lib/attention-engine";
+import { capabilityDetector } from "@/lib/capability-detector";
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   claude:     "Claude",
@@ -54,6 +55,8 @@ export default function Sidebar() {
   );
   const [tick, setTick] = useState(0);
   const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [vaultConnected, setVaultConnected] = useState<boolean | null>(null);
+  const [vaultName, setVaultName] = useState<string | undefined>(undefined);
   const [semanticQuery, setSemanticQuery] = useState("");
   const [semanticResults, setSemanticResults] = useState<{ sessionId: string; score: number }[]>([]);
   const loadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -62,6 +65,7 @@ export default function Sidebar() {
   useEffect(() => {
     loadSessions();
     void checkBridge();
+    void checkVault();
 
     // Poll at 30 s — SESSIONS_UPDATED events already handle real-time updates.
     // Frequent polling was the main cause of GET_SESSIONS storms.
@@ -89,6 +93,35 @@ export default function Sidebar() {
     };
   }, []);
 
+  // ── Silent background preload of Attention Engine ───────────────────────────
+  // Warming up the model (~23 MB download on first run) while the user is
+  // browsing sessions means zero wait time when they open MigrationModal tier 3.
+  // Runs only if the detector thinks the device can handle it (not minimal).
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      if (cancelled || attentionEngine.initialized) return;
+      const tier = await capabilityDetector.getEffectiveTier().catch(() => "balanced" as const);
+      if (tier === "minimal") return; // Skip preload on very weak devices.
+      console.log("[ContextForge:sidebar] Background preload starting…");
+      attentionEngine
+        .initialize(undefined, tier)
+        .then(() => console.log("[ContextForge:sidebar] Background preload ready"))
+        .catch((err) => console.warn("[ContextForge:sidebar] Background preload failed:", err));
+    }, 1200);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, []);
+
+  // ── Pre-index the selected session when entering detail view ─────────────────
+  // This makes tier-3 live preview / migration near-instant because indexSession
+  // becomes a no-op (same message count) when the user types their task.
+  useEffect(() => {
+    if (view !== "detail" || !selected) return;
+    if (!attentionEngine.initialized) return;
+    // Fire-and-forget: any error is silently ignored.
+    attentionEngine.indexSession(selected).catch(() => { /* ignore */ });
+  }, [view, selected]);
+
   useEffect(() => {
     if (semanticTimerRef.current) clearTimeout(semanticTimerRef.current);
     if (!semanticQuery.trim() || semanticQuery.length < 3) {
@@ -114,6 +147,14 @@ export default function Sidebar() {
     }, 300);
     return () => { if (semanticTimerRef.current) clearTimeout(semanticTimerRef.current); };
   }, [semanticQuery]);
+
+  function checkVault() {
+    chrome.runtime.sendMessage({ type: 'VAULT_GET_STATUS' }, (res) => {
+      if (chrome.runtime.lastError) return;
+      setVaultConnected(res?.connected === true);
+      if (res?.projectName) setVaultName(res.projectName as string);
+    });
+  }
 
   function loadSessions() {
     // Collapse rapid bursts into a single GET_SESSIONS call after 250 ms quiet
@@ -444,8 +485,42 @@ export default function Sidebar() {
                 />
                 IDE
               </button>
+              <button
+                onClick={() => void checkVault()}
+                title={vaultConnected ? 'Vault connected' : 'Connect personal vault'}
+                className={`flex items-center gap-1 rounded-[4px] border px-2 py-1 text-[9px] font-black uppercase tracking-widest transition-all duration-200 ${
+                  vaultConnected === true
+                    ? 'border-[#00FF88]/30 bg-[#00FF88]/8 text-[#00FF88] shadow-[0_0_12px_rgba(0,255,136,0.25)]'
+                    : 'border-[#1A3A1A] bg-[#060606] text-[#1A3A1A]'
+                }`}
+              >
+                <span className={vaultConnected === true ? 'animate-pulse-green inline-block h-1.5 w-1.5 rounded-full bg-[#00FF88]' : 'inline-block h-1.5 w-1.5 rounded-full bg-[#3A3A3A]'} />
+                Vault
+              </button>
             </div>
           </div>
+
+          {vaultConnected === false && (
+            <a
+              href="https://contextforge.app/settings/vault"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 flex items-center gap-1.5 text-[9px] uppercase transition-colors hover:text-[#00FF88]"
+              style={{ letterSpacing: '0.12em', color: '#1A3A1A' }}
+            >
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#1A3A1A]" />
+              Sessions stored locally · Connect vault →
+            </a>
+          )}
+
+          {vaultConnected === true && (
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#00FF88]" style={{ boxShadow: '0 0 6px #00FF88' }} />
+              <span className="text-[9px] uppercase" style={{ letterSpacing: '0.12em', color: '#2A6A2A' }}>
+                Vault syncing · <span style={{ color: '#6AFF6A' }}>{vaultName ?? 'Personal Vault'}</span>
+              </span>
+            </div>
+          )}
 
           {leadSession ? (
             <div className="mt-2 flex items-center gap-1.5">

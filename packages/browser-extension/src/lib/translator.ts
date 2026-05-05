@@ -18,6 +18,9 @@ const MAX_VERBATIM = 6;
 export default function buildMigrationPrompt(
   payload: MigrationPayload
 ): string {
+  if (!payload.summary && !payload.intelligentSummary) {
+    throw new Error('[CF:translator] Empty payload — summarizer stage produced no output');
+  }
   // Tier 2 — Smart Summary: delegate to dedicated structured builders.
   if (payload.tier === 2 && payload.intelligentSummary) {
     switch (payload.targetPlatform) {
@@ -474,9 +477,9 @@ function buildGeminiPrompt(payload: MigrationPayload): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PERPLEXITY — Markdown with plain-prose instructions
-// Perplexity is a search-focused AI; guide it to treat the context as a
-// conversation continuation rather than a new search query.
+// PERPLEXITY — Plain text, no special formatting
+// Perplexity is search-focused; plain text prevents it treating headings as
+// search operators. No markdown headers, bold, or italic.
 // ─────────────────────────────────────────────────────────────────────────────
 function buildPerplexityPrompt(payload: MigrationPayload): string {
   const { sourceSession, extracted: ex, ideContext } = payload;
@@ -487,73 +490,60 @@ function buildPerplexityPrompt(payload: MigrationPayload): string {
   const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
 
   const out: string[] = [
-    `## Migrated Context — Perplexity`,
+    `CONTEXTFORGE MIGRATION`,
+    `Source: ${sourceSession.platform} | Session: "${sourceSession.title}" | Messages: ${sourceSession.messages.length} | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
     ``,
-    `> **From:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
-    ``,
-    `---`,
-    ``,
-    `## Goal`,
-    ``,
+    `GOAL`,
     ex?.primaryGoal ?? payload.summary,
     ``,
-    `## Progress`,
+    `COMPLETED`,
+    ...(ex?.completed.length
+      ? ex.completed.map((c) => `  - ${c}`)
+      : [`  (none extracted)`]),
     ``,
-    `**Completed:** ${ex?.completed.length ? ex.completed.map(c => `\n- ${c}`).join("") : " (none extracted)"}`,
+    `PENDING`,
+    ...(ex?.pending.length
+      ? ex.pending.map((p) => `  - ${p}`)
+      : [`  (none extracted)`]),
     ``,
-    `**Pending:** ${ex?.pending.length ? ex.pending.map(p => `\n- ${p}`).join("") : " (none extracted)"}`,
-    ``,
-    `## Key Decisions`,
-    ``,
+    `KEY DECISIONS`,
     ex?.decisions || "(none extracted)",
     ``,
-    `## Code`,
-    ``,
+    `CODE`,
   ];
 
   if (ex?.codeBlocks.length) {
     for (const block of ex.codeBlocks) {
-      if (block.path) out.push(`### \`${block.path}\``, ``);
-      else if (block.context) out.push(`_${block.context}_`, ``);
+      if (block.path) out.push(`File: ${block.path}`);
+      else if (block.context) out.push(`Context: ${block.context}`);
       out.push(`\`\`\`${block.language}`, block.content, `\`\`\``, ``);
     }
   } else {
-    out.push(`_No code blocks detected in this session_`, ``);
+    out.push(`(no code blocks detected in this session)`, ``);
   }
 
   if (ideContext) {
-    out.push(`---`, ``, `## Codebase State`, ``, ideContext, ``);
+    out.push(`CODEBASE STATE`, ideContext, ``);
   }
 
   out.push(
-    `---`,
-    ``,
-    `## Where We Left Off`,
-    ``,
+    `RECENT CONVERSATION`,
     // [SECURITY] Sanitize and delimit verbatim messages.
-    ...(() => [
-      wrapArchivedContent(
-        tail.flatMap((m) => [
-          `**${m.role === "user" ? "User" : "Perplexity"}:**`,
-          ``,
-          sanitizeForMarkdown(m.content),
-          ``,
-        ]).join("\n")
-      ),
-    ])(),
-    `---`,
-    ``,
-    `## Instructions`,
-    ``,
+    wrapArchivedContent(
+      tail.flatMap((m) => [
+        `${m.role === "user" ? "User" : "Perplexity"}: ${sanitizeForMarkdown(m.content)}`,
+        ``,
+      ]).join("\n")
+    ),
+    `TASK`,
     `This is a migrated conversation from ${sourceSession.platform}. Please continue it directly.`,
-    `The user is currently focused on: **${currentFocus}**`,
+    `The user is currently focused on: ${currentFocus}`,
     ``,
     `Do not treat this as a new search query. Pick up exactly where the conversation ended,`,
     `treating all code and decisions above as established context.`,
     ...(payload.caveman ? [
       ``,
-      `## Response Style`,
-      ``,
+      `RESPONSE STYLE`,
       `Caveman mode. No filler. No pleasantries. No hedging. Code write normal. Technical terms exact. Answer then stop.`,
     ] : [])
   );

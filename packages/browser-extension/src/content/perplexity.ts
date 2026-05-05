@@ -4,6 +4,16 @@ import type { Message } from "@/lib/types";
 
 console.log("[ContextForge] Perplexity content script loaded");
 
+function isStreaming(el: HTMLElement): boolean {
+  return (
+    el.classList.contains("result-streaming") ||
+    el.querySelector(".result-streaming") !== null ||
+    el.closest("[data-is-streaming]") !== null ||
+    el.closest("[class*='streaming']") !== null ||
+    el.closest("[class*='loading']") !== null
+  );
+}
+
 function scrapeMessages(): Message[] {
   type Entry = { el: HTMLElement; role: "user" | "assistant" };
   const collected: Entry[] = [];
@@ -12,7 +22,7 @@ function scrapeMessages(): Message[] {
   // ── Strategy A: data-message-role attribute ─────────────────────────────────
   {
     const els = [...document.querySelectorAll<HTMLElement>("[data-message-role]")]
-      .filter((el) => !el.parentElement?.closest("[data-message-role]"));
+      .filter((el) => !el.parentElement?.closest("[data-message-role]") && !isStreaming(el));
     for (const el of els) {
       const role = el.dataset.messageRole;
       if (role === "user" || role === "assistant") collected.push({ el, role });
@@ -20,15 +30,15 @@ function scrapeMessages(): Message[] {
     console.log(`[ContextForge:perplexity] A data-message-role: ${collected.length}`);
   }
 
-  // ── Strategy B: class substrings — UserMessage / AnswerText ─────────────────
+  // ── Strategy B: class substrings — UserMessage / AnswerText / answer-block ─
   if (!hasAsst()) {
     const userSel = '[class*="UserMessage"], [class*="user-query"], [class*="query-bubble"], [class*="user-message"]';
-    const asstSel = '[class*="AnswerText"], [class*="answer-text"], [class*="model-answer"], [class*="assistant-message"], [class*="prose"][class*="answer"]';
+    const asstSel = '[class*="AnswerText"], [class*="answer-text"], [class*="model-answer"], [class*="assistant-message"], [class*="prose"][class*="answer"], .answer-block, [class*="answer-block"]';
 
     const userEls = [...document.querySelectorAll<HTMLElement>(userSel)]
-      .filter((el) => !el.parentElement?.closest(userSel));
+      .filter((el) => !el.parentElement?.closest(userSel) && !isStreaming(el));
     const asstEls = [...document.querySelectorAll<HTMLElement>(asstSel)]
-      .filter((el) => !el.parentElement?.closest(asstSel));
+      .filter((el) => !el.parentElement?.closest(asstSel) && !isStreaming(el));
 
     for (const el of userEls) collected.push({ el, role: "user" });
     for (const el of asstEls) collected.push({ el, role: "assistant" });
@@ -41,20 +51,20 @@ function scrapeMessages(): Message[] {
   if (!hasAsst()) {
     const threadSel = '[class*="thread-item"], [class*="ThreadItem"], [class*="conversation-turn"], [class*="ConversationTurn"]';
     const turns = [...document.querySelectorAll<HTMLElement>(threadSel)]
-      .filter((el) => !el.parentElement?.closest(threadSel));
+      .filter((el) => !el.parentElement?.closest(threadSel) && !isStreaming(el));
     for (const turn of turns) {
       const queryEl = turn.querySelector<HTMLElement>('[class*="query"], [class*="Query"], [class*="user"]');
-      const answerEl = turn.querySelector<HTMLElement>('[class*="answer"], [class*="Answer"], [class*="markdown"], .prose');
-      if (queryEl) collected.push({ el: queryEl, role: "user" });
-      if (answerEl) collected.push({ el: answerEl, role: "assistant" });
+      const answerEl = turn.querySelector<HTMLElement>('[class*="answer"], [class*="Answer"], [class*="markdown"], .prose, .answer-block, [class*="answer-block"]');
+      if (queryEl && !isStreaming(queryEl)) collected.push({ el: queryEl, role: "user" });
+      if (answerEl && !isStreaming(answerEl)) collected.push({ el: answerEl, role: "assistant" });
     }
     console.log(`[ContextForge:perplexity] C thread-items: ${turns.length} turns`);
   }
 
   // ── Strategy D: prose / markdown blocks with sibling heuristic ──────────────
   if (!hasAsst()) {
-    const proseEls = [...document.querySelectorAll<HTMLElement>('.prose, [class*="markdown"], [class*="Markdown"]')]
-      .filter((el) => !el.parentElement?.closest('.prose, [class*="markdown"]'));
+    const proseEls = [...document.querySelectorAll<HTMLElement>('.prose, [class*="markdown"], [class*="Markdown"], .answer-block, [class*="answer-block"]')]
+      .filter((el) => !el.parentElement?.closest('.prose, [class*="markdown"], .answer-block, [class*="answer-block"]') && !isStreaming(el));
     for (const el of proseEls) {
       const text = (el.textContent ?? "").trim();
       if (text.length > 30) collected.push({ el, role: "assistant" });
@@ -82,16 +92,32 @@ function scrapeMessages(): Message[] {
     return pos & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
   });
 
+  // [SECURITY] Strip Perplexity follow-up suggestions, related questions, and ads
+  // before extracting text content, to prevent them being captured as message content.
+  const PERPLEXITY_NOISE_SEL = [
+    '[class*="related"]', '[class*="RelatedQuestions"]', '[class*="suggestion"]',
+    '[class*="follow-up"]', '[class*="FollowUp"]', '[class*="followup"]',
+    '[data-testid*="related"]', '[data-testid*="suggestion"]',
+    '[class*="sponsored"]', '[class*="ad-"]', '[class*="promo"]',
+  ].join(", ");
+
   const messages: Message[] = [];
   for (const { el, role } of collected) {
-    const content = extractMessageContent(el);
+    const clone = el.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll<Element>(PERPLEXITY_NOISE_SEL).forEach((n) => n.remove());
+    const content = extractMessageContent(clone);
     if (content) messages.push({ role, content, timestamp: Date.now() });
     else console.warn(`[ContextForge:perplexity] empty content for role=${role}`);
   }
 
   const u = messages.filter((m) => m.role === "user").length;
   const a = messages.filter((m) => m.role === "assistant").length;
-  console.log(`[ContextForge:perplexity] FINAL: ${messages.length} msgs (user=${u} asst=${a})`);
+  console.log('[CF:capture]', 'perplexity', {
+    total: messages.length,
+    user: u,
+    assistant: a,
+    preview: messages.map(m => ({ role: m.role, len: m.content.length }))
+  });
   if (a === 0 && u > 0) console.error("[ContextForge:perplexity] ASSISTANT MESSAGES MISSING");
 
   return messages;
@@ -112,6 +138,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 async function injectIntoPerplexityInput(text: string) {
   const input = await waitForAnyElement<HTMLElement>([
+    "textarea#ask",
     "textarea[placeholder*='Ask']",
     "textarea[placeholder*='ask']",
     "textarea[placeholder*='Search']",

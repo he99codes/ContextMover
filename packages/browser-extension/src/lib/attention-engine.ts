@@ -148,6 +148,8 @@ export class AttentionEngine {
   private treeSitterAvailable = false;
   private modelAvailable = false;
   initialized = false;
+  /** In-flight init promise so concurrent callers await the same work. */
+  private initPromise: Promise<void> | null = null;
 
   /** Active tier — set by initialize() and mutated by downgradeToMinimal(). */
   private tier: Tier = "balanced";
@@ -168,6 +170,7 @@ export class AttentionEngine {
     tier?: Tier,
   ): Promise<void> {
     if (this.initialized) return;
+    if (this.initPromise) return this.initPromise;
 
     // Resolve the tier — explicit arg wins; otherwise ask the detector.
     this.tier = tier ?? (await capabilityDetector.getEffectiveTier().catch(() => "balanced"));
@@ -185,44 +188,49 @@ export class AttentionEngine {
       }
     });
 
-    try {
-      await this.openIdb();
-      onProgress?.(8);
+    this.initPromise = (async () => {
+      try {
+        await this.openIdb();
+        onProgress?.(8);
 
-      this.appStructure = await this.loadAppStructure();
-      onProgress?.(12);
+        this.appStructure = await this.loadAppStructure();
+        onProgress?.(12);
 
-      // Minimal tier skips the model + tree-sitter entirely — it relies on the
-      // keyword scoring path and the regex code-block extractor.
-      if (!this.tierConfig.useEmbeddings) {
-        this.modelAvailable = false;
-        this.treeSitterAvailable = false;
+        // Minimal tier skips the model + tree-sitter entirely — it relies on the
+        // keyword scoring path and the regex code-block extractor.
+        if (!this.tierConfig.useEmbeddings) {
+          this.modelAvailable = false;
+          this.treeSitterAvailable = false;
+          onProgress?.(100);
+          this.initialized = true;
+          console.log(`${TAG} Ready (minimal tier — no model, regex only)`);
+          return;
+        }
+
+        // Model download is the heavy step (~23 MB on first run).
+        // Progress is mapped into the 12–80 range.
+        await this.loadEmbeddingModel(onProgress);
+        onProgress?.(80);
+
+        if (this.tierConfig.useTreeSitter) {
+          await this.initTreeSitter();
+        }
         onProgress?.(100);
+
         this.initialized = true;
-        console.log(`${TAG} Ready (minimal tier — no model, regex only)`);
-        return;
+        console.log(
+          `${TAG} Ready tier=${this.tier} model=${this.modelAvailable} treeSitter=${this.treeSitterAvailable}`
+        );
+      } catch (err) {
+        // Partial init still produces a working engine (keyword fallback active).
+        console.warn(`${TAG} Init error (partial init, keyword fallback active):`, err);
+        this.initialized = true;
+        onProgress?.(100);
       }
+    })();
 
-      // Model download is the heavy step (~23 MB on first run).
-      // Progress is mapped into the 12–80 range.
-      await this.loadEmbeddingModel(onProgress);
-      onProgress?.(80);
-
-      if (this.tierConfig.useTreeSitter) {
-        await this.initTreeSitter();
-      }
-      onProgress?.(100);
-
-      this.initialized = true;
-      console.log(
-        `${TAG} Ready tier=${this.tier} model=${this.modelAvailable} treeSitter=${this.treeSitterAvailable}`
-      );
-    } catch (err) {
-      // Partial init still produces a working engine (keyword fallback active).
-      console.warn(`${TAG} Init error (partial init, keyword fallback active):`, err);
-      this.initialized = true;
-      onProgress?.(100);
-    }
+    await this.initPromise;
+    this.initPromise = null;
   }
 
   // ─── downgradeToMinimal ───────────────────────────────────────────────────

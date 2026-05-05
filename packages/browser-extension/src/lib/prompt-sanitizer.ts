@@ -57,8 +57,9 @@ export function escapeXml(text: string): string {
 const DANGEROUS_PATTERNS: Array<[RegExp, string]> = [
   // Script tags (any variant)
   [/<script[\s\S]*?(?:<\/script>|$)/gi, "[SCRIPT REMOVED]"],
-  // javascript: URI scheme
+  // javascript: / vbscript: URI schemes
   [/javascript\s*:/gi, "javascript_REMOVED:"],
+  [/vbscript\s*:/gi, "vbscript_REMOVED:"],
   // data: URIs (except data:image which is benign)
   [/data\s*:(?!image\/)/gi, "data_REMOVED:"],
   // Inline event handlers (onclick=, onload=, onerror=, etc.)
