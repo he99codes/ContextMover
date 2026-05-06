@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
-  ArrowLeftRight,
   Bot,
   BarChart3,
   Settings,
@@ -21,10 +19,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
 
 const navigation = [
-  { name: "Sessions",  href: "/dashboard",          icon: LayoutDashboard },
-  { name: "Migrate",   href: "/migrate",             icon: ArrowLeftRight },
+  { name: "Overview",  href: "/analytics",            icon: BarChart3 },
   { name: "Agents",    href: "/settings/agents",    icon: Bot },
-  { name: "Analytics", href: "/analytics",           icon: BarChart3 },
   { name: "Prompts",   href: "/settings/prompts",   icon: FileCode },
   { name: "Vault",     href: "/settings/vault",     icon: Database },
   { name: "Settings",  href: "/settings",            icon: Settings },

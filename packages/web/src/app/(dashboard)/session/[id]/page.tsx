@@ -1,5 +1,5 @@
-import { VaultSessionDetail } from "@/components/dashboard/VaultSessionDetail";
+import { redirect } from "next/navigation";
 
-export default function SessionPage({ params }: { params: { id: string } }) {
-  return <VaultSessionDetail sessionId={params.id} />;
+export default function SessionPage() {
+  redirect("/analytics");
 }
