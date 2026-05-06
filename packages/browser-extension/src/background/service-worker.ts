@@ -13,6 +13,9 @@ import { forgetSession, resolveSessionId } from "@/lib/session-id";
 // Sessions are stored ONLY in local IndexedDB.
 // Optional: synced to user's personal Supabase vault via userVault.getClient().
 
+// Tracks which tabs have the side panel open (in-memory; resets on SW restart).
+const sidebarOpenTabs = new Set<number>();
+
 // Broadcast a message to any OPEN extension view (sidebar, popup, options).
 // Using chrome.runtime.sendMessage with no open view rejects with "Receiving
 // end does not exist" which Chrome surfaces as an error in DevTools even when
@@ -183,11 +186,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         console.log(`[CF:sw] CAPTURE_SESSION: ${p.platform} ${p.sessionId}`);
         await handleCaptureSession(msg.payload);
         sendResponse({ ok: true });
-        // Notify bubble in this tab — fire-and-forget, bubble may not be present.
+        // Notify sidebar toggle icon in this tab — fire-and-forget.
         if (sender.tab?.id) {
-          void chrome.tabs.sendMessage(sender.tab.id, { type: "BUBBLE_STATUS_UPDATE", status: "capturing" }).catch(() => {});
+          void chrome.tabs.sendMessage(sender.tab.id, { type: "CAPTURE_STATUS_UPDATE", status: "capturing" }).catch(() => {});
           setTimeout(() => {
-            if (sender.tab?.id) void chrome.tabs.sendMessage(sender.tab.id, { type: "BUBBLE_STATUS_UPDATE", status: "idle" }).catch(() => {});
+            if (sender.tab?.id) void chrome.tabs.sendMessage(sender.tab.id, { type: "CAPTURE_STATUS_UPDATE", status: "idle" }).catch(() => {});
           }, 3000);
         }
         break;
@@ -395,13 +398,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
-      case "OPEN_SIDE_PANEL": {
-        // Called by the floating bubble content script to open the side panel.
-        if (sender.tab?.id == null) { sendResponse({ error: "No tab id" }); break; }
-        chrome.sidePanel
-          .open({ tabId: sender.tab.id })
-          .then(() => sendResponse({ ok: true }))
-          .catch((err: unknown) => sendResponse({ error: String(err) }));
+      case "TOGGLE_SIDEBAR": {
+        if (sender.tab?.id == null) { sendResponse({ isOpen: false }); break; }
+        const tabId = sender.tab.id;
+        if (sidebarOpenTabs.has(tabId)) {
+          // Close — chrome.sidePanel.close added in Chrome 116.
+          void (chrome.sidePanel as unknown as { close(d: { tabId: number }): Promise<void> })
+            .close({ tabId })
+            .catch(() => {});
+          sidebarOpenTabs.delete(tabId);
+          sendResponse({ isOpen: false });
+        } else {
+          chrome.sidePanel
+            .open({ tabId })
+            .then(() => { sidebarOpenTabs.add(tabId); sendResponse({ isOpen: true }); })
+            .catch((err: unknown) => sendResponse({ error: String(err), isOpen: false }));
+        }
         break;
       }
 

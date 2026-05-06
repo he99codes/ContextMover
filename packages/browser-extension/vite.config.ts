@@ -28,7 +28,7 @@ export default defineConfig({
         "src/content/deepseek": "src/content/deepseek.ts",
         "src/content/fetch-interceptor": "src/content/fetch-interceptor.ts",
         "src/content/interceptor-bridge": "src/content/interceptor-bridge.ts",
-        "src/content/floating-bubble/bubble": "src/content/floating-bubble/bubble.ts",
+        "src/content/sidebar-toggle/toggle": "src/content/sidebar-toggle/toggle.ts",
       },
     },
     target: "esnext",

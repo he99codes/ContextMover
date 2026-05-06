@@ -1,11 +1,4 @@
 // packages/browser-extension/src/content/shared.ts
-
-// ── Bubble types (also used by floating-bubble/bubble.ts) ─────────────────────
-export type BubbleState    = "idle" | "capturing" | "error";
-export type SnapZone       = "top-right" | "bottom-right" | "top-left" | "bottom-left";
-export interface BubblePosition { x: number; y: number; snap: SnapZone; }
-// ─────────────────────────────────────────────────────────────────────────────
-
 import type { Message, Platform } from "@/lib/types";
 import { resolveSessionId, makeLegacyChecker } from "@/lib/session-id";
 

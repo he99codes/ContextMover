@@ -1,0 +1,71 @@
+/* Shadow DOM — page styles cannot affect this */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+.cf-toggle {
+  /* Position: shift left by own width, up by half own height from the 0×0 host */
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translateX(-100%) translateY(-50%);
+
+  /* Tab shape: rounded on left only, flush on right */
+  width: 28px;
+  height: 52px;
+  background: #111111;
+  border: 1px solid #00D26A;
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+
+  /* Content */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  outline: none;
+
+  /* Color tokens */
+  color: #00D26A;
+  --cf-inner: #111111;
+
+  /* Default state */
+  opacity: 0.7;
+  transition: opacity 150ms ease, box-shadow 150ms ease,
+              background 150ms ease, color 150ms ease;
+}
+
+.cf-toggle:hover,
+.cf-toggle:focus-visible {
+  opacity: 1;
+  box-shadow: -2px 0 12px rgba(0, 210, 106, 0.30);
+}
+
+/* Sidebar open — invert colours */
+.cf-toggle--open {
+  background: #00D26A;
+  color: #000000;
+  --cf-inner: #00D26A; /* same as bg → cutout effect on the hex */
+  opacity: 1;
+}
+
+.cf-toggle--open:hover,
+.cf-toggle--open:focus-visible {
+  box-shadow: -2px 0 16px rgba(0, 210, 106, 0.50);
+}
+
+/* ── Capture status dot ───────────────────────────────────────────────────── */
+.cf-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cf-dot--idle   { background: #333333; }
+.cf-dot--active { background: #00D26A; }
+
+/* When sidebar is open, dot uses contrasting colours */
+.cf-toggle--open .cf-dot--idle   { background: rgba(0, 0, 0, 0.25); }
+.cf-toggle--open .cf-dot--active { background: #000000; }

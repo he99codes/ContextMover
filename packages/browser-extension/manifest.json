@@ -128,7 +128,7 @@
                 "https://chat.deepseek.com/*"
             ],
             "js": [
-                "src/content/floating-bubble/bubble.ts"
+                "src/content/sidebar-toggle/toggle.ts"
             ],
             "run_at": "document_idle"
         }
