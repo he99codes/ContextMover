@@ -6,15 +6,15 @@
   position: absolute;
   top: 0;
   left: 0;
-  transform: translateX(-100%) translateY(-50%);
+  transform: translateX(-100%);
 
   /* Tab shape: rounded on left only, flush on right */
-  width: 28px;
-  height: 52px;
+  width: 40px;
+  height: 64px;
   background: #111111;
   border: 1px solid #00D26A;
   border-right: none;
-  border-radius: 6px 0 0 6px;
+  border-radius: 10px 0 0 10px;
 
   /* Content */
   display: flex;
@@ -58,8 +58,8 @@
 
 /* ── Capture status dot ───────────────────────────────────────────────────── */
 .cf-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
 }

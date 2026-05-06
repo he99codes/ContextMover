@@ -32,7 +32,7 @@ function inject(): HTMLElement {
   host.id = "cf-toggle-host";
   Object.assign(host.style, {
     position:      "fixed",
-    top:           "50%",
+    top:           "72px",
     right:         "0",
     width:         "0",
     height:        "0",
@@ -51,7 +51,7 @@ function inject(): HTMLElement {
   btn.className = "cf-toggle";
   btn.setAttribute("aria-label", "Toggle ContextForge sidebar");
   btn.innerHTML = `
-    <svg width="12" height="12" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true">
       <path d="M10 2L3 6.5V13.5L10 18L17 13.5V6.5L10 2Z" fill="currentColor"/>
       <path d="M10 5.5L5.5 8V12L10 14.5L14.5 12V8L10 5.5Z" style="fill:var(--cf-inner)"/>
       <circle cx="10" cy="10" r="2.2" fill="currentColor"/>
