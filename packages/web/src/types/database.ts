@@ -9,6 +9,102 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      users: {
+        Row: {
+          id:              string;
+          email:           string | null;
+          is_pro:          boolean;
+          plan:            string;
+          pro_since:       string | null;
+          gateway:         string | null;
+          subscription_id: string | null;
+          payment_id:      string | null;
+          created_at:      string;
+        };
+        Insert: {
+          id:              string;
+          email?:          string | null;
+          is_pro?:         boolean;
+          plan?:           string;
+          pro_since?:      string | null;
+          gateway?:        string | null;
+          subscription_id?: string | null;
+          payment_id?:     string | null;
+          created_at?:     string;
+        };
+        Update: {
+          id?:             string;
+          email?:          string | null;
+          is_pro?:         boolean;
+          plan?:           string;
+          pro_since?:      string | null;
+          gateway?:        string | null;
+          subscription_id?: string | null;
+          payment_id?:     string | null;
+          created_at?:     string;
+        };
+      };
+      payments: {
+        Row: {
+          id:         string;
+          user_id:    string | null;
+          gateway:    string;
+          payment_id: string | null;
+          order_id:   string | null;
+          amount:     number | null;
+          currency:   string | null;
+          plan:       string | null;
+          status:     string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?:        string;
+          user_id?:   string | null;
+          gateway:    string;
+          payment_id?: string | null;
+          order_id?:  string | null;
+          amount?:    number | null;
+          currency?:  string | null;
+          plan?:      string | null;
+          status?:    string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?:        string;
+          user_id?:   string | null;
+          gateway?:   string;
+          payment_id?: string | null;
+          order_id?:  string | null;
+          amount?:    number | null;
+          currency?:  string | null;
+          plan?:      string | null;
+          status?:    string | null;
+          created_at?: string;
+        };
+      };
+      usage: {
+        Row: {
+          id:      string;
+          user_id: string;
+          feature: string;
+          month:   string;
+          count:   number;
+        };
+        Insert: {
+          id?:     string;
+          user_id: string;
+          feature: string;
+          month:   string;
+          count?:  number;
+        };
+        Update: {
+          id?:     string;
+          user_id?: string;
+          feature?: string;
+          month?:   string;
+          count?:   number;
+        };
+      };
       sessions: {
         Row: {
           id: string;

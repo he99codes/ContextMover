@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 // [SECURITY] Validate that no secret keys are accidentally exposed as NEXT_PUBLIC_.
@@ -29,6 +30,10 @@ export default function RootLayout({
       <body className="min-h-screen bg-[#0A0A0A] font-sans antialiased">
         {children}
         <Toaster />
+        <Script
+          src="https://checkout.razorpay.com/v1/checkout.js"
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );
