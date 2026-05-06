@@ -183,6 +183,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         console.log(`[CF:sw] CAPTURE_SESSION: ${p.platform} ${p.sessionId}`);
         await handleCaptureSession(msg.payload);
         sendResponse({ ok: true });
+        // Notify bubble in this tab — fire-and-forget, bubble may not be present.
+        if (sender.tab?.id) {
+          void chrome.tabs.sendMessage(sender.tab.id, { type: "BUBBLE_STATUS_UPDATE", status: "capturing" }).catch(() => {});
+          setTimeout(() => {
+            if (sender.tab?.id) void chrome.tabs.sendMessage(sender.tab.id, { type: "BUBBLE_STATUS_UPDATE", status: "idle" }).catch(() => {});
+          }, 3000);
+        }
         break;
       }
 
@@ -385,6 +392,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       case "VAULT_GET_CONFIG": {
         const cfg = await userVault.getConfig();
         sendResponse({ config: cfg });
+        break;
+      }
+
+      case "OPEN_SIDE_PANEL": {
+        // Called by the floating bubble content script to open the side panel.
+        if (sender.tab?.id == null) { sendResponse({ error: "No tab id" }); break; }
+        chrome.sidePanel
+          .open({ tabId: sender.tab.id })
+          .then(() => sendResponse({ ok: true }))
+          .catch((err: unknown) => sendResponse({ error: String(err) }));
         break;
       }
 

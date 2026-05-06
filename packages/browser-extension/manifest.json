@@ -115,6 +115,22 @@
                 "src/content/deepseek.ts"
             ],
             "run_at": "document_idle"
+        },
+        {
+            "matches": [
+                "https://claude.ai/*",
+                "https://chatgpt.com/*",
+                "https://chat.openai.com/*",
+                "https://gemini.google.com/*",
+                "https://grok.com/*",
+                "https://grok.x.ai/*",
+                "https://www.perplexity.ai/*",
+                "https://chat.deepseek.com/*"
+            ],
+            "js": [
+                "src/content/floating-bubble/bubble.ts"
+            ],
+            "run_at": "document_idle"
         }
     ],
     "action": {
