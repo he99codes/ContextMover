@@ -33,8 +33,8 @@ export async function POST(req: NextRequest) {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      plan    = "pro",
-      billing = "monthly",
+      plan     = "pro",
+      billing: _billing = "monthly",
     } = body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
