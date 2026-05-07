@@ -13,7 +13,7 @@ import {
   Database,
   CreditCard,
   Shield,
-  House,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,7 +28,7 @@ const navigation = [
   { name: "Pricing",   href: "/pricing",            icon: CreditCard },
 ];
 
-const homeLink = { name: "Back to Site", href: "/", icon: House };
+const homeLink = { name: "Back to Site", href: "/", icon: Home };
 
 interface SidebarProps {
   user: {
