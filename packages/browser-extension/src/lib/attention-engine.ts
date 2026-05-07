@@ -1043,7 +1043,7 @@ export class AttentionEngine {
       .sort((a, b) => a.timestamp - b.timestamp)
       .slice(0, 10);
     for (const m of highMsgs) {
-      parts.push(`${m.role.toUpperCase()}: ${m.content.slice(0, 500)}`);
+      parts.push(`${m.role.toUpperCase()}: ${m.content.slice(0, 1500)}`);
     }
 
     const highCode = chunks
@@ -1051,7 +1051,7 @@ export class AttentionEngine {
       .slice(0, 5);
     for (const c of highCode) {
       const label = c.filePath ? ` (${c.filePath})` : "";
-      parts.push(`CODE${label}:\n${c.content.slice(0, 1000)}`);
+      parts.push(`CODE${label}:\n${c.content.slice(0, 2000)}`);
     }
 
     return parts.join("\n\n");

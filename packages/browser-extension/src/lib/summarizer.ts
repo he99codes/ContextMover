@@ -304,13 +304,16 @@ const DECISION_RE = [
   /\binstead I['\u2019]ll\b/im,
 ];
 
+const META_FILTER_RE =
+  /Transformers\s+are\s+overkill|looking\s+for\s+['"‘“]|pattern\s+matched|keep\s+verbatim|overkill\s+when\s+you|detection\s+pattern|internal\s+regex|you['’]re\s+looking\s+for|scan\s+(the\s+)?first\s+\d/i;
+
 function extractDecisions(messages: Message[]): string {
   const items: string[] = [];
   for (const msg of messages) {
     if (msg.role !== "assistant") continue;
     const sentences = msg.content.split(/[.!?\n]/).filter((s) => s.trim().length > 20);
     for (const s of sentences) {
-      if (DECISION_RE.some((re) => re.test(s))) {
+      if (DECISION_RE.some((re) => re.test(s)) && !META_FILTER_RE.test(s)) {
         items.push(`- ${s.trim()}`);
       }
     }
@@ -356,6 +359,7 @@ function extractAllCodeBlocks(messages: Message[]): CodeBlock[] {
     while ((match = codeRe.exec(msg.content)) !== null) {
       if (blocks.length >= MAX_CODE_BLOCKS) break;
       const language = match[1].trim();
+      if (!language) continue; // Skip unlabeled fences — plain prose must never enter the code section
       const content = match[2]; // Full content — never truncated
 
       // Detect file path from first-line comment: "// src/foo.ts" or "# path.py"
@@ -437,12 +441,24 @@ function dedupe<T>(arr: T[]): T[] {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TIER2_DECISION_RE = [
-  /\bi['\u2019]ll use\b/i,
+  /\bi['’]ll use\b/i,
   /\bbest approach\b/i,
   /\bwe decided\b/i,
   /\bthe fix is\b/i,
   /\buse\s+\S+\s+for\b/i,
   /\bthis works because\b/i,
+  /\bgoing with\b/i,
+  /\bopted for\b/i,
+  /\blet['’]s use\b/i,
+  /\bswitched to\b/i,
+  /\bmoved to\b/i,
+  /\breplaced with\b/i,
+  /\bchose\b/i,
+  /\binstead of\b/i,
+  /\brather than\b/i,
+  /\bsticking with\b/i,
+  /\bwe['’]re using\b/i,
+  /\bwent with\b/i,
 ];
 
 const TIER2_BUG_RE = [
@@ -498,7 +514,7 @@ export function summarizeIntelligent(messages: Message[]): IntelligentSummary {
       .map((s) => s.trim())
       .filter((s) => s.length > 20);
     for (const s of sentences) {
-      if (TIER2_DECISION_RE.some((re) => re.test(s))) rawDecisions.push(s);
+      if (TIER2_DECISION_RE.some((re) => re.test(s)) && !META_FILTER_RE.test(s)) rawDecisions.push(s);
     }
   }
   const decisions = dedupe(rawDecisions).slice(0, 20);
@@ -523,7 +539,8 @@ export function summarizeIntelligent(messages: Message[]): IntelligentSummary {
     let match: RegExpExecArray | null;
     codeRe.lastIndex = 0;
     while ((match = codeRe.exec(msg.content)) !== null) {
-      const language = match[1].trim() || "text";
+      const language = match[1].trim();
+      if (!language) continue; // Skip unlabeled fences — plain prose must never enter the code section
       const code = match[2]; // Never truncated.
       const firstLine = code.split("\n")[0]?.trim() ?? "";
       const pathMatch =
