@@ -832,7 +832,41 @@ async function handleMigrateContext(
       }
     }
 
-    // Last-resort fallback: P1+P3 alone exceeds 30k (extremely unusual).
+    // Tier3 (attention engine) — summary is a flat string with no code blocks
+    // to prune. Shorten the summary itself so the P1/P3 structured shell fits.
+    if (rebuilt.length > MAX_PROMPT_CHARS && tier === 3) {
+      const summaryBudget = Math.floor(MAX_PROMPT_CHARS * 0.72);
+      if (summary.length > summaryBudget) {
+        const head = Math.floor(summaryBudget * 0.75);
+        const tail = summaryBudget - head - 80;
+        const trimmedSummary =
+          summary.slice(0, head) +
+          `\n\n... [ContextForge: attention summary trimmed to fit editor limit] ...\n\n` +
+          summary.slice(-tail);
+        const candidate = buildMigrationPrompt({
+          summary: trimmedSummary,
+          extracted,
+          ideContext,
+          targetPlatform: payload.targetPlatform as ContextSession["platform"],
+          sourceSession: session,
+          caveman: payload.caveman,
+          task: payload.task,
+          attentionMap,
+          tier,
+          compressionRatio,
+          intelligentSummary,
+        });
+        if (candidate.length <= MAX_PROMPT_CHARS) {
+          rebuilt = candidate;
+          console.warn(
+            `[ContextForge:sw] Priority cap tier3: attention summary trimmed ` +
+            `${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
+          );
+        }
+      }
+    }
+
+    // Last-resort fallback: structured sections alone exceed the cap (unusual).
     if (rebuilt.length > MAX_PROMPT_CHARS) {
       const headChars = Math.floor(MAX_PROMPT_CHARS * 0.7);
       const tailChars = MAX_PROMPT_CHARS - headChars - 200;
