@@ -416,9 +416,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
 
         if (panelIsOpen) {
-          await (chrome.sidePanel as unknown as { close(d: { tabId: number }): Promise<void> })
-            .close({ tabId })
-            .catch(() => {});
+          // sidePanel.close() was added in Chrome 123; use setOptions fallback for
+          // broader compatibility (setOptions available since Chrome 116).
+          try {
+            await (chrome.sidePanel as unknown as { close(d: { tabId: number }): Promise<void> })
+              .close({ tabId });
+          } catch {
+            await chrome.sidePanel.setOptions({ tabId, enabled: false }).catch(() => {});
+            await chrome.sidePanel.setOptions({ tabId, enabled: true, path: "src/sidebar/index.html" }).catch(() => {});
+          }
           sendResponse({ isOpen: false });
         } else {
           await chrome.sidePanel

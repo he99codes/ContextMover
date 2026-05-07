@@ -13,6 +13,7 @@ import {
   Database,
   CreditCard,
   Shield,
+  House,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -26,6 +27,8 @@ const navigation = [
   { name: "Settings",  href: "/settings",           icon: Settings },
   { name: "Pricing",   href: "/pricing",            icon: CreditCard },
 ];
+
+const homeLink = { name: "Back to Site", href: "/", icon: House };
 
 interface SidebarProps {
   user: {
@@ -149,6 +152,17 @@ export function Sidebar({ user }: SidebarProps) {
             </Link>
           );
         })}
+
+        {/* Back to landing page */}
+        <div className="mt-2 pt-2 border-t border-[#1A1A1A]">
+          <Link
+            href={homeLink.href}
+            className="group relative flex h-10 items-center gap-2.5 overflow-hidden rounded-[8px] px-3 text-sm font-medium transition-all duration-150 text-[#6B6B6B] hover:bg-[#111111] hover:text-[#F5F5F5]"
+          >
+            <homeLink.icon size={16} className="shrink-0 text-[#6B6B6B] group-hover:text-[#F5F5F5] transition-colors duration-150" />
+            {homeLink.name}
+          </Link>
+        </div>
       </nav>
 
       {/* Zero-knowledge footer */}
