@@ -19,12 +19,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
 
 const navigation = [
-  { name: "Overview",  href: "/analytics",            icon: BarChart3 },
-  { name: "Agents",    href: "/settings/agents",    icon: Bot },
-  { name: "Prompts",   href: "/settings/prompts",   icon: FileCode },
-  { name: "Vault",     href: "/settings/vault",     icon: Database },
-  { name: "Settings",  href: "/settings",            icon: Settings },
-  { name: "Pricing",   href: "/pricing",             icon: CreditCard },
+  { name: "Overview",  href: "/analytics",         icon: BarChart3 },
+  { name: "Agents",    href: "/settings/agents",   icon: Bot },
+  { name: "Prompts",   href: "/settings/prompts",  icon: FileCode },
+  { name: "Vault",     href: "/settings/vault",    icon: Database },
+  { name: "Settings",  href: "/settings",           icon: Settings },
+  { name: "Pricing",   href: "/pricing",            icon: CreditCard },
 ];
 
 interface SidebarProps {
@@ -82,13 +82,19 @@ export function Sidebar({ user }: SidebarProps) {
         ].join(" ")}>
       {/* Logo */}
       <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-[#2A2A2A] px-4">
-        <div className="relative flex h-7 w-7 items-center justify-center rounded-[6px] bg-[#00FF88]">
-          <Zap size={14} className="text-black" />
-          <span className="animate-pulse-green absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#00FF88]" />
-        </div>
-        <span className="text-[15px] font-semibold text-[#F5F5F5] tracking-tight flex-1">
-          ContextForge
-        </span>
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 flex-1 min-w-0 group"
+          title="Back to home"
+        >
+          <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] bg-[#00FF88] transition-opacity group-hover:opacity-80">
+            <Zap size={14} className="text-black" />
+            <span className="animate-pulse-green absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#00FF88]" />
+          </div>
+          <span className="text-[15px] font-semibold text-[#F5F5F5] tracking-tight truncate group-hover:text-[#00FF88] transition-colors">
+            ContextForge
+          </span>
+        </Link>
         <button
           onClick={() => setMobileOpen(false)}
           className="md:hidden ml-auto text-[#6B6B6B] hover:text-[#F5F5F5] p-1 transition-colors"

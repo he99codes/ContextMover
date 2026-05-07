@@ -13,8 +13,9 @@ import { forgetSession, resolveSessionId } from "@/lib/session-id";
 // Sessions are stored ONLY in local IndexedDB.
 // Optional: synced to user's personal Supabase vault via userVault.getClient().
 
-// Tracks which tabs have the side panel open (in-memory; resets on SW restart).
-const sidebarOpenTabs = new Set<number>();
+// NOTE: sidebarOpenTabs removed — in-memory Set resets on every SW restart
+// causing the toggle to always show as "closed". State is now derived live
+// from chrome.runtime.getContexts() which reflects the actual browser state.
 
 // Broadcast a message to any OPEN extension view (sidebar, popup, options).
 // Using chrome.runtime.sendMessage with no open view rejects with "Receiving
@@ -401,17 +402,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       case "TOGGLE_SIDEBAR": {
         if (sender.tab?.id == null) { sendResponse({ isOpen: false }); break; }
         const tabId = sender.tab.id;
-        if (sidebarOpenTabs.has(tabId)) {
-          // Close — chrome.sidePanel.close added in Chrome 116.
-          void (chrome.sidePanel as unknown as { close(d: { tabId: number }): Promise<void> })
+
+        // Ask the browser directly — immune to SW restart state loss.
+        let panelIsOpen = false;
+        try {
+          const contexts = await chrome.runtime.getContexts({
+            contextTypes: ["SIDE_PANEL" as chrome.runtime.ContextType],
+          });
+          // A SIDE_PANEL context exists means our panel is currently open.
+          panelIsOpen = contexts.length > 0;
+        } catch {
+          panelIsOpen = false; // getContexts unavailable — assume closed
+        }
+
+        if (panelIsOpen) {
+          await (chrome.sidePanel as unknown as { close(d: { tabId: number }): Promise<void> })
             .close({ tabId })
             .catch(() => {});
-          sidebarOpenTabs.delete(tabId);
           sendResponse({ isOpen: false });
         } else {
-          chrome.sidePanel
+          await chrome.sidePanel
             .open({ tabId })
-            .then(() => { sidebarOpenTabs.add(tabId); sendResponse({ isOpen: true }); })
+            .then(() => sendResponse({ isOpen: true }))
             .catch((err: unknown) => sendResponse({ error: String(err), isOpen: false }));
         }
         break;
@@ -725,28 +737,80 @@ async function handleMigrateContext(
     }
   }
 
-  // ── Hard cap on final prompt size ─────────────────────────────────────────
+  // ── Priority-ordered prompt cap ───────────────────────────────────────────
   // 30k chars is the practical safe limit for AI chat inputs:
-  // ProseMirror/Lexical/Quill freeze for 30+ seconds on larger pastes,
-  // which causes the chrome.tabs.sendMessage port to time out and produces
-  // the "message channel closed" error users see as "migration failed".
-  // We keep the head (goals/decisions/code) and tail (recent conversation
-  // + instructions) and drop the middle — these are the highest-signal parts.
+  // ProseMirror/Lexical/Quill freeze for 30+ seconds on larger pastes.
+  //
+  // Priority order (never drop P1–P3):
+  //   P1 — metadata, primaryGoal, currentFocus, decisions  (always kept)
+  //   P2 — code blocks  (kept newest-first; oldest pruned until budget fits)
+  //   P3 — last 6 verbatim messages + instructions  (always kept)
+  //   P4 — middle messages  (already compressed by summariser; no standalone section)
+  //
+  // Strategy: rebuild from structured components with progressively fewer
+  // code blocks (oldest dropped first) rather than slicing the flat string.
   const MAX_PROMPT_CHARS = 30_000;
   if (finalPrompt.length > MAX_PROMPT_CHARS) {
     const beforeChars = finalPrompt.length;
-    const headChars = Math.floor(MAX_PROMPT_CHARS * 0.7);
-    const tailChars = MAX_PROMPT_CHARS - headChars - 200; // 200 chars for the marker
-    const head = finalPrompt.slice(0, headChars);
-    const tail = finalPrompt.slice(-tailChars);
-    const dropped = beforeChars - headChars - tailChars;
-    finalPrompt =
-      head +
-      `\n\n... [ContextForge: truncated ${dropped.toLocaleString()} characters from middle to fit chat input — head and tail preserved] ...\n\n` +
-      tail;
-    console.warn(
-      `[ContextForge:sw] Prompt size cap applied: ${beforeChars.toLocaleString()} → ${finalPrompt.length.toLocaleString()} chars`
-    );
+
+    // Helper: rebuild base prompt with a given code-block array.
+    const buildWith = (codeBlocks: unknown[]): string =>
+      buildMigrationPrompt({
+        summary,
+        extracted: tier !== 2 && extracted
+          ? { ...extracted, codeBlocks: codeBlocks as typeof extracted.codeBlocks }
+          : extracted,
+        intelligentSummary: tier === 2 && intelligentSummary
+          ? { ...intelligentSummary, codeBlocks: codeBlocks }
+          : intelligentSummary,
+        ideContext,
+        targetPlatform: payload.targetPlatform as ContextSession["platform"],
+        sourceSession: session,
+        caveman: payload.caveman,
+        task: payload.task,
+        attentionMap,
+        tier,
+        compressionRatio,
+      });
+
+    // Collect the active code-block array (newest are last; prune from front = oldest).
+    const allBlocks: unknown[] =
+      tier === 2
+        ? ((intelligentSummary as { codeBlocks?: unknown[] } | undefined)?.codeBlocks ?? [])
+        : (extracted?.codeBlocks ?? []);
+
+    let rebuilt = finalPrompt;
+    if (allBlocks.length > 0) {
+      // Walk from (N-1) kept blocks down to 0, stopping when it fits.
+      for (let keep = allBlocks.length - 1; keep >= 0; keep--) {
+        const candidate = buildWith(allBlocks.slice(allBlocks.length - keep));
+        if (candidate.length <= MAX_PROMPT_CHARS) {
+          rebuilt = candidate;
+          const dropped = allBlocks.length - keep;
+          console.warn(
+            `[ContextForge:sw] Priority cap: dropped ${dropped} oldest code block(s) ` +
+            `(P1/P3 preserved). ${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
+          );
+          break;
+        }
+      }
+    }
+
+    // Last-resort fallback: P1+P3 alone exceeds 30k (extremely unusual).
+    if (rebuilt.length > MAX_PROMPT_CHARS) {
+      const headChars = Math.floor(MAX_PROMPT_CHARS * 0.7);
+      const tailChars = MAX_PROMPT_CHARS - headChars - 200;
+      const dropped = rebuilt.length - headChars - tailChars;
+      rebuilt =
+        rebuilt.slice(0, headChars) +
+        `\n\n... [ContextForge: ${dropped.toLocaleString()} chars trimmed — all code blocks removed, structured sections preserved] ...\n\n` +
+        rebuilt.slice(-tailChars);
+      console.warn(
+        `[ContextForge:sw] Priority cap fallback: ${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
+      );
+    }
+
+    finalPrompt = rebuilt;
   }
 
   // ── Inject into target tab ─────────────────────────────────────────────────

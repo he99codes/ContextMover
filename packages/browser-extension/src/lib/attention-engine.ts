@@ -97,7 +97,7 @@ const STRUCTURE_KEY = "singleton";
 // Default model ID — overridden per-tier by TIER_CONFIGS at initialize() time.
 const DEFAULT_MODEL_ID = "Xenova/all-MiniLM-L6-v2";
 const EMBEDDING_DIM = 384;
-const SEARCH_TOP_K = 30;
+const SEARCH_TOP_K = 100;
 const TAIL_SIZE = 6;
 
 const THRESHOLDS: Record<"light" | "strict", number> = { light: 0.4, strict: 0.7 };
@@ -298,8 +298,10 @@ export class AttentionEngine {
   // ─── indexSession ─────────────────────────────────────────────────────────
 
   /**
-   * Generate and persist embeddings for every message + code block in a session.
-   * Idempotent — skips sessions already indexed at the same message count.
+   * Generate and persist embeddings for new messages + code blocks in a session.
+   * Delta-only: fetches existing chunk IDs from IDB and only embeds chunks
+   * whose IDs are not already stored. Existing chunks are never deleted or
+   * re-written. Falls through to a full index when no chunks exist yet.
    * Fire-and-forget safe: any error is logged and silently ignored.
    */
   async indexSession(session: ContextSession): Promise<void> {
@@ -309,28 +311,46 @@ export class AttentionEngine {
 
     const db = await this.openIdb();
 
-    // Skip if already indexed at this exact message count.
-    const meta = await (db.get(SESSIONS_META_STORE, session.id) as Promise<
-      { sessionId: string; messageCount: number } | undefined
-    >);
-    if (meta?.messageCount === session.messages.length) {
-      console.log(`${TAG} Session ${session.id} already indexed — skip`);
+    // Rebuild structural map with any new code (cheap, always run).
+    await this.buildStructure(session.messages);
+
+    // Build the full set of raw chunks for the current session state.
+    const rawChunks = this.sessionToChunks(session);
+    const cap = this.tierConfig.maxChunksPerSession || rawChunks.length;
+    const allRaw = rawChunks.slice(0, cap);
+
+    // Fetch IDs of chunks already stored in IDB for this session.
+    const existingChunks = await (
+      db.getAllFromIndex(CHUNKS_STORE, "sessionId", session.id) as Promise<AttentionChunk[]>
+    );
+    const existingIds = new Set(existingChunks.map((c) => c.id));
+
+    // Delta: only embed chunks not already present in IDB.
+    const newChunks = allRaw.filter((c) => !existingIds.has(c.id));
+
+    if (newChunks.length === 0) {
+      // All chunks accounted for — just refresh the meta counter.
+      await (db.put(SESSIONS_META_STORE, {
+        sessionId: session.id,
+        messageCount: session.messages.length,
+        indexedAt: Date.now(),
+      }) as Promise<unknown>);
+      console.log(
+        `${TAG} Session ${session.id} fully up-to-date — ` +
+        `${existingChunks.length} chunk(s) already indexed, nothing new`
+      );
       return;
     }
 
-    // Rebuild structural map with any new code.
-    await this.buildStructure(session.messages);
+    console.log(
+      `${TAG} Delta-indexing ${newChunks.length} new chunk(s) for session ${session.id} ` +
+      `(${existingChunks.length} already indexed, tier=${this.tier} cap=${cap})`
+    );
 
-    // Build raw chunks (no embeddings yet).
-    const rawChunks = this.sessionToChunks(session);
-    const cap = this.tierConfig.maxChunksPerSession || rawChunks.length;
-    const toIndex = rawChunks.slice(0, cap);
-    console.log(`${TAG} Embedding ${toIndex.length} chunk(s) for session ${session.id} (tier=${this.tier} cap=${cap})`);
+    // Embed only the new chunks.
+    const embedded = await this.embedChunks(newChunks);
 
-    // Embed in batches of BATCH_SIZE.
-    const embedded = await this.embedChunks(toIndex);
-
-    // Write to IndexedDB atomically.
+    // Append new chunks + update meta atomically. Never touches existing chunks.
     const tx = db.transaction([CHUNKS_STORE, SESSIONS_META_STORE], "readwrite");
     for (const chunk of embedded) {
       await tx.objectStore(CHUNKS_STORE).put(chunk);
@@ -342,7 +362,7 @@ export class AttentionEngine {
     });
     await tx.done;
 
-    console.log(`${TAG} Indexed ${embedded.length} chunk(s) for session ${session.id}`);
+    console.log(`${TAG} Appended ${embedded.length} new chunk(s) for session ${session.id}`);
   }
 
   // ─── buildAttentionMap ────────────────────────────────────────────────────
@@ -390,14 +410,15 @@ export class AttentionEngine {
 
     // Sort descending and apply threshold.
     scored.sort((a, b) => b.relevanceScore - a.relevanceScore);
-    const topChunks = scored.slice(0, SEARCH_TOP_K).filter((c) => c.relevanceScore >= threshold);
+    const topChunks = scored.filter((c) => c.relevanceScore >= threshold).slice(0, SEARCH_TOP_K);
 
     // Always add the last TAIL_SIZE messages verbatim (score 1.0).
-    const tail = session.messages.slice(-TAIL_SIZE).map((m) => {
+    const tailStart = Math.max(0, session.messages.length - TAIL_SIZE);
+    const tail = session.messages.slice(-TAIL_SIZE).map((m, i) => {
       const existing = allChunks.find(
         (c) => c.type === "message" && c.content === m.content && c.role === m.role
       );
-      return existing ?? this.messageToChunk(m, session.id, m.timestamp);
+      return existing ?? this.messageToChunk(m, session.id, m.timestamp, tailStart + i);
     });
 
     const merged = [...topChunks];
@@ -891,8 +912,8 @@ export class AttentionEngine {
     for (let i = 0; i < chunks.length; i += batchSize) {
       const batch = chunks.slice(i, i + batchSize);
       try {
-        // Truncate to 512 chars to keep sequence lengths reasonable.
-        const texts = batch.map((c) => c.content.slice(0, 512));
+        // Truncate to 2000 chars (~500 tokens, near full MiniLM-L6 capacity).
+        const texts = batch.map((c) => c.content.slice(0, 2000));
         const out = await this.extractor(texts, { pooling: "mean", normalize: true });
 
         // out.data is Float32Array[batch * EMBEDDING_DIM]; out.dims = [batch, 384]
@@ -917,8 +938,8 @@ export class AttentionEngine {
   private sessionToChunks(session: ContextSession): AttentionChunk[] {
     const chunks: AttentionChunk[] = [];
 
-    for (const msg of session.messages) {
-      chunks.push(this.messageToChunk(msg, session.id, msg.timestamp));
+    for (let i = 0; i < session.messages.length; i++) {
+      chunks.push(this.messageToChunk(session.messages[i], session.id, session.messages[i].timestamp, i));
     }
 
     for (const block of this.extractCodeBlocks(session.messages)) {
@@ -945,10 +966,11 @@ export class AttentionEngine {
   private messageToChunk(
     msg: Message,
     sessionId: string,
-    timestamp: number
+    timestamp: number,
+    index = 0
   ): AttentionChunk {
     return {
-      id: `${sessionId}-msg-${timestamp}-${msg.role}`,
+      id: `${sessionId}-msg-${timestamp}-${index}-${msg.role}`,
       sessionId,
       role: msg.role,
       content: msg.content,

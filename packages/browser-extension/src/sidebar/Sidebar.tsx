@@ -4,6 +4,7 @@ import type { ContextSession, Platform } from "@/lib/types";
 import ExportMenu from "@/components/ExportMenu";
 import { PlatformBadge, PlatformLogo } from "@/components/PlatformLogo";
 import MigrationModal from "./MigrationModal";
+import ScoreDashboard from "@/testing/score-dashboard";
 import { attentionEngine } from "@/lib/attention-engine";
 import { capabilityDetector } from "@/lib/capability-detector";
 import { VAULT_URL, DASHBOARD_URL, PRICING_URL } from "@/config/urls";
@@ -35,7 +36,7 @@ const PLATFORM_COLORS: Record<Platform, string> = {
   deepseek:   "#4C8BF5",
 };
 
-type View = "sessions" | "detail";
+type View = "sessions" | "detail" | "quality";
 type StatusTone = "info" | "success" | "error";
 
 export default function Sidebar() {
@@ -236,6 +237,26 @@ export default function Sidebar() {
   );
 
   void tick;
+
+  if (view === "quality") {
+    return (
+      <div className="flex h-full flex-col overflow-hidden bg-[#050505] text-[#F5F5F5] crt">
+        <div className="flex h-full flex-col">
+          <div className="flex items-center gap-2 border-b border-[#0D2A0D] px-4 py-2">
+            <button
+              onClick={() => setView("sessions")}
+              className="text-[9px] uppercase tracking-wider text-[#2A4A2A] hover:text-[#00FF88] transition-colors"
+            >
+              ← Back
+            </button>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <ScoreDashboard />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (view === "detail" && selected) {
     const visibleMessages = showFullTranscript ? selected.messages : selected.messages.slice(-6);
@@ -466,6 +487,13 @@ export default function Sidebar() {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => setView("quality")}
+                title="Migration Quality Tests"
+                className="flex items-center gap-1 rounded-[4px] border border-[#1A1A3A] bg-[#060606] px-2 py-1 text-[9px] font-black uppercase tracking-widest text-[#4A4ACA] transition-all duration-200 hover:border-[#6366f1]/40 hover:text-[#6366f1]"
+              >
+                ⚗ QA
+              </button>
               <button
                 onClick={() => { void loadSessions(); }}
                 title="Refresh sessions"

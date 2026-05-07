@@ -666,6 +666,12 @@ function buildClaudePromptTier2(payload: MigrationPayload): string {
   const bugsXml = is.bugsFixed.length
     ? is.bugsFixed.map((b) => `      - ${sanitizeForXml(b)}`).join("\n")
     : `      (none)`;
+  const completedXml = is.completed?.length
+    ? is.completed.map((c) => `      - ${sanitizeForXml(c)}`).join("\n")
+    : `      (none)`;
+  const pendingXml = is.pending?.length
+    ? is.pending.map((p) => `      - ${sanitizeForXml(p)}`).join("\n")
+    : `      (none)`;
 
   let codeXml = "";
   for (const block of is.codeBlocks) {
@@ -727,6 +733,15 @@ function buildClaudePromptTier2(payload: MigrationPayload): string {
     `    </bugs_fixed>`,
     `  </progress>`,
     ``,
+    `  <task_state>`,
+    `    <completed>`,
+    completedXml,
+    `    </completed>`,
+    `    <pending>`,
+    pendingXml,
+    `    </pending>`,
+    `  </task_state>`,
+    ``,
     `  <code>${codeXml}`,
     `  </code>`,
     ``,
@@ -785,6 +800,18 @@ function buildMarkdownPromptTier2(payload: MigrationPayload): string {
     is.bugsFixed.length
       ? is.bugsFixed.map((b) => `- ${b}`).join("\n")
       : `_No bugs extracted_`,
+    ``,
+    `---`,
+    ``,
+    `## Task State`,
+    ``,
+    is.completed?.length
+      ? is.completed.map((c) => `- ✅ ${c}`).join("\n")
+      : `_No completed items extracted_`,
+    ``,
+    is.pending?.length
+      ? is.pending.map((p) => `- 🔲 ${p}`).join("\n")
+      : `_No pending items extracted_`,
     ``,
     `---`,
     ``,

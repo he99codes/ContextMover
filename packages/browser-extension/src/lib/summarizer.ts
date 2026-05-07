@@ -296,6 +296,12 @@ const DECISION_RE = [
   /instead of|rather than|chose|chosen|decided|opted for|went with/im,
   /the reason|because.*approach|trade-?off/im,
   /(?:will|'ll) use .{3,30} (?:instead|for this|here)/im,
+  /\bgoing with\b/im,
+  /\bopted for\b/im,
+  /\blet['\u2019]s use\b/im,
+  /\bsticking with\b/im,
+  /\bswitching to\b/im,
+  /\binstead I['\u2019]ll\b/im,
 ];
 
 function extractDecisions(messages: Message[]): string {
@@ -321,8 +327,7 @@ const FACT_RE = [
 
 function extractFacts(messages: Message[]): string {
   const items: string[] = [];
-  const earlyMessages = messages.slice(0, Math.min(20, messages.length));
-  for (const msg of earlyMessages) {
+  for (const msg of messages) {
     const sentences = msg.content.split(/[.!?\n]/).filter((s) => s.trim().length > 20);
     for (const s of sentences) {
       if (FACT_RE.some((re) => re.test(s))) {
@@ -453,6 +458,8 @@ export interface IntelligentSummary {
   currentState: string;
   decisions: string[];
   bugsFixed: string[];
+  completed: string[];
+  pending: string[];
   codeBlocks: { language: string; path?: string; code: string }[];
   tail: Message[];
   originalCount: number;
@@ -529,6 +536,28 @@ export function summarizeIntelligent(messages: Message[]): IntelligentSummary {
   // ── 6. Tail — last MAX_VERBATIM_MESSAGES verbatim, both roles ───────────────────────
   const tail = messages.slice(-MAX_VERBATIM_MESSAGES);
 
+  // ── 7. Completed tasks — same COMPLETED_RE used by extractContext() ───────
+  const rawCompleted: string[] = [];
+  for (const msg of messages) {
+    if (msg.role !== "assistant") continue;
+    if (!COMPLETED_RE.some((re) => re.test(msg.content))) continue;
+    const firstLine = msg.content.split("\n")[0].trim();
+    const sentence = firstLine.split(/[.!?]/)[0].trim();
+    if (sentence.length > 10 && sentence.length < 200) rawCompleted.push(sentence);
+  }
+  const completed = dedupe(rawCompleted).slice(0, 12);
+
+  // ── 8. Pending tasks — same PENDING_RE, last 20 messages ─────────────────
+  const rawPending: string[] = [];
+  for (const msg of messages.slice(-20)) {
+    if (!PENDING_RE.some((re) => re.test(msg.content))) continue;
+    const sentences = msg.content.split(/[.!?\n]/).filter((s) => s.trim().length > 15);
+    for (const sentence of sentences) {
+      if (PENDING_RE.some((re) => re.test(sentence))) rawPending.push(sentence.trim());
+    }
+  }
+  const pending = dedupe(rawPending).slice(0, 10);
+
   // ── Compression ratio ─────────────────────────────────────────────────────
   const originalSize = messages.reduce((s, m) => s + m.content.length, 0);
   const extractedSize =
@@ -536,6 +565,8 @@ export function summarizeIntelligent(messages: Message[]): IntelligentSummary {
     currentState.length +
     decisions.reduce((s, d) => s + d.length, 0) +
     bugsFixed.reduce((s, b) => s + b.length, 0) +
+    completed.reduce((s, c) => s + c.length, 0) +
+    pending.reduce((s, p) => s + p.length, 0) +
     codeBlocks.reduce((s, c) => s + c.code.length, 0) +
     tail.reduce((s, m) => s + m.content.length, 0);
   const compressionRatio =
@@ -544,6 +575,7 @@ export function summarizeIntelligent(messages: Message[]): IntelligentSummary {
   console.log(
     `[ContextForge:tier2] ${messages.length} msgs \u2192 extracted:\n` +
     `  goals=1 decisions=${decisions.length} bugs=${bugsFixed.length} ` +
+    `completed=${completed.length} pending=${pending.length} ` +
     `code_blocks=${codeBlocks.length} \u2192 ${extractedSize} chars ` +
     `(${compressionRatio}% compressed) [${Date.now() - t0}ms]`
   );
@@ -553,6 +585,8 @@ export function summarizeIntelligent(messages: Message[]): IntelligentSummary {
     currentState,
     decisions,
     bugsFixed,
+    completed,
+    pending,
     codeBlocks,
     tail,
     originalCount: messages.length,

@@ -66,11 +66,14 @@ function scrapeMessages(): Message[] {
       // Must be a leaf-ish message container, not its inner wrappers
       return !el.parentElement?.closest('[class*="message"], [class*="bubble"], [class*="turn"], [class*="chat-item"]') && !isStreaming(el);
     });
-    // Heuristic: alternate user/assistant by document order
-    candidates.forEach((el, i) => {
-      collected.push({ el, role: i % 2 === 0 ? "user" : "assistant" });
+    // Content-based detection: markdown/code indicators → assistant; otherwise skip.
+    candidates.forEach((el) => {
+      if (el.querySelector("pre, code") || /markdown/i.test(el.className)) {
+        collected.push({ el, role: "assistant" });
+      }
+      // No reliable signal → skip rather than guess wrong role.
     });
-    console.log(`[ContextForge:grok] D generic-bubble: ${candidates.length} (alternating roles)`);
+    console.log(`[ContextForge:grok] D generic-bubble: ${candidates.length} candidates, ${collected.length} classified`);
   }
 
   // ── DOM diagnostic if nothing worked ──────────────────────────────────────
