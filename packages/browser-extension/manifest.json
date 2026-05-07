@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "ContextForge",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "description": "Never lose coding context again. One layer. Any agent. Zero friction.",
     "permissions": [
         "activeTab",
@@ -134,7 +134,13 @@
         }
     ],
     "action": {
-        "default_title": "ContextForge"
+        "default_title": "ContextForge",
+        "default_icon": {
+            "16":  "icons/icon16.png",
+            "32":  "icons/icon32.png",
+            "48":  "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
     },
     "side_panel": {
         "default_path": "src/sidebar/index.html"
@@ -165,5 +171,10 @@
     "content_security_policy": {
         "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; base-uri 'none'; connect-src 'self' https://*.supabase.co wss://*.supabase.co http://localhost:49152 http://localhost:54321; form-action 'none'; frame-src 'none'"
     },
-    "icons": {}
+    "icons": {
+        "16":  "icons/icon16.png",
+        "32":  "icons/icon32.png",
+        "48":  "icons/icon48.png",
+        "128": "icons/icon128.png"
+    }
 }
