@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       razorpay_payment_id,
       razorpay_signature,
       plan     = "pro",
-      billing: _billing = "monthly",
+      billing: _billing = "monthly", // eslint-disable-line @typescript-eslint/no-unused-vars
     } = body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
