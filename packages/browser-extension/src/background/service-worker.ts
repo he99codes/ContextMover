@@ -833,16 +833,29 @@ async function handleMigrateContext(
     }
 
     // Tier3 (attention engine) — summary is a flat string with no code blocks
-    // to prune. Shorten the summary itself so the P1/P3 structured shell fits.
+    // to prune. Measure the exact "shell" cost (attentionMap + metadata sections)
+    // so we know precisely how many chars the summary may use.
     if (rebuilt.length > MAX_PROMPT_CHARS && tier === 3) {
-      const summaryBudget = Math.floor(MAX_PROMPT_CHARS * 0.72);
-      if (summary.length > summaryBudget) {
+      const TRIM_MARKER = `\n\n... [ContextForge: attention summary trimmed to fit editor limit] ...\n\n`;
+      const shellPrompt = buildMigrationPrompt({
+        summary: "",
+        extracted,
+        ideContext,
+        targetPlatform: payload.targetPlatform as ContextSession["platform"],
+        sourceSession: session,
+        caveman: payload.caveman,
+        task: payload.task,
+        attentionMap,
+        tier,
+        compressionRatio,
+        intelligentSummary,
+      });
+      const summaryBudget = MAX_PROMPT_CHARS - shellPrompt.length - TRIM_MARKER.length - 50;
+      if (summaryBudget > 500 && summary.length > summaryBudget) {
         const head = Math.floor(summaryBudget * 0.75);
-        const tail = summaryBudget - head - 80;
+        const tail = summaryBudget - head;
         const trimmedSummary =
-          summary.slice(0, head) +
-          `\n\n... [ContextForge: attention summary trimmed to fit editor limit] ...\n\n` +
-          summary.slice(-tail);
+          summary.slice(0, head) + TRIM_MARKER + summary.slice(-tail);
         const candidate = buildMigrationPrompt({
           summary: trimmedSummary,
           extracted,
@@ -856,13 +869,11 @@ async function handleMigrateContext(
           compressionRatio,
           intelligentSummary,
         });
-        if (candidate.length <= MAX_PROMPT_CHARS) {
-          rebuilt = candidate;
-          console.warn(
-            `[ContextForge:sw] Priority cap tier3: attention summary trimmed ` +
-            `${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
-          );
-        }
+        rebuilt = candidate;
+        console.warn(
+          `[ContextForge:sw] Priority cap tier3: summary trimmed to ${summaryBudget.toLocaleString()} chars. ` +
+          `${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
+        );
       }
     }
 
