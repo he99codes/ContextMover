@@ -639,24 +639,49 @@ async function handleMigrateContext(
       console.log(`[ContextForge:sw] Stage5 — Attention Engine fast path (pre-computed by sidebar)`);
     } else {
       console.log(`[ContextForge:sw] Stage5 — Attention Engine path: strength=${payload.strength ?? "light"}`);
-      // Warm up the singleton engine at the resolved tier so the model + ONNX
-      // settings match capability detection.  No-op if already initialized.
-      const { attentionEngine } = await import("@/lib/attention-engine");
-      const engineTier: Tier = detectedTier ?? (payload.useAttentionEngine ? "balanced" : "balanced");
-      await attentionEngine.initialize(undefined, engineTier).catch((err) => {
-        console.warn("[ContextForge:sw] attention engine init failed, will fallback:", err);
-      });
-      const atResult = await summarizeWithAttention(
-        session.messages,
-        payload.task ?? "",
-        payload.strength ?? "light",
-        session
-      );
-      summary = atResult.summary;
-      attentionMap = atResult.attentionMap;
-      compressionRatio = atResult.compressionRatio;
-      console.log(`[ContextForge:sw] Stage5 — Attention Engine done`);
-      console.log(`[ContextForge:attention] compressionRatio: ${atResult.compressionRatio}%`);
+      try {
+        // Warm up the singleton engine at the resolved tier so the model + ONNX
+        // settings match capability detection.  No-op if already initialized.
+        const { attentionEngine } = await import("@/lib/attention-engine");
+        const engineTier: Tier = detectedTier ?? (payload.useAttentionEngine ? "balanced" : "balanced");
+        await attentionEngine.initialize(undefined, engineTier).catch((err) => {
+          console.warn("[ContextForge:sw] attention engine init failed, will fallback:", err);
+        });
+        const atResult = await summarizeWithAttention(
+          session.messages,
+          payload.task ?? "",
+          payload.strength ?? "light",
+          session
+        );
+        summary = atResult.summary;
+        attentionMap = atResult.attentionMap;
+        compressionRatio = atResult.compressionRatio;
+        console.log(`[ContextForge:sw] Stage5 — Attention Engine done`);
+        console.log(`[ContextForge:attention] compressionRatio: ${atResult.compressionRatio}%`);
+      } catch (atErr) {
+        // Attention Engine requires browser APIs (window, document, WebGPU) that
+        // are unavailable in the service worker. Pre-computing in the sidebar
+        // (AttentionModal) is the correct path — fall back to tier2 here.
+        const atMsg = atErr instanceof Error ? atErr.message : String(atErr);
+        const isBrowserApiErr = atMsg.includes("window is not defined") ||
+          atMsg.includes("document is not defined") ||
+          atMsg.includes("navigator is not defined") ||
+          atMsg.includes("is not defined");
+        if (isBrowserApiErr) {
+          console.warn(
+            "[CF:sw] Attention Engine unavailable in SW (browser APIs absent) — falling back to tier2.",
+            "Use the sidebar's 'Attention' tab to pre-compute before migrating."
+          );
+          tier = 2;
+          const isResult = summarizeIntelligent(session.messages);
+          intelligentSummary = isResult;
+          compressionRatio = isResult.compressionRatio;
+          summary = isResult.goal;
+          console.log(`[ContextForge:sw] tier=2 (fallback) compression=${compressionRatio}% chars=${JSON.stringify(isResult).length}`);
+        } else {
+          throw atErr;
+        }
+      }
     }
   } else if (tier === 2) {
     // Tier 2 — summarizeIntelligent (synchronous, no ML)
@@ -738,8 +763,11 @@ async function handleMigrateContext(
   }
 
   // ── Priority-ordered prompt cap ───────────────────────────────────────────
-  // 30k chars is the practical safe limit for AI chat inputs:
-  // ProseMirror/Lexical/Quill freeze for 30+ seconds on larger pastes.
+  // Per-platform safe limits — editor engine determines the ceiling:
+  //   Claude   (ProseMirror) — very tolerant, tested to 200k+
+  //   Gemini   (Quill)       — tolerant, tested to 150k+
+  //   ChatGPT  (CodeMirror)  — starts lagging ~80k; cap at 80k
+  //   Others   (various)     — conservative 60k until tested further
   //
   // Priority order (never drop P1–P3):
   //   P1 — metadata, primaryGoal, currentFocus, decisions  (always kept)
@@ -749,7 +777,15 @@ async function handleMigrateContext(
   //
   // Strategy: rebuild from structured components with progressively fewer
   // code blocks (oldest dropped first) rather than slicing the flat string.
-  const MAX_PROMPT_CHARS = 30_000;
+  const PLATFORM_MAX_CHARS: Partial<Record<string, number>> = {
+    claude:     120_000,
+    gemini:     120_000,
+    chatgpt:     80_000,
+    grok:        80_000,
+    perplexity:  60_000,
+    deepseek:    80_000,
+  };
+  const MAX_PROMPT_CHARS = PLATFORM_MAX_CHARS[payload.targetPlatform] ?? 80_000;
   if (finalPrompt.length > MAX_PROMPT_CHARS) {
     const beforeChars = finalPrompt.length;
 
