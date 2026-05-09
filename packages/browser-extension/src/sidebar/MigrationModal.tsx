@@ -10,6 +10,9 @@ import { attentionEngine } from "@/lib/attention-engine";
 import { capabilityDetector } from "@/lib/capability-detector";
 import { summarizeWithAttention } from "@/lib/summarizer";
 import { promptEngine } from "@/lib/prompt-engine/engine";
+import { projectReader } from "@/lib/file-system/project-reader";
+import { fileContextBuilder } from "@/lib/file-system/context-builder";
+import type { ProjectFile, FileTreeNode } from "@/lib/file-system/project-reader";
 import type { PromptTemplate } from "@/lib/prompt-engine/types";
 import type { ContextSession, Platform } from "@/lib/types";
 import { PROMPTS_URL } from "@/config/urls";
@@ -152,6 +155,15 @@ export default function MigrationModal({
   const [promptTemplateId, setPromptTemplateId] = useState<string | null>(null);
   const [promptExpanded, setPromptExpanded] = useState(false);
   const [allTemplates, setAllTemplates] = useState<{ system: PromptTemplate[]; user: PromptTemplate[] }>({ system: [], user: [] });
+  // Project files state
+  const [projectFiles, setProjectFiles] = useState<ProjectFile[]>([]);
+  const [projectContextIncluded, setProjectContextIncluded] = useState(true);
+  const [autoScoredPaths, setAutoScoredPaths] = useState<{ path: string; score: number }[]>([]);
+  const [autoScoring, setAutoScoring] = useState(false);
+  const taskAutoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [modalProjectTree, setModalProjectTree] = useState<FileTreeNode[]>(() =>
+    projectReader.isConnected ? projectReader.tree : []
+  );
 
   // ── Lock body scroll while modal is open ────────────────────────────────────
   useEffect(() => {
@@ -173,6 +185,82 @@ export default function MigrationModal({
       .then(setAllTemplates)
       .catch((err) => console.warn("[MigrationModal] template load failed:", err));
   }, []);
+
+  // ── Snapshot project files when modal opens ─────────────────────────────────
+  useEffect(() => {
+    if (projectReader.isConnected && projectReader.getSelectedCount() > 0) {
+      projectReader.readSelectedFiles()
+        .then(setProjectFiles)
+        .catch(() => setProjectFiles([]));
+    } else {
+      setProjectFiles([]);
+    }
+    return () => { if (taskAutoRef.current) clearTimeout(taskAutoRef.current); };
+  }, []);
+
+  // ── Session-based auto-detect on open (if folder connected, no files yet) ────
+  useEffect(() => {
+    if (!projectReader.isConnected || projectReader.getSelectedCount() > 0) return;
+    if (!attentionEngine.initialized) return;
+    void (async () => {
+      const query = session.messages.slice(-30).map((m) => m.content).join(" ").slice(0, 3000);
+      if (query.trim().length < 20) return;
+      setAutoScoring(true);
+      try {
+        const sections = await attentionEngine.findRelevantFileSections(query);
+        if (!sections.length) return;
+        const fileScores = new Map<string, number>();
+        for (const s of sections) {
+          if (!s.file) continue;
+          const cur = fileScores.get(s.file) ?? 0;
+          if (s.relevanceScore > cur) fileScores.set(s.file, s.relevanceScore);
+        }
+        const allScored = Array.from(fileScores.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        const autoSelect = allScored.filter(([, sc]) => sc > 0.15).slice(0, 6);
+        setAutoScoredPaths(allScored.map(([path, score]) => ({ path, score })));
+        if (autoSelect.length > 0) {
+          projectReader.setSelection(autoSelect.map(([p]) => p));
+          setModalProjectTree([...projectReader.tree]);
+          setProjectContextIncluded(true);
+          const files = await projectReader.readSelectedFiles();
+          setProjectFiles(files);
+        }
+      } catch { /* ignore */ } finally { setAutoScoring(false); }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Live file auto-detect as user types the task ──────────────────────────
+  useEffect(() => {
+    if (taskAutoRef.current) clearTimeout(taskAutoRef.current);
+    if (!task.trim() || task.length < 8 || !projectReader.isConnected) return;
+    taskAutoRef.current = setTimeout(async () => {
+      if (!attentionEngine.initialized) return;
+      setAutoScoring(true);
+      try {
+        const sections = await attentionEngine.findRelevantFileSections(task);
+        if (sections.length === 0) return;
+        const fileScores = new Map<string, number>();
+        for (const s of sections) {
+          if (!s.file) continue;
+          const cur = fileScores.get(s.file) ?? 0;
+          if (s.relevanceScore > cur) fileScores.set(s.file, s.relevanceScore);
+        }
+        const allScored = Array.from(fileScores.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        const autoSelect = allScored.filter(([, sc]) => sc > 0.15).slice(0, 6);
+        setAutoScoredPaths(allScored.map(([path, score]) => ({ path, score })));
+        if (autoSelect.length > 0) {
+          projectReader.setSelection(autoSelect.map(([p]) => p));
+          setModalProjectTree([...projectReader.tree]);
+          const files = await projectReader.readSelectedFiles();
+          setProjectFiles(files);
+          setProjectContextIncluded(true);
+        }
+      } catch { /* ignore */ } finally { setAutoScoring(false); }
+    }, 400);
+    return () => { if (taskAutoRef.current) clearTimeout(taskAutoRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task]);
 
   function setTier(t: 1 | 2 | 3) {
     setTierRaw(t);
@@ -216,7 +304,6 @@ export default function MigrationModal({
   // when the user clicks Migrate.
   useEffect(() => {
     if (tier !== 3) return;
-    if (isWeakDevice) return; // skip entirely on weak devices
     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
     if (!task.trim() || engineState.status !== "ready") {
       setPreview({ status: "idle" });
@@ -236,7 +323,7 @@ export default function MigrationModal({
       }
     }, 1200);
     return () => { if (previewTimerRef.current) clearTimeout(previewTimerRef.current); };
-  }, [task, strength, engineState.status, session, tier, isWeakDevice]);
+  }, [task, strength, engineState.status, session, tier]);
 
   // ── Auto-dismiss on success ─────────────────────────────────────────────────
   useEffect(() => {
@@ -274,6 +361,18 @@ export default function MigrationModal({
       }
     }
 
+    // Build project context block if files are selected and user hasn't removed it
+    let projectContext: string | null = null;
+    if (projectContextIncluded && projectFiles.length > 0) {
+      const treeText = projectReader.buildFileTreeText();
+      projectContext = fileContextBuilder.buildProjectContext(
+        projectFiles,
+        projectReader.rootName,
+        treeText,
+        targetPlatform,
+      );
+    }
+
     chrome.runtime.sendMessage(
       {
         type: "MIGRATE_CONTEXT",
@@ -284,6 +383,7 @@ export default function MigrationModal({
           tier,
           caveman,
           promptTemplateId: promptTemplateId ?? undefined,
+          projectContext,
           ...(tier === 3 && {
             useAttentionEngine: true,
             task: task.trim() || undefined,
@@ -342,8 +442,8 @@ export default function MigrationModal({
           padding: "12px",
           maxWidth: "480px",
           width: "100%",
-          maxHeight: "480px",
-          overflow: "hidden",
+          maxHeight: "min(680px, calc(100vh - 40px))",
+          overflowY: "auto",
           display: "flex",
           flexDirection: "column",
           color: "#F5F5F5",
@@ -485,13 +585,7 @@ export default function MigrationModal({
         )}
 
         {/* ── Tier 3: live preview ── */}
-        {tier === 3 && isWeakDevice && engineState.status === "ready" && (
-          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F59E0B", letterSpacing: "0.06em", lineHeight: "1" }}>
-            ⚠ Live preview disabled — keeps typing responsive on this device. Analysis runs on Migrate.
-          </div>
-        )}
-
-        {tier === 3 && !isWeakDevice && preview.status === "analyzing" && (
+        {tier === 3 && preview.status === "analyzing" && (
           <div style={{ marginBottom: "6px", padding: "5px 10px", background: "#111", border: "1px solid #1A2A1A", borderRadius: "4px", fontSize: "9px", color: "#2A6A2A", textTransform: "uppercase", letterSpacing: "0.08em" }}>
             · Analyzing…
           </div>
@@ -686,6 +780,168 @@ export default function MigrationModal({
             </div>
           </button>
         </div>
+
+        {/* ── Project Files — just before migrate ── */}
+        {(() => {
+          const isConn = projectReader.isConnected;
+          const hasSel = projectFiles.length > 0;
+          const flattenTree = (nodes: FileTreeNode[]): FileTreeNode[] => {
+            const out: FileTreeNode[] = [];
+            const walk = (ns: FileTreeNode[]) => {
+              for (const n of ns) {
+                if (n.kind === "file") out.push(n);
+                else if (n.children) walk(n.children);
+              }
+            };
+            walk(nodes);
+            return out;
+          };
+          const handleConnectFolder = async () => {
+            try {
+              const tree = await projectReader.openFolder();
+              setModalProjectTree(tree);
+              setProjectFiles([]);
+              setAutoScoredPaths([]);
+              const all = await projectReader.readAllFiles();
+              if (!all.length) return;
+              setAutoScoring(true);
+              try {
+                await attentionEngine.indexProjectFiles(all);
+                const q = task.trim().length >= 8
+                  ? task
+                  : session.messages.slice(-30).map((m) => m.content).join(" ").slice(0, 3000);
+                if (q.trim().length < 8) return;
+                const sections = await attentionEngine.findRelevantFileSections(q);
+                if (!sections.length) return;
+                const fileScores = new Map<string, number>();
+                for (const s of sections) {
+                  if (!s.file) continue;
+                  const cur = fileScores.get(s.file) ?? 0;
+                  if (s.relevanceScore > cur) fileScores.set(s.file, s.relevanceScore);
+                }
+                const allScored = Array.from(fileScores.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+                const autoSelect = allScored.filter(([, sc]) => sc > 0.15).slice(0, 6);
+                setAutoScoredPaths(allScored.map(([path, score]) => ({ path, score })));
+                if (autoSelect.length > 0) {
+                  projectReader.setSelection(autoSelect.map(([p]) => p));
+                  setModalProjectTree([...projectReader.tree]);
+                  setProjectContextIncluded(true);
+                  const files = await projectReader.readSelectedFiles();
+                  setProjectFiles(files);
+                }
+              } finally { setAutoScoring(false); }
+            } catch { /* user cancelled */ }
+          };
+          const handleDisconnectFolder = () => {
+            projectReader.disconnect();
+            setModalProjectTree([]);
+            setProjectFiles([]);
+            setAutoScoredPaths([]);
+          };
+          const handleToggleFile = (path: string) => {
+            projectReader.toggleSelect(path);
+            setModalProjectTree([...projectReader.tree]);
+            setAutoScoredPaths([]);
+            projectReader.readSelectedFiles().then(setProjectFiles).catch(() => {});
+          };
+          const flat = flattenTree(modalProjectTree);
+          const scoredSet = new Set(autoScoredPaths.map((s) => s.path));
+          const sorted = [
+            ...autoScoredPaths.map(({ path, score }) => ({ path, name: path.split("/").pop() ?? path, score })),
+            ...flat.filter((f) => !scoredSet.has(f.path)).map((f) => ({ path: f.path, name: f.name, score: undefined })),
+          ];
+          return (
+            <div style={{ marginBottom: 6 }}>
+              <div style={{
+                padding: "6px 10px", borderRadius: 5, transition: "all 0.15s",
+                border: `1px solid ${hasSel && projectContextIncluded ? "rgba(0,255,136,0.3)" : isConn ? "rgba(255,255,255,0.07)" : "#1A1A1A"}`,
+                background: hasSel && projectContextIncluded ? "rgba(0,255,136,0.04)" : "#0D0D0D",
+              }}>
+                {/* Header */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: isConn ? 6 : 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 9, fontWeight: 900, color: hasSel && projectContextIncluded ? "#00FF88" : "#555", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                      📁 Project Files
+                    </span>
+                    {autoScoring && <span style={{ fontSize: 8, color: "#818CF8" }}>scanning…</span>}
+                    {autoScoredPaths.length > 0 && !autoScoring && (
+                      <span style={{ fontSize: 8, color: "#818CF8", background: "rgba(99,102,241,0.12)", borderRadius: 3, padding: "1px 5px" }}>✨ auto</span>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    {hasSel && (
+                      <button type="button" onClick={() => setProjectContextIncluded((v) => !v)}
+                        style={{ fontSize: 8, color: projectContextIncluded ? "#00FF88" : "#555", background: "none", border: "none", padding: 0, cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        {projectContextIncluded ? "✓ Included" : "○ Excluded"}
+                      </button>
+                    )}
+                    {isConn && (
+                      <button type="button" onClick={handleDisconnectFolder} title="Disconnect"
+                        style={{ fontSize: 11, color: "#333", background: "none", border: "none", cursor: "pointer", lineHeight: 1 }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#EF4444")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "#333")}>×</button>
+                    )}
+                  </div>
+                </div>
+                {/* Not connected */}
+                {!isConn && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button type="button" onClick={handleConnectFolder} style={{
+                      fontSize: 9, color: "#00FF88", background: "rgba(0,255,136,0.06)",
+                      border: "1px solid rgba(0,255,136,0.2)", borderRadius: 4,
+                      padding: "4px 10px", cursor: "pointer", fontWeight: 700,
+                      letterSpacing: "0.06em", textTransform: "uppercase",
+                    }}>+ Connect Folder</button>
+                    <span style={{ fontSize: 8, color: "#333" }}>auto-detect files from your task</span>
+                  </div>
+                )}
+                {/* Connected */}
+                {isConn && (
+                  <>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                      <span style={{ fontSize: 8, color: "#444", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 100 }}>
+                        📁 {projectReader.rootName}
+                      </span>
+                      {([["☑ All", () => { projectReader.selectAll(); setModalProjectTree([...projectReader.tree]); setAutoScoredPaths([]); projectReader.readSelectedFiles().then(setProjectFiles).catch(() => {}); }],
+                         ["☐ None", () => { projectReader.clearAll(); setModalProjectTree([...projectReader.tree]); setAutoScoredPaths([]); setProjectFiles([]); }]] as [string, () => void][]).map(([label, fn]) => (
+                        <button key={label} type="button" onClick={fn}
+                          style={{ fontSize: 8, color: "#555", background: "none", border: "none", cursor: "pointer" }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "#F5F5F5")}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}>{label}</button>
+                      ))}
+                    </div>
+                    {sorted.length === 0 ? (
+                      <div style={{ fontSize: 9, color: "#333", paddingBottom: 2 }}>No files indexed</div>
+                    ) : (
+                      <div style={{ maxHeight: 112, overflowY: "auto", marginBottom: 4 }}>
+                        {sorted.map(({ path, name, score }) => {
+                          const sel = projectReader.isSelected(path);
+                          return (
+                            <div key={path} onClick={() => handleToggleFile(path)}
+                              style={{ display: "flex", alignItems: "center", gap: 5, padding: "2px 4px", cursor: "pointer", borderRadius: 3, background: sel ? "rgba(0,255,136,0.05)" : "transparent" }}
+                              onMouseEnter={(e) => { if (!sel) (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.03)"; }}
+                              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = sel ? "rgba(0,255,136,0.05)" : "transparent"; }}>
+                              <span style={{ fontSize: 9, color: sel ? "#00FF88" : "#333", flexShrink: 0 }}>{sel ? "☑" : "☐"}</span>
+                              <span style={{ fontSize: 9, color: sel ? "#F5F5F5" : "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{name}</span>
+                              {score !== undefined && (
+                                <span style={{ fontSize: 7, color: "#818CF8", background: "rgba(99,102,241,0.12)", borderRadius: 3, padding: "1px 4px", flexShrink: 0 }}>{Math.round(score * 100)}%</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 8, color: hasSel ? "#444" : "#333" }}>
+                      {hasSel
+                        ? <>{projectFiles.length} file{projectFiles.length !== 1 ? "s" : ""} · {fileContextBuilder.formatSize(projectFiles.reduce((s, f) => s + f.size, 0))}{(() => { const w = fileContextBuilder.getTokenWarning(projectFiles, targetPlatform); return w ? <span style={{ color: "#F59E0B", marginLeft: 6 }}>{w}</span> : null; })()}</>
+                        : autoScoring ? "Scanning…" : "Select files or type task to auto-detect"}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── Error banner ── */}
         {migrateState.status === "error" && (

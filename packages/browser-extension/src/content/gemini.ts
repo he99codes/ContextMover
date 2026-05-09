@@ -1,5 +1,5 @@
 // packages/browser-extension/src/content/gemini.ts
-import { extractMessageContent, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
 
 function isStreaming(el: HTMLElement): boolean {
@@ -51,7 +51,7 @@ function scrapeMessages(): Message[] {
 startSessionCapture({
   platform: "gemini",
   selectorOrElement: "chat-window, main",
-  scrapeMessages,
+  scrapeMessages: () => runCapturePipeline("gemini", scrapeMessages),
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -73,8 +73,8 @@ async function injectIntoGeminiInput(text: string) {
 
   if (!input) return { ok: false, error: "Gemini input box not found. Make sure a chat is open." };
 
-  if (!setPromptInputValue(input, text)) {
-    return { ok: false, error: "Gemini input did not accept the text. Try reloading the tab." };
+  if (!await injectWithRetry(input, text, "gemini")) {
+    return { ok: false, error: "Gemini input did not accept the text after 3 attempts. Context copied to clipboard — paste with Ctrl+V." };
   }
 
   return { ok: true };

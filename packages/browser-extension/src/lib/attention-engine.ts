@@ -25,6 +25,8 @@ import {
   getTierConfig,
   type Tier,
   type TierConfig,
+  type SystemHeadroom,
+  startHeadroomMonitor,
 } from "./capability-detector";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -157,6 +159,11 @@ export class AttentionEngine {
   private tierConfig: TierConfig = getTierConfig("balanced");
   /** Unsubscribe fn for capabilityDetector.onDowngrade(). */
   private offDowngrade: (() => void) | null = null;
+  private currentHeadroom: SystemHeadroom | null = null;
+  private stopHeadroomMonitor: (() => void) | null = null;
+  /** Original tier defaults captured before any dynamic boost overrides. */
+  private baselineConfig: TierConfig | null = null;
+  private boosted = false;
 
   // ─── initialize ──────────────────────────────────────────────────────────
 
@@ -175,6 +182,12 @@ export class AttentionEngine {
     // Resolve the tier — explicit arg wins; otherwise ask the detector.
     this.tier = tier ?? (await capabilityDetector.getEffectiveTier().catch(() => "balanced"));
     this.tierConfig = getTierConfig(this.tier);
+    if (!this.baselineConfig) this.baselineConfig = { ...this.tierConfig };
+    this.stopHeadroomMonitor?.();
+    this.stopHeadroomMonitor = startHeadroomMonitor((headroom) => {
+      this.currentHeadroom = headroom;
+      this.applyDynamicBoost(headroom);
+    });
     console.log(`${TAG} Initializing tier=${this.tier} config=`, this.tierConfig);
     onProgress?.(0);
 
@@ -252,6 +265,38 @@ export class AttentionEngine {
   /** Currently active tier — read by callers for telemetry/UI. */
   getActiveTier(): Tier {
     return this.tier;
+  }
+
+  /** Release the headroom monitor and downgrade listener. Call when tearing down. */
+  destroy(): void {
+    this.stopHeadroomMonitor?.();
+    this.stopHeadroomMonitor = null;
+    this.offDowngrade?.();
+    this.offDowngrade = null;
+  }
+
+  // ─── applyDynamicBoost ────────────────────────────────────────────────────
+
+  private applyDynamicBoost(headroom: SystemHeadroom): void {
+    const base = this.baselineConfig ?? this.tierConfig;
+    if (headroom.boostEligible) {
+      this.tierConfig.batchSize = Math.min(headroom.recommendedBatchSize, 64);
+      this.tierConfig.maxWasmThreads = Math.min(headroom.recommendedThreads, 8);
+      this.boosted = true;
+      if (headroom.gpuAvailable && this.tierConfig.device !== "webgpu") {
+        this.loadEmbeddingModel().catch(() => {
+          console.debug(`${TAG} GPU reload failed — keeping current device`);
+        });
+      }
+      console.debug(
+        `${TAG} Boosted: batch=${headroom.recommendedBatchSize} threads=${headroom.recommendedThreads} gpu=${headroom.gpuAvailable}`
+      );
+    } else if (this.boosted) {
+      this.tierConfig.batchSize = base.batchSize;
+      this.tierConfig.maxWasmThreads = base.maxWasmThreads;
+      this.boosted = false;
+      console.debug(`${TAG} Boost removed: system under load`);
+    }
   }
 
   // ─── buildStructure ───────────────────────────────────────────────────────
@@ -1020,6 +1065,129 @@ export class AttentionEngine {
       await db.put(STRUCTURE_STORE, { key: STRUCTURE_KEY, data: structure });
     } catch (err) {
       console.warn(`${TAG} Failed to persist AppStructure:`, err);
+    }
+  }
+
+  // ─── Public: project file indexing ──────────────────────────────────────────
+
+  /**
+   * Embed project files into the attention store so findRelevantFileSections()
+   * can surface file sections that match a given task query.
+   * Files are chunked in 500-char windows with 100-char overlap.
+   */
+  async indexProjectFiles(files: import("./file-system/project-reader").ProjectFile[]): Promise<void> {
+    if (!this.initialized) return; // silently skip if engine not ready
+
+    const CHUNK_SIZE = 500;
+    const OVERLAP = 100;
+    const chunks: AttentionChunk[] = [];
+
+    for (const file of files) {
+      const lines = file.content.split("\n");
+      let charOffset = 0;
+      let startLine = 0;
+      let chunkIndex = 0;
+
+      while (charOffset < file.content.length) {
+        const slice = file.content.slice(charOffset, charOffset + CHUNK_SIZE);
+        if (slice.trim().length < 20) { charOffset += CHUNK_SIZE - OVERLAP; continue; }
+
+        // Estimate start/end line numbers for this chunk
+        const sliceLineCount = slice.split("\n").length;
+        const endLine = startLine + sliceLineCount - 1;
+
+        chunks.push({
+          id: `file-${file.path}-chunk-${chunkIndex}`,
+          sessionId: `__project__`,
+          role: "assistant",
+          content: slice,
+          embedding: [],
+          relevanceScore: 0,
+          type: "code",
+          filePath: file.path,
+          language: file.language,
+          timestamp: file.lastModified,
+        });
+
+        charOffset += CHUNK_SIZE - OVERLAP;
+        startLine = endLine;
+        chunkIndex++;
+      }
+    }
+
+    if (chunks.length === 0) return;
+
+    const embedded = await this.embedChunks(chunks);
+    const db = await this.openIdb();
+    const tx = db.transaction(CHUNKS_STORE, "readwrite");
+    for (const chunk of embedded) {
+      await tx.objectStore(CHUNKS_STORE).put(chunk);
+    }
+    await tx.done;
+    console.log(`${TAG} indexed ${embedded.length} project file chunk(s) across ${files.length} file(s)`);
+  }
+
+  /**
+   * Find the most semantically relevant sections within the indexed project files
+   * for a given task description. Returns up to 5 results sorted by relevance.
+   */
+  async findRelevantFileSections(
+    task: string,
+  ): Promise<Array<{
+    file: string;
+    section: string;
+    relevanceScore: number;
+    startLine: number;
+    endLine: number;
+  }>> {
+    if (!this.initialized || !task.trim()) return [];
+
+    const taskEmb = await this.getEmbedding(task);
+    const db = await this.openIdb();
+
+    const allChunks = (await db.getAllFromIndex(
+      CHUNKS_STORE,
+      "sessionId",
+      "__project__",
+    ) as AttentionChunk[]);
+
+    if (allChunks.length === 0) return [];
+
+    const scored = allChunks.map((chunk) => {
+      const score = this.modelAvailable && chunk.embedding.length > 0
+        ? this.cosineSimilarity(taskEmb, chunk.embedding)
+        : this.keywordScore(task, chunk.content);
+      return { chunk, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    const top5 = scored.slice(0, 5);
+
+    return top5.map(({ chunk, score }) => {
+      const lines = chunk.content.split("\n");
+      return {
+        file: chunk.filePath ?? "",
+        section: chunk.content,
+        relevanceScore: Math.round(score * 100) / 100,
+        startLine: 0,
+        endLine: lines.length - 1,
+      };
+    });
+  }
+
+  // ─── Public: clear project index ────────────────────────────────────────────
+
+  async clearProjectIndex(): Promise<void> {
+    try {
+      const db = await this.openIdb();
+      const allChunks = (await db.getAllFromIndex(
+        CHUNKS_STORE, "sessionId", "__project__",
+      ) as AttentionChunk[]);
+      const tx = db.transaction(CHUNKS_STORE, "readwrite");
+      for (const c of allChunks) await tx.objectStore(CHUNKS_STORE).delete(c.id);
+      await tx.done;
+    } catch (err) {
+      console.warn(`${TAG} clearProjectIndex failed:`, err);
     }
   }
 

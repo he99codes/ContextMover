@@ -236,13 +236,21 @@ function extractPrimaryGoal(messages: Message[]): string {
 }
 
 function extractCurrentFocus(messages: Message[]): string {
-  const userMessages = messages.filter((m) => m.role === "user");
-  const lastThree = userMessages.slice(-3);
-  if (!lastThree.length) return "Not specified";
-  return lastThree
+  if (!messages.length) return "Not specified";
+  // Use last 8 messages regardless of role to capture assistant-introduced
+  // direction changes that the user has acknowledged.
+  let window = messages.slice(-8);
+  // Skip a short ack (< 20 chars) from the tip so stale "ok"/"yes" don't
+  // become the focus anchor.  Use the message before it instead.
+  const tip = window[window.length - 1];
+  if (tip && tip.role === "user" && tip.content.trim().length < 20) {
+    window = window.slice(0, -1);
+  }
+  if (!window.length) return "Not specified";
+  return window
     .map((m) => {
       const text = m.content.trim();
-      return text.length > 250 ? text.slice(0, 250) + "…" : text;
+      return text.length > 300 ? text.slice(0, 300) + "…" : text;
     })
     .join(" → ");
 }
@@ -493,16 +501,23 @@ export function summarizeIntelligent(messages: Message[]): IntelligentSummary {
       ? userMessages[0].content.trim().slice(0, 600) || "Not specified"
       : "Not specified";
 
-  // ── 5. Current state — last 6 user messages ───────────────────────────────
-  const lastUserMessages = userMessages.slice(-6);
+  // ── 5. Current state — last 8 messages regardless of role ───────────────────
+  // Using all-role window captures assistant-introduced direction changes
+  // (e.g. "I recommend Supabase" + user "ok") not visible in user-only slice.
+  let stateWindow = messages.slice(-8);
+  // Skip a short ack at the tip to avoid "ok" becoming the currentState anchor.
+  const stateTip = stateWindow[stateWindow.length - 1];
+  if (stateTip && stateTip.role === "user" && stateTip.content.trim().length < 20) {
+    stateWindow = stateWindow.slice(0, -1);
+  }
   const currentState =
-    lastUserMessages.length > 0
-      ? lastUserMessages
+    stateWindow.length > 0
+      ? stateWindow
           .map((m) => {
             const t = m.content.trim();
-            return t.length > 250 ? t.slice(0, 250) + "\u2026" : t;
+            return t.length > 300 ? t.slice(0, 300) + "…" : t;
           })
-          .join(" \u2192 ")
+          .join(" → ")
       : "Not specified";
 
   // ── 2. Decisions — verbatim sentences from ALL assistant messages ──────────

@@ -69,6 +69,21 @@ export interface Capabilities {
 
 export type DowngradeListener = (from: Tier, to: Tier, reason: string) => void;
 
+export interface SystemHeadroom {
+  /** Estimated free CPU ratio 0.0–1.0 based on a live benchmark vs. baseline. */
+  cpuFree: number;
+  /** True when a WebGPU adapter responded within 100ms. */
+  gpuAvailable: boolean;
+  /** (jsHeapSizeLimit - usedJSHeapSize) / jsHeapSizeLimit; defaults to 0.5. */
+  memoryFree: number;
+  /** Suggested embedding batch size for the current headroom level. */
+  recommendedBatchSize: number;
+  /** Suggested ONNX WASM thread count for the current headroom level. */
+  recommendedThreads: number;
+  /** True when cpuFree > 0.6 AND memoryFree > 0.4. */
+  boostEligible: boolean;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
@@ -586,6 +601,11 @@ class CapabilityDetector {
     }
   }
 
+  /** Baseline benchmark ops/ms from initial detection — used by measureSystemHeadroom. */
+  getBaselineOpsPerMs(): number {
+    return this.cached?.benchmarkOpsPerMs ?? 0;
+  }
+
   /** Clear the cached snapshot. Next detect() will re-run the full benchmark. */
   invalidate(): void {
     this.cached = null;
@@ -597,6 +617,88 @@ class CapabilityDetector {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const capabilityDetector = new CapabilityDetector();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dynamic hardware headroom measurement
+//
+// measureSystemHeadroom() runs a fresh 5ms benchmark and compares it to the
+// cached baseline to estimate current CPU load, checks WebGPU availability,
+// and reads JS heap usage.  startHeadroomMonitor() calls it every 3 s and
+// fires a callback only when the boostEligible flag changes.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function measureSystemHeadroom(): Promise<SystemHeadroom> {
+  // ── CPU — live benchmark vs. cached baseline ────────────────────────────
+  const baseline = capabilityDetector.getBaselineOpsPerMs();
+  let cpuFree = 0.5;
+  if (baseline > 0) {
+    const { opsPerMs } = await runBenchmark();
+    const ratio = opsPerMs / baseline;
+    cpuFree = ratio >= 1.2 ? 0.8 : ratio >= 0.8 ? 0.5 : 0.2;
+  }
+
+  // ── GPU — requestAdapter with 100ms timeout ──────────────────────────────
+  let gpuAvailable = false;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const gpu = typeof navigator !== "undefined" ? (navigator as any).gpu : null;
+    if (gpu?.requestAdapter) {
+      const adapter = await Promise.race([
+        gpu.requestAdapter() as Promise<unknown>,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 100)),
+      ]);
+      gpuAvailable = Boolean(adapter);
+    }
+  } catch { /* unavailable */ }
+
+  // ── Memory — JS heap ratio ───────────────────────────────────────────────
+  let memoryFree = 0.5;
+  try {
+    const mem = (performance as unknown as {
+      memory?: { jsHeapSizeLimit?: number; usedJSHeapSize?: number };
+    }).memory;
+    if (mem?.jsHeapSizeLimit && mem.usedJSHeapSize !== undefined) {
+      memoryFree = (mem.jsHeapSizeLimit - mem.usedJSHeapSize) / mem.jsHeapSizeLimit;
+    }
+  } catch { /* Chrome-only API — unavailable in other contexts */ }
+
+  const boostEligible = cpuFree > 0.6 && memoryFree > 0.4;
+  const cores = detectCores();
+
+  const recommendedBatchSize =
+    boostEligible && gpuAvailable ? 64 :
+    boostEligible                 ? 32 :
+    cpuFree >= 0.5                ? 16 :
+                                     8;
+
+  const recommendedThreads =
+    boostEligible  ? Math.min(cores, 8) :
+    cpuFree >= 0.5 ? Math.min(cores, 4) :
+                     1;
+
+  return { cpuFree, gpuAvailable, memoryFree, recommendedBatchSize, recommendedThreads, boostEligible };
+}
+
+/**
+ * Runs measureSystemHeadroom() every 3 seconds.  Fires callback only when
+ * the boostEligible flag changes (avoids noisy re-renders when nothing changed).
+ * Returns a cleanup function that stops the monitor.
+ */
+export function startHeadroomMonitor(
+  callback: (h: SystemHeadroom) => void
+): () => void {
+  let lastBoostEligible: boolean | null = null;
+  const id = setInterval(async () => {
+    try {
+      const h = await measureSystemHeadroom();
+      if (h.boostEligible !== lastBoostEligible) {
+        lastBoostEligible = h.boostEligible;
+        callback(h);
+      }
+    } catch { /* never throw from monitor */ }
+  }, 3_000);
+  return () => clearInterval(id);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tier → runtime configuration

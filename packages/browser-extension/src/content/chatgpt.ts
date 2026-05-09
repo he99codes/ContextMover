@@ -1,5 +1,5 @@
 // packages/browser-extension/src/content/chatgpt.ts
-import { extractMessageContent, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
 
 // ── DIAGNOSTIC STAGE 1 ────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ function scrapeMessages(): Message[] {
 startSessionCapture({
   platform: "chatgpt",
   selectorOrElement: "main",
-  scrapeMessages,
+  scrapeMessages: () => runCapturePipeline("chatgpt", scrapeMessages),
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -70,8 +70,8 @@ async function injectIntoChatGPTInput(text: string) {
 
   if (!input) return { ok: false, error: "ChatGPT input box not found. Make sure a chat is open." };
 
-  if (!setPromptInputValue(input, text)) {
-    return { ok: false, error: "ChatGPT input did not accept the text. Try reloading the tab." };
+  if (!await injectWithRetry(input, text, "chatgpt")) {
+    return { ok: false, error: "ChatGPT input did not accept the text after 3 attempts. Context copied to clipboard — paste with Ctrl+V." };
   }
 
   return { ok: true };

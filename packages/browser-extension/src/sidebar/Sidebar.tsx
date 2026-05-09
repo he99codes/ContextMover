@@ -6,7 +6,13 @@ import { PlatformBadge, PlatformLogo } from "@/components/PlatformLogo";
 import MigrationModal from "./MigrationModal";
 import { attentionEngine } from "@/lib/attention-engine";
 import { capabilityDetector } from "@/lib/capability-detector";
+import { projectReader } from "@/lib/file-system/project-reader";
+import { fileContextBuilder } from "@/lib/file-system/context-builder";
+import { fileCopier } from "@/lib/file-system/file-copier";
+import type { FileTreeNode } from "@/lib/file-system/project-reader";
 import { VAULT_URL, DASHBOARD_URL, PRICING_URL } from "@/config/urls";
+import { healthMonitor } from "@/lib/capture/health-monitor";
+import type { CaptureAlert } from "@/lib/capture/health-monitor";
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   claude:     "Claude",
@@ -62,17 +68,19 @@ export default function Sidebar() {
   const [semanticResults, setSemanticResults] = useState<{ sessionId: string; score: number }[]>([]);
   const loadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const semanticTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [captureAlert, setCaptureAlert] = useState<CaptureAlert | null>(null);
+
+  useEffect(() => {
+    healthMonitor.getAlerts().then((alerts) => {
+      const active = Object.values(alerts)[0] ?? null;
+      setCaptureAlert(active);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     loadSessions();
     void checkBridge();
     void checkVault();
-
-    // Poll at 30 s — SESSIONS_UPDATED events already handle real-time updates.
-    // Frequent polling was the main cause of GET_SESSIONS storms.
-    const sessionInterval = window.setInterval(() => {
-      loadSessions();
-    }, 30_000);
 
     const clockInterval = window.setInterval(() => {
       setTick((value) => value + 1);
@@ -86,7 +94,6 @@ export default function Sidebar() {
     chrome.runtime.onMessage.addListener(onMessage);
 
     return () => {
-      window.clearInterval(sessionInterval);
       window.clearInterval(clockInterval);
       chrome.runtime.onMessage.removeListener(onMessage);
       if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
@@ -114,12 +121,9 @@ export default function Sidebar() {
   }, []);
 
   // ── Pre-index the selected session when entering detail view ─────────────────
-  // This makes tier-3 live preview / migration near-instant because indexSession
-  // becomes a no-op (same message count) when the user types their task.
   useEffect(() => {
     if (view !== "detail" || !selected) return;
     if (!attentionEngine.initialized) return;
-    // Fire-and-forget: any error is silently ignored.
     attentionEngine.indexSession(selected).catch(() => { /* ignore */ });
   }, [view, selected]);
 
@@ -452,6 +456,17 @@ export default function Sidebar() {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[#050505] text-[#F5F5F5] crt">
       <div className="flex h-full flex-col">
+        {/* ── Capture health alert banner ── */}
+        {captureAlert && (
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "6px 12px", background: "rgba(245,158,11,0.08)", borderBottom: "1px solid rgba(245,158,11,0.25)", fontSize: 9, color: "#F59E0B", lineHeight: 1.4 }}>
+            <span style={{ flexShrink: 0, marginTop: 1 }}>⚠</span>
+            <span style={{ flex: 1 }}>{captureAlert.message}</span>
+            <button
+              onClick={() => { setCaptureAlert(null); void healthMonitor.clearAlert(captureAlert.platform); }}
+              style={{ flexShrink: 0, background: "none", border: "none", color: "#F59E0B", cursor: "pointer", fontSize: 11, lineHeight: 1, padding: 0 }}
+            >×</button>
+          </div>
+        )}
         {/* Header */}
         <div className="border-b border-[#0D2A0D] px-4 py-4" style={{ background: "linear-gradient(135deg, #050505 0%, #091409 55%, #050505 100%)", boxShadow: "0 1px 0 rgba(0,255,136,0.07)" }}>
           <div className="flex items-center justify-between">
@@ -829,6 +844,696 @@ function renderMd(text: string): React.ReactNode {
         return <p key={i} className="leading-[1.65]">{renderInline(line)}</p>;
       })}
     </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Toast — lightweight notification that auto-dismisses
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ToastMsg { text: string; kind: "success" | "error"; }
+
+function Toast({ msg, onDone }: { msg: ToastMsg; onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 2000);
+    return () => clearTimeout(t);
+  }, [onDone]);
+  return (
+    <div
+      style={{
+        position: "absolute",
+        bottom: 8,
+        left: 8,
+        right: 8,
+        zIndex: 9998,
+        padding: "6px 10px",
+        borderRadius: 5,
+        fontSize: 10,
+        fontWeight: 700,
+        background: msg.kind === "success" ? "rgba(0,255,136,0.12)" : "rgba(239,68,68,0.12)",
+        border: `1px solid ${msg.kind === "success" ? "rgba(0,255,136,0.35)" : "rgba(239,68,68,0.35)"}`,
+        color: msg.kind === "success" ? "#00FF88" : "#F87171",
+        pointerEvents: "none",
+      }}
+    >
+      {msg.text}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ContextMenu — right-click menu on a file row
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ContextMenuProps {
+  x: number;
+  y: number;
+  fileName: string;
+  filePath: string;
+  onClose: () => void;
+  onCopyContent: () => void;
+  onCopyForClaude: () => void;
+  onCopyForChatGPT: () => void;
+  onCopyPath: () => void;
+  onDownload: () => void;
+  onSelect: () => void;
+}
+
+function ContextMenu({
+  x, y, fileName, onClose,
+  onCopyContent, onCopyForClaude, onCopyForChatGPT,
+  onCopyPath, onDownload, onSelect,
+}: ContextMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handle = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
+    };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("mousedown", handle);
+    document.addEventListener("keydown", handleKey);
+    return () => { document.removeEventListener("mousedown", handle); document.removeEventListener("keydown", handleKey); };
+  }, [onClose]);
+
+  const item = (label: string, action: () => void) => (
+    <button
+      key={label}
+      onMouseDown={(e) => { e.stopPropagation(); action(); onClose(); }}
+      style={{
+        display: "block", width: "100%", textAlign: "left",
+        padding: "5px 10px", fontSize: 10, background: "none",
+        border: "none", color: "#888", cursor: "pointer",
+        whiteSpace: "nowrap",
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#00FF88"; (e.currentTarget as HTMLElement).style.background = "rgba(0,255,136,0.07)"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#888"; (e.currentTarget as HTMLElement).style.background = "none"; }}
+    >
+      {label}
+    </button>
+  );
+
+  const divider = <div style={{ height: 1, background: "#2A2A2A", margin: "3px 0" }} />;
+
+  return (
+    <div
+      ref={menuRef}
+      style={{
+        position: "fixed", left: x, top: y, zIndex: 9999,
+        background: "#1A1A1A", border: "1px solid #2A2A2A",
+        borderRadius: 8, padding: "4px 0",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.8)",
+        minWidth: 180,
+      }}
+    >
+      <div style={{ padding: "4px 10px 5px", fontSize: 10, color: "#00FF88", fontWeight: 900 }}>{fileName}</div>
+      {divider}
+      {item("📋 Copy content", onCopyContent)}
+      {item("📋 Copy for Claude", onCopyForClaude)}
+      {item("📋 Copy for ChatGPT", onCopyForChatGPT)}
+      {item("📋 Copy path", onCopyPath)}
+      {divider}
+      {item("⬇  Download file", onDownload)}
+      {item("☑  Select file", onSelect)}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProjectPanel — file system access panel for migration context
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ProjectPanelProps {
+  tree: FileTreeNode[];
+  connected: boolean;
+  rootName: string;
+  filter: string;
+  expanded: Set<string>;
+  selectedCount: number;
+  selectedSize: number;
+  panelOpen: boolean;
+  contextAdded: boolean;
+  targetPlatform: Platform;
+  onConnect: () => Promise<void>;
+  onDisconnect: () => void;
+  onRefresh: () => Promise<void>;
+  onToggleNode: (path: string) => void;
+  onToggleExpand: (path: string) => void;
+  onFilterChange: (v: string) => void;
+  onTogglePanel: () => void;
+  onAddToMigration: () => void;
+  autoSelectScores?: Map<string, number>;
+  autoSelectActive?: boolean;
+  onClearAutoSelect?: () => void;
+}
+
+// ── FileTreeRow ────────────────────────────────────────────────────────────
+
+function FileTreeRow({
+  node,
+  indent,
+  expanded,
+  filterText,
+  onToggleNode,
+  onToggleExpand,
+  isSelected,
+  onInlineCopy,
+  onContextMenu,
+  autoScores,
+}: {
+  node: FileTreeNode;
+  indent: number;
+  expanded: Set<string>;
+  filterText: string;
+  onToggleNode: (p: string) => void;
+  onToggleExpand: (p: string) => void;
+  isSelected: (p: string) => boolean;
+  onInlineCopy: (p: string) => void;
+  onContextMenu: (e: React.MouseEvent, p: string) => void;
+  autoScores?: Map<string, number>;
+}) {
+  const paddingLeft = 8 + indent * 12;
+  const [hovered, setHovered] = useState(false);
+
+  const matchesFilter = (n: FileTreeNode): boolean => {
+    if (!filterText) return true;
+    if (n.name.toLowerCase().includes(filterText.toLowerCase())) return true;
+    if (n.kind === "directory" && n.children) return n.children.some(matchesFilter);
+    return false;
+  };
+
+  if (!matchesFilter(node)) return null;
+
+  const isDir = node.kind === "directory";
+  const isExp = expanded.has(node.path);
+  const sel = isSelected(node.path);
+
+  return (
+    <>
+      <div
+        className="flex items-center gap-1 cursor-pointer rounded-[3px] transition-colors"
+        style={{ paddingLeft, paddingRight: 8, paddingTop: 3, paddingBottom: 3,
+          background: hovered ? "#1F1F1F" : "transparent" }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onClick={() => isDir ? onToggleExpand(node.path) : onToggleNode(node.path)}
+        onContextMenu={(e) => { if (!isDir) { e.preventDefault(); onContextMenu(e, node.path); } }}
+      >
+        {isDir ? (
+          <>
+            <span className="text-[10px] text-[#444] w-3 shrink-0 select-none">{isExp ? "▼" : "▶"}</span>
+            <span className="text-[11px] text-[#666] truncate flex-1">{node.name}/</span>
+          </>
+        ) : (
+          <>
+            <button
+              className={`w-3 h-3 shrink-0 rounded-[2px] border flex items-center justify-center transition-all ${
+                sel ? "bg-[#00FF88] border-[#00FF88]" : "border-[#333] bg-transparent hover:border-[#00FF88]/50"
+              }`}
+              onClick={(e) => { e.stopPropagation(); onToggleNode(node.path); }}
+              aria-label={sel ? "Deselect" : "Select"}
+            >
+              {sel && <span className="text-[7px] text-black font-black leading-none">✓</span>}
+            </button>
+            <span className={`text-[11px] truncate flex-1 ${sel ? "text-[#00FF88]" : "#888"}`} style={{ color: sel ? "#00FF88" : "#888" }}>
+              {node.name}
+            </span>
+            {node.language && node.language !== "plaintext" && (
+              <span className="shrink-0 rounded-[3px] bg-[#1A1A1A] px-1 py-0.5 text-[8px] text-[#444]">
+                {node.language.slice(0, 3)}
+              </span>
+            )}
+            {node.size !== undefined && (
+              <span className="shrink-0 text-[8px] text-[#333] ml-1">
+                {node.size < 1024 ? `${node.size}B` : `${(node.size / 1024).toFixed(1)}K`}
+              </span>
+            )}
+            {/* Auto-detect relevance score badge */}
+            {autoScores?.has(node.path) && (
+              <span style={{ fontSize: 7, color: "#818CF8", background: "rgba(99,102,241,0.15)", borderRadius: 3, padding: "1px 4px", flexShrink: 0 }}>
+                {Math.round((autoScores.get(node.path)! * 100))}%
+              </span>
+            )}
+            {/* Inline copy — hover only */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onInlineCopy(node.path); }}
+              title="Copy content (Ctrl+C)"
+              style={{
+                opacity: hovered ? 1 : 0, pointerEvents: hovered ? "auto" : "none",
+                background: "none", border: "none", cursor: "pointer",
+                fontSize: 10, color: "#444", padding: "0 2px",
+                transition: "opacity 0.1s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#00FF88")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#444")}
+            >
+              📋
+            </button>
+          </>
+        )}
+      </div>
+      {isDir && isExp && node.children?.map((child) => (
+        <FileTreeRow
+          key={child.path}
+          node={child}
+          indent={indent + 1}
+          expanded={expanded}
+          filterText={filterText}
+          onToggleNode={onToggleNode}
+          onToggleExpand={onToggleExpand}
+          isSelected={isSelected}
+          onInlineCopy={onInlineCopy}
+          onContextMenu={onContextMenu}
+          autoScores={autoScores}
+        />
+      ))}
+    </>
+  );
+}
+
+// ── ProjectPanel ────────────────────────────────────────────────────────────
+
+function ProjectPanel({
+  tree,
+  connected,
+  rootName,
+  filter,
+  expanded,
+  selectedCount,
+  selectedSize,
+  panelOpen,
+  contextAdded,
+  targetPlatform,
+  onConnect,
+  onDisconnect,
+  onRefresh,
+  onToggleNode,
+  onToggleExpand,
+  onFilterChange,
+  onTogglePanel,
+  onAddToMigration,
+  autoSelectScores,
+  autoSelectActive,
+  onClearAutoSelect,
+}: ProjectPanelProps) {
+  const [toast, setToast] = useState<ToastMsg | null>(null);
+  const [copyOk, setCopyOk] = useState(false);
+  const [dlOk, setDlOk] = useState(false);
+  const [formatOpen, setFormatOpen] = useState(false);
+  const [formatOk, setFormatOk] = useState(false);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; path: string } | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const showToast = (text: string, kind: ToastMsg["kind"] = "success") =>
+    setToast({ text, kind });
+
+  const flash = (setter: (v: boolean) => void) => {
+    setter(true);
+    setTimeout(() => setter(false), 1500);
+  };
+
+  const formatSize = (b: number) =>
+    b < 1024 ? `${b}B` : b < 1024 * 1024 ? `${(b / 1024).toFixed(1)}KB` : `${(b / (1024 * 1024)).toFixed(1)}MB`;
+
+  const tokens = Math.ceil(selectedSize / 4);
+  const tokenLevel = fileCopier.getTokenWarningLevel(tokens);
+  const tokenColor = tokenLevel === "safe" ? "#00FF88" : tokenLevel === "warning" ? "#F59E0B" : "#EF4444";
+  const tokenDot = tokenLevel === "safe" ? "🟢" : tokenLevel === "warning" ? "🟡" : "🔴";
+
+  // ── read selected files helper ─────────────────────────────────────────────
+  const readSelected = async () => {
+    const files = await projectReader.readSelectedFiles();
+    if (files.length === 0) throw new Error("No files readable");
+    return files;
+  };
+
+  // ── copy raw ───────────────────────────────────────────────────────────────
+  const handleCopy = async () => {
+    try {
+      const files = await readSelected();
+      await fileCopier.copyRaw(files);
+      flash(setCopyOk);
+      showToast(`📋 Copied ${files.length} file${files.length !== 1 ? "s" : ""} to clipboard`);
+    } catch {
+      showToast("❌ Clipboard not available", "error");
+    }
+  };
+
+  // ── download ───────────────────────────────────────────────────────────────
+  const handleDownload = async () => {
+    try {
+      const files = await readSelected();
+      if (files.length === 1) {
+        await fileCopier.downloadFile(files[0]);
+        showToast(`⬇ Downloaded ${files[0].name}`);
+      } else {
+        await fileCopier.downloadAsZip(files);
+        showToast(`⬇ Downloaded ${files.length} files as zip`);
+      }
+      flash(setDlOk);
+    } catch {
+      showToast("❌ Download failed", "error");
+    }
+  };
+
+  // ── format for platform ────────────────────────────────────────────────────
+  const handleFormat = async (platform: "claude" | "chatgpt" | "gemini" | "grok") => {
+    setFormatOpen(false);
+    try {
+      const files = await readSelected();
+      await fileCopier.copyForPlatform(files, platform);
+      flash(setFormatOk);
+      const label = platform === "claude" ? "Claude" : platform === "chatgpt" ? "ChatGPT"
+        : platform === "gemini" ? "Google Gemini" : "xAI Grok";
+      showToast(`📋 Copied for ${label} — paste directly into chat`);
+    } catch {
+      showToast("❌ Clipboard not available", "error");
+    }
+  };
+
+  // ── inline copy (single file without selecting) ────────────────────────────
+  const handleInlineCopy = async (path: string) => {
+    try {
+      const file = await projectReader.readFile(path);
+      await fileCopier.copyRaw([file]);
+      showToast(`📋 Copied ${file.name}`);
+    } catch {
+      showToast("❌ Clipboard not available", "error");
+    }
+  };
+
+  // ── context menu actions ───────────────────────────────────────────────────
+  const ctxFile = ctxMenu ? projectReader.tree : null;
+  void ctxFile;
+
+  const ctxActions = ctxMenu
+    ? {
+        onCopyContent: async () => {
+          try {
+            const f = await projectReader.readFile(ctxMenu.path);
+            await fileCopier.copyRaw([f]);
+            showToast(`📋 Copied ${f.name}`);
+          } catch { showToast("❌ Clipboard not available", "error"); }
+        },
+        onCopyForClaude: async () => {
+          try {
+            const f = await projectReader.readFile(ctxMenu.path);
+            await fileCopier.copyForPlatform([f], "claude");
+            showToast("📋 Copied for Claude");
+          } catch { showToast("❌ Clipboard not available", "error"); }
+        },
+        onCopyForChatGPT: async () => {
+          try {
+            const f = await projectReader.readFile(ctxMenu.path);
+            await fileCopier.copyForPlatform([f], "chatgpt");
+            showToast("📋 Copied for ChatGPT");
+          } catch { showToast("❌ Clipboard not available", "error"); }
+        },
+        onCopyPath: async () => {
+          try {
+            await navigator.clipboard.writeText(ctxMenu.path);
+            showToast("📋 Copied path");
+          } catch { showToast("❌ Clipboard not available", "error"); }
+        },
+        onDownload: async () => {
+          try {
+            const f = await projectReader.readFile(ctxMenu.path);
+            await fileCopier.downloadFile(f);
+            showToast(`⬇ Downloaded ${f.name}`);
+          } catch { showToast("❌ Download failed", "error"); }
+        },
+        onSelect: () => onToggleNode(ctxMenu.path),
+      }
+    : null;
+
+  // ── keyboard shortcuts ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!connected || !panelRef.current) return;
+    const el = panelRef.current;
+    const onKey = (e: KeyboardEvent) => {
+      if (selectedCount === 0) return;
+      if (e.ctrlKey && !e.shiftKey && e.key === "c") { e.preventDefault(); void handleCopy(); }
+      if (e.ctrlKey && e.shiftKey && e.key === "C") { e.preventDefault(); void handleFormat("claude"); }
+      if (e.ctrlKey && e.key === "d") { e.preventDefault(); void handleDownload(); }
+      if (e.ctrlKey && e.key === "a") { e.preventDefault(); projectReader.selectAll(); onToggleNode("__all__"); }
+      if (e.key === "Escape") { projectReader.clearAll(); onToggleNode("__clear__"); }
+    };
+    el.addEventListener("keydown", onKey);
+    return () => el.removeEventListener("keydown", onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected, selectedCount]);
+
+  if (!connected) {
+    return (
+      <div className="mx-3 mt-2 mb-1 rounded-[6px] border border-[#1A2A1A] bg-[#080808]">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[#1A2A1A]">
+          <span className="text-[9px] font-black uppercase tracking-[0.18em] text-[#2A4A2A]">📁 Project Context</span>
+        </div>
+        <div className="px-3 py-3 text-center">
+          <p className="text-[10px] text-[#444] mb-2 leading-relaxed">Connect your project folder to include files in migration.</p>
+          <button
+            onClick={() => void onConnect()}
+            className="rounded-[4px] border border-[#1A3A1A] bg-[#060606] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88] hover:shadow-[0_0_10px_rgba(0,255,136,0.15)]"
+          >
+            + Connect Folder
+          </button>
+          <p className="mt-1.5 text-[8px] text-[#2A2A2A]">Works with any editor · No install needed</p>
+        </div>
+      </div>
+    );
+  }
+
+  const btnBase: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: 4, height: 28,
+    padding: "0 8px", borderRadius: 4, border: "1px solid #2A2A2A",
+    background: "#1A1A1A", color: "#888", fontSize: 9, fontWeight: 900,
+    textTransform: "uppercase", letterSpacing: "0.1em", cursor: "pointer",
+    transition: "all 0.15s ease", whiteSpace: "nowrap",
+  };
+  const btnOk: React.CSSProperties = { ...btnBase, background: "rgba(0,255,136,0.12)", borderColor: "rgba(0,255,136,0.35)", color: "#00FF88" };
+
+  return (
+    <div
+      ref={panelRef}
+      tabIndex={0}
+      style={{ outline: "none" }}
+      className="mx-3 mt-2 mb-1 rounded-[6px] border border-[#1A2A1A] bg-[#080808] relative"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[#1A2A1A]">
+        <button
+          onClick={onTogglePanel}
+          className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#2A5A2A] hover:text-[#00FF88] transition-colors"
+        >
+          <span className="text-[8px]">{panelOpen ? "▼" : "▶"}</span>
+          <span>📁 {rootName}</span>
+        </button>
+        <div className="flex items-center gap-1">
+          <button onClick={() => void onRefresh()} title="Refresh (re-read folder)" className="flex h-5 w-5 items-center justify-center rounded-[3px] border border-[#1A3A1A] text-[#2A4A2A] hover:text-[#00FF88] hover:border-[#00FF88]/40 transition-all text-[10px]">↻</button>
+          <button onClick={onDisconnect} title="Disconnect folder" className="flex h-5 w-5 items-center justify-center rounded-[3px] border border-[#1A3A1A] text-[#3A3A3A] hover:text-red-400 hover:border-red-500/30 transition-all text-[10px]">✕</button>
+        </div>
+      </div>
+
+      {panelOpen && (
+        <>
+          {/* Bulk controls + filter row */}
+          <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[#111]">
+            <button
+              onClick={() => { projectReader.selectAll(); onToggleNode("__all__"); }}
+              title="Select all (Ctrl+A)"
+              style={{ ...btnBase, padding: "0 6px", fontSize: 8, height: 22 }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,255,136,0.4)"; (e.currentTarget as HTMLElement).style.color = "#00FF88"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#2A2A2A"; (e.currentTarget as HTMLElement).style.color = "#888"; }}
+            >☑ All</button>
+            <button
+              onClick={() => { projectReader.clearAll(); onToggleNode("__clear__"); }}
+              title="Clear selection (Escape)"
+              style={{ ...btnBase, padding: "0 6px", fontSize: 8, height: 22 }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,255,136,0.4)"; (e.currentTarget as HTMLElement).style.color = "#00FF88"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#2A2A2A"; (e.currentTarget as HTMLElement).style.color = "#888"; }}
+            >☐ None</button>
+            <input
+              value={filter}
+              onChange={(e) => onFilterChange(e.target.value)}
+              placeholder="🔍 Filter…"
+              className="flex-1 min-w-0 rounded-[3px] border border-[#1A2A1A] bg-[#050505] px-2 py-[3px] text-[10px] font-mono text-[#F5F5F5] outline-none placeholder:text-[#2A3A2A] focus:border-[#00FF88]/40 transition-all"
+            />
+          </div>
+
+          {/* File tree — scrollable */}
+          <div className="max-h-[180px] overflow-y-auto py-1">
+            {tree.length === 0 ? (
+              <p className="px-3 py-2 text-[9px] text-[#333]">Empty folder</p>
+            ) : (
+              tree.map((node) => (
+                <FileTreeRow
+                  key={node.path}
+                  node={node}
+                  indent={0}
+                  expanded={expanded}
+                  filterText={filter}
+                  onToggleNode={onToggleNode}
+                  onToggleExpand={onToggleExpand}
+                  isSelected={(p) => projectReader.isSelected(p)}
+                  onInlineCopy={handleInlineCopy}
+                  onContextMenu={(e, path) => setCtxMenu({ x: e.clientX, y: e.clientY, path })}
+                  autoScores={autoSelectScores}
+                />
+              ))
+            )}
+          </div>
+
+          {/* Action bar — shown only when files selected */}
+          <div className="border-t border-[#111] px-2 py-2">
+            {selectedCount > 0 ? (
+              <>
+                {/* Auto-detect indicator */}
+                {autoSelectActive && (
+                  <div style={{
+                    marginBottom: 8, padding: "5px 8px", borderRadius: 5,
+                    border: "1px solid rgba(99,102,241,0.4)",
+                    background: "rgba(99,102,241,0.07)",
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                  }}>
+                    <span style={{ fontSize: 9, color: "#818CF8" }}>
+                      ✨ {selectedCount} file{selectedCount !== 1 ? "s" : ""} auto-detected from session
+                    </span>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        onClick={onClearAutoSelect}
+                        style={{ fontSize: 8, color: "#555", background: "none", border: "none", cursor: "pointer" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#EF4444")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
+                        title="Clear auto-selection"
+                      >Clear</button>
+                    </div>
+                  </div>
+                )}
+                {/* Token count row */}
+                <div className="flex items-center justify-between mb-2">
+                  <span style={{ fontSize: 9, color: "#555" }}>
+                    ☑ {selectedCount} file{selectedCount !== 1 ? "s" : ""} · {formatSize(selectedSize)} · <span style={{ color: tokenColor }}>~{tokens.toLocaleString()} tokens {tokenDot}</span>
+                  </span>
+                  <button
+                    onClick={() => { projectReader.clearAll(); onToggleNode("__clear__"); }}
+                    style={{ fontSize: 8, color: "#3A3A3A", background: "none", border: "none", cursor: "pointer" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "#EF4444")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "#3A3A3A")}
+                  >
+                    Clear all
+                  </button>
+                </div>
+
+                {/* 4-button action row */}
+                <div style={{ display: "flex", gap: 4, position: "relative" }}>
+                  {/* Copy */}
+                  <button
+                    onClick={() => void handleCopy()}
+                    title="Copy raw content (Ctrl+C)"
+                    style={copyOk ? btnOk : btnBase}
+                    onMouseEnter={(e) => { if (!copyOk) { (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,255,136,0.4)"; (e.currentTarget as HTMLElement).style.color = "#00FF88"; } }}
+                    onMouseLeave={(e) => { if (!copyOk) { (e.currentTarget as HTMLElement).style.borderColor = "#2A2A2A"; (e.currentTarget as HTMLElement).style.color = "#888"; } }}
+                  >
+                    {copyOk ? "✅" : "📋"} Copy
+                  </button>
+
+                  {/* Download */}
+                  <button
+                    onClick={() => void handleDownload()}
+                    title="Download file(s) (Ctrl+D)"
+                    style={dlOk ? btnOk : btnBase}
+                    onMouseEnter={(e) => { if (!dlOk) { (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,255,136,0.4)"; (e.currentTarget as HTMLElement).style.color = "#00FF88"; } }}
+                    onMouseLeave={(e) => { if (!dlOk) { (e.currentTarget as HTMLElement).style.borderColor = "#2A2A2A"; (e.currentTarget as HTMLElement).style.color = "#888"; } }}
+                  >
+                    {dlOk ? "✅" : "⬇"} Save
+                  </button>
+
+                  {/* Format dropdown */}
+                  <div style={{ position: "relative" }}>
+                    <button
+                      onClick={() => setFormatOpen((v) => !v)}
+                      title="Copy formatted for specific AI (Ctrl+Shift+C for Claude)"
+                      style={formatOk ? btnOk : { ...btnBase, borderColor: formatOpen ? "rgba(0,255,136,0.4)" : "#2A2A2A", color: formatOpen ? "#00FF88" : "#888" }}
+                    >
+                      {formatOk ? "✅" : "🤖"} Format ▾
+                    </button>
+                    {formatOpen && (
+                      <div
+                        style={{
+                          position: "absolute", bottom: "calc(100% + 4px)", left: 0, zIndex: 9999,
+                          background: "#1A1A1A", border: "1px solid #2A2A2A", borderRadius: 6,
+                          padding: "4px 0", minWidth: 150,
+                          boxShadow: "0 8px 24px rgba(0,0,0,0.8)",
+                        }}
+                      >
+                        <div style={{ padding: "4px 10px 5px", fontSize: 9, color: "#555", fontWeight: 900, textTransform: "uppercase" }}>Copy for…</div>
+                        {(["Claude", "ChatGPT", "Google Gemini", "xAI Grok"] as const).map((label) => {
+                          const key = label === "Claude" ? "claude" : label === "ChatGPT" ? "chatgpt" : label === "Google Gemini" ? "gemini" : "grok";
+                          return (
+                            <button
+                              key={key}
+                              onClick={() => void handleFormat(key as "claude" | "chatgpt" | "gemini" | "grok")}
+                              style={{ display: "block", width: "100%", textAlign: "left", padding: "5px 10px", fontSize: 10, background: "none", border: "none", color: "#888", cursor: "pointer" }}
+                              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#00FF88"; (e.currentTarget as HTMLElement).style.background = "rgba(0,255,136,0.07)"; }}
+                              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#888"; (e.currentTarget as HTMLElement).style.background = "none"; }}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Add to migration */}
+                  <button
+                    onClick={onAddToMigration}
+                    title="Add to next migration context"
+                    style={contextAdded
+                      ? { ...btnOk, marginLeft: "auto" }
+                      : { ...btnBase, marginLeft: "auto", background: contextAdded ? undefined : "rgba(0,255,136,0.08)", borderColor: "rgba(0,255,136,0.2)", color: "#00BB66" }}
+                    onMouseEnter={(e) => { if (!contextAdded) { (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,255,136,0.5)"; (e.currentTarget as HTMLElement).style.color = "#00FF88"; } }}
+                    onMouseLeave={(e) => { if (!contextAdded) { (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,255,136,0.2)"; (e.currentTarget as HTMLElement).style.color = "#00BB66"; } }}
+                  >
+                    {contextAdded ? `✓ Added` : `➕ Add`}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p style={{ fontSize: 9, color: "#2A3A2A" }}>Select files to copy, download, or add to migration</p>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Toast */}
+      {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
+
+      {/* Context menu */}
+      {ctxMenu && ctxActions && (
+        <ContextMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          fileName={ctxMenu.path.split("/").pop() ?? ctxMenu.path}
+          filePath={ctxMenu.path}
+          onClose={() => setCtxMenu(null)}
+          onCopyContent={() => void ctxActions.onCopyContent()}
+          onCopyForClaude={() => void ctxActions.onCopyForClaude()}
+          onCopyForChatGPT={() => void ctxActions.onCopyForChatGPT()}
+          onCopyPath={() => void ctxActions.onCopyPath()}
+          onDownload={() => void ctxActions.onDownload()}
+          onSelect={() => { ctxActions.onSelect(); setCtxMenu(null); }}
+        />
+      )}
+
+      {/* Format dropdown outside-click dismissal */}
+      {formatOpen && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 9998 }}
+          onClick={() => setFormatOpen(false)}
+        />
+      )}
+    </div>
   );
 }
 

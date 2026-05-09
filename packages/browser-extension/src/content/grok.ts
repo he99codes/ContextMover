@@ -1,5 +1,5 @@
 // packages/browser-extension/src/content/grok.ts
-import { extractMessageContent, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
 
 console.log("[ContextForge] Grok content script loaded");
@@ -127,7 +127,7 @@ function scrapeMessages(): Message[] {
 startSessionCapture({
   platform: "grok",
   selectorOrElement: "main",
-  scrapeMessages,
+  scrapeMessages: () => runCapturePipeline("grok", scrapeMessages),
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -188,10 +188,10 @@ async function injectIntoGrokInput(text: string) {
 
   console.log(`[ContextForge:grok] injecting via selector: ${matchedSelector}, tag=${input.tagName}, contentEditable=${input.isContentEditable}`);
 
-  if (!setPromptInputValue(input, text)) {
+  if (!await injectWithRetry(input, text, "grok")) {
     return {
       ok: false,
-      error: `Grok input (${input.tagName.toLowerCase()}) did not accept the text. Try reloading the tab.`,
+      error: `Grok input (${input.tagName.toLowerCase()}) did not accept the text after 3 attempts. Context copied to clipboard — paste with Ctrl+V.`,
     };
   }
 

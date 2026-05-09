@@ -6,7 +6,7 @@ The goal of ContextForge is:
 
 1. Capture conversations from AI web apps.
 2. Store them locally in the browser extension.
-3. Optionally enrich them with current VS Code context.
+3. Optionally enrich them with current VS Code context and project files.
 4. Repackage that context for another target AI platform.
 5. Inject the migrated prompt into the target platform's input box.
 
@@ -24,13 +24,16 @@ High-level flow:
 
 ```text
 AI website tab
-  -> content script watches DOM
+  -> content script runs capture pipeline (selector registry → validate → structural fallback)
   -> extension service worker receives conversation data
   -> IndexedDB stores sessions locally
-  -> popup/sidebar lists saved sessions
+  -> sidebar lists saved sessions with health alert banner
+  -> user optionally pre-computes Attention Engine summary in sidebar
   -> user chooses a target platform and clicks Migrate
-  -> service worker summarizes + translates the session
+  -> service worker resolves summarization tier (1 / 2 / 3)
   -> service worker optionally fetches IDE context from VS Code bridge
+  -> service worker optionally injects project file context
+  -> priority-ordered prompt cap trims to 120k chars if needed
   -> target tab receives INJECT_CONTEXT
   -> content script pastes prompt into target site's input
 ```
@@ -52,12 +55,14 @@ These scripts run inside supported AI websites:
 2. `claude.ts`
 3. `gemini.ts`
 4. `grok.ts`
+5. `deepseek.ts`
+6. `perplexity.ts`
 
 Their job is:
 
-1. Read the website DOM.
+1. Run the capture pipeline via `runCapturePipeline()` from `shared.ts`.
 2. Convert visible chat messages into a normalized internal format.
-3. Send those messages back to the extension.
+3. Send those messages back to the extension via `startSessionCapture()`.
 4. Listen for `INJECT_CONTEXT` and paste text into the site's input.
 
 ### `background/`
@@ -67,8 +72,10 @@ The service worker is the central orchestrator:
 1. receives messages from content scripts and UI
 2. saves and reads sessions from IndexedDB
 3. talks to the VS Code bridge
-4. summarizes and translates context
-5. sends migrated prompts into target tabs
+4. auto-detects summarization tier via `capabilityDetector`
+5. summarizes and translates context (tier 1/2/3)
+6. applies priority-ordered prompt cap (120k chars, equal for all platforms)
+7. sends migrated prompts into target tabs
 
 Main file:
 
@@ -92,28 +99,28 @@ The side panel is a fuller UI for browsing transcripts and migrating from a deta
 
 It adds:
 
-1. session filtering by platform
-2. transcript browsing
-3. a detail screen
-4. IDE context visibility state
+1. capture health alert banner (amber warning when capture quality drops)
+2. session filtering by platform
+3. transcript browsing with expandable messages
+4. semantic search across sessions
+5. a detail screen with full transcript
+6. Attention Engine pre-computation (AttentionModal)
+7. project file context panel (FileSystem Access API)
+8. file copy / download / platform-format export
+9. IDE context visibility state
 
-## 3. Supported Websites
+## 3. Supported Platforms
 
-The extension injects content scripts based on `manifest.json`.
+Six platforms are fully supported for both capture and injection:
 
-Supported platforms:
-
-1. Claude
-2. ChatGPT
-3. Gemini
-4. Grok
-
-The manifest also grants access to:
-
-1. browser tabs
-2. storage
-3. scripting APIs
-4. `http://localhost:49152/*` for the VS Code bridge
+| Platform | Capture file | Injection target |
+|---|---|---|
+| Claude | `claude.ts` | ProseMirror contenteditable |
+| ChatGPT | `chatgpt.ts` | `#prompt-textarea` |
+| Google Gemini | `gemini.ts` | `rich-textarea [contenteditable]` |
+| xAI Grok | `grok.ts` | `textarea` / contenteditable |
+| DeepSeek | `deepseek.ts` | `#chat-input` / contenteditable |
+| Perplexity | `perplexity.ts` | `textarea` / contenteditable |
 
 ## 4. Shared Message Shape
 
@@ -125,14 +132,10 @@ type Message = {
   content: string;
   timestamp: number;
 };
-```
 
-Sessions use:
-
-```ts
 type ContextSession = {
   id: string;
-  platform: "claude" | "chatgpt" | "gemini" | "grok";
+  platform: "claude" | "chatgpt" | "gemini" | "grok" | "deepseek" | "perplexity";
   title: string;
   messages: Message[];
   createdAt: number;
@@ -142,83 +145,77 @@ type ContextSession = {
 
 This normalization is what makes cross-platform migration possible.
 
-## 5. How Capture Starts
+## 5. Capture Pipeline (Resilience Layer)
 
-Every content script calls `startSessionCapture(...)` from `content/shared.ts`.
+Every content script now calls `runCapturePipeline(platform, scrapeMessages)` from `content/shared.ts` instead of calling `scrapeMessages` directly. This adds a multi-step resilience wrapper around every capture attempt.
 
-That helper does four important things:
+### Step 1 — Selector Registry
 
-1. creates a stable session id from the page URL
-2. watches the page with a `MutationObserver`
-3. re-scrapes messages whenever the DOM changes
-4. sends `CAPTURE_SESSION` only when the snapshot actually changed
+File: `packages/browser-extension/src/lib/capture/selector-registry.ts`
 
-This is a nice design choice because each platform file only needs to define:
+Contains a versioned cascade of 4–6 CSS selectors per role per platform (user, assistant, streaming, codeBlock). `findElements(platform, role)` tries each in order and returns the first non-empty result. Never throws — all queries are try/caught.
 
-1. where to observe
-2. how to scrape messages
-3. how to inject text back later
+### Step 2 — Capture Validation
 
-## 6. Platform Capture Logic
+File: `packages/browser-extension/src/lib/capture/capture-validator.ts`
 
-Each website has its own DOM parser.
+`validateCapture(messages, platform, detectionMethod)` checks:
 
-### ChatGPT
+1. at least one message was found
+2. at least one assistant message is present
+3. role balance is reasonable (no extreme skew)
+4. no excessively empty message content
+5. no long run of consecutive same-role messages
 
-File: `packages/browser-extension/src/content/chatgpt.ts`
+Returns `{ valid, errors, warnings, stats }`.
 
-It:
+### Step 3 — Structural Fallback
 
-1. finds elements with `data-message-author-role`
-2. reads the role from the dataset
-3. reads text from `.whitespace-pre-wrap` or falls back to `innerText`
-4. sends normalized messages
+File: `packages/browser-extension/src/lib/capture/structural-detector.ts`
 
-For injection, it targets:
+Only activated when Step 1 + Step 2 together produced zero assistant messages AND there is meaningful page content. Tries three strategies in order:
 
-1. `#prompt-textarea`
-2. fallback `[contenteditable='true']`
+1. Alternating sibling containers inside the chat root
+2. Visual alignment heuristic (right-biased = user; full-width = assistant)
+3. Content characteristics (code/markdown/length → assistant)
 
-### Claude
+Zero dependency on class names or testids — works even after a complete platform UI overhaul.
 
-File: `packages/browser-extension/src/content/claude.ts`
+### Step 4 — Health Recording
 
-It:
+File: `packages/browser-extension/src/lib/capture/health-monitor.ts`
 
-1. reads `[data-testid="human-turn"]`
-2. reads `[data-testid="ai-turn"]`
-3. infers role from `data-testid`
+`healthMonitor.record(...)` is called fire-and-forget after every capture attempt. It:
 
-For injection, it targets Claude's contenteditable editor and uses `document.execCommand("insertText", ...)`.
+1. keeps a sliding window of the last 10 captures per platform
+2. calculates success rate
+3. writes a `CaptureAlert` to `chrome.storage.local` when the rate drops below 80%
+4. auto-expires alerts after 24 hours
 
-### Gemini
+The sidebar reads these alerts on mount and shows an amber warning banner with a dismiss button.
 
-File: `packages/browser-extension/src/content/gemini.ts`
+### Full pipeline flow
 
-It:
+```text
+rawScrape() runs
+  → validateCapture()
+  → if 0 assistant messages AND page has chat content:
+      detectByStructure() runs as last resort
+      → validateCapture() again
+  → healthMonitor.record() (fire-and-forget)
+  → return messages
+```
 
-1. reads `user-query .query-text`
-2. reads `model-response .response-content`
-3. infers role based on whether the node is inside `user-query`
+## 6. How Capture Starts
 
-For injection, it targets:
+Every content script calls `startSessionCapture(...)` from `content/shared.ts`, with `scrapeMessages` now wrapped by `runCapturePipeline`.
 
-1. `rich-textarea [contenteditable='true']`
-2. fallback `.ql-editor`
+That helper does four things:
 
-### Grok
-
-File: `packages/browser-extension/src/content/grok.ts`
-
-It:
-
-1. reads elements whose class names include `UserMessage` or `AssistantMessage`
-2. infers role from the class name
-
-For injection, it supports both:
-
-1. plain `textarea`
-2. generic `contenteditable` inputs
+1. creates a stable session id from the page URL via `resolveSessionId()`
+2. watches the page with a `MutationObserver` (debounced 300ms)
+3. re-runs the capture pipeline whenever the DOM changes
+4. sends `CAPTURE_SESSION` only when the snapshot actually changed (hash check)
 
 ## 7. How Data Reaches the Service Worker
 
@@ -227,426 +224,339 @@ After scraping, the content script sends:
 ```ts
 chrome.runtime.sendMessage({
   type: "CAPTURE_SESSION",
-  payload: {
-    platform,
-    sessionId,
-    title,
-    messages,
-  },
+  payload: { platform, sessionId, title, messages },
 });
 ```
 
-The service worker listens with `chrome.runtime.onMessage.addListener(...)`.
+The service worker routes these message types:
 
-It acts like a router for these message types:
-
-1. `CAPTURE_SESSION`
-2. `CAPTURE_MESSAGE`
-3. `GET_SESSIONS`
-4. `SYNC_OPEN_TABS`
-5. `GET_SESSION`
-6. `DELETE_SESSION`
-7. `MIGRATE_CONTEXT`
-8. `FETCH_IDE_CONTEXT`
+1. `CAPTURE_SESSION` — store/update session in IndexedDB
+2. `GET_SESSIONS` — return all sessions
+3. `GET_SESSION` — return one session by id
+4. `DELETE_SESSION` — remove a session
+5. `SYNC_OPEN_TABS` — snapshot all currently open AI tabs
+6. `MIGRATE_CONTEXT` — full summarize + translate + inject pipeline
+7. `FETCH_IDE_CONTEXT` — pull snapshot from VS Code bridge
+8. `AUTH_GET_USER` — read auth state
+9. `VAULT_GET_STATUS` — check Vault connectivity
 
 ## 8. Local Storage Layer
 
 Storage lives in IndexedDB through `idb`.
 
-File:
-
-1. `packages/browser-extension/src/lib/db.ts`
-
-Database details:
+File: `packages/browser-extension/src/lib/db.ts`
 
 1. database name: `contextforge`
-2. object store: `sessions`
-3. key path: `id`
-4. indexes: `platform`, `updatedAt`
+2. database version: `2`
+3. object store: `sessions` (key: `id`, indexes: `platform`, `updatedAt`)
 
-This gives the extension a local-first model:
+Local-first: all core features work without any server or VS Code running.
 
-1. sessions are stored in the browser
-2. migration still works even if VS Code is offline
-3. the VS Code bridge is additive, not required
+## 9. Summarization Tiers
 
-## 9. What Happens During Capture
+File: `packages/browser-extension/src/lib/summarizer.ts`
 
-When `CAPTURE_SESSION` reaches the service worker:
+The service worker picks a tier automatically using `capabilityDetector.getEffectiveTier()` unless the sidebar pre-computes and passes `precomputedSummary`.
 
-1. it checks whether the session already exists
-2. preserves the original `createdAt` when updating
-3. sets `updatedAt` using the latest message timestamp
-4. writes the full session to IndexedDB
+### Tier 1 — Classic heuristic
 
-Then it does one more thing:
+Simple rule-based summarizer. Keeps last 6 messages verbatim, compresses older messages by extracting goals, code blocks, and key decisions. Always fast (<100ms). Offline.
 
-1. POSTs the session to `http://localhost:49152/context`
+### Tier 2 — Smart Summary (`summarizeIntelligent`)
 
-That bridge call is fire-and-forget.
-If VS Code is not running, the extension ignores the failure.
+Structured regex extraction. Produces:
 
-This means browser context can be mirrored to the local IDE side, but the app does not depend on that mirror to keep working.
+1. `goal` — first user message (up to 600 chars)
+2. `currentState` — last 6 user messages joined
+3. `decisions` — verbatim decision sentences from assistant
+4. `bugsFixed` — sentences matching bug/fix patterns
+5. `completed` / `pending` — task tracking
+6. `codeBlocks` — all fenced code blocks with language + path
+7. `tail` — last 8 messages verbatim
 
-## 10. Popup Flow
+Synchronous, no ML. ~100ms for 500 messages.
 
-File:
+### Tier 3 — Attention Engine (`summarizeWithAttention`)
 
-1. `packages/browser-extension/src/popup/Popup.tsx`
+File: `packages/browser-extension/src/lib/attention-engine.ts`
+
+Uses ONNX embeddings (all-MiniLM-L6-v2) to score every message chunk against a user task string. High-score messages are kept verbatim; low-score messages are compressed to one sentence. Code blocks above the attention threshold are preserved in full.
+
+Because the Attention Engine requires browser APIs (window, document, WebGPU) it cannot run in the service worker. The correct path is:
+
+1. User opens the sidebar's Attention tab (AttentionModal).
+2. Attention Engine pre-computes summary + attentionMap inside the sidebar.
+3. On migrate, sidebar passes `precomputedSummary` + `precomputedAttentionMap` to the service worker.
+4. Service worker uses the fast path directly — no re-computation.
+
+If the SW ever tries to run it directly, it falls back to tier 2 automatically.
+
+### Tier auto-detection
+
+`capabilityDetector` benchmarks the device on first run:
+
+1. `minimal` → tier 2
+2. `balanced` → tier 3
+3. `full` → tier 3 (WebGPU-accelerated)
+
+A load watchdog monitors CPU during tier-3 work and can downgrade to tier-2 mid-flight if the device is under pressure.
+
+## 10. Translation Logic
+
+File: `packages/browser-extension/src/lib/translator.ts`
+
+`buildMigrationPrompt(payload)` formats the summarized context for the destination platform.
+
+Guard: throws only when `payload.summary === undefined` AND `payload.intelligentSummary` is absent. An empty string `""` is valid (used internally for shell-size measurement during the prompt cap step).
+
+### Platform formats
+
+| Target | Format |
+|---|---|
+| Claude | XML: `<context_migration>`, `<meta>`, `<goal>`, `<progress>`, `<code>`, `<conversation_tail>` |
+| ChatGPT | Markdown sections with structured headings |
+| Gemini | Plain text with `[CONTEXTFORGE MIGRATION]` delimiters |
+| Grok | Markdown (same as ChatGPT with Grok heading) |
+| DeepSeek | Markdown (same as ChatGPT) |
+| Perplexity | Markdown (same as ChatGPT) |
+
+All platforms get:
+
+1. anti-injection preamble (`ANTI_INJECTION_PREAMBLE`) to prevent prompt injection attacks
+2. session metadata (source platform, date, message count, compression ratio)
+3. goal / current state
+4. decisions + bugs fixed
+5. code blocks (newest first)
+6. last N verbatim messages as conversation tail
+7. optional IDE context block
+8. optional project file context block
+9. optional Attention Engine relevance block (tier 3 only)
+10. optional Prompt Engine template injection
+
+## 11. Priority-Ordered Prompt Cap
+
+After translation, the prompt may exceed the editor's capacity. The cap is applied in this priority order:
+
+1. **P1** — metadata, goal, current state, decisions (always kept)
+2. **P2** — code blocks (oldest dropped first until it fits)
+3. **P3** — last 6 verbatim messages + instructions (always kept)
+4. **Tier-3 trim** — if still over cap, summary is head/tail trimmed with a `[trimmed]` marker
+5. **Last resort** — flat string slice if all else fails
+
+**Cap: 120,000 chars for all platforms equally. No platform discrimination.**
+
+## 12. Project File Context (File System Access API)
+
+File: `packages/browser-extension/src/lib/file-system/`
+
+The sidebar lets the user open a local project folder via the browser File System Access API. Files are indexed into memory by `projectReader`. The user selects files for context, and `fileContextBuilder` formats them per target platform:
+
+1. Claude: `<project_files>` XML
+2. ChatGPT / Grok: Markdown code blocks
+3. Gemini: plain `[PROJECT FILES]` section
+4. Others: raw with `=== path ===` separators
+
+Token estimate (`chars / 4`) is shown with a color-coded warning (green <50k, amber 50–100k, red >100k).
+
+### File actions in sidebar
+
+1. Copy raw / Copy for platform (clipboard)
+2. Copy path
+3. Download file (single)
+4. Download as ZIP (multi, JSZip)
+5. Context menu + inline copy button on hover
+6. Keyboard shortcuts: Ctrl+C copy, Ctrl+D download, Ctrl+A select all, Ctrl+Shift+C Claude format
+
+Selected files are passed as `projectContext` in the `MIGRATE_CONTEXT` payload. The service worker appends them after the VS Code bridge context.
+
+## 13. Vault (Optional Cloud Sync)
+
+The sidebar checks for a connected personal Supabase Vault instance. If connected, session storage can be synced to the cloud. Without Vault, all sessions are local-only (IndexedDB). Vault is always opt-in and user-owned.
+
+## 14. Popup Flow
+
+File: `packages/browser-extension/src/popup/Popup.tsx`
 
 When the popup opens:
 
 1. it sends `SYNC_OPEN_TABS`
-2. the service worker scans open AI tabs
-3. the worker injects a one-time scraper with `chrome.scripting.executeScript`
-4. any discovered sessions are stored immediately
-5. the popup loads all saved sessions
-6. it checks bridge health at `http://localhost:49152/health`
+2. the service worker scans all open AI tabs
+3. injects one-time scrapers with `chrome.scripting.executeScript`
+4. discovered sessions are stored immediately
+5. the popup loads saved sessions
+6. checks bridge health at `http://localhost:49152/health`
 
-The popup also refreshes session state every 4 seconds.
+User picks a target platform and clicks `Migrate`. The popup finds an open tab for that platform, focuses it, and sends `MIGRATE_CONTEXT`.
 
-Important user action:
+## 15. Sidebar Flow
 
-1. pick target platform
-2. click `Migrate`
+File: `packages/browser-extension/src/sidebar/Sidebar.tsx`
 
-Then the popup:
+On open:
 
-1. finds an open tab for that target platform
-2. focuses the tab
-3. sends `MIGRATE_CONTEXT` to the service worker
+1. reads `chrome.storage.local` for any active `CaptureAlert` — shows amber banner if found
+2. loads all sessions (polls every 30s, instant on `SESSIONS_UPDATED` broadcast)
+3. checks VS Code bridge + Vault connectivity
+4. loads Attention Engine pre-computation state if available
 
-## 11. Sidebar Flow
+User can:
 
-File:
+1. filter sessions by platform
+2. search semantically via the Attention Engine
+3. open a session detail screen (last 6 messages shown, expandable)
+4. pre-compute Attention Engine summary (AttentionModal)
+5. open project folder and select files
+6. migrate with one click from the detail screen
 
-1. `packages/browser-extension/src/sidebar/Sidebar.tsx`
+## 16. Full Migration Flow
 
-The sidebar follows the same backend flow as the popup, but with a richer browsing experience.
+When the UI sends `MIGRATE_CONTEXT`:
 
-It:
-
-1. loads sessions
-2. checks bridge health
-3. fetches IDE context preview if the bridge is online
-4. lets the user open a session detail screen
-5. lets the user migrate from that detail screen
-
-The sidebar refreshes every 5 seconds.
-
-## 12. Syncing Open Tabs
-
-`SYNC_OPEN_TABS` is useful because it captures currently open conversations without waiting for fresh DOM mutations.
-
-The service worker:
-
-1. queries tabs for each supported platform URL pattern
-2. runs `scrapeSessionFromPage` inside each tab
-3. reads the current transcript from the live page
-4. stores it as a session if messages were found
-
-This is basically a catch-up snapshot mechanism.
-
-## 13. Migration Flow
-
-This is the core feature.
-
-When the UI sends:
-
-```ts
-{
-  type: "MIGRATE_CONTEXT",
-  payload: {
-    sessionId,
-    targetPlatform,
-    targetTabId
-  }
-}
+```
+Stage 1 — validate payload
+Stage 2 — locate source session in IndexedDB
+Stage 3 — check for streaming (abort if target is mid-stream)
+Stage 4 — load full session messages
+Stage 5 — resolve tier and summarize:
+          fast path if precomputedSummary present
+          otherwise: tier 3 → tier 2 → tier 1 cascade with fallbacks
+Stage 6 — fetch IDE context from VS Code bridge (fire-and-forget)
+          append project file context (from payload.projectContext)
+          build prompt via buildMigrationPrompt()
+          apply priority-ordered 120k cap
+          optionally inject Prompt Engine template
+Stage 7 — domain-whitelist check on target tab URL
+          send INJECT_CONTEXT to target tab content script
+Stage 8 — return { success: true } to UI
 ```
 
-the service worker does this:
+## 17. Injecting Into the Target Tab
 
-1. load the source session from IndexedDB
-2. try to fetch IDE context from the VS Code bridge
-3. summarize the conversation
-4. translate it for the target platform format
-5. send `INJECT_CONTEXT` into the target browser tab
-6. return success or an error back to the UI
-
-## 14. Summarization Logic
-
-File:
-
-1. `packages/browser-extension/src/lib/summarizer.ts`
-
-The summarizer is intentionally simple and deterministic.
-
-It estimates token count as:
-
-1. `1 token ~= 4 chars`
-
-Rules:
-
-1. if conversation is below `3000` estimated tokens, keep it verbatim
-2. if above threshold, summarize older messages
-3. always keep the last `6` messages verbatim
-
-The summary includes:
-
-1. total message count
-2. original goals or questions
-3. key assistant outputs or decisions
-4. up to 3 extracted code blocks
-5. recent message tail verbatim
-
-This makes the migration prompt smaller while preserving the latest conversational state.
-
-## 15. Translation Logic
-
-File:
-
-1. `packages/browser-extension/src/lib/translator.ts`
-
-After summarization, the app formats the prompt differently depending on the destination model.
-
-### Claude target
-
-Uses XML-like structure:
-
-1. `<context_migration>`
-2. `<migration_notice>`
-3. `<previous_chat>`
-4. optional `<current_codebase_state>`
-5. `<instructions>`
-
-### ChatGPT target
-
-Uses markdown sections:
-
-1. migrated session metadata
-2. prior conversation history
-3. optional current codebase state
-4. instruction list
-
-### Grok target
-
-Uses the same markdown strategy as ChatGPT with a Grok-specific heading.
-
-### Gemini target
-
-Uses plain text section delimiters:
-
-1. `[CONTEXTFORGE MIGRATION]`
-2. `[PRIOR CONVERSATION]`
-3. optional `[CURRENT CODE CONTEXT FROM IDE]`
-4. `[TASK]`
-
-This translator is the actual "context adapter" of the product.
-
-## 16. Injecting Into the Target Tab
-
-Once the prompt is built, the service worker sends:
+The service worker sends:
 
 ```ts
-{
-  type: "INJECT_CONTEXT",
-  prompt,
-  platform: targetPlatform
-}
+{ type: "INJECT_CONTEXT", prompt, platform: targetPlatform }
 ```
 
-The destination tab's content script receives it and writes the text into the site's input box.
+The content script writes the text into the site's input using the most compatible method available:
 
-Important detail:
+1. React synthetic event (nativeInputValueSetter + dispatchEvent)
+2. `document.execCommand("insertText")`
+3. direct `.value` assignment
+4. clipboard paste as last resort
 
-1. the app prepares the prompt
-2. the app inserts it into the text box
-3. the app does not auto-submit the message
+**The app never auto-submits.** The user reviews and sends manually.
 
-That is a sensible safety choice because the user can review the migrated prompt before sending.
+## 18. VS Code Extension Flow
 
-## 17. VS Code Extension Flow
-
-The VS Code side starts in:
-
-1. `packages/vscode-extension/src/extension.ts`
+File: `packages/vscode-extension/src/extension.ts`
 
 On activation:
 
-1. it creates a `ContextCollector`
-2. reads `contextforge.bridgePort`
+1. creates `ContextCollector`
+2. reads `contextforge.bridgePort` (default 49152)
 3. starts `BridgeServer`
-4. registers commands
-5. shows a status bar item
+4. registers commands: `contextforge.captureContext`, `contextforge.startBridge`
+5. shows status bar item
 
-Commands:
+### IDE Snapshot
 
-1. `contextforge.captureContext`
-2. `contextforge.startBridge`
+`ContextCollector` builds an `IDESnapshot` containing:
 
-## 18. IDE Snapshot Collection
+1. active file (path, language, full content, selection, cursor line)
+2. open tabs (up to `contextforge.maxFilesInContext`)
+3. workspace name + root
+4. git branch (`git rev-parse --abbrev-ref HEAD`)
+5. git diff summary (`git diff --stat HEAD`)
+6. up to 20 diagnostics (errors + warnings)
 
-File:
+`formatAsText()` turns this into prompt-friendly plain text embedded in the migration context.
 
-1. `packages/vscode-extension/src/context-collector.ts`
+### Bridge API
 
-When the browser extension asks for `/context`, the collector builds an `IDESnapshot`.
+`GET /health` → `{ status: "ok", port: 49152 }`
+`GET /context` → `{ ideContext, snapshot, browserContext }`
+`POST /context` → stores browser session mirror as `lastBrowserContext`
 
-That snapshot contains:
+## 19. End-to-End Example
 
-1. active file
-2. open tabs
-3. workspace name
-4. workspace root
-5. git branch
-6. git diff summary
-7. diagnostics
-8. capture timestamp
+1. You open `deepseek.com` and have a 300-message coding session.
+2. `deepseek.ts` runs `runCapturePipeline("deepseek", scrapeMessages)` on every DOM change.
+3. Capture is validated — 150 user + 150 assistant messages found via registry selectors.
+4. Health monitor records success (100% in window).
+5. `CAPTURE_SESSION` is sent; service worker stores the session in IndexedDB.
+6. You open the sidebar — session appears in the list.
+7. You open the Attention tab, type your task, click "Compute" — Attention Engine pre-computes the summary.
+8. You open your project folder, select 3 files to include.
+9. You pick `Claude` as target and click `Migrate`.
+10. Service worker uses the pre-computed summary (fast path, tier 3).
+11. Bridge is offline — IDE context skipped.
+12. Project file context (27k chars) is appended.
+13. Prompt is built at 138k chars → priority cap trims to 120k (oldest code blocks dropped first).
+14. Claude tab is found and verified by domain whitelist.
+15. `INJECT_CONTEXT` is sent to `claude.ts`.
+16. Prompt is pasted into Claude's ProseMirror editor.
+17. You review and hit Enter.
 
-### Active file
-
-If there is an active editor, the collector includes:
-
-1. full path
-2. relative path
-3. language id
-4. full file content
-5. current selection if any
-6. cursor line
-
-### Open files
-
-It enumerates tab groups and keeps up to `contextforge.maxFilesInContext`.
-
-### Git state
-
-It shells out to:
-
-1. `git rev-parse --abbrev-ref HEAD`
-2. `git diff --stat HEAD`
-
-So the bridge only returns a summary of working tree changes, not a full patch.
-
-### Diagnostics
-
-It includes up to 20 warning/error items from VS Code diagnostics.
-
-## 19. How IDE Context Becomes Prompt Text
-
-`ContextCollector.formatAsText(...)` turns the snapshot into prompt-friendly plain text.
-
-It emits sections like:
-
-1. workspace name
-2. git branch
-3. git diff summary
-4. active file and content or selection
-5. open file list
-6. diagnostics
-
-That string is what gets embedded into the migration prompt when the bridge is online.
-
-## 20. Bridge Server API
-
-File:
-
-1. `packages/vscode-extension/src/bridge-server.ts`
-
-The bridge exposes a tiny local HTTP API.
-
-### `GET /health`
-
-Used by popup and sidebar to detect whether the VS Code side is reachable.
-
-Returns:
-
-```json
-{ "status": "ok", "port": 49152 }
-```
-
-### `GET /context`
-
-Used during migration and sidebar inspection.
-
-Returns:
-
-1. `ideContext`
-2. raw `snapshot`
-3. `browserContext` mirrored from the extension
-
-### `POST /context`
-
-Used by the browser extension to push browser session data into the bridge.
-
-The server stores it as `lastBrowserContext`.
-
-This is a lightweight shared-memory handshake between browser state and IDE state.
-
-## 21. End-to-End Example
-
-Here is the full runtime story in practical terms:
-
-1. You open `gemini.google.com`.
-2. `gemini.ts` starts observing the page.
-3. It scrapes visible chat turns.
-4. It sends `CAPTURE_SESSION` to the service worker.
-5. The service worker saves the session to IndexedDB.
-6. The popup shows the saved Gemini conversation.
-7. You open the extension popup.
-8. The popup checks whether VS Code bridge is online.
-9. You choose `Claude` as the target.
-10. You click `Migrate`.
-11. The service worker loads the Gemini session.
-12. It requests current IDE context from `GET /context`.
-13. It summarizes the conversation if needed.
-14. It formats the prompt as Claude XML-style context.
-15. It focuses the open Claude tab.
-16. It sends `INJECT_CONTEXT` to the Claude content script.
-17. The Claude script pastes the prompt into Claude's editor.
-18. You review the inserted prompt and send it manually.
-
-## 22. Design Choices That Matter
-
-These are the main architectural ideas in this codebase:
+## 20. Design Choices That Matter
 
 ### Local-first
+Sessions live in IndexedDB. The VS Code bridge and Vault are additive, never required.
 
-Sessions are stored in browser IndexedDB, so the core experience does not depend on a server.
+### Six-platform parity
+All platforms get identical capture resilience, identical prompt cap limits, and identical format quality.
 
-### Two-app architecture
+### Resilient capture
+Four-layer capture pipeline means a CSS class rename on any platform cannot break capture entirely.
 
-Browser capture and IDE capture are separate, joined by a localhost bridge instead of a cloud backend.
-
-### Per-platform adapters
-
-Each AI website gets custom scrape and inject logic, but the app normalizes everything into one shared session format.
+### Three-tier summarization
+Tier selection is automatic based on device capability. The sidebar can always pre-compute to guarantee the best possible quality without blocking the service worker.
 
 ### Safe migration
+Prompts are injected but never auto-sent. The user is always the last step.
 
-The app injects prompts but does not auto-send them.
+### Equal prompt limits
+All six platforms share the same 120k char cap. No platform gets less context than another.
 
-### Deterministic summarization
+### Anti-injection security
+Every migration prompt begins with `ANTI_INJECTION_PREAMBLE` to block prompt-injection attacks embedded in captured conversations.
 
-The summarizer is heuristic-based instead of model-based, so it is fast, offline, and predictable.
+## 21. Key File Map
 
-## 23. Where To Read Next
+```
+packages/browser-extension/src/
+  background/
+    service-worker.ts           — central orchestrator
+  content/
+    shared.ts                   — runCapturePipeline, startSessionCapture, setPromptInputValue
+    claude.ts / chatgpt.ts / gemini.ts / grok.ts / deepseek.ts / perplexity.ts
+  lib/
+    capture/
+      selector-registry.ts      — versioned CSS selector fallback cascade
+      structural-detector.ts    — DOM-structure last-resort detection
+      capture-validator.ts      — per-capture validation + stats
+      health-monitor.ts         — sliding-window health tracking + alerts
+    attention-engine.ts         — ONNX embedding scorer
+    summarizer.ts               — tier 1/2/3 summarization
+    translator.ts               — per-platform prompt formatter
+    prompt-sanitizer.ts         — anti-injection + XML/MD sanitization
+    capability-detector.ts      — device tier auto-detection
+    db.ts                       — IndexedDB (idb) wrapper
+    types.ts                    — Message, ContextSession, MigrationPayload, etc.
+    file-system/
+      project-reader.ts         — File System Access API folder indexer
+      context-builder.ts        — per-platform project file formatter
+      file-copier.ts            — copy / download / zip / token estimate
+  sidebar/
+    Sidebar.tsx                 — main sidebar UI
+    MigrationModal.tsx          — migration options modal
 
-If you want to understand the code in the most useful order, read these files in sequence:
+packages/vscode-extension/src/
+  extension.ts                  — VS Code activation
+  context-collector.ts          — IDE snapshot builder
+  bridge-server.ts              — local HTTP bridge (port 49152)
+```
 
-1. `packages/browser-extension/manifest.json`
-2. `packages/browser-extension/src/content/shared.ts`
-3. one platform file like `packages/browser-extension/src/content/gemini.ts`
-4. `packages/browser-extension/src/background/service-worker.ts`
-5. `packages/browser-extension/src/lib/db.ts`
-6. `packages/browser-extension/src/lib/summarizer.ts`
-7. `packages/browser-extension/src/lib/translator.ts`
-8. `packages/browser-extension/src/popup/Popup.tsx`
-9. `packages/vscode-extension/src/extension.ts`
-10. `packages/vscode-extension/src/context-collector.ts`
-11. `packages/vscode-extension/src/bridge-server.ts`
+## 22. Short Mental Model
 
-## 24. Short Mental Model
-
-If you want one sentence:
-
-ContextForge is a browser extension that captures AI chat sessions, stores them locally, optionally mixes in live VS Code context from a localhost bridge, then rewrites and injects that context into another AI platform using a platform-specific prompt format.
+ContextForge captures AI chat sessions from six platforms using a resilient multi-layer pipeline, stores them in browser IndexedDB, optionally enriches them with VS Code IDE context and local project files, then compresses and reformats the context using a three-tier summarization system before injecting it into any target AI platform — all locally, with no required cloud backend.

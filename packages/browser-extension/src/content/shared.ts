@@ -1,13 +1,16 @@
 // packages/browser-extension/src/content/shared.ts
 import type { Message, Platform } from "@/lib/types";
 import { resolveSessionId, makeLegacyChecker } from "@/lib/session-id";
+import { validateCapture } from "@/lib/capture/capture-validator";
+import { detectByStructure } from "@/lib/capture/structural-detector";
+import { healthMonitor } from "@/lib/capture/health-monitor";
 
 const legacyChecker = makeLegacyChecker();
 
 export function createObserver(
   selectorOrElement: string | Element,
   callback: () => void,
-  debounceMs = 300
+  debounceMs = 150
 ): MutationObserver {
   // Debounce so streaming AI responses (one DOM mutation per token) don't
   // call scrapeMessages on every individual token.
@@ -40,6 +43,35 @@ export function createObserver(
 
   attach();
   return observer;
+}
+
+export function isAssistantStreaming(platform: string): boolean {
+  try {
+    switch (platform) {
+      case "claude":
+        return !!document.querySelector(
+          '.streaming-indicator, [data-is-streaming="true"], .result-streaming'
+        );
+      case "chatgpt":
+        return !!document.querySelector(
+          '[data-testid="stop-button"], button[aria-label="Stop generating"]'
+        );
+      case "gemini":
+        return !!document.querySelector(
+          '.loading-indicator, [aria-label="Gemini is responding"]'
+        );
+      case "grok":
+        return !!document.querySelector('[data-streaming="true"], .streaming');
+      case "deepseek":
+        return !!document.querySelector('.ds-loading, [data-generating]');
+      case "perplexity":
+        return !!document.querySelector('.generating, [data-state="loading"]');
+      default:
+        return false;
+    }
+  } catch {
+    return false;
+  }
 }
 
 export function defaultSessionTitle(messages: Message[]): string {
@@ -83,6 +115,9 @@ export function startSessionCapture(config: {
   let lastHref = window.location.href;
   let lastUnchangedAt = 0;
   const UNCHANGED_COOLDOWN_MS = 5_000; // don't re-scrape if last result was unchanged < 5s ago
+
+  let pendingCaptureAfterStream = false;
+  let streamPollId: ReturnType<typeof setInterval> | null = null;
 
   // Async-resolve the session id via chrome.storage URL map.  Cached after the
   // first call; invalidated when the URL changes or when the service worker
@@ -138,6 +173,35 @@ export function startSessionCapture(config: {
 
     // If the last scrape found no change, suppress re-scrape for UNCHANGED_COOLDOWN_MS.
     if (lastUnchangedAt > 0 && Date.now() - lastUnchangedAt < UNCHANGED_COOLDOWN_MS) {
+      return;
+    }
+
+    // Skip capture while the assistant is actively streaming — schedule a
+    // deferred capture for when streaming finishes instead.
+    if (isAssistantStreaming(config.platform)) {
+      pendingCaptureAfterStream = true;
+      if (!streamPollId) {
+        const pollStart = Date.now();
+        streamPollId = setInterval(() => {
+          // 60-second hard cap — run capture anyway to avoid dropping context.
+          if (Date.now() - pollStart > 60_000) {
+            clearInterval(streamPollId!);
+            streamPollId = null;
+            pendingCaptureAfterStream = false;
+            void capture();
+            return;
+          }
+          if (!isAssistantStreaming(config.platform) && pendingCaptureAfterStream) {
+            clearInterval(streamPollId!);
+            streamPollId = null;
+            // Wait 500ms for the DOM to settle after streaming ends.
+            setTimeout(() => {
+              pendingCaptureAfterStream = false;
+              void capture();
+            }, 500);
+          }
+        }, 500);
+      }
       return;
     }
 
@@ -294,6 +358,99 @@ export async function waitForAnyElement<T extends Element>(
   }
 
   return null;
+}
+
+// ── Capture pipeline wrapper ─────────────────────────────────────────────────
+// Wraps any scrapeMessages fn with: validate → structural fallback → health record.
+// Fire-and-forget for health (async storage write); scrapeMessages stays sync.
+export function runCapturePipeline(
+  platform: string,
+  rawScrape: () => Message[]
+): Message[] {
+  let messages: Message[] = [];
+  let detectionMethod: "registry" | "structural" | "failed" = "registry";
+
+  try {
+    messages = rawScrape();
+  } catch (e) {
+    console.error(`[CF:${platform}] scrapeMessages threw:`, e);
+    detectionMethod = "failed";
+  }
+
+  const validation = validateCapture(messages, platform, detectionMethod);
+
+  // Structural fallback — only when registry strategies returned 0 assistant messages
+  // and the page has meaningful content (avoids false structural captures on blank pages).
+  if (
+    (validation.errors.length > 0 || validation.stats.assistant === 0) &&
+    messages.length === 0 &&
+    document.querySelector('main, [role="main"], [class*="message"], [class*="conversation"]')
+  ) {
+    console.warn(`[CF:${platform}] Registry strategies empty — trying structural detection`);
+    const structural = detectByStructure(platform);
+    if (structural.length > 0 && structural.some((m) => m.role === "assistant")) {
+      messages = structural;
+      detectionMethod = "structural";
+    }
+  }
+
+  const finalValidation = validateCapture(messages, platform, detectionMethod);
+
+  // Record health — fire-and-forget, never blocks the sync return
+  void healthMonitor.record({
+    platform,
+    timestamp: Date.now(),
+    success: finalValidation.valid,
+    userCount: finalValidation.stats.user,
+    assistantCount: finalValidation.stats.assistant,
+    detectionMethod,
+    errors: finalValidation.errors,
+  });
+
+  return messages;
+}
+
+export const sleep = (ms: number): Promise<void> => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Retries setPromptInputValue up to maxAttempts times with exponential backoff.
+ * Verifies success by checking that the first 50 chars of text landed in the input.
+ * Falls back to navigator.clipboard on total failure and notifies the sidebar.
+ */
+export async function injectWithRetry(
+  input: HTMLElement | HTMLTextAreaElement,
+  text: string,
+  platform: string,
+  maxAttempts = 3,
+  delayMs = 300
+): Promise<boolean> {
+  let currentDelay = delayMs;
+  const first50 = text.slice(0, 50);
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const ok = setPromptInputValue(input, text);
+    // React / ProseMirror / Angular commit DOM updates asynchronously after
+    // processing synthetic events.  Reading textContent synchronously returns
+    // stale content from the previous injection, producing a false negative.
+    // 150 ms gives every known AI-chat editor one or more render cycles to flush.
+    await sleep(150);
+    const content =
+      input instanceof HTMLTextAreaElement ? input.value : (input.textContent ?? '');
+    if (ok && content.includes(first50)) return true;
+    if (attempt < maxAttempts) {
+      console.warn(`[ContextForge] Inject attempt ${attempt} failed (${platform}), retrying in ${currentDelay}ms...`);
+      await sleep(currentDelay);
+      currentDelay = Math.floor(currentDelay * 1.5); // 300 → 450 → 675ms
+    }
+  }
+  // All attempts failed — write to clipboard as last resort.
+  try {
+    await navigator.clipboard.writeText(text);
+    chrome.runtime.sendMessage({
+      type: 'CF_NOTIFICATION',
+      message: 'Context copied to clipboard — paste manually with Ctrl+V',
+    }).catch(() => {});
+  } catch { /* clipboard API unavailable in this context */ }
+  return false;
 }
 
 export function setPromptInputValue(

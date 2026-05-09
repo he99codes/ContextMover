@@ -1,5 +1,5 @@
 // packages/browser-extension/src/content/deepseek.ts
-import { extractMessageContent, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
 
 console.log("[ContextForge] DeepSeek content script loaded");
@@ -123,7 +123,7 @@ function scrapeMessages(): Message[] {
 startSessionCapture({
   platform: "deepseek",
   selectorOrElement: "main",
-  scrapeMessages,
+  scrapeMessages: () => runCapturePipeline("deepseek", scrapeMessages),
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -166,7 +166,7 @@ async function injectIntoDeepSeekInput(text: string) {
   if (!input) return { ok: false, error: "DeepSeek input not found. Make sure a chat is open." };
 
   console.log(`[ContextForge:deepseek] injecting via: ${matchedSelector}`);
-  if (!setPromptInputValue(input, text)) return { ok: false, error: "DeepSeek input did not accept the text." };
+  if (!await injectWithRetry(input, text, "deepseek")) return { ok: false, error: "DeepSeek input did not accept the text after 3 attempts. Context copied to clipboard — paste with Ctrl+V." };
 
   return { ok: true };
 }

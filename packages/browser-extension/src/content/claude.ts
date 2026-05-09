@@ -1,5 +1,5 @@
 // packages/browser-extension/src/content/claude.ts
-import { extractMessageContent, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
 
 console.log("[ContextForge] Claude content script loaded");
@@ -257,7 +257,7 @@ function isStreaming(el: HTMLElement): boolean {
 startSessionCapture({
   platform: "claude",
   selectorOrElement: "main",
-  scrapeMessages,
+  scrapeMessages: () => runCapturePipeline("claude", scrapeMessages),
 });
 
 // Listen for injection requests from the service worker
@@ -280,8 +280,8 @@ async function injectIntoClaudeInput(text: string) {
 
   if (!input) return { ok: false, error: "Claude input box not found. Make sure a chat is open." };
 
-  if (!setPromptInputValue(input, text)) {
-    return { ok: false, error: "Claude input did not accept the text. Try reloading the tab." };
+  if (!await injectWithRetry(input, text, "claude")) {
+    return { ok: false, error: "Claude input did not accept the text after 3 attempts. Context copied to clipboard — paste with Ctrl+V." };
   }
 
   return { ok: true };

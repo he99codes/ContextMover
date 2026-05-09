@@ -58,4 +58,7 @@ export interface MigrationPayload {
   // Translator casts to AttentionMap via import type from attention-engine.ts.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   attentionMap?: any;
+  // Pre-built project-file context block (XML/MD/plain, platform-formatted).
+  // Built in the sidebar by FileContextBuilder and injected before conversation_tail.
+  projectContext?: string | null;
 }

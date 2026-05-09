@@ -38,6 +38,12 @@ async function broadcastToViews(message: unknown): Promise<void> {
 }
 
 const BRIDGE_URL = "http://localhost:49152";
+
+// IDB write buffer — debounces rapid CAPTURE_SESSION calls so only 1 IDB write
+// fires per session per 200ms window instead of one per DOM mutation burst.
+const pendingWrites = new Map<string, ContextSession>();
+const writeTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
 const PLATFORM_URLS = {
   claude:     ["https://claude.ai/*"],
   chatgpt:    ["https://chatgpt.com/*", "https://chat.openai.com/*"],
@@ -523,8 +529,20 @@ async function handleCaptureSession(payload: {
     messages: payload.messages,
   };
 
-  await db.saveSession(session);
-  console.log('[CF:sw] saved', { session: session.id, total: session.messages.length });
+  // Debounced IDB write — coalesces rapid-fire captures for the same session.
+  // Only 1 write fires per 200ms window; SESSIONS_UPDATED broadcasts after flush.
+  pendingWrites.set(session.id, session);
+  const existingTimer = writeTimers.get(session.id);
+  if (existingTimer !== undefined) clearTimeout(existingTimer);
+  writeTimers.set(session.id, setTimeout(async () => {
+    const toWrite = pendingWrites.get(session.id);
+    if (!toWrite) return;
+    await db.saveSession(toWrite);
+    pendingWrites.delete(session.id);
+    writeTimers.delete(session.id);
+    console.log('[CF:sw] saved (debounced)', { session: toWrite.id, total: toWrite.messages.length });
+    void broadcastToViews({ type: "SESSIONS_UPDATED" });
+  }, 200));
 
   console.log('[ContextForge] Session stored locally only. No cloud sync unless user connects personal Supabase.');
 
@@ -545,25 +563,47 @@ async function handleCaptureSession(payload: {
     } catch (err) { console.warn('[ContextForge:vault] Sync failed:', err); }
   })();
 
-  // ── [CF:sw] verified — read back from IndexedDB to confirm integrity ─────
-  const saved = await db.getSession(payload.sessionId);
+  // ── [CF:sw] verified — check pending queue and/or IDB ────────────────────
+  const inFlight = pendingWrites.get(payload.sessionId);
+  const saved = inFlight ?? await db.getSession(payload.sessionId);
   const savedUser = saved?.messages.filter(m => m.role === "user").length ?? 0;
   const savedAsst = saved?.messages.filter(m => m.role === "assistant").length ?? 0;
-  console.log('[CF:sw] verified', { total: saved?.messages.length ?? 0, user: savedUser, assistant: savedAsst, ok: saved !== undefined });
+  console.log('[CF:sw] verified', { total: saved?.messages.length ?? 0, user: savedUser, assistant: savedAsst, ok: saved !== undefined, pending: !!inFlight });
   if (!saved) {
-    console.error('[CF:sw] verified — FAILED: session not found in IndexedDB after save');
+    console.error('[CF:sw] verified — FAILED: session not found in queue or IndexedDB');
   } else if (savedAsst === 0 && savedUser > 0) {
-    console.error('[CF:sw] verified — ASSISTANT MESSAGES MISSING after DB save');
+    console.error('[CF:sw] verified — ASSISTANT MESSAGES MISSING');
   }
-
-  // Push an instant refresh notification to any open extension view (sidebar).
-  void broadcastToViews({ type: "SESSIONS_UPDATED" });
 
   fetch(`${BRIDGE_URL}/context`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "BROWSER_CONTEXT", session }),
   }).catch(() => { });
+}
+
+/**
+ * Returns true when a code block is annotated with a file path — these are
+ * foundational files (schema, types, config) and must survive the prompt cap.
+ * Checks: object .path/.filename property, or first line is a comment with "/" or "."
+ */
+function isPathAnnotatedCodeBlock(block: unknown): boolean {
+  if (typeof block === 'object' && block !== null) {
+    const b = block as Record<string, unknown>;
+    if (typeof b.path === 'string' && /[./]/.test(b.path)) return true;
+    if (typeof b.filename === 'string' && /[./]/.test(b.filename)) return true;
+  }
+  const content =
+    typeof block === 'string' ? block :
+    typeof (block as Record<string, unknown>)?.content === 'string'
+      ? String((block as Record<string, unknown>).content)
+      : '';
+  if (!content) return false;
+  const firstLine = content.trim().split('\n')[0] ?? '';
+  // Comment line starting with // # -- that contains a file path
+  if (/^(?:\/\/|#|--)[\s\S]*[./][\w]/.test(firstLine.trim())) return true;
+  // Line itself matches a file path pattern (/path/to/file.ext or file.ext)
+  return /[a-z0-9_\-]+\.[a-z]{1,5}/i.test(firstLine);
 }
 
 async function handleMigrateContext(
@@ -579,9 +619,21 @@ async function handleMigrateContext(
     precomputedSummary?: string;
     precomputedAttentionMap?: unknown;
     promptTemplateId?: string | null;
+    projectContext?: string | null;
   },
   sendResponse: (r: unknown) => void
 ) {
+  // Flush any pending debounced write for this session before reading from IDB.
+  // Guarantees migrate always sees the latest captured data.
+  if (pendingWrites.has(payload.sessionId)) {
+    const pendingSession = pendingWrites.get(payload.sessionId)!;
+    const pendingTimer = writeTimers.get(payload.sessionId);
+    if (pendingTimer !== undefined) { clearTimeout(pendingTimer); writeTimers.delete(payload.sessionId); }
+    await db.saveSession(pendingSession);
+    pendingWrites.delete(payload.sessionId);
+    console.log(`[CF:sw] migrate flush: flushed pending write for session ${payload.sessionId}`);
+  }
+
   // ── DIAGNOSTIC STAGE 4 — load session from IndexedDB ──────────────────────
   const session = await db.getSession(payload.sessionId);
   if (!session) return sendResponse({ error: "Session not found in storage." });
@@ -596,6 +648,15 @@ async function handleMigrateContext(
   if (s4Asst === 0) {
     console.warn(`[ContextForge:sw] Stage4 — assistant messages missing from stored session. Migration will proceed with user-only context (degraded).`);
   }
+
+  // Fire bridge fetch in parallel with Stage 5 summarization — 400ms timeout.
+  // Bridge is usually offline; this prevents a slow bridge from blocking every migration.
+  const bridgeContextPromise: Promise<string | null> = Promise.race([
+    fetch(`${BRIDGE_URL}/context`)
+      .then(r => r.ok ? (r.json() as Promise<{ ideContext?: string }>).then(d => d.ideContext ?? null) : null)
+      .catch(() => null),
+    new Promise<null>(resolve => setTimeout(() => resolve(null), 400)),
+  ]);
 
   // ── DIAGNOSTIC STAGE 5 — summarizer ──────────────────────────────────────
   console.log(`[ContextForge:sw] Stage5 — calling summarizer with ${session.messages.length} messages`);
@@ -716,12 +777,19 @@ async function handleMigrateContext(
     stopWatchdog();
   }
 
-  // Pull IDE context if bridge is available (fire-and-forget, non-blocking)
-  let ideContext: string | undefined;
-  try {
-    const res = await fetch(`${BRIDGE_URL}/context`);
-    if (res.ok) ideContext = (await res.json()).ideContext;
-  } catch { /* bridge offline is normal */ }
+  // Bridge context — already fetched in parallel with Stage 5; collect the result now.
+  let ideContext: string | undefined = (await bridgeContextPromise) ?? undefined;
+
+  // Inject project-file context (built in the sidebar by FileContextBuilder).
+  // Appended after VS Code bridge context so both are available to the model.
+  if (payload.projectContext) {
+    const fileCount = (payload.projectContext.match(/<file |###\s|^\[FILE:/gm) ?? []).length;
+    const chars = payload.projectContext.length;
+    console.log(`[ContextForge:files] injected project context files=${fileCount} chars=${chars}`);
+    ideContext = ideContext
+      ? `${ideContext}\n\n${payload.projectContext}`
+      : payload.projectContext;
+  }
 
   // ── DIAGNOSTIC STAGE 6 — translator ──────────────────────────────────────
   const prompt = buildMigrationPrompt({
@@ -769,11 +837,9 @@ async function handleMigrateContext(
   }
 
   // ── Priority-ordered prompt cap ───────────────────────────────────────────
-  // Per-platform safe limits — editor engine determines the ceiling:
-  //   Claude   (ProseMirror) — very tolerant, tested to 200k+
-  //   Gemini   (Quill)       — tolerant, tested to 150k+
-  //   ChatGPT  (CodeMirror)  — starts lagging ~80k; cap at 80k
-  //   Others   (various)     — conservative 60k until tested further
+  // Uniform 200k char cap for all platforms — equal treatment, no discrimination.
+  // Claude (ProseMirror) is confirmed smooth at 200k+; other editors may show
+  // minor lag on very large payloads but will still accept the full context.
   //
   // Priority order (never drop P1–P3):
   //   P1 — metadata, primaryGoal, currentFocus, decisions  (always kept)
@@ -786,12 +852,12 @@ async function handleMigrateContext(
   const PLATFORM_MAX_CHARS: Partial<Record<string, number>> = {
     claude:     120_000,
     gemini:     120_000,
-    chatgpt:     80_000,
-    grok:        80_000,
-    perplexity:  60_000,
-    deepseek:    80_000,
+    chatgpt:    120_000,
+    grok:       120_000,
+    perplexity: 120_000,
+    deepseek:   120_000,
   };
-  const MAX_PROMPT_CHARS = PLATFORM_MAX_CHARS[payload.targetPlatform] ?? 80_000;
+  const MAX_PROMPT_CHARS = PLATFORM_MAX_CHARS[payload.targetPlatform] ?? 120_000;
   if (finalPrompt.length > MAX_PROMPT_CHARS) {
     const beforeChars = finalPrompt.length;
 
@@ -821,19 +887,47 @@ async function handleMigrateContext(
         ? ((intelligentSummary as { codeBlocks?: unknown[] } | undefined)?.codeBlocks ?? [])
         : (extracted?.codeBlocks ?? []);
 
+    // Split into path-annotated (foundational — drop LAST) and unnamed (drop FIRST).
+    const pathAnnotatedBlocks = allBlocks.filter(isPathAnnotatedCodeBlock);
+    const unnamedBlocks       = allBlocks.filter((b) => !isPathAnnotatedCodeBlock(b));
+
     let rebuilt = finalPrompt;
     if (allBlocks.length > 0) {
-      // Walk from (N-1) kept blocks down to 0, stopping when it fits.
-      for (let keep = allBlocks.length - 1; keep >= 0; keep--) {
-        const candidate = buildWith(allBlocks.slice(allBlocks.length - keep));
+      // Pass 1 — drop unnamed (non-path-annotated) blocks oldest-first.
+      // Path-annotated blocks are always included in every candidate.
+      for (let keep = unnamedBlocks.length; keep >= 0; keep--) {
+        const candidate = buildWith([
+          ...unnamedBlocks.slice(unnamedBlocks.length - keep),
+          ...pathAnnotatedBlocks,
+        ]);
         if (candidate.length <= MAX_PROMPT_CHARS) {
           rebuilt = candidate;
-          const dropped = allBlocks.length - keep;
-          console.warn(
-            `[ContextForge:sw] Priority cap: dropped ${dropped} oldest code block(s) ` +
-            `(P1/P3 preserved). ${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
-          );
+          const droppedUnnamed = unnamedBlocks.length - keep;
+          if (droppedUnnamed > 0) {
+            console.warn(
+              `[ContextForge:sw] Priority cap P3: dropped ${droppedUnnamed} unnamed block(s), ` +
+              `${pathAnnotatedBlocks.length} path-annotated block(s) preserved. ` +
+              `${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
+            );
+          }
           break;
+        }
+      }
+      // Pass 2 — last resort: drop path-annotated blocks oldest-first
+      // (only reached if all unnamed blocks were already removed and still over budget).
+      if (rebuilt.length > MAX_PROMPT_CHARS && pathAnnotatedBlocks.length > 0) {
+        for (let keep = pathAnnotatedBlocks.length - 1; keep >= 0; keep--) {
+          const candidate = buildWith(pathAnnotatedBlocks.slice(pathAnnotatedBlocks.length - keep));
+          if (candidate.length <= MAX_PROMPT_CHARS) {
+            rebuilt = candidate;
+            const droppedPath = pathAnnotatedBlocks.length - keep;
+            console.warn(
+              `[ContextForge:sw] Priority cap P4: forced to drop ${droppedPath} path-annotated block(s) ` +
+              `(last resort — all unnamed already removed). ` +
+              `${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
+            );
+            break;
+          }
         }
       }
     }

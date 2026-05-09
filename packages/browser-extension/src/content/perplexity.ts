@@ -1,5 +1,5 @@
 // packages/browser-extension/src/content/perplexity.ts
-import { extractMessageContent, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
 
 console.log("[ContextForge] Perplexity content script loaded");
@@ -126,7 +126,7 @@ function scrapeMessages(): Message[] {
 startSessionCapture({
   platform: "perplexity",
   selectorOrElement: "main",
-  scrapeMessages,
+  scrapeMessages: () => runCapturePipeline("perplexity", scrapeMessages),
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -150,6 +150,6 @@ async function injectIntoPerplexityInput(text: string) {
   ]);
 
   if (!input) return { ok: false, error: "Perplexity input not found. Make sure a conversation is open." };
-  if (!setPromptInputValue(input, text)) return { ok: false, error: "Perplexity input did not accept the text." };
+  if (!await injectWithRetry(input, text, "perplexity")) return { ok: false, error: "Perplexity input did not accept the text after 3 attempts. Context copied to clipboard — paste with Ctrl+V." };
   return { ok: true };
 }

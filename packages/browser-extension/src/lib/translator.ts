@@ -18,7 +18,7 @@ const MAX_VERBATIM = 6;
 export default function buildMigrationPrompt(
   payload: MigrationPayload
 ): string {
-  if (!payload.summary && !payload.intelligentSummary) {
+  if (payload.summary === undefined && !payload.intelligentSummary) {
     throw new Error('[CF:translator] Empty payload — summarizer stage produced no output');
   }
   // Tier 2 — Smart Summary: delegate to dedicated structured builders.
