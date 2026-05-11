@@ -21,7 +21,8 @@
         "https://grok.x.ai/*",
         "https://www.perplexity.ai/*",
         "https://chat.deepseek.com/*",
-        "http://localhost:49152/*"
+        "http://localhost:49152/*",
+        "https://contextmover.com/*"
     ],
     "background": {
         "service_worker": "src/background/service-worker.ts",

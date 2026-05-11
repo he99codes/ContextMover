@@ -195,6 +195,20 @@ export default function Sidebar() {
   const [showSettings, setShowSettings] = useState(false);
   const [indexStats, setIndexStats] = useState<IndexStats | null>(null);
   const [indexStatsLoading, setIndexStatsLoading] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
+
+  // ── Update check — compare manifest version vs hosted extension-version.json ──
+  useEffect(() => {
+    const current = chrome.runtime.getManifest().version;
+    fetch("https://contextmover.com/extension-version.json", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data: { version?: string }) => {
+        if (data.version && semverGt(data.version, current)) {
+          setUpdateAvailable(data.version);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     healthMonitor.getAlerts().then((alerts) => {
@@ -764,6 +778,17 @@ export default function Sidebar() {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[#050505] text-[#F5F5F5] crt">
       <div className="flex h-full flex-col">
+        {/* ── Update available banner ── */}
+        {updateAvailable && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", background: "rgba(0,210,106,0.07)", borderBottom: "1px solid rgba(0,210,106,0.2)", fontSize: 9, color: "#00D26A", lineHeight: 1.4 }}>
+            <span style={{ flexShrink: 0 }}>↑</span>
+            <span style={{ flex: 1 }}>v{updateAvailable} available — Chrome will auto-update on next restart</span>
+            <button
+              onClick={() => setUpdateAvailable(null)}
+              style={{ flexShrink: 0, background: "none", border: "none", color: "#00D26A", cursor: "pointer", fontSize: 11, lineHeight: 1, padding: 0 }}
+            >×</button>
+          </div>
+        )}
         {/* ── Capture health alert banner ── */}
         {captureAlert && (
           <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "6px 12px", background: "rgba(245,158,11,0.08)", borderBottom: "1px solid rgba(245,158,11,0.25)", fontSize: 9, color: "#F59E0B", lineHeight: 1.4 }}>
@@ -2185,4 +2210,17 @@ function formatRelativeTime(timestamp: number) {
   }
 
   return `${Math.max(1, Math.floor(diff / 86_400_000))}d ago`;
+}
+
+// ── semverGt: returns true if `a` is strictly greater than `b` ───────────────
+function semverGt(a: string, b: string): boolean {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < 3; i++) {
+    const na = pa[i] ?? 0;
+    const nb = pb[i] ?? 0;
+    if (na > nb) return true;
+    if (na < nb) return false;
+  }
+  return false;
 }
