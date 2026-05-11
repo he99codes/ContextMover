@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Check, Mail } from "lucide-react";
 import { CHROME_STORE_URL } from "@/config/urls";
 
@@ -20,14 +21,6 @@ function useScrollReveal() {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function GreenDot() {
-  return (
-    <span className="relative flex h-2 w-2 shrink-0">
-      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00FF88] opacity-60" />
-      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00FF88]" />
-    </span>
-  );
-}
 
 function TerminalDemo() {
   const [step, setStep] = useState(0);
@@ -229,7 +222,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
           {/* Logo */}
           <a href="/" className="flex items-center shrink-0">
-            <img src="/logo.png" alt="ContextMover" style={{ height: 38, display: "block" }} />
+            <Image src="/logo.png" alt="ContextMover" width={160} height={56} priority style={{ height: 38, width: "auto" }} />
           </a>
 
           {/* Desktop center nav */}
@@ -660,7 +653,7 @@ export default function LandingPage() {
             {/* Brand */}
             <div className="flex flex-col gap-3 max-w-xs">
               <div className="flex items-center">
-                <img src="/logo.png" alt="ContextMover" style={{ height: 36, display: "block" }} />
+                <Image src="/logo.png" alt="ContextMover" width={160} height={56} style={{ height: 36, width: "auto" }} />
               </div>
               <p className="text-sm text-[#6B6B6B] leading-relaxed">Context Operating System for AI developers.</p>
             </div>

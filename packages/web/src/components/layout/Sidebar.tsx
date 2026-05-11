@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bot,
@@ -89,10 +90,13 @@ export function Sidebar({ user }: SidebarProps) {
           className="flex items-center flex-1 min-w-0 group"
           title="Back to home"
         >
-          <img
+          <Image
             src="/logo.png"
             alt="ContextMover"
-            style={{ height: 34, display: "block", maxWidth: 160, opacity: 1, transition: "opacity 0.2s" }}
+            width={160}
+            height={56}
+            priority
+            style={{ height: 34, width: "auto" }}
             className="group-hover:opacity-80"
           />
         </Link>
