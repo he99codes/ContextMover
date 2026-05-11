@@ -14,8 +14,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "ContextForge",
-    template: "%s · ContextForge",
+    default: "ContextMover",
+    template: "%s · ContextMover",
   },
   description: "Never lose AI context again. Capture, manage, and migrate conversations across AI platforms.",
 };

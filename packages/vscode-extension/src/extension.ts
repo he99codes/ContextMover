@@ -8,10 +8,10 @@ let bridge: BridgeServer | undefined;
 let collector: ContextCollector | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log("[ContextForge] VS Code extension activating.");
+  console.log("[ContextMover] VS Code extension activating.");
 
   collector = new ContextCollector();
-  const getConfig = () => vscode.workspace.getConfiguration("contextforge");
+  const getConfig = () => vscode.workspace.getConfiguration("contextmover");
   const port: number = getConfig().get("bridgePort") ?? 49152;
 
   bridge = new BridgeServer(port, collector);
@@ -22,29 +22,29 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.StatusBarAlignment.Right,
     100
   );
-  statusItem.text = "$(plug) ContextForge";
-  statusItem.tooltip = `ContextForge bridge on :${port}`;
-  statusItem.command = "contextforge.captureContext";
+  statusItem.text = "$(plug) ContextMover";
+  statusItem.tooltip = `ContextMover bridge on :${port}`;
+  statusItem.command = "contextmover.captureContext";
   statusItem.show();
   context.subscriptions.push(statusItem);
 
   bridge.on("connection", () => {
-    statusItem.text = "$(plug) ContextForge $(check)";
-    statusItem.tooltip = `ContextForge — browser connected on :${port}`;
+    statusItem.text = "$(plug) ContextMover $(check)";
+    statusItem.tooltip = `ContextMover — browser connected on :${port}`;
   });
   bridge.on("disconnection", () => {
-    statusItem.text = "$(plug) ContextForge";
-    statusItem.tooltip = `ContextForge bridge on :${port}`;
+    statusItem.text = "$(plug) ContextMover";
+    statusItem.tooltip = `ContextMover bridge on :${port}`;
   });
 
   // ── Commands ──────────────────────────────────────────────────────────────
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "contextforge.captureContext",
+      "contextmover.captureContext",
       async () => {
         const snapshot = await collector!.capture();
         vscode.window.showInformationMessage(
-          `[ContextForge] Captured: ${snapshot.openFiles.length} file(s)` +
+          `[ContextMover] Captured: ${snapshot.openFiles.length} file(s)` +
             (snapshot.gitBranch ? `, branch: ${snapshot.gitBranch}` : "") +
             (snapshot.diagnostics.length
               ? `, ${snapshot.diagnostics.length} diagnostic(s)`
@@ -54,25 +54,25 @@ export function activate(context: vscode.ExtensionContext) {
     ),
 
     vscode.commands.registerCommand(
-      "contextforge.copyContextForLLM",
+      "contextmover.copyContextForLLM",
       async () => {
         await migrateContextToProvider({ openTarget: false });
       }
     ),
 
-    vscode.commands.registerCommand("contextforge.openInLLM", async () => {
+    vscode.commands.registerCommand("contextmover.openInLLM", async () => {
       await migrateContextToProvider({ openTarget: true });
     }),
 
-    vscode.commands.registerCommand("contextforge.startBridge", () => {
+    vscode.commands.registerCommand("contextmover.startBridge", () => {
       if (!bridge?.isRunning) {
         bridge?.start();
         vscode.window.showInformationMessage(
-          `[ContextForge] Bridge started on port ${port}.`
+          `[ContextMover] Bridge started on port ${port}.`
         );
       } else {
         vscode.window.showInformationMessage(
-          `[ContextForge] Bridge already running on port ${port}.`
+          `[ContextMover] Bridge already running on port ${port}.`
         );
       }
     })
@@ -117,7 +117,7 @@ export function activate(context: vscode.ExtensionContext) {
     const openLabel =
       !options.openTarget && result.launchUrl ? "Open Target" : undefined;
     const selection = await vscode.window.showInformationMessage(
-      `[ContextForge] ${actionLabel} Paste it into the chat input to continue.`,
+      `[ContextMover] ${actionLabel} Paste it into the chat input to continue.`,
       ...(openLabel ? [openLabel] : [])
     );
 

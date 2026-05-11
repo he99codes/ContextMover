@@ -1,4 +1,4 @@
--- ContextForge Prompt Engine — Phase 1
+-- ContextMover Prompt Engine — Phase 1
 -- Run this in the Supabase SQL editor or via supabase db push
 
 -- ── Prompt templates ─────────────────────────────────────────────────────────

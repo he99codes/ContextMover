@@ -1,6 +1,6 @@
 import { VaultSetupWizard } from "@/components/dashboard/VaultSetupWizard";
 
-export const metadata = { title: "Personal Vault — ContextForge" };
+export const metadata = { title: "Personal Vault — ContextMover" };
 
 export default function VaultPage() {
   return (
@@ -10,7 +10,7 @@ export default function VaultPage() {
           Personal Vault
         </h1>
         <p className="mt-1 text-xs font-mono uppercase text-[#2A6A2A]" style={{ letterSpacing: "0.12em" }}>
-          Your data · Your Supabase · Zero ContextForge access
+          Your data · Your Supabase · Zero ContextMover access
         </p>
       </div>
       <VaultSetupWizard />

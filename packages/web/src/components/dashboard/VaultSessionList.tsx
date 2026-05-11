@@ -65,7 +65,7 @@ export function VaultSessionList() {
     async function load() {
       setLoading(true);
       const { data } = await client!
-        .from("cf_sessions")
+        .from("cm_sessions")
         .select("id, platform, title, messages, captured_at, updated_at")
         .order("updated_at", { ascending: false });
       setSessions((data as VaultRow[] ?? []).map(rowToSession));
@@ -76,10 +76,10 @@ export function VaultSessionList() {
 
     // Realtime updates from user's own Supabase.
     channel = client
-      .channel("cf-sessions-realtime")
+      .channel("cm-sessions-realtime")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "cf_sessions" },
+        { event: "*", schema: "public", table: "cm_sessions" },
         (payload) => {
           if (payload.eventType === "INSERT") {
             setSessions((prev) => [rowToSession(payload.new as VaultRow), ...prev]);

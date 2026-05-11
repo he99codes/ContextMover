@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     !process.env.STRIPE_SECRET_KEY ||
     process.env.STRIPE_SECRET_KEY === "sk_test_placeholder"
   ) {
-    console.log("[CF:webhook:stripe] Not configured — ignoring");
+    console.log("[CM:webhook:stripe] Not configured — ignoring");
     return NextResponse.json({ received: true, mock: true });
   }
 
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[CF:webhook:stripe] Signature failed:", msg);
+    console.error("[CM:webhook:stripe] Signature failed:", msg);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   // [SECURITY] Idempotency — short-circuit if this event id was already
   // processed (Stripe retries on any non-2xx for up to 3 days).
   if (event.id && await isDuplicateEvent("stripe", event.id)) {
-    console.log("[CF:webhook:stripe] Duplicate event ignored:", event.id);
+    console.log("[CM:webhook:stripe] Duplicate event ignored:", event.id);
     return NextResponse.json({ received: true, duplicate: true });
   }
 
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   try {
     await logPaymentEvent(userId, "stripe", event.type, event.id, dataObject);
   } catch (err) {
-    console.error("[CF:webhook:stripe] logPaymentEvent failed:", err);
+    console.error("[CM:webhook:stripe] logPaymentEvent failed:", err);
   }
 
   try {
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
             : undefined,
           trialEnd:              sub.trial_end ? new Date(sub.trial_end * 1000) : null,
         });
-        console.log("[CF:webhook:stripe] Subscription updated:", userId);
+        console.log("[CM:webhook:stripe] Subscription updated:", userId);
         break;
       }
 
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
           gatewaySubscriptionId: sub.id,
           cancelledAt:           new Date(),
         });
-        console.log("[CF:webhook:stripe] Cancelled:", userId);
+        console.log("[CM:webhook:stripe] Cancelled:", userId);
         break;
       }
 
@@ -110,13 +110,13 @@ export async function POST(req: NextRequest) {
           gatewayCustomerId:     invoice.customer,
           gatewaySubscriptionId: invoice.subscription,
         });
-        console.log("[CF:webhook:stripe] Payment failed:", userId);
+        console.log("[CM:webhook:stripe] Payment failed:", userId);
         break;
       }
     }
   } catch (err) {
     // Swallow processing errors to prevent retry storms (audit log already wrote).
-    console.error("[CF:webhook:stripe] handler error:", err);
+    console.error("[CM:webhook:stripe] handler error:", err);
   }
 
   return NextResponse.json({ received: true });

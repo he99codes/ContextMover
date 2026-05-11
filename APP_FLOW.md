@@ -1,8 +1,8 @@
-# ContextForge App Flow
+# ContextMover App Flow
 
 This file explains how the application works in the order things happen at runtime.
 
-The goal of ContextForge is:
+The goal of ContextMover is:
 
 1. Capture conversations from AI web apps.
 2. Store them locally in the browser extension.
@@ -246,7 +246,7 @@ Storage lives in IndexedDB through `idb`.
 
 File: `packages/browser-extension/src/lib/db.ts`
 
-1. database name: `contextforge`
+1. database name: `contextmover`
 2. database version: `2`
 3. object store: `sessions` (key: `id`, indexes: `platform`, `updatedAt`)
 
@@ -315,7 +315,7 @@ Guard: throws only when `payload.summary === undefined` AND `payload.intelligent
 |---|---|
 | Claude | XML: `<context_migration>`, `<meta>`, `<goal>`, `<progress>`, `<code>`, `<conversation_tail>` |
 | ChatGPT | Markdown sections with structured headings |
-| Gemini | Plain text with `[CONTEXTFORGE MIGRATION]` delimiters |
+| Gemini | Plain text with `[CONTEXTMOVER MIGRATION]` delimiters |
 | Grok | Markdown (same as ChatGPT with Grok heading) |
 | DeepSeek | Markdown (same as ChatGPT) |
 | Perplexity | Markdown (same as ChatGPT) |
@@ -454,9 +454,9 @@ File: `packages/vscode-extension/src/extension.ts`
 On activation:
 
 1. creates `ContextCollector`
-2. reads `contextforge.bridgePort` (default 49152)
+2. reads `contextmover.bridgePort` (default 49152)
 3. starts `BridgeServer`
-4. registers commands: `contextforge.captureContext`, `contextforge.startBridge`
+4. registers commands: `contextmover.captureContext`, `contextmover.startBridge`
 5. shows status bar item
 
 ### IDE Snapshot
@@ -464,7 +464,7 @@ On activation:
 `ContextCollector` builds an `IDESnapshot` containing:
 
 1. active file (path, language, full content, selection, cursor line)
-2. open tabs (up to `contextforge.maxFilesInContext`)
+2. open tabs (up to `contextmover.maxFilesInContext`)
 3. workspace name + root
 4. git branch (`git rev-parse --abbrev-ref HEAD`)
 5. git diff summary (`git diff --stat HEAD`)
@@ -559,4 +559,4 @@ packages/vscode-extension/src/
 
 ## 22. Short Mental Model
 
-ContextForge captures AI chat sessions from six platforms using a resilient multi-layer pipeline, stores them in browser IndexedDB, optionally enriches them with VS Code IDE context and local project files, then compresses and reformats the context using a three-tier summarization system before injecting it into any target AI platform — all locally, with no required cloud backend.
+ContextMover captures AI chat sessions from six platforms using a resilient multi-layer pipeline, stores them in browser IndexedDB, optionally enriches them with VS Code IDE context and local project files, then compresses and reformats the context using a three-tier summarization system before injecting it into any target AI platform — all locally, with no required cloud backend.

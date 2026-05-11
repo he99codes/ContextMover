@@ -44,7 +44,7 @@ export function VaultSetupWizard() {
   async function loadSessionsCount() {
     const client = getUserVaultClient();
     if (!client) return;
-    const { count } = await client.from("cf_sessions").select("id", { count: "exact", head: true });
+    const { count } = await client.from("cm_sessions").select("id", { count: "exact", head: true });
     setSessionsCount(count ?? 0);
   }
 
@@ -64,7 +64,7 @@ export function VaultSetupWizard() {
       // Test connection and check schema.
       const { createBrowserClient } = await import("@supabase/ssr");
       const client = createBrowserClient(url, anonKey);
-      const { error: pingErr } = await client.from("cf_sessions").select("id").limit(1);
+      const { error: pingErr } = await client.from("cm_sessions").select("id").limit(1);
 
       if (pingErr?.code === "42P01") {
         throw new Error(
@@ -100,7 +100,7 @@ export function VaultSetupWizard() {
     if (!client) return;
     setTesting(true);
     try {
-      const tables = ["cf_edges", "cf_nodes", "cf_migrations", "cf_ide_snapshots", "cf_github_repos", "cf_prompt_templates", "cf_sessions"];
+      const tables = ["cm_edges", "cm_nodes", "cm_migrations", "cm_ide_snapshots", "cm_github_repos", "cm_prompt_templates", "cm_sessions"];
       for (const t of tables) {
         try { await client.from(t).delete().neq("id", "\x00"); } catch { /* ignore */ }
       }
@@ -121,32 +121,32 @@ export function VaultSetupWizard() {
 
   const schemaSql = `-- Run this in your Supabase Dashboard → SQL Editor
 create extension if not exists "uuid-ossp";
-create table if not exists cf_sessions (
+create table if not exists cm_sessions (
   id text primary key, platform text not null, title text,
   messages jsonb not null default '[]', message_count integer default 0,
   user_message_count integer default 0, assistant_message_count integer default 0,
   captured_at timestamptz default now(), updated_at timestamptz default now()
 );
-create table if not exists cf_migrations (
+create table if not exists cm_migrations (
   id uuid primary key default uuid_generate_v4(),
-  session_id text references cf_sessions(id),
+  session_id text references cm_sessions(id),
   source_platform text, target_platform text, tier integer,
   compression_ratio float, migrated_at timestamptz default now()
 );
-create table if not exists cf_nodes (
+create table if not exists cm_nodes (
   id text primary key, type text not null, label text not null, content text,
   metadata jsonb default '{}', importance float default 0.5, source text not null,
-  session_id text references cf_sessions(id), created_at timestamptz default now(), updated_at timestamptz default now()
+  session_id text references cm_sessions(id), created_at timestamptz default now(), updated_at timestamptz default now()
 );
-create table if not exists cf_edges (
+create table if not exists cm_edges (
   id text primary key,
-  source_id text references cf_nodes(id) on delete cascade,
-  target_id text references cf_nodes(id) on delete cascade,
+  source_id text references cm_nodes(id) on delete cascade,
+  target_id text references cm_nodes(id) on delete cascade,
   type text not null, weight float default 0.5,
   created_at timestamptz default now()
 );
-create index if not exists cf_sessions_updated_idx on cf_sessions(updated_at desc);
-alter publication supabase_realtime add table cf_sessions;`;
+create index if not exists cm_sessions_updated_idx on cm_sessions(updated_at desc);
+alter publication supabase_realtime add table cm_sessions;`;
 
   if (screen === "status" && connected) {
     return (
@@ -185,7 +185,7 @@ alter publication supabase_realtime add table cf_sessions;`;
         <div className="flex items-start gap-3 rounded-[6px] border border-[#00FF88]/10 bg-[#00FF88]/4 px-4 py-3">
           <Shield size={13} className="mt-0.5 shrink-0 text-[#00FF88]" />
           <p className="text-[11px] text-[#4A8A4A] leading-relaxed">
-            Your conversations are stored exclusively in your Supabase project. ContextForge servers have zero access to this data. You own it completely.
+            Your conversations are stored exclusively in your Supabase project. ContextMover servers have zero access to this data. You own it completely.
           </p>
         </div>
 
@@ -277,7 +277,7 @@ alter publication supabase_realtime add table cf_sessions;`;
         </div>
         <h2 className="text-lg font-black uppercase tracking-widest text-[#F5F5F5]">Vault connected!</h2>
         <p className="mt-2 text-xs font-mono text-[#2A6A2A] max-w-xs">
-          Your sessions now sync to your personal Supabase. ContextForge never sees this data.
+          Your sessions now sync to your personal Supabase. ContextMover never sees this data.
         </p>
         <button
           onClick={() => setScreen("status")}
@@ -380,7 +380,7 @@ alter publication supabase_realtime add table cf_sessions;`;
         </div>
         <h2 className="text-xl font-black text-[#F5F5F5]">Connect your Personal Vault</h2>
         <p className="mt-2 text-sm text-[#6B6B6B] leading-relaxed">
-          Your conversation data is stored ONLY in your browser extension&apos;s local storage. Connect your own Supabase project to enable cross-device sync and Super Memory — ContextForge never sees it.
+          Your conversation data is stored ONLY in your browser extension&apos;s local storage. Connect your own Supabase project to enable cross-device sync and Super Memory — ContextMover never sees it.
         </p>
       </div>
 
@@ -421,7 +421,7 @@ alter publication supabase_realtime add table cf_sessions;`;
         {[
           "Your Supabase, your rules",
           "AES-256-GCM encrypted config",
-          "ContextForge has zero access",
+          "ContextMover has zero access",
           "Disconnect without data loss",
         ].map((t) => (
           <div key={t} className="flex items-center gap-1.5">

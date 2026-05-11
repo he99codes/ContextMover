@@ -126,7 +126,7 @@ const FAQ_ITEMS = [
   { q: "Will it slow down my browser?",                  a: "No. The extension only activates on supported AI platforms. Background processing is minimal and hardware-adaptive — it stays idle when you&apos;re not on an AI platform." },
   { q: "What is the Attention Engine?",                  a: "A local AI model (runs on your device, not our servers) that understands your task semantically and extracts only the most relevant context. Uses WebGPU acceleration when available, falls back to WASM." },
   { q: "Can I delete my data?",                          a: "Yes. Settings \u2192 Danger Zone \u2192 Delete all data. Instant. Permanent. No questions asked and no server-side backups to purge." },
-  { q: "Does it work with local AI models like Ollama?",  a: "Not yet. ContextForge currently works with web-based AI platforms. Local model support (Ollama, LM Studio, etc.) is on the roadmap." },
+  { q: "Does it work with local AI models like Ollama?",  a: "Not yet. ContextMover currently works with web-based AI platforms. Local model support (Ollama, LM Studio, etc.) is on the roadmap." },
   { q: "What happens when I hit my free tier limit?",    a: "You can still access all your existing sessions. New capture continues. Migrations will prompt you to upgrade for Attention Engine features. Your data is never deleted due to a plan limit." },
   { q: "Can I migrate from DeepSeek to Claude?",         a: "Yes. Select your DeepSeek session in the extension, choose Claude as the target, and click Migrate. DeepSeek is a migration target (you can send context to it), and Claude supports both capture and receiving context." },
 ];
@@ -208,7 +208,7 @@ const PLATFORMS = [
 ];
 
 const STEPS = [
-  { icon: "◉", num: "01", title: "Capture", body: "Browse any AI platform. ContextForge silently captures your conversation in the background. Supports Claude, ChatGPT, Gemini, Grok and more — with zero setup." },
+  { icon: "◉", num: "01", title: "Capture", body: "Browse any AI platform. ContextMover silently captures your conversation in the background. Supports Claude, ChatGPT, Gemini, Grok and more — with zero setup." },
   { icon: "◈", num: "02", title: "Compress", body: "Choose your intelligence tier: Full Context, Smart Summary, or the Attention Engine. Your context is optimized entirely on your device — never sent to our servers." },
   { icon: "▶", num: "03", title: "Migrate", body: "One click. Your context is perfectly formatted for the target AI and injected directly into its input field. Continue exactly where you left off, instantly." },
 ];
@@ -230,7 +230,7 @@ export default function LandingPage() {
           {/* Logo */}
           <a href="/" className="flex items-center gap-2.5 shrink-0">
             <GreenDot />
-            <span className="font-bold text-[#F5F5F5] tracking-tight">ContextForge</span>
+            <span className="font-bold text-[#F5F5F5] tracking-tight">ContextMover</span>
           </a>
 
           {/* Desktop center nav */}
@@ -303,7 +303,7 @@ export default function LandingPage() {
             <span className="text-[#00FF88]">yourself</span> to every AI.
           </h1>
           <p className="text-base sm:text-lg text-[#6B6B6B] max-w-xl mx-auto mb-10 leading-relaxed animate-slide-up" style={{ animationDelay: "180ms" }}>
-            ContextForge captures your AI conversations, intelligently compresses them, and migrates your full context to any AI platform&nbsp;— instantly.
+            ContextMover captures your AI conversations, intelligently compresses them, and migrates your full context to any AI platform&nbsp;— instantly.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6 animate-slide-up" style={{ animationDelay: "280ms" }}>
             <a
@@ -367,7 +367,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4">One click. Full context. Any AI.</h2>
           <p className="reveal text-[#6B6B6B] max-w-xl mx-auto mb-14 leading-relaxed">
-            ContextForge captures your entire conversation, intelligently extracts what matters, and injects it perfectly formatted into your next AI session.
+            ContextMover captures your entire conversation, intelligently extracts what matters, and injects it perfectly formatted into your next AI session.
           </p>
           <div className="reveal border border-[#2A2A2A] rounded-2xl p-8 sm:p-10 bg-[#111111] overflow-hidden relative">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_50%,rgba(0,255,136,0.03),transparent)] pointer-events-none" />
@@ -386,7 +386,7 @@ export default function LandingPage() {
               </div>
               {/* Center */}
               <div className="border border-[rgba(0,255,136,0.3)] bg-[#0A0F0A] rounded-2xl px-7 py-5 text-center shrink-0 shadow-[0_0_32px_rgba(0,255,136,0.08)]">
-                <div className="text-[#00FF88] font-bold text-base mb-1">▸ ContextForge</div>
+                <div className="text-[#00FF88] font-bold text-base mb-1">▸ ContextMover</div>
                 <div className="text-[#6B6B6B] text-xs leading-5">captures<br />compresses<br />migrates</div>
               </div>
               {/* Flow line right */}
@@ -474,7 +474,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4">Your context. Your device. Your control.</h2>
-            <p className="reveal text-[#6B6B6B] max-w-md mx-auto">We designed ContextForge so our servers are never in the loop. Because they shouldn&apos;t be.</p>
+            <p className="reveal text-[#6B6B6B] max-w-md mx-auto">We designed ContextMover so our servers are never in the loop. Because they shouldn&apos;t be.</p>
           </div>
           <div className="flex flex-col md:flex-row gap-10 items-start">
             {/* Flow chart */}
@@ -490,7 +490,7 @@ export default function LandingPage() {
               <p className="pl-4"><span className="text-[#00FF88]">│                   └──</span> <span className="text-[#F5F5F5]">Injected into target AI</span></p>
               <p className="text-[#00FF88]">│</p>
               <p><span className="text-[#00FF88]">└──</span> <span className="text-[#6B6B6B]">Optional: sync to personal cloud vault</span></p>
-              <p className="text-[#00FF88] mt-3 text-xs">ContextForge servers: never in this chain.</p>
+              <p className="text-[#00FF88] mt-3 text-xs">ContextMover servers: never in this chain.</p>
             </div>
             {/* Checklist */}
             <div className="reveal reveal-d1 flex-1 space-y-4">
@@ -538,7 +538,7 @@ export default function LandingPage() {
           <div className="reveal flex flex-col sm:flex-row items-center justify-center gap-3 text-sm text-[#6B6B6B]">
             <span>More platforms coming soon.</span>
             <a
-              href="mailto:hey@contextforge.app?subject=Platform%20suggestion"
+              href="mailto:hey@contextmover.app?subject=Platform%20suggestion"
               className="inline-flex items-center gap-1.5 text-[#00FF88]/70 hover:text-[#00FF88] transition-colors text-xs font-medium"
             >
               <Mail size={12} />
@@ -623,7 +623,7 @@ export default function LandingPage() {
                   <li key={f} className="flex items-start gap-2"><span className="text-[#00FF88] shrink-0">✓</span>{f}</li>
                 ))}
               </ul>
-              <a href="mailto:hey@contextforge.app" className="block text-center border border-[#2A2A2A] hover:border-[rgba(0,255,136,0.4)] text-[#F5F5F5] font-semibold py-2.5 rounded-lg transition-colors text-sm">
+              <a href="mailto:hey@contextmover.app" className="block text-center border border-[#2A2A2A] hover:border-[rgba(0,255,136,0.4)] text-[#F5F5F5] font-semibold py-2.5 rounded-lg transition-colors text-sm">
                 Talk to sales
               </a>
             </div>
@@ -662,7 +662,7 @@ export default function LandingPage() {
             <div className="flex flex-col gap-3 max-w-xs">
               <div className="flex items-center gap-2.5">
                 <GreenDot />
-                <span className="font-bold text-[#F5F5F5]">ContextForge</span>
+                <span className="font-bold text-[#F5F5F5]">ContextMover</span>
               </div>
               <p className="text-sm text-[#6B6B6B] leading-relaxed">Context Operating System for AI developers.</p>
             </div>
@@ -673,7 +673,7 @@ export default function LandingPage() {
               <a href="/docs" className="hover:text-[#F5F5F5] transition-colors">Docs</a>
               <a href="/privacy" className="hover:text-[#F5F5F5] transition-colors">Privacy</a>
               <a href="/terms" className="hover:text-[#F5F5F5] transition-colors">Terms</a>
-              <a href="mailto:hey@contextforge.app" className="hover:text-[#F5F5F5] transition-colors">Contact</a>
+              <a href="mailto:hey@contextmover.app" className="hover:text-[#F5F5F5] transition-colors">Contact</a>
               <a href="/auth" className="hover:text-[#F5F5F5] transition-colors">Log in</a>
               <a href="#" className="hover:text-[#F5F5F5] transition-colors text-[#3A3A3A]">Status ▸</a>
             </div>
@@ -684,7 +684,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-[#2A2A2A] pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-[#6B6B6B]">
-            <p>© 2026 ContextForge. Your context. Your control.</p>
+            <p>© 2026 ContextMover. Your context. Your control.</p>
             <p className="md:hidden">Built by developers, for developers. Pune, India</p>
           </div>
         </div>

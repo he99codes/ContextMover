@@ -95,7 +95,7 @@ export function Sidebar({ user }: SidebarProps) {
             <span className="animate-pulse-green absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#00FF88]" />
           </div>
           <span className="text-[15px] font-semibold text-[#F5F5F5] tracking-tight truncate group-hover:text-[#00FF88] transition-colors">
-            ContextForge
+            ContextMover
           </span>
         </Link>
         <button

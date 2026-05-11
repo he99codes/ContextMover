@@ -75,7 +75,7 @@ function AuthForm() {
               <Zap size={18} className="text-black" />
             </div>
             <span className="text-xl font-semibold text-[#F5F5F5]">
-              ContextForge
+              ContextMover
             </span>
           </div>
           <p className="text-sm text-[#6B6B6B]">

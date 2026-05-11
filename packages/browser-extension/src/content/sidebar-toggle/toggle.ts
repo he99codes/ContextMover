@@ -1,5 +1,5 @@
 // packages/browser-extension/src/content/sidebar-toggle/toggle.ts
-// Fixed right-edge tab that opens/closes the ContextForge side panel.
+// Fixed right-edge tab that opens/closes the ContextMover side panel.
 // Vanilla TS only — no React, no drag, no settings.
 import css from "./toggle.css?inline";
 
@@ -49,7 +49,7 @@ function inject(): HTMLElement {
 
   const btn = document.createElement("button");
   btn.className = "cf-toggle";
-  btn.setAttribute("aria-label", "Toggle ContextForge sidebar");
+  btn.setAttribute("aria-label", "Toggle ContextMover sidebar");
   btn.innerHTML = `
     <svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true">
       <path d="M10 2L3 6.5V13.5L10 18L17 13.5V6.5L10 2Z" fill="currentColor"/>

@@ -8,7 +8,7 @@ export default function NotFound() {
           404
         </p>
         <h1 className="mt-2 text-lg font-black uppercase tracking-widest text-[#F5F5F5]">Page not found</h1>
-        <p className="mt-2 text-xs font-mono text-[#6B6B6B]">This route doesn&apos;t exist in ContextForge.</p>
+        <p className="mt-2 text-xs font-mono text-[#6B6B6B]">This route doesn&apos;t exist in ContextMover.</p>
         <div className="mt-8 flex items-center justify-center gap-3">
           <Link href="/dashboard" className="rounded-[6px] border border-[#00FF88]/25 bg-[#00FF88]/8 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-[#00FF88] hover:bg-[#00FF88]/12 transition-all">
             Dashboard

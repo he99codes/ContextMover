@@ -1,11 +1,11 @@
 // packages/browser-extension/src/lib/session-id.ts
 //
-// Source-of-truth session-id resolver for ContextForge.
+// Source-of-truth session-id resolver for ContextMover.
 //
 // Design goals:
 //   • A given AI conversation URL maps to ONE session id (stable across captures).
 //   • Deleting a session forgets that URL → next capture mints a NEW random id,
-//     so resuming the same AI conversation is treated as a fresh ContextForge
+//     so resuming the same AI conversation is treated as a fresh ContextMover
 //     session that re-extracts the full visible history from the DOM.
 //   • Backward-compatible with sessions captured under the old hash-based scheme:
 //     when a URL has no mapping yet but a legacy-hash session already exists in

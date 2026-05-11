@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Shield, Lock, Database, Server, Check } from "lucide-react";
 
-export const metadata = { title: "Privacy Policy — ContextForge" };
+export const metadata = { title: "Privacy Policy — ContextMover" };
 
 const LAST_UPDATED = "January 2025";
 
@@ -12,7 +12,7 @@ export default function PrivacyPage() {
         {/* Header */}
         <div className="mb-12">
           <Link href="/" className="text-xs font-mono text-[#6B6B6B] hover:text-[#00FF88] transition-colors">
-            ← ContextForge
+            ← ContextMover
           </Link>
           <h1 className="mt-6 text-3xl font-black uppercase text-[#00FF88]" style={{ letterSpacing: "0.12em" }}>
             Privacy Policy
@@ -27,12 +27,12 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-black uppercase tracking-wider text-[#00FF88]">Zero-Knowledge Architecture</h2>
           </div>
           <p className="text-sm text-[#B0B0B0] leading-relaxed mb-4">
-            ContextForge operates on a <strong className="text-[#F5F5F5]">zero-knowledge privacy model</strong> for your conversation data. Your AI conversations are captured and stored exclusively in your browser extension&apos;s local IndexedDB. They never travel through ContextForge servers.
+            ContextMover operates on a <strong className="text-[#F5F5F5]">zero-knowledge privacy model</strong> for your conversation data. Your AI conversations are captured and stored exclusively in your browser extension&apos;s local IndexedDB. They never travel through ContextMover servers.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
-              { icon: Lock,     text: "Conversation content never stored on ContextForge servers" },
-              { icon: Database, text: "Optional sync to YOUR personal Supabase — ContextForge has zero access" },
+              { icon: Lock,     text: "Conversation content never stored on ContextMover servers" },
+              { icon: Database, text: "Optional sync to YOUR personal Supabase — ContextMover has zero access" },
               { icon: Server,   text: "AES-256-GCM encrypted vault credentials, keys never leave your device" },
               { icon: Check,    text: "You own all your data — export or delete at any time" },
             ].map(({ icon: Icon, text }) => (
@@ -49,10 +49,10 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="mb-3 text-base font-semibold text-[#F5F5F5]">1. What We Collect &mdash; and What We Don&apos;t</h2>
-            <p className="mb-4">ContextForge is built on the principle of minimal data collection. Here is a precise breakdown:</p>
+            <p className="mb-4">ContextMover is built on the principle of minimal data collection. Here is a precise breakdown:</p>
 
             <div className="rounded-[8px] border border-[#2A2A2A] bg-[#111] overflow-hidden mb-4">
-              <div className="border-b border-[#2A2A2A] px-4 py-2.5 text-xs font-semibold text-[#00FF88] uppercase tracking-widest">Data stored on ContextForge servers</div>
+              <div className="border-b border-[#2A2A2A] px-4 py-2.5 text-xs font-semibold text-[#00FF88] uppercase tracking-widest">Data stored on ContextMover servers</div>
               <div className="divide-y divide-[#1A1A1A]">
                 {[
                   ["Authentication credentials", "Email, hashed password (managed by Supabase Auth)"],
@@ -70,7 +70,7 @@ export default function PrivacyPage() {
             </div>
 
             <div className="rounded-[8px] border border-red-500/20 bg-red-500/4 overflow-hidden">
-              <div className="border-b border-red-500/15 px-4 py-2.5 text-xs font-semibold text-red-400 uppercase tracking-widest">Data that NEVER touches ContextForge servers</div>
+              <div className="border-b border-red-500/15 px-4 py-2.5 text-xs font-semibold text-red-400 uppercase tracking-widest">Data that NEVER touches ContextMover servers</div>
               <div className="divide-y divide-[#1A1A1A]">
                 {[
                   "The content of your AI conversations (prompts and responses)",
@@ -90,12 +90,12 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="mb-3 text-base font-semibold text-[#F5F5F5]">2. Local Storage and the Browser Extension</h2>
-            <p>When you install the ContextForge browser extension, your AI conversations are captured and stored in your browser&apos;s IndexedDB &mdash; a local database accessible only to the extension on your own machine. This data never leaves your device unless you explicitly connect a personal Supabase vault.</p>
+            <p>When you install the ContextMover browser extension, your AI conversations are captured and stored in your browser&apos;s IndexedDB &mdash; a local database accessible only to the extension on your own machine. This data never leaves your device unless you explicitly connect a personal Supabase vault.</p>
           </section>
 
           <section>
             <h2 className="mb-3 text-base font-semibold text-[#F5F5F5]">3. Personal Vault (Optional)</h2>
-            <p className="mb-3">If you choose to connect your own Supabase project as a &ldquo;personal vault,&rdquo; your session data syncs to your Supabase project &mdash; not ContextForge&apos;s. The vault URL and anon key are stored with AES-256-GCM encryption in your local browser storage, with the decryption key derived from your account credentials via PBKDF2. The encrypted credentials are never transmitted to ContextForge servers.</p>
+            <p className="mb-3">If you choose to connect your own Supabase project as a &ldquo;personal vault,&rdquo; your session data syncs to your Supabase project &mdash; not ContextMover&apos;s. The vault URL and anon key are stored with AES-256-GCM encryption in your local browser storage, with the decryption key derived from your account credentials via PBKDF2. The encrypted credentials are never transmitted to ContextMover servers.</p>
             <p>You may disconnect or delete your vault data at any time from Settings → Personal Vault. Disconnecting does not delete local or vault data — you retain full control.</p>
           </section>
 
@@ -111,23 +111,23 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="mb-3 text-base font-semibold text-[#F5F5F5]">6. Your Rights</h2>
-            <p className="mb-3">You have the right to access, export, correct, or delete any personal data we hold about you. To exercise these rights, contact us at <a href="mailto:privacy@contextforge.app" className="text-[#00FF88] hover:underline">privacy@contextforge.app</a>.</p>
-            <p>Because your AI conversation data is stored locally and/or in your personal vault, ContextForge cannot access it — requests for conversation data must be handled directly by you in your browser extension or Supabase dashboard.</p>
+            <p className="mb-3">You have the right to access, export, correct, or delete any personal data we hold about you. To exercise these rights, contact us at <a href="mailto:privacy@contextmover.app" className="text-[#00FF88] hover:underline">privacy@contextmover.app</a>.</p>
+            <p>Because your AI conversation data is stored locally and/or in your personal vault, ContextMover cannot access it — requests for conversation data must be handled directly by you in your browser extension or Supabase dashboard.</p>
           </section>
 
           <section>
             <h2 className="mb-3 text-base font-semibold text-[#F5F5F5]">7. Security</h2>
-            <p>We employ industry-standard security measures including TLS in transit, encrypted database storage (Supabase), and AES-256-GCM for vault credential encryption. Our zero-knowledge architecture means that even in the event of a ContextForge server breach, your conversation content cannot be compromised because it was never there.</p>
+            <p>We employ industry-standard security measures including TLS in transit, encrypted database storage (Supabase), and AES-256-GCM for vault credential encryption. Our zero-knowledge architecture means that even in the event of a ContextMover server breach, your conversation content cannot be compromised because it was never there.</p>
           </section>
 
           <section>
             <h2 className="mb-3 text-base font-semibold text-[#F5F5F5]">8. Changes to This Policy</h2>
-            <p>We will post any changes to this policy on this page with an updated date. Continued use of ContextForge after changes constitutes acceptance of the revised policy. For material changes, we will notify you via email.</p>
+            <p>We will post any changes to this policy on this page with an updated date. Continued use of ContextMover after changes constitutes acceptance of the revised policy. For material changes, we will notify you via email.</p>
           </section>
 
           <section>
             <h2 className="mb-3 text-base font-semibold text-[#F5F5F5]">9. Contact</h2>
-            <p>Questions about this policy? <a href="mailto:privacy@contextforge.app" className="text-[#00FF88] hover:underline">privacy@contextforge.app</a></p>
+            <p>Questions about this policy? <a href="mailto:privacy@contextmover.app" className="text-[#00FF88] hover:underline">privacy@contextmover.app</a></p>
           </section>
 
         </div>

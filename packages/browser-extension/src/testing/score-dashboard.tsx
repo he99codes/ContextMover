@@ -1,5 +1,5 @@
 // packages/browser-extension/src/testing/score-dashboard.tsx
-// Migration Quality Dashboard — renders inside the ContextForge sidebar.
+// Migration Quality Dashboard — renders inside the ContextMover sidebar.
 // READ-ONLY relative to production code. Triggers test runs and shows results.
 
 import React, { useCallback, useEffect, useState } from "react";

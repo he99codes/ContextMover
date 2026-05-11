@@ -1,8 +1,8 @@
-# ContextForge
+# ContextMover
 
 > Never lose coding context again. One layer. Any agent. Zero friction.
 
-ContextForge is a monorepo containing two synchronized packages that together form an "OS layer" for AI coding agents:
+ContextMover is a monorepo containing two synchronized packages that together form an "OS layer" for AI coding agents:
 
 1. **Browser Extension** — Passively captures conversations from Claude, ChatGPT, Gemini, and Grok. Stores them locally in IndexedDB. Injects migrated context into any target platform.
 2. **VS Code Extension** — Captures real-time IDE state (active file, open tabs, git branch/diff, diagnostics) and exposes it via a local HTTP bridge.
@@ -12,7 +12,7 @@ ContextForge is a monorepo containing two synchronized packages that together fo
 ## Monorepo Structure
 
 ```
-contextforge/
+contextmover/
 ├── package.json              # pnpm workspaces root
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
@@ -82,19 +82,19 @@ Then in VS Code:
 1. Open the `packages/vscode-extension` folder
 2. Press `F5` to launch an Extension Development Host
 3. The bridge server starts automatically on port `49152`
-4. Check the status bar for the `$(plug) ContextForge` item
+4. Check the status bar for the `$(plug) ContextMover` item
 
 ### VS Code to LLM Pipeline
 
 The VS Code extension can now package your live IDE state and send it to the LLM you choose.
 
 Commands:
-- `ContextForge: Copy IDE Context For LLM` - captures the current IDE state and copies a provider-formatted prompt
-- `ContextForge: Open LLM With IDE Context` - captures the same prompt, copies it, and opens the selected provider in your browser
+- `ContextMover: Copy IDE Context For LLM` - captures the current IDE state and copies a provider-formatted prompt
+- `ContextMover: Open LLM With IDE Context` - captures the same prompt, copies it, and opens the selected provider in your browser
 
 Additional VS Code settings:
-- `contextforge.preferredProvider` - `ask`, `chatgpt`, `claude`, `gemini`, `grok`, or `custom`
-- `contextforge.customProviderUrl` - the URL used when `preferredProvider` is `custom`
+- `contextmover.preferredProvider` - `ask`, `chatgpt`, `claude`, `gemini`, `grok`, or `custom`
+- `contextmover.customProviderUrl` - the URL used when `preferredProvider` is `custom`
 
 The migrated IDE payload includes:
 - active file content or selection
@@ -127,9 +127,9 @@ Settings sync via `chrome.storage.sync`:
 - `maxTokensForSummary` (default: `6000`)
 
 ### VS Code Extension
-Settings in VS Code preferences under **ContextForge**:
-- `contextforge.bridgePort` — port for the local HTTP bridge
-- `contextforge.maxFilesInContext` — max open files in snapshots
+Settings in VS Code preferences under **ContextMover**:
+- `contextmover.bridgePort` — port for the local HTTP bridge
+- `contextmover.maxFilesInContext` — max open files in snapshots
 
 ---
 

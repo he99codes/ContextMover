@@ -19,27 +19,27 @@ function scrapeMessages(): Message[] {
 
     const role = el.dataset.messageAuthorRole as "user" | "assistant";
     if (role !== "user" && role !== "assistant") {
-      console.warn(`[ContextForge:chatgpt] Stage1 — unexpected role="${role}", skipping`);
+      console.warn(`[ContextMover:chatgpt] Stage1 — unexpected role="${role}", skipping`);
       return;
     }
     const content = extractMessageContent(el);
     if (content) {
       messages.push({ role, content, timestamp: Date.now() });
     } else {
-      console.warn(`[ContextForge:chatgpt] Stage1 — empty content for role=${role}`);
+      console.warn(`[ContextMover:chatgpt] Stage1 — empty content for role=${role}`);
     }
   });
 
   const userCount = messages.filter(m => m.role === "user").length;
   const asstCount = messages.filter(m => m.role === "assistant").length;
-  console.log('[CF:capture]', 'chatgpt', {
+  console.log('[CM:capture]', 'chatgpt', {
     total: messages.length,
     user: userCount,
     assistant: asstCount,
     preview: messages.map(m => ({ role: m.role, len: m.content.length }))
   });
   if (asstCount === 0 && userCount > 0) {
-    console.error(`[ContextForge:chatgpt] ASSISTANT MESSAGES MISSING`);
+    console.error(`[ContextMover:chatgpt] ASSISTANT MESSAGES MISSING`);
   }
 
   return messages;

@@ -5,7 +5,7 @@
 const SOUTH_ASIA = ["IN", "PK", "BD", "NP", "LK", "MM", "BT"] as const;
 type SouthAsiaCode = (typeof SOUTH_ASIA)[number];
 
-const CACHE_KEY = "cf_geo_region";
+const CACHE_KEY = "cm_geo_region";
 
 export type PricingRegion = "india" | "global";
 

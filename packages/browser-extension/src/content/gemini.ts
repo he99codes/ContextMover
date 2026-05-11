@@ -35,14 +35,14 @@ function scrapeMessages(): Message[] {
 
   const userCount = messages.filter(m => m.role === "user").length;
   const asstCount = messages.filter(m => m.role === "assistant").length;
-  console.log('[CF:capture]', 'gemini', {
+  console.log('[CM:capture]', 'gemini', {
     total: messages.length,
     user: userCount,
     assistant: asstCount,
     preview: messages.map(m => ({ role: m.role, len: m.content.length }))
   });
   if (asstCount === 0 && userCount > 0) {
-    console.error(`[ContextForge:gemini] ASSISTANT MESSAGES MISSING`);
+    console.error(`[ContextMover:gemini] ASSISTANT MESSAGES MISSING`);
   }
 
   return messages;

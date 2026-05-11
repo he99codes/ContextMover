@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BookOpen, Mail } from "lucide-react";
 
-export const metadata = { title: "Docs — ContextForge" };
+export const metadata = { title: "Docs — ContextMover" };
 
 export default function DocsPage() {
   return (
@@ -9,7 +9,7 @@ export default function DocsPage() {
       <div className="max-w-3xl mx-auto px-6 py-16">
         <div className="mb-4">
           <Link href="/" className="text-xs font-mono text-[#6B6B6B] hover:text-[#00FF88] transition-colors">
-            ← ContextForge
+            ← ContextMover
           </Link>
         </div>
         <div className="flex items-center gap-3 mb-4">
@@ -24,11 +24,11 @@ export default function DocsPage() {
           {[
             {
               title: "Quick Start",
-              body: "Install the Chrome extension, open Claude or ChatGPT, and start chatting. ContextForge captures your session automatically — no setup required.",
+              body: "Install the Chrome extension, open Claude or ChatGPT, and start chatting. ContextMover captures your session automatically — no setup required.",
             },
             {
               title: "Migrating Context",
-              body: "Click the ContextForge extension icon, select a session, choose a target platform, and click Migrate. Your context is injected directly into the target AI's input field.",
+              body: "Click the ContextMover extension icon, select a session, choose a target platform, and click Migrate. Your context is injected directly into the target AI's input field.",
             },
             {
               title: "Three Intelligence Tiers",
@@ -36,11 +36,11 @@ export default function DocsPage() {
             },
             {
               title: "Personal Vault Setup",
-              body: "Go to Settings → Personal Vault to connect your own Supabase project. Your sessions sync encrypted to your database — ContextForge never sees the data.",
+              body: "Go to Settings → Personal Vault to connect your own Supabase project. Your sessions sync encrypted to your database — ContextMover never sees the data.",
             },
             {
               title: "IDE Integration",
-              body: "Install the ContextForge VS Code extension, enable the bridge server, and your live codebase context is automatically included in migrations.",
+              body: "Install the ContextMover VS Code extension, enable the bridge server, and your live codebase context is automatically included in migrations.",
             },
           ].map((section) => (
             <div key={section.title} className="rounded-[8px] border border-[#2A2A2A] bg-[#111] p-6">
@@ -52,7 +52,7 @@ export default function DocsPage() {
 
         <div className="mt-12 flex flex-col sm:flex-row gap-4">
           <a
-            href="mailto:hey@contextforge.app"
+            href="mailto:hey@contextmover.app"
             className="flex items-center justify-center gap-2 rounded-[8px] border border-[#2A2A2A] px-5 py-3 text-sm text-[#6B6B6B] hover:border-[#3A3A3A] hover:text-[#F5F5F5] transition-all"
           >
             <Mail size={15} />

@@ -6,7 +6,7 @@
 
 import { type PricingConfig, SOUTH_ASIA_COUNTRIES } from "./types";
 
-const GEO_CACHE_KEY = "cf_geo_country";
+const GEO_CACHE_KEY = "cm_geo_country";
 const GEO_CACHE_TTL = 86_400_000; // 24 hours
 
 interface GeoCache {
@@ -56,7 +56,7 @@ export async function detectCountry(): Promise<string> {
       return country;
     }
   } catch {
-    console.warn("[CF:geo] Detection failed, defaulting to US");
+    console.warn("[CM:geo] Detection failed, defaulting to US");
   }
 
   return "US";

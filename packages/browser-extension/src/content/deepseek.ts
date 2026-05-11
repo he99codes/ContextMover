@@ -2,7 +2,7 @@
 import { extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
 
-console.log("[ContextForge] DeepSeek content script loaded");
+console.log("[ContextMover] DeepSeek content script loaded");
 
 function isStreaming(el: HTMLElement): boolean {
   return (
@@ -27,7 +27,7 @@ function scrapeMessages(): Message[] {
       const role = el.dataset.messageAuthorRole;
       if (role === "user" || role === "assistant") collected.push({ el, role });
     }
-    console.log(`[ContextForge:deepseek] A data-author-role: ${collected.length}`);
+    console.log(`[ContextMover:deepseek] A data-author-role: ${collected.length}`);
   }
 
   // ── Strategy B: DeepSeek class patterns ─────────────────────────────────────
@@ -42,7 +42,7 @@ function scrapeMessages(): Message[] {
 
     for (const el of userEls) collected.push({ el, role: "user" });
     for (const el of asstEls) collected.push({ el, role: "assistant" });
-    console.log(`[ContextForge:deepseek] B class-substr: user=${userEls.length} asst=${asstEls.length}`);
+    console.log(`[ContextMover:deepseek] B class-substr: user=${userEls.length} asst=${asstEls.length}`);
   }
 
   // ── Strategy C: data-role / role attributes ──────────────────────────────────
@@ -54,7 +54,7 @@ function scrapeMessages(): Message[] {
       if (role === "user" || role === "human") collected.push({ el, role: "user" });
       else if (role === "assistant" || role === "ai" || role === "bot") collected.push({ el, role: "assistant" });
     }
-    console.log(`[ContextForge:deepseek] C data-role: ${collected.length}`);
+    console.log(`[ContextMover:deepseek] C data-role: ${collected.length}`);
   }
 
   // ── Strategy D: Structural — chat message containers ────────────────────────
@@ -77,7 +77,7 @@ function scrapeMessages(): Message[] {
         collected.push({ el, role: "assistant" });
       }
     }
-    console.log(`[ContextForge:deepseek] D structural: ${collected.length}`);
+    console.log(`[ContextMover:deepseek] D structural: ${collected.length}`);
   }
 
   // ── Diagnostic ───────────────────────────────────────────────────────────────
@@ -91,7 +91,7 @@ function scrapeMessages(): Message[] {
       });
     });
     const top = [...classHits.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20);
-    console.warn("[ContextForge:deepseek] NO messages found. Top candidate classes:", top);
+    console.warn("[ContextMover:deepseek] NO messages found. Top candidate classes:", top);
     return [];
   }
 
@@ -104,18 +104,18 @@ function scrapeMessages(): Message[] {
   for (const { el, role } of collected) {
     const content = extractMessageContent(el);
     if (content) messages.push({ role, content, timestamp: Date.now() });
-    else console.warn(`[ContextForge:deepseek] empty content for role=${role}`);
+    else console.warn(`[ContextMover:deepseek] empty content for role=${role}`);
   }
 
   const u = messages.filter((m) => m.role === "user").length;
   const a = messages.filter((m) => m.role === "assistant").length;
-  console.log('[CF:capture]', 'deepseek', {
+  console.log('[CM:capture]', 'deepseek', {
     total: messages.length,
     user: u,
     assistant: a,
     preview: messages.map(m => ({ role: m.role, len: m.content.length }))
   });
-  if (a === 0 && u > 0) console.error("[ContextForge:deepseek] ASSISTANT MESSAGES MISSING");
+  if (a === 0 && u > 0) console.error("[ContextMover:deepseek] ASSISTANT MESSAGES MISSING");
 
   return messages;
 }
@@ -167,7 +167,7 @@ async function injectIntoDeepSeekInput(text: string) {
 
   if (!input) return { ok: false, error: "DeepSeek input not found. Make sure a chat is open." };
 
-  console.log(`[ContextForge:deepseek] injecting via: ${matchedSelector}`);
+  console.log(`[ContextMover:deepseek] injecting via: ${matchedSelector}`);
   if (!await injectWithRetry(input, text, "deepseek")) return { ok: false, error: "DeepSeek input did not accept the text after 3 attempts. Context copied to clipboard — paste with Ctrl+V." };
 
   return { ok: true };

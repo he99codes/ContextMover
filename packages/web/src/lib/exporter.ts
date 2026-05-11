@@ -156,7 +156,7 @@ export function exportAsMarkdown(session: Session): string {
     .join("\n\n");
 
   return [
-    `# ContextForge Export`,
+    `# ContextMover Export`,
     `**Source:** ${meta.platform}  `,
     `**Date:** ${meta.humanDate}  `,
     `**Messages:** ${meta.messageCount}  `,
@@ -217,7 +217,7 @@ export function exportAsPlainText(session: Session): string {
     .join("\n\n");
 
   return [
-    `[CONTEXTFORGE EXPORT]`,
+    `[CONTEXTMOVER EXPORT]`,
     `Source: ${meta.platform}`,
     `Date: ${meta.humanDate}`,
     `Messages: ${meta.messageCount}`,
@@ -263,7 +263,7 @@ export function exportAsTXT(session: Session): string {
   const ns = normalize(session);
   const meta = sessionMeta(ns);
   const lines: string[] = [
-    `--- ContextForge Export ---`,
+    `--- ContextMover Export ---`,
     `Platform: ${meta.platform}`,
     `Date:     ${meta.humanDate}`,
     `Title:    ${meta.title}`,
@@ -317,7 +317,7 @@ export function getFilename(session: Session, format: ExportFormat): string {
   const meta = sessionMeta(ns);
   const slug = slugify(meta.title || `${meta.platform}-session`).slice(0, 30) || "session";
   const ext = EXPORT_FORMATS[format].extension;
-  return `contextforge_${meta.platform}_${meta.dateStamp}_${slug}.${ext}`;
+  return `contextmover_${meta.platform}_${meta.dateStamp}_${slug}.${ext}`;
 }
 
 export function downloadExport(session: Session, format: ExportFormat): void {

@@ -113,7 +113,7 @@ export function startSessionCapture(config: {
   const flag = `__contextForge_${config.platform}_loaded` as const;
   const w = window as unknown as Record<string, boolean>;
   if (w[flag]) {
-    console.log(`[ContextForge] ${config.platform} content script already active — skipping duplicate init`);
+    console.log(`[ContextMover] ${config.platform} content script already active — skipping duplicate init`);
     return;
   }
   w[flag] = true;
@@ -154,7 +154,7 @@ export function startSessionCapture(config: {
       window.location.href,
       legacyChecker
     );
-    console.log(`[ContextForge] ${config.platform}: resolved sessionId=${sessionId}`);
+    console.log(`[ContextMover] ${config.platform}: resolved sessionId=${sessionId}`);
     return sessionId;
   }
 
@@ -165,7 +165,7 @@ export function startSessionCapture(config: {
     if (msg?.type !== "SESSION_FORGOTTEN") return;
     if (msg.sessionId && sessionId && msg.sessionId === sessionId) {
       console.log(
-        `[ContextForge] ${config.platform}: received SESSION_FORGOTTEN for ${sessionId} — clearing cache, next capture will mint new id`
+        `[ContextMover] ${config.platform}: received SESSION_FORGOTTEN for ${sessionId} — clearing cache, next capture will mint new id`
       );
       sessionId = null;
       lastMessageHash = "";
@@ -181,7 +181,7 @@ export function startSessionCapture(config: {
       lastHref = currentHref;
       sessionId = null;
       lastMessageHash = "";
-      console.log(`[ContextForge] URL changed — re-resolving sessionId`);
+      console.log(`[ContextMover] URL changed — re-resolving sessionId`);
     }
 
     // ── Fetch-intercept fallback gate ──────────────────────────────────────
@@ -191,7 +191,7 @@ export function startSessionCapture(config: {
       .__contextForgeFetchCaptured;
     if (fc && Date.now() - fc.at < FETCH_FALLBACK_WINDOW_MS) {
       console.log(
-        `[ContextForge] ${config.platform}: fetch-intercept active (count=${fc.count}, age=${Date.now() - fc.at}ms), skipping DOM scrape`
+        `[ContextMover] ${config.platform}: fetch-intercept active (count=${fc.count}, age=${Date.now() - fc.at}ms), skipping DOM scrape`
       );
       return;
     }
@@ -233,16 +233,16 @@ export function startSessionCapture(config: {
     // Prevent concurrent capture executions — if ensureSessionId() is still
     // awaiting from a previous call, skip rather than sending a duplicate.
     if (captureInFlight) {
-      console.log(`[ContextForge] ${config.platform}: capture already in flight, skipping`);
+      console.log(`[ContextMover] ${config.platform}: capture already in flight, skipping`);
       return;
     }
     captureInFlight = true;
     try {
 
-    console.log(`[ContextForge] Capture triggered for ${config.platform} (DOM fallback)`);
+    console.log(`[ContextMover] Capture triggered for ${config.platform} (DOM fallback)`);
     const messages = config.scrapeMessages();
     if (!messages.length) {
-      console.log(`[ContextForge] No messages found, skipping capture`);
+      console.log(`[ContextMover] No messages found, skipping capture`);
       return;
     }
 
@@ -253,7 +253,7 @@ export function startSessionCapture(config: {
     const assistantCount = messages.filter((m) => m.role === "assistant").length;
     if (assistantCount === 0) {
       console.log(
-        `[ContextForge] Skipping capture — ${messages.length} user-only messages (awaiting assistant response)`
+        `[ContextMover] Skipping capture — ${messages.length} user-only messages (awaiting assistant response)`
       );
       return;
     }
@@ -267,7 +267,7 @@ export function startSessionCapture(config: {
     const newHash = hashMessages(messages);
     if (newHash === lastMessageHash) {
       lastUnchangedAt = Date.now();
-      console.log(`[ContextForge] Snapshot hash unchanged, skipping`);
+      console.log(`[ContextMover] Snapshot hash unchanged, skipping`);
       return;
     }
     lastUnchangedAt = 0; // new content — allow immediate re-scrapes
@@ -282,7 +282,7 @@ export function startSessionCapture(config: {
     const now = Date.now();
     if (now - lastSentAt < MIN_SEND_INTERVAL_MS) {
       console.log(
-        `[ContextForge:capture] Skipped duplicate for ${resolvedId}` +
+        `[ContextMover:capture] Skipped duplicate for ${resolvedId}` +
         ` (hash changed but ${now - lastSentAt}ms since last send)`
       );
       return;
@@ -291,7 +291,7 @@ export function startSessionCapture(config: {
     lastMessageHash = newHash;
     lastSentAt = now;
 
-    console.log(`[ContextForge] Sending CAPTURE_SESSION for session: ${resolvedId}`);
+    console.log(`[ContextMover] Sending CAPTURE_SESSION for session: ${resolvedId}`);
     chrome.runtime.sendMessage({
       type: "CAPTURE_SESSION",
       payload: {
@@ -428,7 +428,7 @@ export function runCapturePipeline(
   try {
     messages = rawScrape();
   } catch (e) {
-    console.error(`[CF:${platform}] scrapeMessages threw:`, e);
+    console.error(`[CM:${platform}] scrapeMessages threw:`, e);
     detectionMethod = "failed";
   }
 
@@ -441,7 +441,7 @@ export function runCapturePipeline(
     messages.length === 0 &&
     document.querySelector('main, [role="main"], [class*="message"], [class*="conversation"]')
   ) {
-    console.warn(`[CF:${platform}] Registry strategies empty — trying structural detection`);
+    console.warn(`[CM:${platform}] Registry strategies empty — trying structural detection`);
     const structural = detectByStructure(platform);
     if (structural.length > 0 && structural.some((m) => m.role === "assistant")) {
       messages = structural;
@@ -490,8 +490,8 @@ export async function injectWithRetry(
   // Hard cap — prevents SIGILL tab crashes from oversized prompts
   if (text.length > INJECT_HARD_CAP) {
     const dropped = text.length - INJECT_HARD_CAP;
-    console.warn(`[ContextForge:inject] Prompt too large (${text.length} chars) — truncating to ${INJECT_HARD_CAP} (dropped ${dropped} chars)`);
-    text = text.slice(0, INJECT_HARD_CAP) + `\n\n... [ContextForge: ${dropped} chars trimmed — use Tier 1 for full context]`;
+    console.warn(`[ContextMover:inject] Prompt too large (${text.length} chars) — truncating to ${INJECT_HARD_CAP} (dropped ${dropped} chars)`);
+    text = text.slice(0, INJECT_HARD_CAP) + `\n\n... [ContextMover: ${dropped} chars trimmed — use Tier 1 for full context]`;
   }
   let currentDelay = delayMs;
   const first50 = text.slice(0, 50);
@@ -506,7 +506,7 @@ export async function injectWithRetry(
       input instanceof HTMLTextAreaElement ? input.value : (input.textContent ?? '');
     if (ok && content.includes(first50)) return true;
     if (attempt < maxAttempts) {
-      console.warn(`[ContextForge] Inject attempt ${attempt} failed (${platform}), retrying in ${currentDelay}ms...`);
+      console.warn(`[ContextMover] Inject attempt ${attempt} failed (${platform}), retrying in ${currentDelay}ms...`);
       await sleep(currentDelay);
       currentDelay = Math.floor(currentDelay * 1.5); // 300 → 450 → 675ms
     }

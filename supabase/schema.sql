@@ -1,5 +1,5 @@
 -- ============================================================
--- ContextForge Supabase Schema
+-- ContextMover Supabase Schema
 -- Run this in the Supabase SQL Editor
 -- ============================================================
 

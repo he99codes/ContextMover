@@ -71,7 +71,7 @@ export function validateCapture(
 
   const hasCode = messages.some((m) => m.content.includes("```"));
 
-  console.log(`[CF:validate] ${platform}:`, {
+  console.log(`[CM:validate] ${platform}:`, {
     valid: errors.length === 0,
     errors,
     warnings,

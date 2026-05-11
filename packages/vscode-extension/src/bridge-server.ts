@@ -64,7 +64,7 @@ export class BridgeServer extends EventEmitter {
     this.server.listen(this.port, "127.0.0.1", () => {
       this._isRunning = true;
       console.log(
-        `[ContextForge] Bridge listening on http://127.0.0.1:${this.port}`
+        `[ContextMover] Bridge listening on http://127.0.0.1:${this.port}`
       );
       this.emit("connection");
     });
@@ -72,10 +72,10 @@ export class BridgeServer extends EventEmitter {
     this.server.on("error", (err: NodeJS.ErrnoException) => {
       if (err.code === "EADDRINUSE") {
         console.warn(
-          `[ContextForge] Port ${this.port} in use — bridge not started.`
+          `[ContextMover] Port ${this.port} in use — bridge not started.`
         );
       } else {
-        console.error("[ContextForge] Bridge error:", err);
+        console.error("[ContextMover] Bridge error:", err);
       }
       this._isRunning = false;
     });

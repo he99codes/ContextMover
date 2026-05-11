@@ -47,7 +47,7 @@ export default function buildMigrationPrompt(
   const cached = promptCache.get(key);
 
   if (cached && Date.now() - cached.builtAt < CACHE_TTL) {
-    console.log("[ContextForge:translator] Cache hit");
+    console.log("[ContextMover:translator] Cache hit");
     return cached.prompt;
   }
 
@@ -66,7 +66,7 @@ function buildMigrationPromptInternal(
   payload: MigrationPayload
 ): string {
   if (payload.summary === undefined && !payload.intelligentSummary) {
-    throw new Error('[CF:translator] Empty payload — summarizer stage produced no output');
+    throw new Error('[CM:translator] Empty payload — summarizer stage produced no output');
   }
   // Tier 2 — Smart Summary: delegate to dedicated structured builders.
   if (payload.tier === 2 && payload.intelligentSummary) {
@@ -362,7 +362,7 @@ function buildGrokPrompt(payload: MigrationPayload): string {
   const ratio = payload.compressionRatio ?? 0;
 
   const out: string[] = [
-    `## ContextForge — Session Import (Grok)`,
+    `## ContextMover — Session Import (Grok)`,
     ``,
     `> **From:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | Compression: ${ratio}% | ${now}`,
     ``,
@@ -463,7 +463,7 @@ function buildGeminiPrompt(payload: MigrationPayload): string {
   const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
 
   const out: string[] = [
-    `[CONTEXTFORGE MIGRATION]`,
+    `[CONTEXTMOVER MIGRATION]`,
     `Source: ${sourceSession.platform} | Session: "${sourceSession.title}" | Messages: ${sourceSession.messages.length} | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
     ``,
     `[GOAL]`,
@@ -611,7 +611,7 @@ function buildDeepSeekPrompt(payload: MigrationPayload): string {
   const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
 
   const out: string[] = [
-    `# ContextForge Migration → DeepSeek`,
+    `# ContextMover Migration → DeepSeek`,
     ``,
     `**Source:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
     ``,
@@ -923,7 +923,7 @@ function buildGeminiPromptTier2(payload: MigrationPayload): string {
   const ratio = payload.compressionRatio ?? is.compressionRatio ?? 0;
 
   const out: string[] = [
-    `[CONTEXTFORGE SMART SUMMARY]`,
+    `[CONTEXTMOVER SMART SUMMARY]`,
     `Source: ${sourceSession.platform} | Messages: ${is.originalCount} | Compression: ${ratio}% | ${now}`,
     ``,
     `[GOAL]`,

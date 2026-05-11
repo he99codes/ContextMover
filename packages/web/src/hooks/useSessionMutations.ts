@@ -4,14 +4,14 @@ import { useCallback } from "react";
 import { getUserVaultClient } from "@/lib/user-vault/web-client";
 
 /**
- * Hook that exposes mutating operations on the user's personal vault (cf_sessions).
- * ContextForge Supabase is NOT in this data path.
+ * Hook that exposes mutating operations on the user's personal vault (cm_sessions).
+ * ContextMover Supabase is NOT in this data path.
  */
 export function useSessionMutations() {
   const deleteSession = useCallback(async (id: string) => {
     const client = getUserVaultClient();
     if (!client) throw new Error("Vault not connected");
-    const { error } = await client.from("cf_sessions").delete().eq("id", id);
+    const { error } = await client.from("cm_sessions").delete().eq("id", id);
     if (error) throw new Error(error.message);
   }, []);
 
@@ -19,7 +19,7 @@ export function useSessionMutations() {
     const client = getUserVaultClient();
     if (!client) throw new Error("Vault not connected");
     const { error } = await client
-      .from("cf_sessions")
+      .from("cm_sessions")
       .update({ title, updated_at: new Date().toISOString() })
       .eq("id", id);
     if (error) throw new Error(error.message);

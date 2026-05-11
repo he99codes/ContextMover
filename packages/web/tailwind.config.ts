@@ -43,7 +43,7 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // ContextForge design tokens
+        // ContextMover design tokens
         cf: {
           bg:      "#0A0A0A",
           surface: "#111111",

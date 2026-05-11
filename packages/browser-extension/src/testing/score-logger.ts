@@ -1,12 +1,12 @@
 // packages/browser-extension/src/testing/score-logger.ts
 // Persists TestReport objects to a dedicated IndexedDB database.
-// Uses its own DB ("contextforge-tests") to avoid version conflicts
-// with the production "contextforge" DB.
+// Uses its own DB ("contextmover-tests") to avoid version conflicts
+// with the production "contextmover" DB.
 
 import { openDB, type IDBPDatabase } from "idb";
 import type { TestReport } from "./test-runner";
 
-const TEST_DB_NAME    = "contextforge-tests";
+const TEST_DB_NAME    = "contextmover-tests";
 const TEST_DB_VERSION = 1;
 const REPORTS_STORE   = "test_reports";
 const MAX_REPORTS     = 50;

@@ -51,7 +51,7 @@ function buildProviderPrompt(
 
 function buildClaudePrompt(snapshot: IDESnapshot, ideContext: string): string {
   return `<context_migration>
-  <source>Visual Studio Code via ContextForge</source>
+  <source>Visual Studio Code via ContextMover</source>
   <captured_at>${new Date(snapshot.capturedAt).toISOString()}</captured_at>
   <task>
     Continue helping with the current coding task using the IDE context below.
@@ -74,7 +74,7 @@ function buildMarkdownPrompt(
       : provider.charAt(0).toUpperCase() + provider.slice(1);
 
   return [
-    "## ContextForge IDE Migration",
+    "## ContextMover IDE Migration",
     "",
     `> Source: Visual Studio Code`,
     `> Target: ${providerLabel}`,
@@ -93,14 +93,14 @@ function buildMarkdownPrompt(
 
 function buildGrokPrompt(snapshot: IDESnapshot, ideContext: string): string {
   return buildMarkdownPrompt(snapshot, ideContext, "grok").replace(
-    "## ContextForge IDE Migration",
-    "## ContextForge IDE Import"
+    "## ContextMover IDE Migration",
+    "## ContextMover IDE Import"
   );
 }
 
 function buildGeminiPrompt(snapshot: IDESnapshot, ideContext: string): string {
   return [
-    "[CONTEXTFORGE IDE MIGRATION]",
+    "[CONTEXTMOVER IDE MIGRATION]",
     "Source: Visual Studio Code",
     `Captured at: ${new Date(snapshot.capturedAt).toISOString()}`,
     "",

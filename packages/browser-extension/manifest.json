@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "ContextForge",
+    "name": "ContextMover",
     "version": "1.0.0",
     "description": "Never lose coding context again. One layer. Any agent. Zero friction.",
     "permissions": [
@@ -135,7 +135,7 @@
         }
     ],
     "action": {
-        "default_title": "ContextForge",
+        "default_title": "ContextMover",
         "default_icon": {
             "16":  "icons/icon16.png",
             "32":  "icons/icon32.png",

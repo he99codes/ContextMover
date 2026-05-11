@@ -1,5 +1,5 @@
 /**
- * ContextForge — Pipeline Integration Tests
+ * ContextMover — Pipeline Integration Tests
  *
  * Sections:
  *   1. Summarizer      (summarize, caveman compression, code extraction)
@@ -298,19 +298,19 @@ describe("2 · Translator pipeline", () => {
 
     it("gemini: [SECTION] plain-text delimiters", () => {
       const p = buildMigrationPrompt(payload("gemini"));
-      expect(p).toContain("[CONTEXTFORGE MIGRATION]");
+      expect(p).toContain("[CONTEXTMOVER MIGRATION]");
       expect(p).toContain("[GOAL]");
       expect(p).toContain("[TASK]");
     });
 
-    it("grok: casual ContextForge header", () =>
-      expect(buildMigrationPrompt(payload("grok"))).toContain("ContextForge — Session Import (Grok)"));
+    it("grok: casual ContextMover header", () =>
+      expect(buildMigrationPrompt(payload("grok"))).toContain("ContextMover — Session Import (Grok)"));
 
     it("perplexity: Perplexity header", () =>
       expect(buildMigrationPrompt(payload("perplexity"))).toContain("Migrated Context — Perplexity"));
 
     it("deepseek: # h1 technical header", () =>
-      expect(buildMigrationPrompt(payload("deepseek"))).toContain("# ContextForge Migration → DeepSeek"));
+      expect(buildMigrationPrompt(payload("deepseek"))).toContain("# ContextMover Migration → DeepSeek"));
   });
 
   describe("progress sections", () => {

@@ -47,7 +47,7 @@ export interface DiagnosticItem {
 
 export class ContextCollector {
   async capture(): Promise<IDESnapshot> {
-    const config = vscode.workspace.getConfiguration("contextforge");
+    const config = vscode.workspace.getConfiguration("contextmover");
     const maxFiles: number = config.get("maxFilesInContext") ?? 10;
     const maxWorkspaceFiles: number = config.get("maxWorkspaceFilesInContext") ?? 30;
     const maxWorkspaceFileChars: number =

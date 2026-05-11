@@ -31,7 +31,7 @@ export class CaptureHealthMonitor {
       await chrome.storage.local.set({ [`health_${record.platform}`]: updated });
       await this.checkHealth(record.platform, updated);
     } catch (e) {
-      console.warn(`[CF:health] record failed:`, e);
+      console.warn(`[CM:health] record failed:`, e);
     }
   }
 
@@ -56,12 +56,12 @@ export class CaptureHealthMonitor {
       history.filter((r) => r.assistantCount > 0).length / history.length;
 
     console.log(
-      `[CF:health] ${platform}: success=${(successRate * 100).toFixed(0)}% assistant=${(assistantRate * 100).toFixed(0)}%`
+      `[CM:health] ${platform}: success=${(successRate * 100).toFixed(0)}% assistant=${(assistantRate * 100).toFixed(0)}%`
     );
 
     if (successRate < this.ALERT_THRESHOLD) {
       console.error(
-        `[CF:health] ALERT: ${platform} capture rate dropped to ${(successRate * 100).toFixed(0)}% — selectors may be broken`
+        `[CM:health] ALERT: ${platform} capture rate dropped to ${(successRate * 100).toFixed(0)}% — selectors may be broken`
       );
       const alert: CaptureAlert = {
         platform,

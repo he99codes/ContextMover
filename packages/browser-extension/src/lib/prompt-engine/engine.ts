@@ -44,7 +44,7 @@ export class PromptEngine {
       // Load assignments
       this.assignments = await db.getAll("prompt_assignments");
     } catch (err) {
-      console.warn("[ContextForge:prompt-engine] IndexedDB load failed, continuing with system templates:", err);
+      console.warn("[ContextMover:prompt-engine] IndexedDB load failed, continuing with system templates:", err);
     }
 
     this.initialized = true;
@@ -52,7 +52,7 @@ export class PromptEngine {
     const systemCount = SYSTEM_TEMPLATES.length;
     const userCount = [...this.templates.values()].filter((t) => !t.isSystem).length;
     console.log(
-      `[ContextForge:prompt-engine] initialized systemTemplates=${systemCount} userTemplates=${userCount} assignments=${this.assignments.length}`
+      `[ContextMover:prompt-engine] initialized systemTemplates=${systemCount} userTemplates=${userCount} assignments=${this.assignments.length}`
     );
   }
 
@@ -113,7 +113,7 @@ export class PromptEngine {
     await this.ensureInitialized();
 
     const template = this.templates.get(templateId);
-    if (!template) throw new Error(`[ContextForge:prompt-engine] template not found: ${templateId}`);
+    if (!template) throw new Error(`[ContextMover:prompt-engine] template not found: ${templateId}`);
 
     // Build final template content, appending caveman instruction if needed
     const templateContent = caveman
@@ -398,9 +398,9 @@ export class PromptEngine {
         updated_at: new Date(template.updatedAt).toISOString(),
       };
       const { error } = await supabase.from("prompt_templates").upsert(row, { onConflict: "id" });
-      if (error) console.warn("[ContextForge:prompt-engine] cloud sync failed:", error.message);
+      if (error) console.warn("[ContextMover:prompt-engine] cloud sync failed:", error.message);
     } catch (err) {
-      console.warn("[ContextForge:prompt-engine] cloud sync threw:", err);
+      console.warn("[ContextMover:prompt-engine] cloud sync threw:", err);
     }
   }
 
@@ -411,7 +411,7 @@ export class PromptEngine {
       if (!user) return;
       await supabase.from("prompt_templates").delete().eq("id", id).eq("user_id", user.id);
     } catch (err) {
-      console.warn("[ContextForge:prompt-engine] cloud delete threw:", err);
+      console.warn("[ContextMover:prompt-engine] cloud delete threw:", err);
     }
   }
 
@@ -429,9 +429,9 @@ export class PromptEngine {
         created_at: new Date(assignment.createdAt).toISOString(),
       };
       const { error } = await supabase.from("prompt_assignments").upsert(row, { onConflict: "id" });
-      if (error) console.warn("[ContextForge:prompt-engine] assignment sync failed:", error.message);
+      if (error) console.warn("[ContextMover:prompt-engine] assignment sync failed:", error.message);
     } catch (err) {
-      console.warn("[ContextForge:prompt-engine] assignment sync threw:", err);
+      console.warn("[ContextMover:prompt-engine] assignment sync threw:", err);
     }
   }
 }

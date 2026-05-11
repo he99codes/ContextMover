@@ -23,7 +23,7 @@ export async function GET() {
       },
     });
   } catch (err) {
-    console.error("[CF:api:pricing] error:", err);
+    console.error("[CM:api:pricing] error:", err);
     return NextResponse.json(
       { error: "Failed to detect pricing" },
       { status: 500 }

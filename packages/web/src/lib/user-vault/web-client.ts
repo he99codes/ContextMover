@@ -2,8 +2,8 @@
 // packages/web/src/lib/user-vault/web-client.ts
 //
 // Gives the web app a Supabase client pointed at the USER's personal vault.
-// ContextForge servers are NEVER in this data path.
-// Vault config is stored in localStorage (browser-only, ContextForge cannot read it).
+// ContextMover servers are NEVER in this data path.
+// Vault config is stored in localStorage (browser-only, ContextMover cannot read it).
 
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";

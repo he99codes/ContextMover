@@ -119,7 +119,7 @@ export default function PricingPage() {
     const options: Record<string, unknown> = {
       key:             data.keyId,
       subscription_id: data.subscriptionId,
-      name:            "ContextForge",
+      name:            "ContextMover",
       description:     "Pro Plan — Unlimited AI context migration",
       image:           "/icon128.png",
       theme:           { color: "#00FF88" },

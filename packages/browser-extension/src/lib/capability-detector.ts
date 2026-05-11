@@ -88,9 +88,9 @@ export interface SystemHeadroom {
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const TAG = "[ContextForge:capability-detector]";
+const TAG = "[ContextMover:capability-detector]";
 
-const OVERRIDE_LS_KEY = "contextforge:tier-override";
+const OVERRIDE_LS_KEY = "contextmover:tier-override";
 const OVERRIDE_CHROME_KEY = "cf_tier_override";
 
 /** Max age (ms) of a cached Capabilities snapshot before re-running detection. */

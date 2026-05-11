@@ -96,7 +96,7 @@ async function runOneTier(
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[CF:test-runner] ${session.title}/${tier} failed: ${msg}`);
+    console.warn(`[CM:test-runner] ${session.title}/${tier} failed: ${msg}`);
     return {
       sessionName: session.title,
       tier,

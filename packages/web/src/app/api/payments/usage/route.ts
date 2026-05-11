@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (error) {
-    console.error("[CF:api:usage] rpc error:", error);
+    console.error("[CM:api:usage] rpc error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

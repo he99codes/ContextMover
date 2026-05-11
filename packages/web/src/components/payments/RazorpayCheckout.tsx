@@ -66,7 +66,7 @@ export function RazorpayCheckout({
         key:         order.keyId,
         amount:      order.amount,
         currency:    order.currency,
-        name:        "ContextForge",
+        name:        "ContextMover",
         description: `${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan — ${billing}`,
         order_id:    order.orderId,
         prefill:     { email: user.email ?? "" },

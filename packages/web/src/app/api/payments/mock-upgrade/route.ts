@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       currentPeriodEnd:      monthEnd,
     });
 
-    console.log(`[CF:payments] MOCK upgrade applied for ${user.id} → ${plan}`);
+    console.log(`[CM:payments] MOCK upgrade applied for ${user.id} → ${plan}`);
 
     return NextResponse.json({
       success: true,
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[CF:api:mock-upgrade] error:", msg);
+    console.error("[CM:api:mock-upgrade] error:", msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

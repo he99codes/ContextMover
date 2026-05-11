@@ -2,7 +2,7 @@
 import { extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
 
-console.log("[ContextForge] Perplexity content script loaded");
+console.log("[ContextMover] Perplexity content script loaded");
 
 function isStreaming(el: HTMLElement): boolean {
   return (
@@ -27,7 +27,7 @@ function scrapeMessages(): Message[] {
       const role = el.dataset.messageRole;
       if (role === "user" || role === "assistant") collected.push({ el, role });
     }
-    console.log(`[ContextForge:perplexity] A data-message-role: ${collected.length}`);
+    console.log(`[ContextMover:perplexity] A data-message-role: ${collected.length}`);
   }
 
   // ── Strategy B: class substrings — UserMessage / AnswerText / answer-block ─
@@ -42,7 +42,7 @@ function scrapeMessages(): Message[] {
 
     for (const el of userEls) collected.push({ el, role: "user" });
     for (const el of asstEls) collected.push({ el, role: "assistant" });
-    console.log(`[ContextForge:perplexity] B class-substr: user=${userEls.length} asst=${asstEls.length}`);
+    console.log(`[ContextMover:perplexity] B class-substr: user=${userEls.length} asst=${asstEls.length}`);
   }
 
   // ── Strategy C: Perplexity thread structure ──────────────────────────────────
@@ -58,7 +58,7 @@ function scrapeMessages(): Message[] {
       if (queryEl && !isStreaming(queryEl)) collected.push({ el: queryEl, role: "user" });
       if (answerEl && !isStreaming(answerEl)) collected.push({ el: answerEl, role: "assistant" });
     }
-    console.log(`[ContextForge:perplexity] C thread-items: ${turns.length} turns`);
+    console.log(`[ContextMover:perplexity] C thread-items: ${turns.length} turns`);
   }
 
   // ── Strategy D: prose / markdown blocks with sibling heuristic ──────────────
@@ -69,7 +69,7 @@ function scrapeMessages(): Message[] {
       const text = (el.textContent ?? "").trim();
       if (text.length > 30) collected.push({ el, role: "assistant" });
     }
-    console.log(`[ContextForge:perplexity] D prose/markdown: ${proseEls.length}`);
+    console.log(`[ContextMover:perplexity] D prose/markdown: ${proseEls.length}`);
   }
 
   // ── Diagnostic if nothing found ─────────────────────────────────────────────
@@ -83,7 +83,7 @@ function scrapeMessages(): Message[] {
       });
     });
     const top = [...classHits.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20);
-    console.warn("[ContextForge:perplexity] NO messages found. Top candidate classes:", top);
+    console.warn("[ContextMover:perplexity] NO messages found. Top candidate classes:", top);
     return [];
   }
 
@@ -107,18 +107,18 @@ function scrapeMessages(): Message[] {
     clone.querySelectorAll<Element>(PERPLEXITY_NOISE_SEL).forEach((n) => n.remove());
     const content = extractMessageContent(clone);
     if (content) messages.push({ role, content, timestamp: Date.now() });
-    else console.warn(`[ContextForge:perplexity] empty content for role=${role}`);
+    else console.warn(`[ContextMover:perplexity] empty content for role=${role}`);
   }
 
   const u = messages.filter((m) => m.role === "user").length;
   const a = messages.filter((m) => m.role === "assistant").length;
-  console.log('[CF:capture]', 'perplexity', {
+  console.log('[CM:capture]', 'perplexity', {
     total: messages.length,
     user: u,
     assistant: a,
     preview: messages.map(m => ({ role: m.role, len: m.content.length }))
   });
-  if (a === 0 && u > 0) console.error("[ContextForge:perplexity] ASSISTANT MESSAGES MISSING");
+  if (a === 0 && u > 0) console.error("[ContextMover:perplexity] ASSISTANT MESSAGES MISSING");
 
   return messages;
 }

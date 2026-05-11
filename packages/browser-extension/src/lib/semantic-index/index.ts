@@ -158,7 +158,7 @@ export class SemanticIndex {
     onProgress?: (pct: number, stage: string) => void
   ): Promise<void> {
     if (!(await this.needsIndexing(session))) {
-      console.log(`[CF:index] Skip (unchanged): ${session.id}`);
+      console.log(`[CM:index] Skip (unchanged): ${session.id}`);
       return;
     }
 
@@ -171,7 +171,7 @@ export class SemanticIndex {
       onProgress?.(5, "Spawning indexing worker...");
       const chunkCount = await offscreenIndex(session, hw, onProgress);
       console.log(
-        `[CF:index] ${session.id}: ${chunkCount} chunks indexed in ${(performance.now() - t0).toFixed(0)}ms`
+        `[CM:index] ${session.id}: ${chunkCount} chunks indexed in ${(performance.now() - t0).toFixed(0)}ms`
       );
       onProgress?.(100, "Indexed");
       return;
@@ -229,7 +229,7 @@ export class SemanticIndex {
     });
 
     console.log(
-      `[CF:index] (in-process) ${session.id}: ${chunks.length} chunks in ${(performance.now() - t0).toFixed(0)}ms`
+      `[CM:index] (in-process) ${session.id}: ${chunks.length} chunks in ${(performance.now() - t0).toFixed(0)}ms`
     );
     onProgress?.(100, "Indexed");
   }
@@ -245,7 +245,7 @@ export class SemanticIndex {
 
     const allChunks = await dexieDb.chunkEmbeddings.where("sessionId").equals(sessionId).toArray();
     if (allChunks.length === 0) {
-      console.warn(`[CF:index] No chunks for ${sessionId}`);
+      console.warn(`[CM:index] No chunks for ${sessionId}`);
       return [];
     }
 
@@ -264,7 +264,7 @@ export class SemanticIndex {
       try {
         queryEmbedding = await offscreenEmbedQuery(query, hw);
       } catch (err) {
-        console.warn("[CF:index] Offscreen query embed failed, retrying in-process:", err);
+        console.warn("[CM:index] Offscreen query embed failed, retrying in-process:", err);
         await modelRegistry.initialize(hw);
         queryEmbedding = await modelRegistry.embed(query);
       }
@@ -290,7 +290,7 @@ export class SemanticIndex {
       .map((s) => s.chunk);
 
     console.log(
-      `[CF:index] Retrieved ${retrieved.length}/${allChunks.length} chunks in ${(performance.now() - t0).toFixed(1)}ms`
+      `[CM:index] Retrieved ${retrieved.length}/${allChunks.length} chunks in ${(performance.now() - t0).toFixed(1)}ms`
     );
     return retrieved;
   }
@@ -386,7 +386,7 @@ export class SemanticIndex {
         await dexieDb.sessionHashes.delete(h.sessionId);
         await dexieDb.storedSummaries.where("sessionId").equals(h.sessionId).delete();
         await dexieDb.retrievalCache.where("sessionId").equals(h.sessionId).delete();
-        console.log(`[CF:index] Cleaned up orphan: ${h.sessionId}`);
+        console.log(`[CM:index] Cleaned up orphan: ${h.sessionId}`);
       }
     }
 
@@ -403,7 +403,7 @@ export class SemanticIndex {
         .limit(toDelete)
         .toArray();
       await dexieDb.chunkEmbeddings.bulkDelete(oldest.map((c) => c.id));
-      console.log(`[CF:index] Pruned ${toDelete} oldest chunks (was ${total})`);
+      console.log(`[CM:index] Pruned ${toDelete} oldest chunks (was ${total})`);
     }
 
     // 4. Cap stored summaries per session at 20

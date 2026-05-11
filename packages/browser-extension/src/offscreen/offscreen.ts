@@ -22,7 +22,7 @@ import { modelRegistry, MODEL_CONFIGS, type ModelTier } from "../lib/semantic-in
 import { dexieDb, type ChunkEmbedding } from "../lib/db";
 import { hashMessages } from "../lib/semantic-index/hasher";
 
-console.log("[CF:offscreen] booted");
+console.log("[CM:offscreen] booted");
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 

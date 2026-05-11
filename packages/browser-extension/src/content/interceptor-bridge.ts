@@ -1,6 +1,6 @@
 // packages/browser-extension/src/content/interceptor-bridge.ts
 //
-// ISOLATED-world content script.  Listens for the `contextforge:captured`
+// ISOLATED-world content script.  Listens for the `contextmover:captured`
 // CustomEvent dispatched by the MAIN-world fetch interceptor, validates the
 // payload, merges with prior captures for the same session, and forwards
 // to the service worker as a CAPTURE_SESSION message.
@@ -20,7 +20,7 @@ type CapturedDetail = {
   messages: CapturedMessage[];
 };
 
-const TAG = "[ContextForge:bridge]";
+const TAG = "[ContextMover:bridge]";
 const VALID_PLATFORMS: Platform[] = ["claude", "chatgpt", "gemini", "grok", "perplexity", "deepseek"];
 const legacyChecker = makeLegacyChecker();
 
@@ -71,7 +71,7 @@ function install() {
     console.log(`${TAG} cleared cached state for forgotten session ${forgottenId}`);
   });
 
-  window.addEventListener("contextforge:captured", (rawEvent: Event) => {
+  window.addEventListener("contextmover:captured", (rawEvent: Event) => {
     void (async () => {
       try {
         const event = rawEvent as CustomEvent<CapturedDetail>;

@@ -1,5 +1,5 @@
 {
-  "name": "contextforge",
+  "name": "contextmover",
   "private": true,
   "version": "0.1.0",
   "description": "OS layer for AI coding agents — never lose context again",

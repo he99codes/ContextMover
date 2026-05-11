@@ -1,15 +1,15 @@
--- ContextForge Personal Vault Schema
+-- ContextMover Personal Vault Schema
 -- Run this in YOUR Supabase project → SQL Editor
 -- All tables are prefixed with cf_ to avoid conflicts.
 -- No RLS needed — this is a single-user project.
--- ContextForge servers never touch this database.
+-- ContextMover servers never touch this database.
 
 -- Enable required extensions
 create extension if not exists "uuid-ossp";
 create extension if not exists "vector";
 
 -- Sessions
-create table if not exists cf_sessions (
+create table if not exists cm_sessions (
   id text primary key,
   platform text not null,
   title text,
@@ -22,9 +22,9 @@ create table if not exists cf_sessions (
 );
 
 -- Migration history
-create table if not exists cf_migrations (
+create table if not exists cm_migrations (
   id uuid primary key default uuid_generate_v4(),
-  session_id text references cf_sessions(id),
+  session_id text references cm_sessions(id),
   source_platform text,
   target_platform text,
   tier integer,
@@ -34,7 +34,7 @@ create table if not exists cf_migrations (
 );
 
 -- Super Memory: context graph nodes
-create table if not exists cf_nodes (
+create table if not exists cm_nodes (
   id text primary key,
   type text not null,
   label text not null,
@@ -44,16 +44,16 @@ create table if not exists cf_nodes (
   tags text[] default '{}',
   importance float default 0.5,
   source text not null,
-  session_id text references cf_sessions(id),
+  session_id text references cm_sessions(id),
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
 
 -- Super Memory: context graph edges
-create table if not exists cf_edges (
+create table if not exists cm_edges (
   id text primary key,
-  source_id text references cf_nodes(id) on delete cascade,
-  target_id text references cf_nodes(id) on delete cascade,
+  source_id text references cm_nodes(id) on delete cascade,
+  target_id text references cm_nodes(id) on delete cascade,
   type text not null,
   weight float default 0.5,
   reason text,
@@ -62,7 +62,7 @@ create table if not exists cf_edges (
 );
 
 -- Super Memory: GitHub repos indexed
-create table if not exists cf_github_repos (
+create table if not exists cm_github_repos (
   id text primary key,
   owner text not null,
   repo text not null,
@@ -73,7 +73,7 @@ create table if not exists cf_github_repos (
 );
 
 -- Super Memory: IDE snapshots
-create table if not exists cf_ide_snapshots (
+create table if not exists cm_ide_snapshots (
   id text primary key,
   workspace_name text,
   active_file text,
@@ -85,7 +85,7 @@ create table if not exists cf_ide_snapshots (
 );
 
 -- Prompt templates (user's personal ones, mirrored from extension)
-create table if not exists cf_prompt_templates (
+create table if not exists cm_prompt_templates (
   id text primary key,
   name text not null,
   description text,
@@ -101,13 +101,13 @@ create table if not exists cf_prompt_templates (
 );
 
 -- Performance indexes
-create index if not exists cf_sessions_platform_idx on cf_sessions(platform);
-create index if not exists cf_sessions_updated_idx  on cf_sessions(updated_at desc);
-create index if not exists cf_nodes_type_idx        on cf_nodes(type);
-create index if not exists cf_nodes_source_idx      on cf_nodes(source);
-create index if not exists cf_edges_source_idx      on cf_edges(source_id);
-create index if not exists cf_edges_target_idx      on cf_edges(target_id);
+create index if not exists cm_sessions_platform_idx on cm_sessions(platform);
+create index if not exists cm_sessions_updated_idx  on cm_sessions(updated_at desc);
+create index if not exists cm_nodes_type_idx        on cm_nodes(type);
+create index if not exists cm_nodes_source_idx      on cm_nodes(source);
+create index if not exists cm_edges_source_idx      on cm_edges(source_id);
+create index if not exists cm_edges_target_idx      on cm_edges(target_id);
 
 -- Realtime (for web app live updates)
-alter publication supabase_realtime add table cf_sessions;
-alter publication supabase_realtime add table cf_nodes;
+alter publication supabase_realtime add table cm_sessions;
+alter publication supabase_realtime add table cm_nodes;

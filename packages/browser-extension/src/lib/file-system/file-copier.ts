@@ -16,7 +16,7 @@ export class FileCopier {
   async copyRaw(files: ProjectFile[]): Promise<void> {
     const text = this.buildRawFormat(files);
     await navigator.clipboard.writeText(text);
-    console.log(`[ContextForge:files] copied ${files.length} file(s) raw`);
+    console.log(`[ContextMover:files] copied ${files.length} file(s) raw`);
   }
 
   async copyForPlatform(
@@ -31,7 +31,7 @@ export class FileCopier {
       case "grok":     text = this.buildGrokFormat(files); break;
     }
     await navigator.clipboard.writeText(text);
-    console.log(`[ContextForge:files] copied ${files.length} file(s) for ${platform}`);
+    console.log(`[ContextMover:files] copied ${files.length} file(s) for ${platform}`);
   }
 
   async copyPath(file: ProjectFile): Promise<void> {
@@ -51,7 +51,7 @@ export class FileCopier {
       zip.file(f.path, f.content);
     }
     const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
-    this.triggerDownload(blob, `contextforge-files-${Date.now()}.zip`);
+    this.triggerDownload(blob, `contextmover-files-${Date.now()}.zip`);
   }
 
   // ── Format builders ─────────────────────────────────────────────────────────

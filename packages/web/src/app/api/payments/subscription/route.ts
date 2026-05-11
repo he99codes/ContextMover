@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ subscription, usage, limits, isPro });
   } catch (err) {
-    console.error("[CF:api:subscription:GET] error:", err);
+    console.error("[CM:api:subscription:GET] error:", err);
     return NextResponse.json(
       { error: "Failed to load subscription" },
       { status: 500 }
@@ -86,7 +86,7 @@ async function createStripeCheckout(
     !process.env.STRIPE_SECRET_KEY ||
     process.env.STRIPE_SECRET_KEY === "sk_test_placeholder"
   ) {
-    console.log("[CF:payments] MOCK MODE — no real charge");
+    console.log("[CM:payments] MOCK MODE — no real charge");
     return NextResponse.json({
       mock:            true,
       gateway:         "stripe",
@@ -127,7 +127,7 @@ async function createStripeCheckout(
     return NextResponse.json({ url: session.url, gateway: "stripe" });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[CF:api:subscription:stripe] error:", msg);
+    console.error("[CM:api:subscription:stripe] error:", msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
@@ -144,7 +144,7 @@ async function createRazorpaySubscription(
     !process.env.RAZORPAY_KEY_ID ||
     process.env.RAZORPAY_KEY_ID === "rzp_test_placeholder"
   ) {
-    console.log("[CF:payments] MOCK MODE — Razorpay disabled");
+    console.log("[CM:payments] MOCK MODE — Razorpay disabled");
     return NextResponse.json({
       mock:           true,
       gateway:        "razorpay",
@@ -208,7 +208,7 @@ async function createRazorpaySubscription(
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[CF:api:subscription:razorpay] error:", msg);
+    console.error("[CM:api:subscription:razorpay] error:", msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

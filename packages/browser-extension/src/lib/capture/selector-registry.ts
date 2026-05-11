@@ -182,13 +182,13 @@ export function findElements(
     try {
       const els = document.querySelectorAll(selector);
       if (els.length > 0) {
-        console.log(`[CF:registry] ${platform} ${role} matched: ${selector} (${els.length} elements)`);
+        console.log(`[CM:registry] ${platform} ${role} matched: ${selector} (${els.length} elements)`);
         return els;
       }
     } catch {
       continue;
     }
   }
-  console.warn(`[CF:registry] ${platform} ${role} — all selectors failed, falling back to structural`);
+  console.warn(`[CM:registry] ${platform} ${role} — all selectors failed, falling back to structural`);
   return null;
 }

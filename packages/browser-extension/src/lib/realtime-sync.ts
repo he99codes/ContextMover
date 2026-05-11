@@ -85,12 +85,12 @@ export async function startRealtimeSync(): Promise<void> {
   const { data } = await supabase.auth.getUser();
   const userId = data.user?.id;
   if (!userId) {
-    console.log("[ContextForge:realtime] skip subscribe — not signed in");
+    console.log("[ContextMover:realtime] skip subscribe — not signed in");
     return;
   }
 
   if (channel && subscribedUserId === userId) {
-    console.log("[ContextForge:realtime] already subscribed for this user");
+    console.log("[ContextMover:realtime] already subscribed for this user");
     return;
   }
 
@@ -113,7 +113,7 @@ export async function startRealtimeSync(): Promise<void> {
           if (payload.eventType === "DELETE") {
             const id = (payload.old as { id?: string })?.id;
             if (!id) return;
-            console.log(`[ContextForge:realtime] DELETE ${id}`);
+            console.log(`[ContextMover:realtime] DELETE ${id}`);
             await db.deleteSession(id);
             await forgetSession(id);
             void broadcastForgetToTabs(id);
@@ -127,18 +127,18 @@ export async function startRealtimeSync(): Promise<void> {
           ) {
             const session = rowToSession(payload.new as Record<string, unknown>);
             console.log(
-              `[ContextForge:realtime] ${payload.eventType} ${session.id} (${session.messages.length} msgs)`
+              `[ContextMover:realtime] ${payload.eventType} ${session.id} (${session.messages.length} msgs)`
             );
             await db.saveSession(session);
             notifySidebar();
           }
         } catch (err) {
-          console.warn("[ContextForge:realtime] handler error:", err);
+          console.warn("[ContextMover:realtime] handler error:", err);
         }
       }
     )
     .subscribe((status) => {
-      console.log(`[ContextForge:realtime] channel status: ${status}`);
+      console.log(`[ContextMover:realtime] channel status: ${status}`);
     });
 }
 
@@ -147,6 +147,6 @@ export async function stopRealtimeSync(): Promise<void> {
     await supabase.removeChannel(channel);
     channel = null;
     subscribedUserId = null;
-    console.log("[ContextForge:realtime] unsubscribed");
+    console.log("[ContextMover:realtime] unsubscribed");
   }
 }

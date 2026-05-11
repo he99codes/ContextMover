@@ -1,7 +1,7 @@
 // packages/browser-extension/src/lib/user-vault/connector.ts
 //
 // UserVaultConnector — manages the user's personal Supabase connection.
-// ContextForge servers are NEVER in this data path.
+// ContextMover servers are NEVER in this data path.
 // All session/memory data goes directly to the USER's Supabase project.
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
@@ -28,52 +28,52 @@ export interface VaultConfig {
 // Full vault schema SQL — mirrors schema.sql for programmatic deployment.
 const VAULT_SCHEMA_SQL = `
 create extension if not exists "uuid-ossp";
-create table if not exists cf_sessions (
+create table if not exists cm_sessions (
   id text primary key, platform text not null, title text,
   messages jsonb not null default '[]', message_count integer default 0,
   user_message_count integer default 0, assistant_message_count integer default 0,
   captured_at timestamptz default now(), updated_at timestamptz default now()
 );
-create table if not exists cf_migrations (
-  id uuid primary key default uuid_generate_v4(), session_id text references cf_sessions(id),
+create table if not exists cm_migrations (
+  id uuid primary key default uuid_generate_v4(), session_id text references cm_sessions(id),
   source_platform text, target_platform text, tier integer, template_id text,
   compression_ratio float, migrated_at timestamptz default now()
 );
-create table if not exists cf_nodes (
+create table if not exists cm_nodes (
   id text primary key, type text not null, label text not null, content text,
   metadata jsonb default '{}', tags text[] default '{}', importance float default 0.5,
-  source text not null, session_id text references cf_sessions(id),
+  source text not null, session_id text references cm_sessions(id),
   created_at timestamptz default now(), updated_at timestamptz default now()
 );
-create table if not exists cf_edges (
+create table if not exists cm_edges (
   id text primary key,
-  source_id text references cf_nodes(id) on delete cascade,
-  target_id text references cf_nodes(id) on delete cascade,
+  source_id text references cm_nodes(id) on delete cascade,
+  target_id text references cm_nodes(id) on delete cascade,
   type text not null, weight float default 0.5, reason text, auto boolean default true,
   created_at timestamptz default now()
 );
-create table if not exists cf_github_repos (
+create table if not exists cm_github_repos (
   id text primary key, owner text not null, repo text not null,
   branch text default 'main', last_indexed_at timestamptz, file_count integer default 0,
   created_at timestamptz default now()
 );
-create table if not exists cf_ide_snapshots (
+create table if not exists cm_ide_snapshots (
   id text primary key, workspace_name text, active_file text, open_files text[],
   git_branch text, git_diff_summary text, diagnostics jsonb default '[]',
   captured_at timestamptz default now()
 );
-create table if not exists cf_prompt_templates (
+create table if not exists cm_prompt_templates (
   id text primary key, name text not null, description text, content text not null,
   icon text default '⚙️', tags text[] default '{}', target_platforms text[] default '{all}',
   is_default boolean default false, usage_count integer default 0,
   last_used_at timestamptz, created_at timestamptz default now(), updated_at timestamptz default now()
 );
-create index if not exists cf_sessions_platform_idx on cf_sessions(platform);
-create index if not exists cf_sessions_updated_idx  on cf_sessions(updated_at desc);
-create index if not exists cf_nodes_type_idx        on cf_nodes(type);
-create index if not exists cf_edges_source_idx      on cf_edges(source_id);
-create index if not exists cf_edges_target_idx      on cf_edges(target_id);
-alter publication supabase_realtime add table cf_sessions;
+create index if not exists cm_sessions_platform_idx on cm_sessions(platform);
+create index if not exists cm_sessions_updated_idx  on cm_sessions(updated_at desc);
+create index if not exists cm_nodes_type_idx        on cm_nodes(type);
+create index if not exists cm_edges_source_idx      on cm_edges(source_id);
+create index if not exists cm_edges_target_idx      on cm_edges(target_id);
+alter publication supabase_realtime add table cm_sessions;
 `;
 
 export class UserVaultConnector {
@@ -102,7 +102,7 @@ export class UserVaultConnector {
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         chrome.tabs.onUpdated.removeListener(listener);
-        reject(new Error("[ContextForge:vault] OAuth timed out after 5 minutes"));
+        reject(new Error("[ContextMover:vault] OAuth timed out after 5 minutes"));
       }, 5 * 60 * 1_000);
 
       const listener = async (
@@ -117,7 +117,7 @@ export class UserVaultConnector {
         clearTimeout(timeout);
         try {
           const code = new URL(url).searchParams.get("code");
-          if (!code) throw new Error("[ContextForge:vault] No code in OAuth callback");
+          if (!code) throw new Error("[ContextMover:vault] No code in OAuth callback");
           await this.handleOAuthCallback(code);
           // Close the OAuth tab
           chrome.tabs.remove(tabId).catch(() => { /* tab may already be closed */ });
@@ -134,7 +134,7 @@ export class UserVaultConnector {
   async handleOAuthCallback(code: string): Promise<VaultConfig> {
     const stored = await chrome.storage.session.get("cf_vault_pkce_verifier");
     const verifier = stored["cf_vault_pkce_verifier"] as string | undefined;
-    if (!verifier) throw new Error("[ContextForge:vault] PKCE verifier missing from session storage");
+    if (!verifier) throw new Error("[ContextMover:vault] PKCE verifier missing from session storage");
 
     // Exchange code for Management API access token.
     const tokenRes = await fetch(`${MANAGEMENT_API}/oauth/token`, {
@@ -149,7 +149,7 @@ export class UserVaultConnector {
       }),
     });
     if (!tokenRes.ok) {
-      throw new Error(`[ContextForge:vault] Token exchange failed: ${await tokenRes.text()}`);
+      throw new Error(`[ContextMover:vault] Token exchange failed: ${await tokenRes.text()}`);
     }
     const { access_token: mgmtToken } = await tokenRes.json() as { access_token: string };
     await chrome.storage.session.remove("cf_vault_pkce_verifier");
@@ -162,7 +162,7 @@ export class UserVaultConnector {
       ref: string; name: string; region: string; status: string;
     }>;
 
-    let project = projects.find((p) => p.name === "contextforge-memory");
+    let project = projects.find((p) => p.name === "contextmover-memory");
 
     if (!project) {
       const region = this.detectNearestRegion();
@@ -176,14 +176,14 @@ export class UserVaultConnector {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: "contextforge-memory",
+          name: "contextmover-memory",
           db_pass: dbPass,
           region,
           organization_id: orgId,
         }),
       });
       if (!createRes.ok) {
-        throw new Error(`[ContextForge:vault] Project creation failed: ${await createRes.text()}`);
+        throw new Error(`[ContextMover:vault] Project creation failed: ${await createRes.text()}`);
       }
       const created = await createRes.json() as { ref: string; name: string; region: string };
       project = await this.waitForProject(mgmtToken, created.ref);
@@ -212,7 +212,7 @@ export class UserVaultConnector {
     };
 
     await this.saveConfig(config);
-    console.log("[ContextForge:vault] Schema deployed successfully");
+    console.log("[ContextMover:vault] Schema deployed successfully");
     return config;
   }
 
@@ -223,24 +223,24 @@ export class UserVaultConnector {
     const urlMatch = projectUrl.match(/^https:\/\/([a-z0-9]+)\.supabase\.co$/);
     if (!urlMatch) {
       throw new Error(
-        "[ContextForge:vault] Invalid Supabase URL. Expected: https://xxxx.supabase.co"
+        "[ContextMover:vault] Invalid Supabase URL. Expected: https://xxxx.supabase.co"
       );
     }
     const ref = urlMatch[1];
 
-    // Test connection — check if cf_sessions table exists.
+    // Test connection — check if cm_sessions table exists.
     const client = createSupabaseClient(projectUrl, anonKey);
-    const { error } = await client.from("cf_sessions").select("id").limit(1);
+    const { error } = await client.from("cm_sessions").select("id").limit(1);
 
     if (error?.code === "42P01") {
       // Table doesn't exist — schema not deployed.
       throw new Error(
-        "[ContextForge:vault] Vault schema not found in your Supabase project. " +
+        "[ContextMover:vault] Vault schema not found in your Supabase project. " +
         "Please run the setup SQL in your Supabase Dashboard → SQL Editor. " +
         "Copy the SQL from Settings → Vault → Setup SQL."
       );
     } else if (error && !error.message.includes("Results contain 0 rows")) {
-      throw new Error(`[ContextForge:vault] Connection test failed: ${error.message}`);
+      throw new Error(`[ContextMover:vault] Connection test failed: ${error.message}`);
     }
 
     const config: VaultConfig = {
@@ -262,7 +262,7 @@ export class UserVaultConnector {
   async runVaultSchema(_client: SupabaseClient): Promise<void> {
     // For manual connections, anon key cannot run DDL.
     // Use runVaultSchemaViaAPI() (OAuth) or manual SQL copy.
-    console.log("[ContextForge:vault] Schema deployment requires Management API token (OAuth flow)");
+    console.log("[ContextMover:vault] Schema deployment requires Management API token (OAuth flow)");
   }
 
   private async runVaultSchemaViaAPI(mgmtToken: string, projectRef: string): Promise<void> {
@@ -275,9 +275,9 @@ export class UserVaultConnector {
       body: JSON.stringify({ query: VAULT_SCHEMA_SQL }),
     });
     if (!res.ok) {
-      throw new Error(`[ContextForge:vault] Schema deployment failed: ${await res.text()}`);
+      throw new Error(`[ContextMover:vault] Schema deployment failed: ${await res.text()}`);
     }
-    console.log("[ContextForge:vault] Schema deployed successfully");
+    console.log("[ContextMover:vault] Schema deployed successfully");
   }
 
   // ── Client access ──────────────────────────────────────────────────────────
@@ -313,7 +313,7 @@ export class UserVaultConnector {
     try {
       const config = await this.loadConfig();
       const { count } = await client
-        .from("cf_sessions")
+        .from("cm_sessions")
         .select("id", { count: "exact", head: true });
       return {
         connected: true,
@@ -330,16 +330,16 @@ export class UserVaultConnector {
 
   async disconnect(): Promise<void> {
     await chrome.storage.local.remove(STORAGE_KEY);
-    console.log("[ContextForge:vault] Disconnected from personal vault");
+    console.log("[ContextMover:vault] Disconnected from personal vault");
   }
 
   async deleteAllVaultData(): Promise<void> {
     const client = await this.getClient();
-    if (!client) throw new Error("[ContextForge:vault] Not connected to a vault");
+    if (!client) throw new Error("[ContextMover:vault] Not connected to a vault");
 
     const tables = [
-      "cf_edges", "cf_nodes", "cf_migrations",
-      "cf_ide_snapshots", "cf_github_repos", "cf_prompt_templates", "cf_sessions",
+      "cm_edges", "cm_nodes", "cm_migrations",
+      "cm_ide_snapshots", "cm_github_repos", "cm_prompt_templates", "cm_sessions",
     ];
     for (const table of tables) {
       try {
@@ -347,7 +347,7 @@ export class UserVaultConnector {
         await client.from(table).delete().neq("id", "\x00");
       } catch { /* table may not exist — safe to ignore */ }
     }
-    console.log("[ContextForge:vault] All vault data deleted");
+    console.log("[ContextMover:vault] All vault data deleted");
   }
 
   // ── Encryption (AES-256-GCM, key from PBKDF2 over stable user ID) ─────────
@@ -426,7 +426,7 @@ export class UserVaultConnector {
   private async getStableUserKey(): Promise<string> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.id) {
-      throw new Error("[ContextForge:vault] Not authenticated — cannot access vault config");
+      throw new Error("[ContextMover:vault] Not authenticated — cannot access vault config");
     }
     return user.id; // Stable across token refreshes; unique per user on this device.
   }
@@ -467,7 +467,7 @@ export class UserVaultConnector {
       headers: { Authorization: `Bearer ${mgmtToken}` },
     });
     const orgs = await res.json() as Array<{ id: string }>;
-    if (!orgs.length) throw new Error("[ContextForge:vault] No Supabase organizations found");
+    if (!orgs.length) throw new Error("[ContextMover:vault] No Supabase organizations found");
     return orgs[0].id;
   }
 
@@ -487,7 +487,7 @@ export class UserVaultConnector {
       if (project.status === "ACTIVE_HEALTHY") return project;
       await new Promise((r) => setTimeout(r, 5_000));
     }
-    throw new Error("[ContextForge:vault] Project provisioning timed out (5 min)");
+    throw new Error("[ContextMover:vault] Project provisioning timed out (5 min)");
   }
 }
 

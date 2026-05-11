@@ -1,6 +1,6 @@
 // packages/browser-extension/src/lib/cloud-sync.ts
 //
-// Syncs user prompt templates and assignments to ContextForge's Supabase.
+// Syncs user prompt templates and assignments to ContextMover's Supabase.
 //
 // SESSION DATA IS NEVER STORED HERE.
 // Sessions live ONLY in local IndexedDB and, optionally, the user's own
@@ -37,7 +37,7 @@ export async function queueVaultSync(session: ContextSession, vaultClient: any):
     vaultSyncTimer = setTimeout(() => {
       void flushVaultSync(vaultClient);
     }, delay);
-    console.log(`[ContextForge:vault] Sync queued in ${delay}ms for session ${session.id}`);
+    console.log(`[ContextMover:vault] Sync queued in ${delay}ms for session ${session.id}`);
   }
 }
 
@@ -49,7 +49,7 @@ async function flushVaultSync(vaultClient: any): Promise<void> {
   lastVaultSyncTime = Date.now();
 
   try {
-    await vaultClient.from("cf_sessions").upsert({
+    await vaultClient.from("cm_sessions").upsert({
       id: session.id,
       platform: session.platform,
       title: session.title,
@@ -59,9 +59,9 @@ async function flushVaultSync(vaultClient: any): Promise<void> {
       assistant_message_count: session.messages.filter((m) => m.role === "assistant").length,
       updated_at: new Date().toISOString(),
     }, { onConflict: "id" });
-    console.log(`[ContextForge:vault] Synced session ${session.id} (${session.messages.length} messages)`);
+    console.log(`[ContextMover:vault] Synced session ${session.id} (${session.messages.length} messages)`);
   } catch (err) {
-    console.warn("[ContextForge:vault] Sync failed:", err);
+    console.warn("[ContextMover:vault] Sync failed:", err);
     // Re-queue on failure so the next interval picks it up
     pendingVaultSync = session;
   }
@@ -89,9 +89,9 @@ async function tableExists(tableName: string): Promise<boolean> {
       error.message?.toLowerCase().includes('does not exist') ||
       error.message?.toLowerCase().includes('could not find');
     if (isMissing) {
-      console.log(`[ContextForge:cloud] ${tableName} not found in Supabase, skipping sync`);
+      console.log(`[ContextMover:cloud] ${tableName} not found in Supabase, skipping sync`);
     } else {
-      console.warn(`[ContextForge:cloud] ${tableName} probe failed:`, error.message);
+      console.warn(`[ContextMover:cloud] ${tableName} probe failed:`, error.message);
     }
     return false;
   } catch {
@@ -111,7 +111,7 @@ export async function syncPromptTemplates(userId: string): Promise<void> {
       .from("prompt_templates")
       .select("*")
       .eq("user_id", userId);
-    if (error) { console.warn("[ContextForge:cloud] prompt_templates fetch failed:", error.message); return; }
+    if (error) { console.warn("[ContextMover:cloud] prompt_templates fetch failed:", error.message); return; }
 
     const db = await getDb();
     const localTemplates: PromptTemplate[] = await db.getAll("prompt_templates");
@@ -160,9 +160,9 @@ export async function syncPromptTemplates(userId: string): Promise<void> {
       }
     }
 
-    console.log(`[ContextForge:cloud] synced ${synced} prompt templates`);
+    console.log(`[ContextMover:cloud] synced ${synced} prompt templates`);
   } catch (err) {
-    console.warn("[ContextForge:cloud] syncPromptTemplates threw:", err);
+    console.warn("[ContextMover:cloud] syncPromptTemplates threw:", err);
   }
 }
 
@@ -178,7 +178,7 @@ export async function syncPromptAssignments(userId: string): Promise<void> {
       .from("prompt_assignments")
       .select("*")
       .eq("user_id", userId);
-    if (error) { console.warn("[ContextForge:cloud] prompt_assignments fetch failed:", error.message); return; }
+    if (error) { console.warn("[ContextMover:cloud] prompt_assignments fetch failed:", error.message); return; }
 
     const db = await getDb();
     const localAssignments: PromptAssignment[] = await db.getAll("prompt_assignments");
@@ -210,8 +210,8 @@ export async function syncPromptAssignments(userId: string): Promise<void> {
       }
     }
 
-    console.log(`[ContextForge:cloud] synced ${synced} prompt assignments`);
+    console.log(`[ContextMover:cloud] synced ${synced} prompt assignments`);
   } catch (err) {
-    console.warn("[ContextForge:cloud] syncPromptAssignments threw:", err);
+    console.warn("[ContextMover:cloud] syncPromptAssignments threw:", err);
   }
 }

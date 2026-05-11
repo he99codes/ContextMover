@@ -1,6 +1,6 @@
 // packages/browser-extension/src/lib/supabase.ts
 //
-// Supabase client for the ContextForge browser extension.
+// Supabase client for the ContextMover browser extension.
 //
 // MV3 service workers DO NOT have `localStorage`, so we must supply a custom
 // storage adapter backed by `chrome.storage.local`. The same client also works

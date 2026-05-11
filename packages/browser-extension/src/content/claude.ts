@@ -2,7 +2,7 @@
 import { extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
 
-console.log("[ContextForge] Claude content script loaded");
+console.log("[ContextMover] Claude content script loaded");
 
 function scrapeMessages(): Message[] {
   if (window.location.pathname === "/new") return [];
@@ -13,7 +13,7 @@ function scrapeMessages(): Message[] {
       .map((el) => (el as HTMLElement).dataset.testid ?? "")
       .filter(Boolean)
   );
-  console.log(`[ContextForge:claude] testids on page:`, [...allTestIds].sort().join(", "));
+  console.log(`[ContextMover:claude] testids on page:`, [...allTestIds].sort().join(", "));
 
   type Entry = { el: HTMLElement; role: "user" | "assistant" };
   const collected: Entry[] = [];
@@ -33,7 +33,7 @@ function scrapeMessages(): Message[] {
     if (el.parentElement?.closest('[data-testid="ai-turn"], [data-testid="assistant-message"]')) return;
     collected.push({ el, role: "assistant" });
   });
-  console.log(`[ContextForge:claude] S1 testid: user=${collected.filter(e=>e.role==="user").length} asst=${collected.filter(e=>e.role==="assistant").length}`);
+  console.log(`[ContextMover:claude] S1 testid: user=${collected.filter(e=>e.role==="user").length} asst=${collected.filter(e=>e.role==="assistant").length}`);
 
   // ── Strategy 2: legacy testids (human-turn / ai-turn together) ────────────
   if (!hasAsst()) {
@@ -43,7 +43,7 @@ function scrapeMessages(): Message[] {
       const role = el.dataset.testid === "human-turn" ? "user" : "assistant";
       if (role === "assistant") collected.push({ el, role });
     });
-    console.log(`[ContextForge:claude] S2 legacy: asst=${collected.filter(e=>e.role==="assistant").length}`);
+    console.log(`[ContextMover:claude] S2 legacy: asst=${collected.filter(e=>e.role==="assistant").length}`);
   }
 
   // ── Strategy 3: class-name fallback (.font-claude-message) ────────────────
@@ -53,7 +53,7 @@ function scrapeMessages(): Message[] {
       if (!el.parentElement?.closest('[class*="font-claude-message"]'))
         collected.push({ el, role: "assistant" });
     });
-    console.log(`[ContextForge:claude] S3 class: asst=${collected.filter(e=>e.role==="assistant").length}`);
+    console.log(`[ContextMover:claude] S3 class: asst=${collected.filter(e=>e.role==="assistant").length}`);
   }
 
   // ── Strategy 5: sr-only h2 accessibility anchors ──────────────────────────
@@ -75,7 +75,7 @@ function scrapeMessages(): Message[] {
       if (collected.some((entry) => entry.el === turn)) return;
       collected.push({ el: turn, role: "assistant" });
     });
-    console.log(`[ContextForge:claude] S5 sr-only: asst=${collected.filter(e=>e.role==="assistant").length}`);
+    console.log(`[ContextMover:claude] S5 sr-only: asst=${collected.filter(e=>e.role==="assistant").length}`);
   }
 
   // ── Strategy 6: render-root sibling walk ──────────────────────────────────
@@ -101,9 +101,9 @@ function scrapeMessages(): Message[] {
         collected.push({ el: turn, role: "assistant" });
         dedup.add(turn);
       }
-      console.log(`[ContextForge:claude] S6 render-root: asst=${collected.filter(e=>e.role==="assistant").length}`);
+      console.log(`[ContextMover:claude] S6 render-root: asst=${collected.filter(e=>e.role==="assistant").length}`);
     } else {
-      console.log(`[ContextForge:claude] S6 render-root: no [data-test-render-count] found`);
+      console.log(`[ContextMover:claude] S6 render-root: no [data-test-render-count] found`);
     }
   }
 
@@ -159,7 +159,7 @@ function scrapeMessages(): Message[] {
         cur = cur.parentElement;
       }
     }
-    console.log(`[ContextForge:claude] S7 action-bar: asst=${collected.filter(e=>e.role==="assistant").length}`);
+    console.log(`[ContextMover:claude] S7 action-bar: asst=${collected.filter(e=>e.role==="assistant").length}`);
   }
 
   // ── Strategy 4: STRUCTURAL — no testid dependency ─────────────────────────
@@ -193,7 +193,7 @@ function scrapeMessages(): Message[] {
     if (container) {
       const dedup = new Set(collected.map((e) => e.el));
       const turns = [...container.children] as HTMLElement[];
-      console.log(`[ContextForge:claude] S4 structural: container has ${turns.length} children, userAnchors=${userCount}`);
+      console.log(`[ContextMover:claude] S4 structural: container has ${turns.length} children, userAnchors=${userCount}`);
 
       for (const turn of turns) {
         if (isStreaming(turn)) continue;
@@ -206,9 +206,9 @@ function scrapeMessages(): Message[] {
           dedup.add(turn);
         }
       }
-      console.log(`[ContextForge:claude] S4 structural: asst=${collected.filter(e=>e.role==="assistant").length}`);
+      console.log(`[ContextMover:claude] S4 structural: asst=${collected.filter(e=>e.role==="assistant").length}`);
     } else {
-      console.warn(`[ContextForge:claude] S4 structural: could not find conversation container`);
+      console.warn(`[ContextMover:claude] S4 structural: could not find conversation container`);
     }
   }
 
@@ -227,21 +227,21 @@ function scrapeMessages(): Message[] {
     if (content) {
       messages.push({ role, content, timestamp: Date.now() });
     } else {
-      console.warn(`[ContextForge:claude] empty content for role=${role} testid=${el.dataset.testid ?? "none"}`);
+      console.warn(`[ContextMover:claude] empty content for role=${role} testid=${el.dataset.testid ?? "none"}`);
     }
   }
 
   // ── Diagnostic: preview every message ──────────────────────────────────────
   const userC = messages.filter(m => m.role === "user").length;
   const asstC = messages.filter(m => m.role === "assistant").length;
-  console.log('[CF:capture]', 'claude', {
+  console.log('[CM:capture]', 'claude', {
     total: messages.length,
     user: userC,
     assistant: asstC,
     preview: messages.map(m => ({ role: m.role, len: m.content.length }))
   });
   if (asstC === 0 && userC > 0) {
-    console.error(`[ContextForge:claude] ASSISTANT MESSAGES STILL MISSING after all strategies`);
+    console.error(`[ContextMover:claude] ASSISTANT MESSAGES STILL MISSING after all strategies`);
   }
 
   return messages;

@@ -17,7 +17,7 @@ class PerfTracker {
   track(name: string, duration: number, metadata?: Record<string, unknown>): void {
     this.metrics.push({ name, duration, metadata, timestamp: Date.now() });
     if (this.metrics.length > this.maxMetrics) this.metrics.shift();
-    console.log(`[CF:perf] ${name}: ${duration.toFixed(1)}ms`, metadata ?? "");
+    console.log(`[CM:perf] ${name}: ${duration.toFixed(1)}ms`, metadata ?? "");
   }
 
   async measure<T>(

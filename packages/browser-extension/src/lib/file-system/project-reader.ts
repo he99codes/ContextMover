@@ -149,7 +149,7 @@ export class ProjectReader {
       try {
         results.push(await this.readFile(p));
       } catch (err) {
-        console.warn(`[ContextForge:files] Could not read ${p}:`, err);
+        console.warn(`[ContextMover:files] Could not read ${p}:`, err);
       }
     }
     return results;

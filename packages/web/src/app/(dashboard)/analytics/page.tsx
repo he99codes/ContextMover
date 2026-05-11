@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Zap, FileCode, Bot, Database, CreditCard, ArrowRight } from "lucide-react";
 import { CHROME_STORE_URL } from "@/config/urls";
 
-export const metadata = { title: "Overview — ContextForge" };
+export const metadata = { title: "Overview — ContextMover" };
 
 const QUICK_LINKS = [
   { label: "Prompt Templates",   desc: "Manage your reusable prompts",      href: "/settings/prompts", icon: FileCode },
@@ -16,7 +16,7 @@ export default function OverviewPage() {
     <div className="max-w-3xl mx-auto p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-[#F5F5F5]">Overview</h1>
-        <p className="mt-1 text-sm text-[#6B6B6B]">Your ContextForge account at a glance.</p>
+        <p className="mt-1 text-sm text-[#6B6B6B]">Your ContextMover account at a glance.</p>
       </div>
 
       {/* Extension CTA */}

@@ -82,7 +82,7 @@ export async function generateQualityReport(sessionId?: string): Promise<string>
     if (rows.length === 0) {
       return [
         SEP,
-        "CONTEXTFORGE MIGRATION QUALITY REPORT",
+        "CONTEXTMOVER MIGRATION QUALITY REPORT",
         `Generated: ${new Date().toISOString()}`,
         SEP,
         "",
@@ -146,7 +146,7 @@ export async function generateQualityReport(sessionId?: string): Promise<string>
     const lines: string[] = [];
 
     lines.push(SEP);
-    lines.push("CONTEXTFORGE MIGRATION QUALITY REPORT");
+    lines.push("CONTEXTMOVER MIGRATION QUALITY REPORT");
     lines.push(`Generated: ${new Date().toISOString()}`);
     if (sessionId) lines.push(`Scope: session ${sessionId}`);
     lines.push(SEP);
@@ -252,7 +252,7 @@ export async function generateQualityReport(sessionId?: string): Promise<string>
   } catch (err) {
     return [
       SEP,
-      "CONTEXTFORGE MIGRATION QUALITY REPORT",
+      "CONTEXTMOVER MIGRATION QUALITY REPORT",
       `Generated: ${new Date().toISOString()}`,
       SEP,
       "",

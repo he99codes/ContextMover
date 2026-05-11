@@ -107,7 +107,7 @@ export default function AuthGate({ children }: AuthGateProps) {
           <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-[8px] bg-[#00FF88]">
             <span className="text-lg font-bold text-black">CF</span>
           </div>
-          <h1 className="text-base font-semibold tracking-tight text-[#F5F5F5]">ContextForge</h1>
+          <h1 className="text-base font-semibold tracking-tight text-[#F5F5F5]">ContextMover</h1>
           <p className="mt-1 text-[11px] text-[#6B6B6B]">
             Sign {mode === "signIn" ? "in" : "up"} to sync with the web dashboard
           </p>

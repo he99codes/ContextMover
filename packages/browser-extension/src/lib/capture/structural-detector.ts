@@ -6,12 +6,12 @@
 import type { Message } from "@/lib/types";
 
 export function detectByStructure(platform: string): Message[] {
-  console.warn(`[CF:structural] ${platform}: attempting structural detection`);
+  console.warn(`[CM:structural] ${platform}: attempting structural detection`);
 
   // ── Pre-flight quality guards ──────────────────────────────────────────────────
   // Abort if the page is still loading.
   if (document.querySelector('[aria-busy="true"], .loading, [data-loading]')) {
-    console.warn(`[CF:structural] ${platform}: page is in a loading state, skipping`);
+    console.warn(`[CM:structural] ${platform}: page is in a loading state, skipping`);
     return [];
   }
 
@@ -23,13 +23,13 @@ export function detectByStructure(platform: string): Message[] {
       chatRoot.querySelectorAll<Element>("*")
     ).filter((el) => (el.textContent ?? "").trim().length > 50);
     if (substantialEls.length < 4) {
-      console.warn(`[CF:structural] ${platform}: too few substantial elements (${substantialEls.length}), skipping`);
+      console.warn(`[CM:structural] ${platform}: too few substantial elements (${substantialEls.length}), skipping`);
       return [];
     }
     // At least 2 must be longer than 150 chars (else it’s UI chrome, not messages).
     const longEls = substantialEls.filter((el) => (el.textContent ?? "").trim().length > 150);
     if (longEls.length < 2) {
-      console.warn(`[CF:structural] ${platform}: too few long elements (${longEls.length}), skipping`);
+      console.warn(`[CM:structural] ${platform}: too few long elements (${longEls.length}), skipping`);
       return [];
     }
   }
@@ -39,7 +39,7 @@ export function detectByStructure(platform: string): Message[] {
   if (candidates.length >= 2) {
     const result = assignRolesByPosition(candidates);
     if (result.length > 0) {
-      console.log(`[CF:structural] ${platform}: strategy 1 (alternating) found ${result.length} messages`);
+      console.log(`[CM:structural] ${platform}: strategy 1 (alternating) found ${result.length} messages`);
       return result;
     }
   }
@@ -48,14 +48,14 @@ export function detectByStructure(platform: string): Message[] {
   // User messages tend to be right-biased; assistant fills full width.
   const byAlignment = detectByAlignment();
   if (byAlignment.length > 0) {
-    console.log(`[CF:structural] ${platform}: strategy 2 (alignment) found ${byAlignment.length} messages`);
+    console.log(`[CM:structural] ${platform}: strategy 2 (alignment) found ${byAlignment.length} messages`);
     return byAlignment;
   }
 
   // Strategy 3: Content characteristics.
   // Assistant: longer, contains markdown/code. User: shorter, question-like.
   const byContent = detectByContentCharacteristics();
-  console.log(`[CF:structural] ${platform}: strategy 3 (content) found ${byContent.length} messages`);
+  console.log(`[CM:structural] ${platform}: strategy 3 (content) found ${byContent.length} messages`);
   return byContent;
 }
 

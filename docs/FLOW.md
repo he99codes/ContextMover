@@ -1,4 +1,4 @@
-# ContextForge — Full Working Flow
+# ContextMover — Full Working Flow
 
 A complete walk-through of how a conversation on one AI platform (e.g. Claude) ends up as a rich prompt injected into another (e.g. ChatGPT), broken down stage-by-stage.
 
@@ -35,7 +35,7 @@ Six stages run end-to-end. Each stage has diagnostic logs so you can pinpoint wh
 1. **Extension install or reload**
    `service-worker.onInstalled` reads the compiled manifest's `content_scripts[]` and calls `chrome.scripting.executeScript` on every already-open matching tab. This is required because MV3 does **not** auto-inject into existing tabs — without this step, you would have to manually F5 every AI tab after updating the extension.
 
-2. **Content script boots** → prints `[ContextForge] <Platform> content script loaded`.
+2. **Content script boots** → prints `[ContextMover] <Platform> content script loaded`.
 
 3. **`startSessionCapture` (shared.ts)** attaches a `MutationObserver` on `main` (or `chat-window` for Gemini). It also:
    - generates a stable `sessionId` from the URL (so revisiting a thread updates the same record)
@@ -63,13 +63,13 @@ Six stages run end-to-end. Each stage has diagnostic logs so you can pinpoint wh
 
 6. **Diagnostic output** logged on the AI tab console:
    ```
-   [ContextForge:claude] S1 testid: user=10 asst=0
-   [ContextForge:claude] S2 legacy: asst=0
-   [ContextForge:claude] S3 class:  asst=0
-   [ContextForge:claude] S4 structural: container has 21 children, userAnchors=10
-   [ContextForge:claude] S4 structural: asst=10
-   [ContextForge:claude] FINAL: 20 msgs (user=10 asst=10)
-   [ContextForge:claude] preview: [{role: "user", preview: "..."}, {role: "assistant", preview: "..."}, ...]
+   [ContextMover:claude] S1 testid: user=10 asst=0
+   [ContextMover:claude] S2 legacy: asst=0
+   [ContextMover:claude] S3 class:  asst=0
+   [ContextMover:claude] S4 structural: container has 21 children, userAnchors=10
+   [ContextMover:claude] S4 structural: asst=10
+   [ContextMover:claude] FINAL: 20 msgs (user=10 asst=10)
+   [ContextMover:claude] preview: [{role: "user", preview: "..."}, {role: "assistant", preview: "..."}, ...]
    ```
 
 7. **Snapshot key dedup**: a hash of `(messageCount + lastRole + lastContent)` prevents spamming CAPTURE_SESSION for identical state.
@@ -84,7 +84,7 @@ Six stages run end-to-end. Each stage has diagnostic logs so you can pinpoint wh
 **Where logs appear**: Service worker console (`chrome://extensions` → Inspect service worker).
 
 ```
-[ContextForge:sw] Stage2 — CAPTURE_SESSION received: platform=claude
+[ContextMover:sw] Stage2 — CAPTURE_SESSION received: platform=claude
                   session=claude-abc total=20 user=10 assistant=10
 ```
 
@@ -101,7 +101,7 @@ The payload is merged with the existing session (preserving `createdAt`) and pas
 - Writes the session record to the `sessions` object store keyed by `sessionId`.
 - Immediately reads it back and counts roles:
   ```
-  [ContextForge:sw] Stage3 — DB readback: total=20 user=10 assistant=10
+  [ContextMover:sw] Stage3 — DB readback: total=20 user=10 assistant=10
   ```
 - If readback shows `assistant=0` when the incoming payload had non-zero, the bug is DB-level (never happens in practice; idb is reliable).
 - Also broadcasts `SESSIONS_UPDATED` on the runtime channel so the sidebar refreshes instantly instead of waiting for its 5 s poll.
@@ -114,7 +114,7 @@ The payload is merged with the existing session (preserving `createdAt`) and pas
 **Who**: `handleMigrateContext` in service-worker.ts. Triggered when the sidebar sends `MIGRATE_CONTEXT`.
 
 ```
-[ContextForge:sw] Stage4 — session loaded: total=20 user=10 assistant=10
+[ContextMover:sw] Stage4 — session loaded: total=20 user=10 assistant=10
 ```
 
 Gates:
@@ -147,8 +147,8 @@ Estimates tokens (~4 chars each). Returns a `SummaryResult` with two fields:
 
 Logs:
 ```
-[ContextForge:sw] Stage5 — calling summarizer with 20 messages
-[ContextForge:sw] Stage5 — summarizer done: mode=structured tokens~4200
+[ContextMover:sw] Stage5 — calling summarizer with 20 messages
+[ContextMover:sw] Stage5 — summarizer done: mode=structured tokens~4200
                   codeBlocks=3 tailMessages=6
 ```
 
@@ -182,8 +182,8 @@ All four include:
 
 Logs:
 ```
-[ContextForge:sw] Stage6 — prompt built: length=4821 chars, target=chatgpt
-[ContextForge:sw] Stage6 — prompt preview (first 400 chars): ...
+[ContextMover:sw] Stage6 — prompt built: length=4821 chars, target=chatgpt
+[ContextMover:sw] Stage6 — prompt preview (first 400 chars): ...
 ```
 
 Gate: if `prompt.length < 500`, abort with an error (catastrophic context loss).
@@ -211,7 +211,7 @@ Gate: if `prompt.length < 500`, abort with an error (catastrophic context loss).
 
 Logs:
 ```
-[ContextForge:sw] Stage6 — injection confirmed in tab 123
+[ContextMover:sw] Stage6 — injection confirmed in tab 123
 ```
 
 ---
@@ -220,30 +220,30 @@ Logs:
 
 ```
 ── AI SOURCE TAB CONSOLE ────────────────────────────────────────────
-[ContextForge] Claude content script loaded
-[ContextForge] Capture triggered for claude
-[ContextForge:claude] testids on page: ai-turn, user-message, ...
-[ContextForge:claude] S1 testid: user=10 asst=10
-[ContextForge:claude] FINAL: 20 msgs (user=10 asst=10)
-[ContextForge:claude] preview: [...]
-[ContextForge] Sending CAPTURE_SESSION for session: claude-xyz
+[ContextMover] Claude content script loaded
+[ContextMover] Capture triggered for claude
+[ContextMover:claude] testids on page: ai-turn, user-message, ...
+[ContextMover:claude] S1 testid: user=10 asst=10
+[ContextMover:claude] FINAL: 20 msgs (user=10 asst=10)
+[ContextMover:claude] preview: [...]
+[ContextMover] Sending CAPTURE_SESSION for session: claude-xyz
 
 ── SERVICE WORKER CONSOLE ───────────────────────────────────────────
-[ContextForge ServiceWorker] Received message: CAPTURE_SESSION
-[ContextForge:sw] Stage2 — CAPTURE_SESSION received: ... user=10 assistant=10
-[ContextForge:sw] Stage3 — DB readback: total=20 user=10 assistant=10
+[ContextMover ServiceWorker] Received message: CAPTURE_SESSION
+[ContextMover:sw] Stage2 — CAPTURE_SESSION received: ... user=10 assistant=10
+[ContextMover:sw] Stage3 — DB readback: total=20 user=10 assistant=10
 
 ── USER CLICKS "MIGRATE TO CHATGPT" IN SIDEBAR ──────────────────────
-[ContextForge ServiceWorker] Received message: MIGRATE_CONTEXT
-[ContextForge:sw] Stage4 — session loaded: total=20 user=10 assistant=10
-[ContextForge:sw] Stage5 — calling summarizer with 20 messages
-[ContextForge:sw] Stage5 — summarizer done: mode=structured tokens~4200 codeBlocks=3 tailMessages=6
-[ContextForge:sw] Stage6 — prompt built: length=4821 chars, target=chatgpt
-[ContextForge:sw] Stage6 — prompt preview (first 400 chars): ...
-[ContextForge:sw] Stage6 — injection confirmed in tab 456
+[ContextMover ServiceWorker] Received message: MIGRATE_CONTEXT
+[ContextMover:sw] Stage4 — session loaded: total=20 user=10 assistant=10
+[ContextMover:sw] Stage5 — calling summarizer with 20 messages
+[ContextMover:sw] Stage5 — summarizer done: mode=structured tokens~4200 codeBlocks=3 tailMessages=6
+[ContextMover:sw] Stage6 — prompt built: length=4821 chars, target=chatgpt
+[ContextMover:sw] Stage6 — prompt preview (first 400 chars): ...
+[ContextMover:sw] Stage6 — injection confirmed in tab 456
 
 ── CHATGPT TAB CONSOLE ──────────────────────────────────────────────
-[ContextForge] ChatGPT content script received INJECT_CONTEXT
+[ContextMover] ChatGPT content script received INJECT_CONTEXT
 (prompt appears in composer, ready for user to hit Send)
 ```
 
@@ -271,7 +271,7 @@ Logs:
 | Symptom | Check |
 |---------|-------|
 | `FINAL: N msgs (user=X asst=0)` in AI tab console | Stage 1 — scraper selectors drifted. Read `testids on page` log, add/adjust strategy |
-| No `[ContextForge] Capture triggered` log on the AI tab | Content script not running. Reload the extension (onInstalled will re-inject) or F5 the tab |
+| No `[ContextMover] Capture triggered` log on the AI tab | Content script not running. Reload the extension (onInstalled will re-inject) or F5 the tab |
 | Stage 2 log missing when you expect a capture | Content script ran but `CAPTURE_SESSION` didn't fire — check snapshot-key dedup or messages array |
 | Stage 3 readback differs from Stage 2 | IndexedDB write failed (corruption or quota) — very rare |
 | Stage 4 shows `assistant=0` but Stage 2 was correct | Stale session in DB from pre-fix code; reload the source tab to force overwrite |

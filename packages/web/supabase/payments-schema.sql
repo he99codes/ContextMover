@@ -1,4 +1,4 @@
--- ContextForge — Payments schema migration
+-- ContextMover — Payments schema migration
 -- Run this in the Supabase SQL editor for your project.
 -- Safe to run multiple times (all statements are idempotent).
 

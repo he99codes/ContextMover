@@ -39,7 +39,7 @@ export default function VaultCallbackPage() {
       <div className="text-center">
         <Loader2 size={24} className="mx-auto mb-4 animate-spin text-[#00FF88]" />
         <p className="text-sm font-medium text-[#F5F5F5]">Connecting your vault…</p>
-        <p className="mt-1 text-xs text-[#6B6B6B]">Return to the ContextForge extension to complete setup</p>
+        <p className="mt-1 text-xs text-[#6B6B6B]">Return to the ContextMover extension to complete setup</p>
       </div>
     </div>
   );

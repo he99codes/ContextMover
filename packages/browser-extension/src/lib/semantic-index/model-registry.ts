@@ -84,7 +84,7 @@ class ModelRegistry {
     } catch { /* ignore — onnx backend may not be initialised yet */ }
 
     console.log(
-      `[ContextForge:model] Loading ${config.label} device=${config.device} threads=${threads}`
+      `[ContextMover:model] Loading ${config.label} device=${config.device} threads=${threads}`
     );
 
     onProgress?.(10);
@@ -110,7 +110,7 @@ class ModelRegistry {
     this.loadedTier = tier;
     this.config = { ...config, threads };
     onProgress?.(100);
-    console.log(`[ContextForge:model] ${config.label} ready`);
+    console.log(`[ContextMover:model] ${config.label} ready`);
   }
 
   async embed(text: string): Promise<number[]> {

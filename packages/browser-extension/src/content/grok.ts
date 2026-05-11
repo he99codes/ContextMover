@@ -2,7 +2,7 @@
 import { extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
 
-console.log("[ContextForge] Grok content script loaded");
+console.log("[ContextMover] Grok content script loaded");
 
 function isStreaming(el: HTMLElement): boolean {
   return (
@@ -28,7 +28,7 @@ function scrapeMessages(): Message[] {
       const role = el.className.includes("User") ? "user" : "assistant";
       collected.push({ el, role });
     }
-    console.log(`[ContextForge:grok] A legacy-class: ${els.length}`);
+    console.log(`[ContextMover:grok] A legacy-class: ${els.length}`);
   }
 
   // ── Strategy B: data-message-author-role (ChatGPT-style) ──────────────────
@@ -39,7 +39,7 @@ function scrapeMessages(): Message[] {
       const role = el.dataset.messageAuthorRole;
       if (role === "user" || role === "assistant") collected.push({ el, role });
     }
-    console.log(`[ContextForge:grok] B data-author: ${els.length}`);
+    console.log(`[ContextMover:grok] B data-author: ${els.length}`);
   }
 
   // ── Strategy C: class substrings ("user-message", "bot-message", etc.) ────
@@ -54,7 +54,7 @@ function scrapeMessages(): Message[] {
 
     for (const el of userEls) collected.push({ el, role: "user" });
     for (const el of asstEls) collected.push({ el, role: "assistant" });
-    console.log(`[ContextForge:grok] C class-substr: user=${userEls.length} asst=${asstEls.length}`);
+    console.log(`[ContextMover:grok] C class-substr: user=${userEls.length} asst=${asstEls.length}`);
   }
 
   // ── Strategy D: generic bubble scan — pairs of siblings with classes that  ─
@@ -73,7 +73,7 @@ function scrapeMessages(): Message[] {
       }
       // No reliable signal → skip rather than guess wrong role.
     });
-    console.log(`[ContextForge:grok] D generic-bubble: ${candidates.length} candidates, ${collected.length} classified`);
+    console.log(`[ContextMover:grok] D generic-bubble: ${candidates.length} candidates, ${collected.length} classified`);
   }
 
   // ── DOM diagnostic if nothing worked ──────────────────────────────────────
@@ -90,9 +90,9 @@ function scrapeMessages(): Message[] {
       });
     });
     const topClasses = [...classHits.entries()].sort((a, b) => b[1] - a[1]).slice(0, 30);
-    console.warn(`[ContextForge:grok] NO messages found. DOM diagnostic:`);
-    console.warn(`[ContextForge:grok]   candidate classes (name × count):`, topClasses);
-    console.warn(`[ContextForge:grok]   testids on page:`, [...testidHits].sort().join(", "));
+    console.warn(`[ContextMover:grok] NO messages found. DOM diagnostic:`);
+    console.warn(`[ContextMover:grok]   candidate classes (name × count):`, topClasses);
+    console.warn(`[ContextMover:grok]   testids on page:`, [...testidHits].sort().join(", "));
     return [];
   }
 
@@ -106,19 +106,19 @@ function scrapeMessages(): Message[] {
   for (const { el, role } of collected) {
     const content = extractMessageContent(el);
     if (content) messages.push({ role, content, timestamp: Date.now() });
-    else console.warn(`[ContextForge:grok] empty content for role=${role}`);
+    else console.warn(`[ContextMover:grok] empty content for role=${role}`);
   }
 
   const userCount = messages.filter(m => m.role === "user").length;
   const asstCount = messages.filter(m => m.role === "assistant").length;
-  console.log('[CF:capture]', 'grok', {
+  console.log('[CM:capture]', 'grok', {
     total: messages.length,
     user: userCount,
     assistant: asstCount,
     preview: messages.map(m => ({ role: m.role, len: m.content.length }))
   });
   if (asstCount === 0 && userCount > 0) {
-    console.error(`[ContextForge:grok] ASSISTANT MESSAGES MISSING`);
+    console.error(`[ContextMover:grok] ASSISTANT MESSAGES MISSING`);
   }
 
   return messages;
@@ -181,14 +181,14 @@ async function injectIntoGrokInput(text: string) {
   }
 
   if (!input) {
-    console.warn("[ContextForge:grok] injection failed — no composer element matched any selector");
+    console.warn("[ContextMover:grok] injection failed — no composer element matched any selector");
     return {
       ok: false,
       error: "Grok input box not found. Make sure a Grok chat tab is open and the page has finished loading.",
     };
   }
 
-  console.log(`[ContextForge:grok] injecting via selector: ${matchedSelector}, tag=${input.tagName}, contentEditable=${input.isContentEditable}`);
+  console.log(`[ContextMover:grok] injecting via selector: ${matchedSelector}, tag=${input.tagName}, contentEditable=${input.isContentEditable}`);
 
   if (!await injectWithRetry(input, text, "grok")) {
     return {
@@ -197,6 +197,6 @@ async function injectIntoGrokInput(text: string) {
     };
   }
 
-  console.log("[ContextForge:grok] injection succeeded");
+  console.log("[ContextMover:grok] injection succeeded");
   return { ok: true };
 }

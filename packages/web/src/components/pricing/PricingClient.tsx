@@ -14,7 +14,7 @@ const FREE_FEATURES = [
   "Capture sessions on Claude, ChatGPT, Gemini, Grok, Perplexity, DeepSeek",
   "Full Context migration (Tier 1)",
   "6 most recent messages always preserved",
-  "Local IndexedDB storage — zero ContextForge access",
+  "Local IndexedDB storage — zero ContextMover access",
   "Export sessions (JSON, Markdown, plain text)",
   "Prompt template library (15 system templates)",
 ];
@@ -75,7 +75,7 @@ export function PricingClient() {
   const proPeriod = billing === "monthly" ? "/month" : "/year";
 
   function handleSuccess() {
-    toast.success("🎉 Pro activated! Welcome to ContextForge Pro.");
+    toast.success("🎉 Pro activated! Welcome to ContextMover Pro.");
     setIsPro(true);
     router.refresh();
   }
@@ -136,7 +136,7 @@ export function PricingClient() {
             href="/"
             className="text-xs font-mono text-[#6B6B6B] hover:text-[#00FF88] transition-colors"
           >
-            ← ContextForge
+            ← ContextMover
           </Link>
         </div>
 
@@ -271,8 +271,8 @@ export function PricingClient() {
 
         <p className="mt-10 text-center text-xs text-[#3A3A3A]">
           Questions?{" "}
-          <a href="mailto:hey@contextforge.app" className="text-[#00FF88] hover:underline">
-            hey@contextforge.app
+          <a href="mailto:hey@contextmover.app" className="text-[#00FF88] hover:underline">
+            hey@contextmover.app
           </a>
         </p>
       </div>

@@ -1,5 +1,6 @@
 // packages/browser-extension/src/background/service-worker.ts
 import { db, sessionCache } from "@/lib/db";
+import { migrateFromContextForge } from "@/lib/db-migration";
 import summarize, { summarizeIntelligent, summarizeWithAttention } from "@/lib/summarizer";
 import buildMigrationPrompt from "@/lib/translator";
 import { promptEngine } from "@/lib/prompt-engine/engine";
@@ -72,7 +73,7 @@ async function syncToMcpBridge(session: ContextSession): Promise<void> {
       signal: AbortSignal.timeout(2_000),
     });
     if (res.ok) {
-      console.log("[CF:sw] Synced to MCP bridge:", session.id);
+      console.log("[CM:sw] Synced to MCP bridge:", session.id);
     }
   } catch {
     // Bridge not running — silently ignore. Most users will never install
@@ -110,7 +111,7 @@ async function syncEmbeddingsToMcpBridge(sessionId: string): Promise<void> {
       signal: AbortSignal.timeout(5_000),
     });
     if (res.ok) {
-      console.log(`[CF:sw] Synced ${payload.length} embeddings for ${sessionId}`);
+      console.log(`[CM:sw] Synced ${payload.length} embeddings for ${sessionId}`);
     }
   } catch {
     /* bridge offline — ignore */
@@ -248,7 +249,7 @@ async function broadcastForgetToTabs(sessionId: string): Promise<void> {
       } catch { /* tab gone — ignore */ }
     }
   } catch (err) {
-    console.warn("[ContextForge] broadcastForgetToTabs failed:", err);
+    console.warn("[ContextMover] broadcastForgetToTabs failed:", err);
   }
 }
 
@@ -258,11 +259,21 @@ async function broadcastForgetToTabs(sessionId: string): Promise<void> {
 // calling it again on each wake is cheap and ensures it is never stale.
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
-  .catch((err: unknown) => console.warn("[ContextForge] setPanelBehavior failed:", err));
+  .catch((err: unknown) => console.warn("[ContextMover] setPanelBehavior failed:", err));
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────────
+// Rebrand migration — runs on every SW cold start (install / update / spawn).
+// The function is idempotent: it no-ops if the legacy "contextforge" IndexedDB
+// is not present. Errors are swallowed internally so migration failure can
+// never brick capture.
+void migrateFromContextForge();
+
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log("[ContextForge] Extension installed.");
+  console.log("[ContextMover] Extension installed.");
+  // Belt-and-braces: also trigger on install/update so a fresh-install path
+  // during the ContextForge → ContextMover upgrade is always covered.
+  await migrateFromContextForge().catch(() => { /* non-fatal */ });
+
   const existing = await chrome.storage.local.get(["sessions"]);
   if (!existing.sessions) await chrome.storage.local.set({ sessions: [] });
 
@@ -284,17 +295,17 @@ chrome.runtime.onInstalled.addListener(async () => {
         } catch { resolve(false); }
       });
       if (alive) {
-        console.log(`[ContextForge] Tab ${tab.id} already has content script — skipping`);
+        console.log(`[ContextMover] Tab ${tab.id} already has content script — skipping`);
         continue;
       }
       if (injectedTabs.has(tab.id)) {
-        console.log(`[ContextForge] Tab ${tab.id} already injected this session — skipping`);
+        console.log(`[ContextMover] Tab ${tab.id} already injected this session — skipping`);
         continue;
       }
       injectedTabs.add(tab.id);
       chrome.scripting
         .executeScript({ target: { tabId: tab.id }, files: cs.js as string[] })
-        .then(() => console.log(`[ContextForge] Injected content script into tab ${tab.id} (${tab.url})`))
+        .then(() => console.log(`[ContextMover] Injected content script into tab ${tab.id} (${tab.url})`))
         .catch(() => { /* non-scriptable tab */ });
     }
   }
@@ -306,17 +317,17 @@ chrome.action.onClicked.addListener((tab) => {
   if (tab.id == null) return;
   chrome.sidePanel
     .open({ tabId: tab.id })
-    .catch((err: unknown) => console.warn("[ContextForge] sidePanel.open failed:", err));
+    .catch((err: unknown) => console.warn("[ContextMover] sidePanel.open failed:", err));
 });
 
 // ── Message Router ─────────────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  console.log(`[ContextForge ServiceWorker] Received message: ${msg.type}`);
+  console.log(`[ContextMover ServiceWorker] Received message: ${msg.type}`);
   (async () => {
     try {
     // [SECURITY] Reject messages from any source that is not our own extension.
     if (!isFromOwnExtension(sender)) {
-      console.warn('[CF:sw] Rejected message from unknown sender:', sender.id, msg.type);
+      console.warn('[CM:sw] Rejected message from unknown sender:', sender.id, msg.type);
       sendResponse({ error: 'Unauthorized sender' });
       return;
     }
@@ -324,24 +335,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       case "CAPTURE_SESSION": {
         // [SECURITY] Must come from a known platform tab.
         if (!isFromPlatformTab(sender)) {
-          console.warn('[CF:sw] CAPTURE_SESSION from non-platform sender, rejected. url:', sender.tab?.url);
+          console.warn('[CM:sw] CAPTURE_SESSION from non-platform sender, rejected. url:', sender.tab?.url);
           sendResponse({ error: 'Sender is not a known platform tab' });
           break;
         }
         // [SECURITY] Validate payload schema before any DB write.
         const p = msg.payload as Record<string, unknown> | undefined;
         if (!p || typeof p.platform !== 'string' || typeof p.sessionId !== 'string' || !Array.isArray(p.messages)) {
-          console.warn('[CF:sw] CAPTURE_SESSION invalid payload schema');
+          console.warn('[CM:sw] CAPTURE_SESSION invalid payload schema');
           sendResponse({ error: 'CAPTURE_SESSION: invalid payload schema' });
           break;
         }
         // [SECURITY] Claimed platform must match the actual tab URL.
         if (!payloadPlatformMatchesSender(p.platform, sender)) {
-          console.warn(`[CF:sw] CAPTURE_SESSION platform mismatch: claimed=${p.platform} tab=${sender.tab?.url}`);
+          console.warn(`[CM:sw] CAPTURE_SESSION platform mismatch: claimed=${p.platform} tab=${sender.tab?.url}`);
           sendResponse({ error: 'Platform claim does not match sender tab URL' });
           break;
         }
-        console.log(`[CF:sw] CAPTURE_SESSION: ${p.platform} ${p.sessionId}`);
+        console.log(`[CM:sw] CAPTURE_SESSION: ${p.platform} ${p.sessionId}`);
         await handleCaptureSession(msg.payload);
         sendResponse({ ok: true });
         // Notify sidebar toggle icon in this tab — fire-and-forget.
@@ -360,7 +371,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sendResponse({ error: 'Sender is not a known platform tab' });
           break;
         }
-        console.log(`[ContextForge ServiceWorker] CAPTURE_MESSAGE: ${msg.payload.platform} ${msg.payload.sessionId}`);
+        console.log(`[ContextMover ServiceWorker] CAPTURE_MESSAGE: ${msg.payload.platform} ${msg.payload.sessionId}`);
         await handleCaptureMessage(msg.payload);
         sendResponse({ ok: true });
         break;
@@ -373,10 +384,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           const tier1 = await summarize(session.messages);
           const tier2 = summarizeIntelligent(session.messages);
           precomputeCache.set(session.id, { tier1, tier2, cachedAt: Date.now() });
-          console.log(`[CF:sw] PRECOMPUTE_SUMMARY cached tier1+tier2 for session ${session.id}`);
+          console.log(`[CM:sw] PRECOMPUTE_SUMMARY cached tier1+tier2 for session ${session.id}`);
           sendResponse({ cached: true });
         } catch (err) {
-          console.warn("[CF:sw] PRECOMPUTE_SUMMARY failed:", err);
+          console.warn("[CM:sw] PRECOMPUTE_SUMMARY failed:", err);
           sendResponse(null);
         }
         break;
@@ -446,7 +457,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           try {
             const vaultClient = await userVault.getClient();
             if (!vaultClient) return;
-            await vaultClient.from('cf_sessions').delete().eq('id', msg.sessionId);
+            await vaultClient.from('cm_sessions').delete().eq('id', msg.sessionId);
           } catch { /* vault failure never blocks */ }
         })();
         void broadcastForgetToTabs(msg.sessionId);
@@ -591,7 +602,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (vaultClient) {
           for (const session of local) {
             try {
-              await vaultClient.from('cf_sessions').upsert({
+              await vaultClient.from('cm_sessions').upsert({
                 id: session.id, platform: session.platform, title: session.title,
                 messages: session.messages,
                 message_count: session.messages.length,
@@ -602,7 +613,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
               vaultSynced++;
             } catch { /* vault failure never blocks */ }
           }
-          console.log(`[ContextForge:vault] Bulk synced ${vaultSynced}/${local.length} sessions to personal vault`);
+          console.log(`[ContextMover:vault] Bulk synced ${vaultSynced}/${local.length} sessions to personal vault`);
         }
         sendResponse({ ok: true, count: local.length, vaultSynced });
         break;
@@ -710,7 +721,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "WARMUP_MODEL": {
-        void semanticIndex.warmup().catch((e) => console.warn('[CF:sw] warmup failed:', e));
+        void semanticIndex.warmup().catch((e) => console.warn('[CM:sw] warmup failed:', e));
         sendResponse({ ok: true });
         break;
       }
@@ -728,7 +739,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       case "CLEAR_SEMANTIC_INDEX": {
         try {
           await semanticIndex.clearAll();
-          console.log('[CF:sw] Semantic index cleared by user');
+          console.log('[CM:sw] Semantic index cleared by user');
           sendResponse({ ok: true });
         } catch (e) {
           sendResponse({ error: String(e) });
@@ -767,7 +778,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       case "CLEAR_QUALITY_HISTORY": {
         try {
           await db.migrationQuality.clear();
-          console.log("[CF:sw] Migration quality history cleared by user");
+          console.log("[CM:sw] Migration quality history cleared by user");
           sendResponse({ ok: true });
         } catch (e) {
           sendResponse({ error: String(e) });
@@ -780,7 +791,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      console.error(`[CF:sw] Unhandled error in ${msg.type} handler:`, err);
+      console.error(`[CM:sw] Unhandled error in ${msg.type} handler:`, err);
       sendResponse({ error: errMsg });
     }
   })();
@@ -801,7 +812,7 @@ function scoreAndPersist(
   captureStats?: { userCount: number; assistantCount: number; total: number }
 ): QualityScore {
   const score = scoreMigration({ session, outputPrompt, tier, platform, topK, captureStats });
-  console.log("[CF:quality]\n" + formatScoreReport(score));
+  console.log("[CM:quality]\n" + formatScoreReport(score));
 
   // Fire-and-forget persistence
   void db.migrationQuality
@@ -817,7 +828,7 @@ function scoreAndPersist(
       meta: score.meta,
       createdAt: Date.now(),
     })
-    .catch((err) => console.warn("[CF:quality] persist failed (non-fatal):", err));
+    .catch((err) => console.warn("[CM:quality] persist failed (non-fatal):", err));
 
   return score;
 }
@@ -850,7 +861,7 @@ function currentMonthKey(): string {
 async function checkLocalUsage(tier: 1 | 2 | 3): Promise<UsageCheckResult> {
   const type  = tierToType(tier);
   const month = currentMonthKey();
-  const key   = `cf_usage_${month}`;
+  const key   = `cm_usage_${month}`;
 
   const stored = await chrome.storage.local.get(key);
   const usage: Record<string, number> = stored[key] ?? { simple: 0, smart: 0, attention: 0 };
@@ -908,7 +919,7 @@ async function checkMigrationAllowed(tier: 1 | 2 | 3): Promise<UsageCheckResult>
     }
   } catch (err) {
     // Network / auth failure → fail open via local counters.
-    console.warn("[CF:usage] server check failed, falling back to local:", err);
+    console.warn("[CM:usage] server check failed, falling back to local:", err);
   }
 
   // No session OR server unreachable → use local counters.
@@ -944,7 +955,7 @@ async function handleCaptureMessage(payload: {
     try {
       const vaultClient = await userVault.getClient();
       if (!vaultClient) return;
-      await vaultClient.from('cf_sessions').upsert({
+      await vaultClient.from('cm_sessions').upsert({
         id: session.id, platform: session.platform, title: session.title,
         messages: session.messages,
         message_count: session.messages.length,
@@ -952,7 +963,7 @@ async function handleCaptureMessage(payload: {
         assistant_message_count: session.messages.filter((m) => m.role === 'assistant').length,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' });
-    } catch (err) { console.warn('[ContextForge:vault] CAPTURE_MESSAGE sync failed:', err); }
+    } catch (err) { console.warn('[ContextMover:vault] CAPTURE_MESSAGE sync failed:', err); }
   })();
 
   // Mirror to VS Code bridge (fire-and-forget — bridge may not be running)
@@ -972,19 +983,19 @@ async function handleCaptureSession(payload: {
   // In-flight deduplication: skip if the same session is already being processed.
   // Prevents double DB writes when content script + syncOpenTabs fire simultaneously.
   if (captureInFlight.has(payload.sessionId)) {
-    console.log(`[ContextForge:capture] Skipped in-flight duplicate for session ${payload.sessionId}`);
+    console.log(`[ContextMover:capture] Skipped in-flight duplicate for session ${payload.sessionId}`);
     return;
   }
   captureInFlight.add(payload.sessionId);
   // Release lock after debounce window + buffer so rapid-fire pairs are absorbed.
   setTimeout(() => captureInFlight.delete(payload.sessionId), 2_200);
 
-  // ── [CF:sw] received ────────────────────────────────────────────────────────
+  // ── [CM:sw] received ────────────────────────────────────────────────────────
   const rxUser = payload.messages.filter(m => m.role === "user").length;
   const rxAsst = payload.messages.filter(m => m.role === "assistant").length;
-  console.log('[CF:sw] received', { platform: payload.platform, session: payload.sessionId, total: payload.messages.length, user: rxUser, assistant: rxAsst });
+  console.log('[CM:sw] received', { platform: payload.platform, session: payload.sessionId, total: payload.messages.length, user: rxUser, assistant: rxAsst });
   if (rxAsst === 0 && rxUser > 0) {
-    console.error('[CF:sw] received — ASSISTANT MESSAGES MISSING in payload (Stage1 content script bug)');
+    console.error('[CM:sw] received — ASSISTANT MESSAGES MISSING in payload (Stage1 content script bug)');
   }
 
   const existing = await db.getSession(payload.sessionId);
@@ -1013,7 +1024,7 @@ async function handleCaptureSession(payload: {
     pendingWrites.delete(session.id);
     writeTimers.delete(session.id);
     sessionCache.invalidate(); // force fresh IDB read on next GET_SESSIONS
-    console.log('[CF:sw] saved (debounced)', { session: toWrite.id, total: toWrite.messages.length });
+    console.log('[CM:sw] saved (debounced)', { session: toWrite.id, total: toWrite.messages.length });
     void broadcastToViews({ type: "SESSIONS_UPDATED" });
     // Kick off background semantic indexing — fire & forget, never blocks capture
     void backgroundIndex(toWrite).catch(() => {});
@@ -1023,7 +1034,7 @@ async function handleCaptureSession(payload: {
     void syncToMcpBridge(toWrite).catch(() => {});
   }, 200));
 
-  console.log('[ContextForge] Session stored locally only. No cloud sync unless user connects personal Supabase.');
+  console.log('[ContextMover] Session stored locally only. No cloud sync unless user connects personal Supabase.');
 
   // Sync to user's personal vault — rate-limited through queueVaultSync (30s minimum).
   void (async () => {
@@ -1031,19 +1042,19 @@ async function handleCaptureSession(payload: {
       const vaultClient = await userVault.getClient();
       if (!vaultClient) return;
       await queueVaultSync(session, vaultClient);
-    } catch (err) { console.warn('[ContextForge:vault] queueVaultSync error:', err); }
+    } catch (err) { console.warn('[ContextMover:vault] queueVaultSync error:', err); }
   })();
 
-  // ── [CF:sw] verified — check pending queue and/or IDB ────────────────────
+  // ── [CM:sw] verified — check pending queue and/or IDB ────────────────────
   const inFlight = pendingWrites.get(payload.sessionId);
   const saved = inFlight ?? await db.getSession(payload.sessionId);
   const savedUser = saved?.messages.filter(m => m.role === "user").length ?? 0;
   const savedAsst = saved?.messages.filter(m => m.role === "assistant").length ?? 0;
-  console.log('[CF:sw] verified', { total: saved?.messages.length ?? 0, user: savedUser, assistant: savedAsst, ok: saved !== undefined, pending: !!inFlight });
+  console.log('[CM:sw] verified', { total: saved?.messages.length ?? 0, user: savedUser, assistant: savedAsst, ok: saved !== undefined, pending: !!inFlight });
   if (!saved) {
-    console.error('[CF:sw] verified — FAILED: session not found in queue or IndexedDB');
+    console.error('[CM:sw] verified — FAILED: session not found in queue or IndexedDB');
   } else if (savedAsst === 0 && savedUser > 0) {
-    console.error('[CF:sw] verified — ASSISTANT MESSAGES MISSING');
+    console.error('[CM:sw] verified — ASSISTANT MESSAGES MISSING');
   }
 
   fetch(`${BRIDGE_URL}/context`, {
@@ -1063,13 +1074,13 @@ async function backgroundIndex(session: ContextSession): Promise<void> {
     const t0 = performance.now();
     await semanticIndex.indexSession(session);
     const dt = (performance.now() - t0).toFixed(0);
-    console.log(`[CF:sw:bgIdx] indexed session ${session.id} in ${dt}ms`);
+    console.log(`[CM:sw:bgIdx] indexed session ${session.id} in ${dt}ms`);
 
     // Mirror chunk embeddings to the MCP bridge for IDE-side semantic_search.
     // Fire-and-forget; bridge offline is the common case and fine.
     void syncEmbeddingsToMcpBridge(session.id);
   } catch (err) {
-    console.warn('[CF:sw:bgIdx] indexing failed (non-fatal):', err);
+    console.warn('[CM:sw:bgIdx] indexing failed (non-fatal):', err);
   }
 }
 
@@ -1115,7 +1126,7 @@ async function withTimeout<T>(
   } catch (err: unknown) {
     clearTimeout(timeoutId!);
     if (err instanceof Error && err.message === "TIMEOUT") {
-      console.warn("[CF:sw] Attention Engine timeout — falling back to Tier 2");
+      console.warn("[CM:sw] Attention Engine timeout — falling back to Tier 2");
       return fallback();
     }
     throw err;
@@ -1151,7 +1162,7 @@ async function handleMigrateContext(
     if (pendingTimer !== undefined) { clearTimeout(pendingTimer); writeTimers.delete(payload.sessionId); }
     await db.saveSession(pendingSession);
     pendingWrites.delete(payload.sessionId);
-    console.log(`[CF:sw] migrate flush: flushed pending write for session ${payload.sessionId}`);
+    console.log(`[CM:sw] migrate flush: flushed pending write for session ${payload.sessionId}`);
   }
 
   // ── DIAGNOSTIC STAGE 4 — load session from IndexedDB ──────────────────────
@@ -1160,7 +1171,7 @@ async function handleMigrateContext(
 
   const s4User = session.messages.filter(m => m.role === "user").length;
   const s4Asst = session.messages.filter(m => m.role === "assistant").length;
-  console.log(`[ContextForge:sw] Stage4 — session loaded: total=${session.messages.length} user=${s4User} assistant=${s4Asst}`);
+  console.log(`[ContextMover:sw] Stage4 — session loaded: total=${session.messages.length} user=${s4User} assistant=${s4Asst}`);
 
   if (session.messages.length === 0) {
     return sendResponse({ error: "Session has no messages. Nothing to migrate." });
@@ -1184,7 +1195,7 @@ async function handleMigrateContext(
         )
       );
       if (cached) {
-        console.log(`[CF:sw] Full prompt cache HIT — skipping all computation (${(performance.now() - t0_migrate).toFixed(0)}ms)`);
+        console.log(`[CM:sw] Full prompt cache HIT — skipping all computation (${(performance.now() - t0_migrate).toFixed(0)}ms)`);
         reportProgress(95, `Injecting into ${payload.targetPlatform} (cached)...`);
 
         if (payload.targetTabId) {
@@ -1207,7 +1218,7 @@ async function handleMigrateContext(
           });
           if (!injectionResult.ok) {
             // Injection failed — fall through to normal recompute path
-            console.warn('[CF:sw] Cache-hit injection failed, falling through:', injectionResult.error);
+            console.warn('[CM:sw] Cache-hit injection failed, falling through:', injectionResult.error);
           } else {
             const qualityScore = scoreAndPersist(
               session, cached, (payload.tier ?? 2) as 1 | 2 | 3,
@@ -1226,12 +1237,12 @@ async function handleMigrateContext(
         }
       }
     } catch (err) {
-      console.warn('[CF:sw] Prompt cache check failed (non-fatal):', err);
+      console.warn('[CM:sw] Prompt cache check failed (non-fatal):', err);
     }
   }
 
   if (s4Asst === 0) {
-    console.warn(`[ContextForge:sw] Stage4 — assistant messages missing from stored session. Migration will proceed with user-only context (degraded).`);
+    console.warn(`[ContextMover:sw] Stage4 — assistant messages missing from stored session. Migration will proceed with user-only context (degraded).`);
   }
 
   // Fire bridge fetch in parallel with Stage 5 summarization — 400ms timeout.
@@ -1242,7 +1253,7 @@ async function handleMigrateContext(
       .catch(() => null),
     new Promise<null>(resolve => setTimeout(() => resolve(null), 400)),
   ]);
-  console.log(`[ContextForge:sw] Stage5 — calling summarizer with ${session.messages.length} messages`);
+  console.log(`[ContextMover:sw] Stage5 — calling summarizer with ${session.messages.length} messages`);
 
   let summary = "";
   let extracted: ExtractedContext | undefined;
@@ -1264,14 +1275,14 @@ async function handleMigrateContext(
       extracted = r.extracted;
       compressionRatio = r.originalTokenEstimate > 0
         ? Math.round((1 - r.summaryTokenEstimate / r.originalTokenEstimate) * 100) : 0;
-      console.log(`[CF:sw] Stage5 — Precomputed tier1 used (instant)`);
+      console.log(`[CM:sw] Stage5 — Precomputed tier1 used (instant)`);
       precomputeUsed = true;
     } else if (requestedTier === 2 && precomputed.tier2) {
       const r = precomputed.tier2;
       intelligentSummary = r;
       compressionRatio = r.compressionRatio;
       summary = r.goal;
-      console.log(`[CF:sw] Stage5 — Precomputed tier2 used (instant)`);
+      console.log(`[CM:sw] Stage5 — Precomputed tier2 used (instant)`);
       precomputeUsed = true;
     }
   }
@@ -1290,19 +1301,19 @@ async function handleMigrateContext(
           summary = idbStored.content;
           compressionRatio = idbStored.compressionRatio;
           precomputeUsed = true;
-          console.log(`[CF:sw] IDB summary cache hit tier=1 (${idbStored.compressionRatio}%)`);
+          console.log(`[CM:sw] IDB summary cache hit tier=1 (${idbStored.compressionRatio}%)`);
         } else {
           try {
             intelligentSummary = JSON.parse(idbStored.content);
             summary = (intelligentSummary as { goal?: string }).goal ?? '';
             compressionRatio = idbStored.compressionRatio;
             precomputeUsed = true;
-            console.log(`[CF:sw] IDB summary cache hit tier=2 (${idbStored.compressionRatio}%)`);
+            console.log(`[CM:sw] IDB summary cache hit tier=2 (${idbStored.compressionRatio}%)`);
           } catch { /* corrupt JSON — skip, recompute below */ }
         }
       }
     } catch (idbErr) {
-      console.warn('[CF:sw] IDB summary cache check failed (non-fatal):', idbErr);
+      console.warn('[CM:sw] IDB summary cache check failed (non-fatal):', idbErr);
     }
   }
   // Capability detector returns minimal | balanced | full — we map back to the
@@ -1321,7 +1332,7 @@ async function handleMigrateContext(
   } else {
     detectedTier = await capabilityDetector.getEffectiveTier().catch(() => "balanced" as Tier);
     tier = detectedTier === "minimal" ? 2 : 3;
-    console.log(`[ContextForge:sw] Auto-tier: capability=${detectedTier} → numeric tier=${tier}`);
+    console.log(`[ContextMover:sw] Auto-tier: capability=${detectedTier} → numeric tier=${tier}`);
   }
 
   // ── Start the load watchdog around tier-3 work — it can fire at any time ──
@@ -1341,13 +1352,13 @@ async function handleMigrateContext(
       summary = payload.precomputedSummary;
       attentionMap = payload.precomputedAttentionMap;
       compressionRatio = (payload.precomputedAttentionMap as any)?.compressionRatio ?? 0;
-      console.log(`[ContextForge:sw] Stage5 — Attention Engine fast path (pre-computed by sidebar)`);
+      console.log(`[ContextMover:sw] Stage5 — Attention Engine fast path (pre-computed by sidebar)`);
     } else {
       // ── Hardware gate: skip Attention Engine on minimal hardware (FIX 5) ──────
       const hwProfile = await getHardwareProfile().catch(() => null);
       if (hwProfile?.tier === "minimal") {
         console.log(
-          "[CF:sw] Minimal hardware — using enhanced Tier 2 instead of Attention Engine " +
+          "[CM:sw] Minimal hardware — using enhanced Tier 2 instead of Attention Engine " +
           "(" + (hwProfile.cores) + " cores, no GPU)"
         );
         tier = 2;
@@ -1355,18 +1366,18 @@ async function handleMigrateContext(
         intelligentSummary = isResult;
         compressionRatio = isResult.compressionRatio;
         summary = isResult.goal;
-        console.log(`[CF:sw] tier=3→2 (minimal hw) compression=${compressionRatio}%`);
+        console.log(`[CM:sw] tier=3→2 (minimal hw) compression=${compressionRatio}%`);
         void broadcastToViews({ type: "TIER_DOWNGRADED", from: 3, to: 2, reason: "slow_hardware" });
       } else {
         // ── Full Attention Engine path with 8s hard timeout ───────────────────
-        console.log(`[ContextForge:sw] Stage5 — Attention Engine path: strength=${payload.strength ?? "light"}`);
+        console.log(`[ContextMover:sw] Stage5 — Attention Engine path: strength=${payload.strength ?? "light"}`);
         const t3Start = Date.now();
         try {
           const { attentionEngine } = await import("@/lib/attention-engine");
           const engineTier: Tier = detectedTier ?? "balanced";
           reportProgress(10, "Loading semantic model...");
           await attentionEngine.initialize(undefined, engineTier).catch((err) => {
-            console.warn("[ContextForge:sw] attention engine init failed, will fallback:", err);
+            console.warn("[ContextMover:sw] attention engine init failed, will fallback:", err);
           });
           reportProgress(30, `Analyzing ${session.messages.length} messages...`);
           const atResult = await withTimeout(
@@ -1391,9 +1402,9 @@ async function handleMigrateContext(
           reportProgress(65, "Building attention map...");
           const elapsed = Date.now() - t3Start;
           if (tier === 2) {
-            console.log(`[CF:sw] tier=3 → TIMEOUT after 8s → fell back to tier=2`);
+            console.log(`[CM:sw] tier=3 → TIMEOUT after 8s → fell back to tier=2`);
           } else {
-            console.log(`[CF:sw] tier=3 → attention engine completed in ${elapsed}ms ✅`);
+            console.log(`[CM:sw] tier=3 → attention engine completed in ${elapsed}ms ✅`);
             reportProgress(85, "Formatting context...");
           }
         } catch (atErr) {
@@ -1404,7 +1415,7 @@ async function handleMigrateContext(
             atMsg.includes("is not defined");
           if (isBrowserApiErr) {
             console.warn(
-              "[CF:sw] Attention Engine unavailable in SW (browser APIs absent) — falling back to tier2.",
+              "[CM:sw] Attention Engine unavailable in SW (browser APIs absent) — falling back to tier2.",
               "Use the sidebar's 'Attention' tab to pre-compute before migrating."
             );
             tier = 2;
@@ -1412,7 +1423,7 @@ async function handleMigrateContext(
             intelligentSummary = isResult;
             compressionRatio = isResult.compressionRatio;
             summary = isResult.goal;
-            console.log(`[CF:sw] tier=3 → ERROR → fell back to tier=2`);
+            console.log(`[CM:sw] tier=3 → ERROR → fell back to tier=2`);
           } else {
             throw atErr;
           }
@@ -1425,7 +1436,7 @@ async function handleMigrateContext(
     intelligentSummary = isResult;
     compressionRatio = isResult.compressionRatio;
     summary = isResult.goal;
-    console.log(`[ContextForge:sw] tier=2 compression=${compressionRatio}% chars=${JSON.stringify(isResult).length}`);
+    console.log(`[ContextMover:sw] tier=2 compression=${compressionRatio}% chars=${JSON.stringify(isResult).length}`);
     void semanticIndex.saveSummary(payload.sessionId, 2, payload.task ?? null, JSON.stringify(isResult), isResult.compressionRatio, session.messages.length).catch(() => {});
     void syncSummaryToMcpBridge(payload.sessionId, 2, JSON.stringify(isResult));
   } else {
@@ -1436,10 +1447,10 @@ async function handleMigrateContext(
     compressionRatio = summaryResult.originalTokenEstimate > 0
       ? Math.round((1 - summaryResult.summaryTokenEstimate / summaryResult.originalTokenEstimate) * 100)
       : 0;
-    console.log(`[ContextForge:sw] Stage5 — summarizer done: mode=${summaryResult.mode} tokens~${summaryResult.originalTokenEstimate} codeBlocks=${summaryResult.extracted.codeBlocks.length} tailMessages=${summaryResult.extracted.conversationTail.length}`);
+    console.log(`[ContextMover:sw] Stage5 — summarizer done: mode=${summaryResult.mode} tokens~${summaryResult.originalTokenEstimate} codeBlocks=${summaryResult.extracted.codeBlocks.length} tailMessages=${summaryResult.extracted.conversationTail.length}`);
     const tailAsst = summaryResult.extracted.conversationTail.filter(m => m.role === "assistant").length;
     if (tailAsst === 0) {
-      console.error(`[ContextForge:sw] Stage5 — conversationTail has no assistant messages`);
+      console.error(`[ContextMover:sw] Stage5 — conversationTail has no assistant messages`);
     }
     void semanticIndex.saveSummary(payload.sessionId, 1, null, summaryResult.content, compressionRatio, session.messages.length).catch(() => {});
     void syncSummaryToMcpBridge(payload.sessionId, 1, summaryResult.content);
@@ -1460,7 +1471,7 @@ async function handleMigrateContext(
   if (payload.projectContext) {
     const fileCount = (payload.projectContext.match(/<file |###\s|^\[FILE:/gm) ?? []).length;
     const chars = payload.projectContext.length;
-    console.log(`[ContextForge:files] injected project context files=${fileCount} chars=${chars}`);
+    console.log(`[ContextMover:files] injected project context files=${fileCount} chars=${chars}`);
     ideContext = ideContext
       ? `${ideContext}\n\n${payload.projectContext}`
       : payload.projectContext;
@@ -1480,11 +1491,11 @@ async function handleMigrateContext(
     compressionRatio,
     intelligentSummary,
   });
-  console.log(`[ContextForge:sw] tier=${tier} compression=${compressionRatio}% chars=${prompt.length}`);
+  console.log(`[ContextMover:sw] tier=${tier} compression=${compressionRatio}% chars=${prompt.length}`);
 
-  console.log(`[ContextForge:sw] Stage6 — prompt built: length=${prompt.length} chars, target=${payload.targetPlatform}`);
+  console.log(`[ContextMover:sw] Stage6 — prompt built: length=${prompt.length} chars, target=${payload.targetPlatform}`);
   if (prompt.length < 500) {
-    console.error(`[ContextForge:sw] Stage6 — prompt suspiciously short (${prompt.length} chars), context likely lost`);
+    console.error(`[ContextMover:sw] Stage6 — prompt suspiciously short (${prompt.length} chars), context likely lost`);
     return sendResponse({
       error: `Migration prompt is too short (${prompt.length} chars) — context was lost during summarization. Check console for Stage1–5 errors.`,
     });
@@ -1502,12 +1513,12 @@ async function handleMigrateContext(
       );
       finalPrompt = mergeResult.finalContext;
       console.log(
-        `[ContextForge:prompt-engine] template="${mergeResult.templateName}"`,
+        `[ContextMover:prompt-engine] template="${mergeResult.templateName}"`,
         `totalChars=${mergeResult.stats.totalLength}`,
         `estimatedTokens=${mergeResult.stats.estimatedTokens}`
       );
     } catch (err) {
-      console.warn("[ContextForge:prompt-engine] failed, migrating without template:", err);
+      console.warn("[ContextMover:prompt-engine] failed, migrating without template:", err);
     }
   }
 
@@ -1591,7 +1602,7 @@ async function handleMigrateContext(
           const droppedUnnamed = unnamedBlocks.length - keep;
           if (droppedUnnamed > 0) {
             console.warn(
-              `[ContextForge:sw] Priority cap P3: dropped ${droppedUnnamed} unnamed block(s), ` +
+              `[ContextMover:sw] Priority cap P3: dropped ${droppedUnnamed} unnamed block(s), ` +
               `${pathAnnotatedBlocks.length} path-annotated block(s) preserved. ` +
               `${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
             );
@@ -1608,7 +1619,7 @@ async function handleMigrateContext(
             rebuilt = candidate;
             const droppedPath = pathAnnotatedBlocks.length - keep;
             console.warn(
-              `[ContextForge:sw] Priority cap P4: forced to drop ${droppedPath} path-annotated block(s) ` +
+              `[ContextMover:sw] Priority cap P4: forced to drop ${droppedPath} path-annotated block(s) ` +
               `(last resort — all unnamed already removed). ` +
               `${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
             );
@@ -1622,7 +1633,7 @@ async function handleMigrateContext(
     // to prune. Measure the exact "shell" cost (attentionMap + metadata sections)
     // so we know precisely how many chars the summary may use.
     if (rebuilt.length > MAX_PROMPT_CHARS && tier === 3) {
-      const TRIM_MARKER = `\n\n... [ContextForge: attention summary trimmed to fit editor limit] ...\n\n`;
+      const TRIM_MARKER = `\n\n... [ContextMover: attention summary trimmed to fit editor limit] ...\n\n`;
       const shellPrompt = buildMigrationPrompt({
         summary: "",
         extracted,
@@ -1657,7 +1668,7 @@ async function handleMigrateContext(
         });
         rebuilt = candidate;
         console.warn(
-          `[ContextForge:sw] Priority cap tier3: summary trimmed to ${summaryBudget.toLocaleString()} chars. ` +
+          `[ContextMover:sw] Priority cap tier3: summary trimmed to ${summaryBudget.toLocaleString()} chars. ` +
           `${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
         );
       }
@@ -1670,10 +1681,10 @@ async function handleMigrateContext(
       const dropped = rebuilt.length - headChars - tailChars;
       rebuilt =
         rebuilt.slice(0, headChars) +
-        `\n\n... [ContextForge: ${dropped.toLocaleString()} chars trimmed — all code blocks removed, structured sections preserved] ...\n\n` +
+        `\n\n... [ContextMover: ${dropped.toLocaleString()} chars trimmed — all code blocks removed, structured sections preserved] ...\n\n` +
         rebuilt.slice(-tailChars);
       console.warn(
-        `[ContextForge:sw] Priority cap fallback: ${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
+        `[ContextMover:sw] Priority cap fallback: ${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
       );
     }
 
@@ -1705,10 +1716,10 @@ async function handleMigrateContext(
       return pattern.test(targetTab.url!);
     });
     if (!domainAllowed) {
-      console.error(`[CF:sw] injection blocked — tab ${payload.targetTabId} (${targetTab.url}) not whitelisted for platform=${payload.targetPlatform}`);
+      console.error(`[CM:sw] injection blocked — tab ${payload.targetTabId} (${targetTab.url}) not whitelisted for platform=${payload.targetPlatform}`);
       return sendResponse({ error: `The active tab (${targetTab.url}) is not a ${payload.targetPlatform} page. Open ${payload.targetPlatform} in the target tab and try again.` });
     }
-    console.log(`[CF:sw] injection domain verified: ${targetTab.url} → ${payload.targetPlatform}`);
+    console.log(`[CM:sw] injection domain verified: ${targetTab.url} → ${payload.targetPlatform}`);
     const injectionResult = await sendMessageToTab(payload.targetTabId, {
       type: "INJECT_CONTEXT",
       prompt: finalPrompt,
@@ -1721,7 +1732,7 @@ async function handleMigrateContext(
           "Could not inject into the active tab. Open the selected AI platform in the active tab, then try again.",
       });
     }
-    console.log(`[ContextForge:sw] Stage6 — injection confirmed in tab ${payload.targetTabId}`);
+    console.log(`[ContextMover:sw] Stage6 — injection confirmed in tab ${payload.targetTabId}`);
   }
 
   // Score the migration before responding so the sidebar can show the
@@ -1737,10 +1748,10 @@ async function handleMigrateContext(
       tier === 3 ? 15 : undefined
     );
   } catch (err) {
-    console.warn("[CF:quality] scoreAndPersist failed (non-fatal):", err);
+    console.warn("[CM:quality] scoreAndPersist failed (non-fatal):", err);
   }
 
-  console.log(`[CF:sw] Migration complete in ${(performance.now() - t0_migrate).toFixed(0)}ms`);
+  console.log(`[CM:sw] Migration complete in ${(performance.now() - t0_migrate).toFixed(0)}ms`);
   perf.logReport();
   sendResponse({ ok: true, prompt: finalPrompt, compressionRatio, qualityScore });
 }
@@ -1789,7 +1800,7 @@ async function syncOpenTabs() {
           messages: snapshot.messages,
         });
       } catch (error) {
-        console.warn("[ContextForge] Tab sync failed:", platform, tab.id, error);
+        console.warn("[ContextMover] Tab sync failed:", platform, tab.id, error);
       }
     }
   }
@@ -2033,14 +2044,14 @@ async function sendMessageToTab(
     } catch (error) {
       const messageText = error instanceof Error ? error.message : "Unknown tab messaging error";
       lastError = messageText;
-      console.warn(`[ContextForge] Tab injection attempt ${attempt}/${MAX_RETRIES} failed:`, messageText);
+      console.warn(`[ContextMover] Tab injection attempt ${attempt}/${MAX_RETRIES} failed:`, messageText);
 
       // Content script absent — fall back to executeScript immediately (no retry needed).
       if (
         messageText.includes("Receiving end does not exist") ||
         messageText.includes("Could not establish connection")
       ) {
-        console.log(`[ContextForge] Content script absent — falling back to executeScript injection for tab ${tabId}`);
+        console.log(`[ContextMover] Content script absent — falling back to executeScript injection for tab ${tabId}`);
         try {
           const [result] = await chrome.scripting.executeScript({
             target: { tabId },
@@ -2049,7 +2060,7 @@ async function sendMessageToTab(
           });
           const res = result?.result as { ok: boolean; error?: string } | undefined;
           if (res?.ok) {
-            console.log(`[ContextForge] executeScript injection succeeded for tab ${tabId}`);
+            console.log(`[ContextMover] executeScript injection succeeded for tab ${tabId}`);
             return { ok: true };
           }
           return {
@@ -2058,7 +2069,7 @@ async function sendMessageToTab(
           };
         } catch (scriptErr) {
           const scriptMsg = scriptErr instanceof Error ? scriptErr.message : String(scriptErr);
-          console.warn("[ContextForge] executeScript fallback failed:", scriptMsg);
+          console.warn("[ContextMover] executeScript fallback failed:", scriptMsg);
           return {
             ok: false,
             error: `Could not reach the ${message.platform} tab: ${scriptMsg}. Try reloading that tab.`,
@@ -2085,9 +2096,9 @@ async function sendMessageToTab(
   event.waitUntil((async () => {
     try {
       await semanticIndex.cleanupOldData();
-      console.log('[CF:sw] activate: IDB cleanup complete');
+      console.log('[CM:sw] activate: IDB cleanup complete');
     } catch (e) {
-      console.warn('[CF:sw] activate: cleanup failed (non-fatal):', e);
+      console.warn('[CM:sw] activate: cleanup failed (non-fatal):', e);
     }
   })());
 });

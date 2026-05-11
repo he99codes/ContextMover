@@ -1,5 +1,5 @@
-export const WEBAPP_BASE      = "https://context-flow-peach.vercel.app";
-export const CHROME_STORE_URL = "https://chromewebstore.google.com/detail/contextforge/"; // append extension ID when published
+export const WEBAPP_BASE      = "https://contextmover.com";
+export const CHROME_STORE_URL = "https://chromewebstore.google.com/detail/contextmover/"; // append extension ID when published
 
 export const ROUTES = {
   home:      "/",

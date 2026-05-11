@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       await stripe.subscriptions.cancel(gatewaySubscriptionId);
       remoteResult = "stripe";
     } catch (err) {
-      console.error("[CF:api:cancel:stripe] error:", err);
+      console.error("[CM:api:cancel:stripe] error:", err);
       // Continue to local cancellation — better to be cancelled locally
       // even if the gateway call failed (webhook will reconcile later).
     }
@@ -97,12 +97,12 @@ export async function POST(req: NextRequest) {
       });
       remoteResult = "razorpay";
     } catch (err) {
-      console.error("[CF:api:cancel:razorpay] error:", err);
+      console.error("[CM:api:cancel:razorpay] error:", err);
     }
   }
 
   if (remoteResult === "skipped") {
-    console.log("[CF:payments] MOCK MODE — cancellation local only");
+    console.log("[CM:payments] MOCK MODE — cancellation local only");
     remoteResult = "mock";
   }
 

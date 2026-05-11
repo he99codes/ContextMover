@@ -12,7 +12,7 @@ function getServiceClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
     throw new Error(
-      "[CF:payments] Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY"
+      "[CM:payments] Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY"
     );
   }
   return createClient(url, key, {
@@ -96,7 +96,7 @@ export async function upsertSubscription(
     );
 
   if (error) {
-    console.error("[CF:payments] upsertSubscription failed:", error);
+    console.error("[CM:payments] upsertSubscription failed:", error);
   }
 }
 
@@ -139,7 +139,7 @@ export async function logPaymentEvent(
   });
 
   if (error) {
-    console.error("[CF:payments] logPaymentEvent failed:", error);
+    console.error("[CM:payments] logPaymentEvent failed:", error);
   }
 }
 

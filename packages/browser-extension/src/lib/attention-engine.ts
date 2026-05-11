@@ -4,7 +4,7 @@
 // Transforms dumb token compression into task-aware, embedding-driven extraction.
 //
 // Vector store : in-memory cosine search over Float32Arrays, persisted in a
-//               dedicated IndexedDB database ("contextforge-attention").
+//               dedicated IndexedDB database ("contextmover-attention").
 //               LanceDB has no browser/WASM build; this is the correct
 //               in-browser alternative with identical API surface.
 //
@@ -89,7 +89,7 @@ type Extractor = (input: any, options?: any) => Promise<{ data: Float32Array; di
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ATTENTION_DB_NAME = "contextforge-attention";
+const ATTENTION_DB_NAME = "contextmover-attention";
 const ATTENTION_DB_VERSION = 1;
 const CHUNKS_STORE = "ae_chunks";
 const STRUCTURE_STORE = "ae_structure";
@@ -105,7 +105,7 @@ const TAIL_SIZE = 6;
 
 const THRESHOLDS: Record<"light" | "strict", number> = { light: 0.4, strict: 0.7 };
 
-const TAG = "[ContextForge:attention-engine]";
+const TAG = "[ContextMover:attention-engine]";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Grammar URL helper
@@ -1438,7 +1438,7 @@ let cachedHardwareProfile: HardwareProfile | null = null;
 export async function getHardwareProfile(): Promise<HardwareProfile> {
   if (!cachedHardwareProfile) {
     cachedHardwareProfile = await detectHardware();
-    console.log("[ContextForge:hw]", JSON.stringify(cachedHardwareProfile));
+    console.log("[ContextMover:hw]", JSON.stringify(cachedHardwareProfile));
   }
   return cachedHardwareProfile;
 }

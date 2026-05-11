@@ -126,7 +126,7 @@ export default function BillingPage() {
     <div className="max-w-3xl mx-auto p-8 text-[#F5F5F5]">
       <h1 className="text-xl font-bold mb-2">Billing &amp; Subscription</h1>
       <p className="text-sm text-[#6B6B6B] mb-6">
-        Manage your ContextForge subscription.
+        Manage your ContextMover subscription.
       </p>
 
       {notice && (

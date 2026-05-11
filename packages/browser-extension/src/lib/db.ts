@@ -1,6 +1,15 @@
 // packages/browser-extension/src/lib/db.ts
 //
-// Dexie wrapper around the existing IndexedDB database "contextforge".
+// Dexie wrapper around the IndexedDB database "contextmover".
+//
+// REBRAND MIGRATION NOTE:
+//   DB was renamed from "contextforge" to "contextmover" as part of the
+//   ContextForge → ContextMover rebrand. For existing users this means local
+//   IndexedDB data will NOT carry over automatically. A best-effort migration
+//   is implemented in db-migration.ts and invoked from the service-worker
+//   install handler. It copies sessions from the old "contextforge" DB into
+//   the new "contextmover" DB and then deletes the old one. Safe to skip if
+//   the old DB does not exist (pre-launch / fresh installs).
 //
 // Migration strategy:
 //   v1 (legacy idb): sessions store
@@ -145,7 +154,7 @@ export const sessionCache = new SessionCache();
 // Dexie database class
 // ──────────────────────────────────────────────────────────────────────────
 
-class ContextForgeDB extends Dexie {
+class ContextMoverDB extends Dexie {
   // Legacy stores (kept verbatim — original idb store names use snake_case)
   sessions!: Table<ContextSession, string>;
   prompt_templates!: Table<PromptTemplate, string>;
@@ -161,7 +170,7 @@ class ContextForgeDB extends Dexie {
   migrationQuality!: Table<MigrationQualityRecord, string>;
 
   constructor() {
-    super("contextforge");
+    super("contextmover");
 
     // ── v1: original sessions store ──
     this.version(1).stores({
@@ -203,7 +212,7 @@ class ContextForgeDB extends Dexie {
   }
 }
 
-export const dexieDb = new ContextForgeDB();
+export const dexieDb = new ContextMoverDB();
 
 // Friendly aliases — direct table exports for ergonomic imports elsewhere.
 export const chunkEmbeddings: Table<ChunkEmbedding, string> = dexieDb.chunkEmbeddings;
@@ -259,7 +268,7 @@ export const db = {
 // used by prompt-engine and cloud-sync code. We provide a thin idb-compatible
 // facade over Dexie so those callers keep working unchanged.
 class IdbFacade {
-  constructor(private d: ContextForgeDB) {}
+  constructor(private d: ContextMoverDB) {}
   async getAll<T = unknown>(storeName: string): Promise<T[]> {
     return this.d.table(storeName).toArray() as Promise<T[]>;
   }

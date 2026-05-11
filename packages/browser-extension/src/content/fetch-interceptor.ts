@@ -22,7 +22,7 @@
   };
   type Platform = "chatgpt" | "claude" | "gemini" | "grok" | "deepseek" | "perplexity";
 
-  const TAG = "[ContextForge:fetch]";
+  const TAG = "[ContextMover:fetch]";
 
   // [SECURITY] Hard cap on response body size processed by the interceptor.
   // Anything larger is dropped silently to prevent memory exhaustion.
@@ -114,7 +114,7 @@
     if (!messages.length) return;
     try {
       window.dispatchEvent(
-        new CustomEvent("contextforge:captured", {
+        new CustomEvent("contextmover:captured", {
           detail: { platform, messages },
         })
       );

@@ -23,7 +23,7 @@ import { PROMPTS_URL } from "@/config/urls";
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const LAST_TIER_KEY = "contextforge_last_tier";
+const LAST_TIER_KEY = "contextmover_last_tier";
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   claude:     "Claude",

@@ -5,7 +5,7 @@
 // Web-app URL — must mirror the constant in service-worker.ts.
 const WEB_APP_URL =
   process.env.NODE_ENV === "production"
-    ? "https://contextforge.dev"
+    ? "https://contextmover.dev"
     : "http://localhost:3000";
 
 export type LimitType = "simple" | "smart" | "attention";

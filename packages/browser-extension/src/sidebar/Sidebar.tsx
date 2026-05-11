@@ -287,11 +287,11 @@ export default function Sidebar() {
       if (cancelled || attentionEngine.initialized) return;
       const tier = await capabilityDetector.getEffectiveTier().catch(() => "balanced" as const);
       if (tier === "minimal") return; // Skip preload on very weak devices.
-      console.log("[ContextForge:sidebar] Background preload starting…");
+      console.log("[ContextMover:sidebar] Background preload starting…");
       attentionEngine
         .initialize(undefined, tier)
-        .then(() => console.log("[ContextForge:sidebar] Background preload ready"))
-        .catch((err) => console.warn("[ContextForge:sidebar] Background preload failed:", err));
+        .then(() => console.log("[ContextMover:sidebar] Background preload ready"))
+        .catch((err) => console.warn("[ContextMover:sidebar] Background preload failed:", err));
     }, 1200);
     return () => { cancelled = true; clearTimeout(timer); };
   }, []);
@@ -443,16 +443,16 @@ export default function Sidebar() {
       // (works inside the side-panel where chrome.downloads sometimes refuses).
       try {
         chrome.downloads?.download(
-          { url, filename: `contextforge-quality-${dateStr}.txt` },
+          { url, filename: `contextmover-quality-${dateStr}.txt` },
           (downloadId) => {
             if (chrome.runtime.lastError || !downloadId) {
-              triggerAnchorDownload(url, `contextforge-quality-${dateStr}.txt`);
+              triggerAnchorDownload(url, `contextmover-quality-${dateStr}.txt`);
             }
             setTimeout(() => URL.revokeObjectURL(url), 60_000);
           }
         );
       } catch {
-        triggerAnchorDownload(url, `contextforge-quality-${dateStr}.txt`);
+        triggerAnchorDownload(url, `contextmover-quality-${dateStr}.txt`);
         setTimeout(() => URL.revokeObjectURL(url), 60_000);
       }
       setStatusMessage({ tone: "success", text: "📊 Quality report downloaded." });
@@ -784,7 +784,7 @@ export default function Sidebar() {
                 <span className="animate-pulse-green absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[#00FF88]" style={{ boxShadow: "0 0 6px #00FF88" }} />
               </div>
               <div className="flex flex-col gap-px">
-                <span className="text-[13px] font-black uppercase neon-flicker" style={{ letterSpacing: "0.18em", color: "#00FF88", textShadow: "0 0 10px rgba(0,255,136,0.45)" }}>ContextForge</span>
+                <span className="text-[13px] font-black uppercase neon-flicker" style={{ letterSpacing: "0.18em", color: "#00FF88", textShadow: "0 0 10px rgba(0,255,136,0.45)" }}>ContextMover</span>
                 <span className="text-[8px] uppercase" style={{ letterSpacing: "0.22em", color: "#1A3A1A" }}>CMD CENTER v1</span>
                 {/* Plan status badge — Free shows usage, Pro/Team shows unlimited */}
                 {planStatus.loaded && (

@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     !process.env.RAZORPAY_KEY_ID ||
     process.env.RAZORPAY_KEY_ID === "rzp_test_placeholder"
   ) {
-    console.log("[CF:webhook:razorpay] Not configured — ignoring");
+    console.log("[CM:webhook:razorpay] Not configured — ignoring");
     return NextResponse.json({ received: true, mock: true });
   }
 
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const secret    = process.env.RAZORPAY_WEBHOOK_SECRET ?? "";
 
   if (!secret) {
-    console.error("[CF:webhook:razorpay] RAZORPAY_WEBHOOK_SECRET not configured");
+    console.error("[CM:webhook:razorpay] RAZORPAY_WEBHOOK_SECRET not configured");
     // 500 — never accept unverified events when secret is missing.
     return NextResponse.json({ error: "Misconfigured" }, { status: 500 });
   }
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     sigBuf.length !== expBuf.length ||
     !crypto.timingSafeEqual(sigBuf, expBuf)
   ) {
-    console.error("[CF:webhook:razorpay] Invalid signature");
+    console.error("[CM:webhook:razorpay] Invalid signature");
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   // [SECURITY] Idempotency — Razorpay retries failed webhooks up to 24h.
   // Short-circuit if this (gateway,event_id) tuple was already processed.
   if (await isDuplicateEvent("razorpay", eventId)) {
-    console.log("[CF:webhook:razorpay] Duplicate event ignored:", eventId);
+    console.log("[CM:webhook:razorpay] Duplicate event ignored:", eventId);
     return NextResponse.json({ received: true, duplicate: true });
   }
 
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
   try {
     await logPaymentEvent(userId, "razorpay", event.event, eventId, event.payload);
   } catch (err) {
-    console.error("[CF:webhook:razorpay] logPaymentEvent failed:", err);
+    console.error("[CM:webhook:razorpay] logPaymentEvent failed:", err);
   }
 
   try {
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
             ? new Date(subEntity.current_end * 1000)
             : undefined,
         });
-        console.log("[CF:webhook:razorpay] Activated:", userId);
+        console.log("[CM:webhook:razorpay] Activated:", userId);
         break;
       }
 
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
           gatewaySubscriptionId: subEntity.id,
           cancelledAt:           new Date(),
         });
-        console.log("[CF:webhook:razorpay] Cancelled:", userId);
+        console.log("[CM:webhook:razorpay] Cancelled:", userId);
         break;
       }
 
@@ -130,12 +130,12 @@ export async function POST(req: NextRequest) {
           gateway:               "razorpay",
           gatewaySubscriptionId: subEntity.id,
         });
-        console.log("[CF:webhook:razorpay] Payment failed:", userId);
+        console.log("[CM:webhook:razorpay] Payment failed:", userId);
         break;
       }
     }
   } catch (err) {
-    console.error("[CF:webhook:razorpay] handler error:", err);
+    console.error("[CM:webhook:razorpay] handler error:", err);
   }
 
   return NextResponse.json({ received: true });

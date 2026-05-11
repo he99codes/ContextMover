@@ -35,7 +35,7 @@ export function VaultSessionDetail({ sessionId }: Props) {
     if (!client) return;
 
     client
-      .from("cf_sessions")
+      .from("cm_sessions")
       .select("id, platform, title, messages, captured_at, updated_at")
       .eq("id", sessionId)
       .single()

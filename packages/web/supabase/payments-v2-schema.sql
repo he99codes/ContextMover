@@ -1,5 +1,5 @@
 -- ──────────────────────────────────────────────────────────────────────────
--- ContextForge — Payment Infrastructure v2
+-- ContextMover — Payment Infrastructure v2
 -- Adds: subscriptions, usage_tracking, payment_events
 -- Compatible with the legacy users.is_pro / usage tables (kept untouched).
 -- Run this in the Supabase SQL Editor.

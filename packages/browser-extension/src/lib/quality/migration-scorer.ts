@@ -304,7 +304,7 @@ export function scoreMigration(input: ScorerInput): QualityScore {
   } catch (err) {
     // Scoring must never break a migration. Return a zeroed Failed score
     // and let the caller log the error.
-    console.warn("[CF:quality] scoreMigration failed (non-fatal):", err);
+    console.warn("[CM:quality] scoreMigration failed (non-fatal):", err);
     return {
       total: 0,
       grade: "Failed",

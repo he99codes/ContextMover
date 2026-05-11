@@ -93,7 +93,7 @@ export function SettingsView({ email, userId }: Props) {
         <div className="flex items-start gap-3 rounded-[6px] border border-[#00FF88]/15 bg-[#00FF88]/5 p-3 mb-4">
           <Shield size={14} className="mt-0.5 shrink-0 text-[#00FF88]" />
           <p className="text-xs text-[#6B6B6B] leading-relaxed">
-            Your session data is <strong className="text-[#F5F5F5]">never stored on ContextForge servers</strong>.
+            Your session data is <strong className="text-[#F5F5F5]">never stored on ContextMover servers</strong>.
             It lives in the extension&apos;s local IndexedDB and, optionally, your own personal Supabase vault.
           </p>
         </div>
@@ -124,7 +124,7 @@ export function SettingsView({ email, userId }: Props) {
           </Link>
         </div>
         <p className="text-[10px] text-[#3A3A3A]">
-          Questions about billing? <a href="mailto:hey@contextforge.app" className="text-[#00FF88]/60 hover:text-[#00FF88]">hey@contextforge.app</a>
+          Questions about billing? <a href="mailto:hey@contextmover.app" className="text-[#00FF88]/60 hover:text-[#00FF88]">hey@contextmover.app</a>
         </p>
       </section>
 
@@ -152,7 +152,7 @@ export function SettingsView({ email, userId }: Props) {
           <div className="space-y-3">
             <p className="text-sm text-[#F5F5F5]">Are you sure? <strong>This cannot be undone.</strong></p>
             <p className="text-xs text-[#6B6B6B]">
-              Your account will be signed out immediately. Email <a href="mailto:hey@contextforge.app" className="text-red-400 hover:underline">hey@contextforge.app</a> to complete deletion — we&apos;ll purge all data within 48 hours.
+              Your account will be signed out immediately. Email <a href="mailto:hey@contextmover.app" className="text-red-400 hover:underline">hey@contextmover.app</a> to complete deletion — we&apos;ll purge all data within 48 hours.
             </p>
             <div className="flex gap-2">
               <button

@@ -266,7 +266,7 @@ export default async function summarize(
       content = trimmed;
       mode = "summarized";
       console.log(
-        `[ContextForge:tier1] Hard limit applied: dropped ${dropped} additional middle messages` +
+        `[ContextMover:tier1] Hard limit applied: dropped ${dropped} additional middle messages` +
         ` (head=${headCount} msgs, tail=${tail.length} msgs kept)`
       );
     }
@@ -276,7 +276,7 @@ export default async function summarize(
   const compressionPct =
     originalLen > 0 ? Math.round((1 - summaryLen / originalLen) * 100) : 0;
   console.log(
-    `[ContextForge:tier1] ${msgCount} msgs → ${summaryLen} chars (${compressionPct}% compressed)`
+    `[ContextMover:tier1] ${msgCount} msgs → ${summaryLen} chars (${compressionPct}% compressed)`
   );
 
   return {
@@ -614,7 +614,7 @@ export interface IntelligentSummary {
 }
 
 export function summarizeIntelligent(messages: Message[], task?: string): IntelligentSummary {
-  if (!messages.length) throw new Error('[CF:summarizer:tier2] Empty messages array — nothing to summarize');
+  if (!messages.length) throw new Error('[CM:summarizer:tier2] Empty messages array — nothing to summarize');
   const t0 = Date.now();
 
   // ── 1. Goal — first user message, up to 600 chars ─────────────────────────────
@@ -766,7 +766,7 @@ export function summarizeIntelligent(messages: Message[], task?: string): Intell
     originalSize > 0 ? Math.round((1 - extractedSize / originalSize) * 100) : 0;
 
   console.log(
-    `[ContextForge:tier2] ${messages.length} msgs \u2192 extracted:\n` +
+    `[ContextMover:tier2] ${messages.length} msgs \u2192 extracted:\n` +
     `  goals=1 decisions=${decisions.length} bugs=${bugsFixed.length} ` +
     `completed=${completed.length} pending=${pending.length} ` +
     `code_blocks=${codeBlocks.length} \u2192 ${extractedSize} chars ` +
@@ -855,13 +855,13 @@ export async function summarizeWithAttention(
       originalSize > 0 ? Math.round((1 - compressedSize / originalSize) * 100) : 0;
 
     console.log(
-      `[ContextForge:summarizer] summarizeWithAttention: msgs=${messages.length}→${processed.length} compression=${compressionRatio}%`
+      `[ContextMover:summarizer] summarizeWithAttention: msgs=${messages.length}→${processed.length} compression=${compressionRatio}%`
     );
 
     return { summary, attentionMap, compressionRatio };
   } catch (err) {
     console.warn(
-      "[ContextForge:summarizer] summarizeWithAttention failed — falling back to summarize():",
+      "[ContextMover:summarizer] summarizeWithAttention failed — falling back to summarize():",
       err
     );
     const fallback = await summarize(messages);
