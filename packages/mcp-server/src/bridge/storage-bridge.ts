@@ -15,6 +15,79 @@ import path from "node:path";
 
 import type { Message, SessionStats, StoredSession } from "../types.js";
 
+// ── Input types for new mutators ─────────────────────────────────────────────
+export interface ChunkEmbeddingInput {
+  id:           string;
+  chunkIndex:   number;
+  text:         string;
+  embedding:    number[];
+  role:         string;
+  messageIndex: number;
+  hasCode:      boolean;
+  language?:    string;
+}
+
+export interface SelectedFileInput {
+  path:      string;
+  content:   string;
+  language?: string | null;
+  size:      number;
+}
+
+export interface SelectedFileRow {
+  path:       string;
+  content:    string;
+  language:   string | null;
+  size:       number;
+  selectedAt: number;
+}
+
+export interface SemanticSearchResult {
+  sessionId:       string;
+  chunkText:       string;
+  score:           number;
+  role:            string;
+  hasCode:         boolean;
+  sessionTitle:    string;
+  sessionPlatform: string;
+  session:         StoredSession | null;
+}
+
+interface ScoredChunk {
+  sessionId:       string;
+  chunkText:       string;
+  score:           number;
+  role:            string;
+  hasCode:         boolean;
+  sessionTitle:    string;
+  sessionPlatform: string;
+}
+
+interface ChunkRow {
+  id:                string;
+  session_id:        string;
+  text:              string;
+  embedding:         Buffer;
+  role:              string;
+  has_code:          number;
+  session_title:     string | null;
+  session_platform:  string | null;
+}
+
+// Pure-JS cosine similarity — no native deps. Hot path during search; keep tight.
+function cosineSimilarity(a: Float32Array, b: Float32Array): number {
+  const len = Math.min(a.length, b.length);
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < len; i++) {
+    const x = a[i], y = b[i];
+    dot   += x * y;
+    normA += x * x;
+    normB += y * y;
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom === 0 ? 0 : dot / denom;
+}
+
 interface SessionRow {
   id:             string;
   platform:       string;
@@ -54,6 +127,9 @@ export class StorageBridge {
   }
 
   private initSchema(): void {
+    // Enable FK constraints — required for ON DELETE CASCADE on chunk_embeddings.
+    this.db.pragma("foreign_keys = ON");
+
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS sessions (
         id            TEXT    PRIMARY KEY,
@@ -77,9 +153,33 @@ export class StorageBridge {
         FOREIGN KEY (session_id) REFERENCES sessions(id)
       );
 
+      CREATE TABLE IF NOT EXISTS chunk_embeddings (
+        id            TEXT    PRIMARY KEY,
+        session_id    TEXT    NOT NULL,
+        chunk_index   INTEGER NOT NULL,
+        text          TEXT    NOT NULL,
+        embedding     BLOB    NOT NULL,
+        role          TEXT    NOT NULL,
+        message_index INTEGER NOT NULL,
+        has_code      INTEGER DEFAULT 0,
+        language      TEXT,
+        created_at    INTEGER NOT NULL,
+        FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS selected_files (
+        path        TEXT    PRIMARY KEY,
+        content     TEXT    NOT NULL,
+        language    TEXT,
+        size        INTEGER NOT NULL,
+        selected_at INTEGER NOT NULL
+      );
+
       CREATE INDEX IF NOT EXISTS idx_sessions_platform ON sessions(platform);
       CREATE INDEX IF NOT EXISTS idx_sessions_updated  ON sessions(updated_at DESC);
       CREATE INDEX IF NOT EXISTS idx_summaries_session ON summaries(session_id);
+      CREATE INDEX IF NOT EXISTS idx_chunks_session    ON chunk_embeddings(session_id);
+      CREATE INDEX IF NOT EXISTS idx_chunks_code       ON chunk_embeddings(has_code);
     `);
   }
 
@@ -180,6 +280,144 @@ export class StorageBridge {
           built_at = excluded.built_at
       `)
       .run(id, sessionId, tier, content, Date.now());
+  }
+
+  // ── Chunk embeddings (Add-on 1: semantic search) ─────────────────────────
+  upsertChunkEmbeddings(
+    sessionId: string,
+    chunks: ChunkEmbeddingInput[]
+  ): void {
+    if (chunks.length === 0) return;
+
+    const stmt = this.db.prepare(`
+      INSERT INTO chunk_embeddings (
+        id, session_id, chunk_index, text, embedding,
+        role, message_index, has_code, language, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        text      = excluded.text,
+        embedding = excluded.embedding
+    `);
+
+    const insertMany = this.db.transaction((items: ChunkEmbeddingInput[]) => {
+      const now = Date.now();
+      for (const chunk of items) {
+        // Float32 little-endian buffer — Float32Array constructor on read
+        // will reinterpret correctly on any LE host (x86/ARM/RISC-V).
+        const f32    = new Float32Array(chunk.embedding);
+        const buffer = Buffer.from(f32.buffer, f32.byteOffset, f32.byteLength);
+        stmt.run(
+          chunk.id,
+          sessionId,
+          chunk.chunkIndex,
+          chunk.text,
+          buffer,
+          chunk.role,
+          chunk.messageIndex,
+          chunk.hasCode ? 1 : 0,
+          chunk.language ?? null,
+          now
+        );
+      }
+    });
+
+    insertMany(chunks);
+    console.error(`[CM:bridge] Stored ${chunks.length} embeddings for session ${sessionId}`);
+  }
+
+  searchSemantic(
+    queryEmbedding: number[],
+    topK: number = 10
+  ): SemanticSearchResult[] {
+    const rows = this.db.prepare(`
+      SELECT
+        ce.id            AS id,
+        ce.session_id    AS session_id,
+        ce.text          AS text,
+        ce.embedding     AS embedding,
+        ce.role          AS role,
+        ce.has_code      AS has_code,
+        s.title          AS session_title,
+        s.platform       AS session_platform
+      FROM chunk_embeddings ce
+      LEFT JOIN sessions s ON s.id = ce.session_id
+      ORDER BY ce.created_at DESC
+      LIMIT 5000
+    `).all() as ChunkRow[];
+
+    if (rows.length === 0) return [];
+
+    const queryVec = new Float32Array(queryEmbedding);
+
+    const scored: Array<ScoredChunk> = rows.map(row => {
+      // row.embedding is a Buffer (Node) — wrap its ArrayBuffer slice as Float32Array.
+      const buf = row.embedding;
+      const f32 = new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4);
+      return {
+        sessionId:       row.session_id,
+        chunkText:       row.text,
+        score:           cosineSimilarity(queryVec, f32),
+        role:            row.role,
+        hasCode:         row.has_code === 1,
+        sessionTitle:    row.session_title ?? "Unknown",
+        sessionPlatform: row.session_platform ?? "unknown",
+      };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+
+    // Deduplicate to top-K unique sessions, keeping the highest-scoring chunk per session.
+    const seen: Set<string>       = new Set();
+    const out:  SemanticSearchResult[] = [];
+    for (const item of scored) {
+      if (out.length >= topK) break;
+      if (seen.has(item.sessionId)) continue;
+      seen.add(item.sessionId);
+      out.push({ ...item, session: this.getSession(item.sessionId) });
+    }
+    return out;
+  }
+
+  // ── Selected files (Add-on 3: file context) ──────────────────────────────
+  upsertSelectedFiles(files: SelectedFileInput[]): void {
+    if (files.length === 0) return;
+
+    const stmt = this.db.prepare(`
+      INSERT INTO selected_files (path, content, language, size, selected_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(path) DO UPDATE SET
+        content     = excluded.content,
+        language    = excluded.language,
+        size        = excluded.size,
+        selected_at = excluded.selected_at
+    `);
+
+    const insertMany = this.db.transaction((items: SelectedFileInput[]) => {
+      const now = Date.now();
+      for (const f of items) {
+        stmt.run(f.path, f.content, f.language ?? null, f.size, now);
+      }
+    });
+
+    insertMany(files);
+    console.error(`[CM:bridge] ${files.length} selected files synced`);
+  }
+
+  getSelectedFiles(): SelectedFileRow[] {
+    const rows = this.db
+      .prepare("SELECT path, content, language, size, selected_at FROM selected_files ORDER BY selected_at DESC")
+      .all() as Array<{ path: string; content: string; language: string | null; size: number; selected_at: number }>;
+    return rows.map(r => ({
+      path:       r.path,
+      content:    r.content,
+      language:   r.language,
+      size:       r.size,
+      selectedAt: r.selected_at,
+    }));
+  }
+
+  clearSelectedFiles(): void {
+    this.db.prepare("DELETE FROM selected_files").run();
   }
 
   // ── Stats ─────────────────────────────────────────────────────────────────

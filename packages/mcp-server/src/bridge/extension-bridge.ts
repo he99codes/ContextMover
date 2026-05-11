@@ -103,6 +103,123 @@ export function startExtensionBridge(port: number = BRIDGE_PORT): Promise<{ port
       }
     });
 
+    // ── /embeddings ─ chunk vectors synced from extension's IDB ────────────
+    app.post("/embeddings", (req, res) => {
+      try {
+        const { sessionId, chunks } = (req.body ?? {}) as {
+          sessionId?: unknown;
+          chunks?:    unknown;
+        };
+        if (typeof sessionId !== "string" || !sessionId) {
+          res.status(400).json({ error: "sessionId required" });
+          return;
+        }
+        if (!Array.isArray(chunks)) {
+          res.status(400).json({ error: "chunks must be an array" });
+          return;
+        }
+
+        // Coerce + validate each chunk. Drop malformed entries silently —
+        // bridge is best-effort; never crash a sync because of one bad row.
+        const cleaned = chunks
+          .filter((c: unknown): c is Record<string, unknown> => !!c && typeof c === "object")
+          .map((c) => {
+            const emb = c.embedding;
+            const arr = Array.isArray(emb)
+              ? emb.filter((n) => typeof n === "number") as number[]
+              : null;
+            if (!arr || arr.length === 0) return null;
+            if (typeof c.id          !== "string") return null;
+            if (typeof c.text        !== "string") return null;
+            if (typeof c.role        !== "string") return null;
+            if (typeof c.chunkIndex   !== "number") return null;
+            if (typeof c.messageIndex !== "number") return null;
+            return {
+              id:           c.id,
+              chunkIndex:   c.chunkIndex,
+              text:         c.text,
+              embedding:    arr,
+              role:         c.role,
+              messageIndex: c.messageIndex,
+              hasCode:      Boolean(c.hasCode),
+              language:     typeof c.language === "string" ? c.language : undefined,
+            };
+          })
+          .filter((c): c is NonNullable<typeof c> => c !== null);
+
+        storageBridge.upsertChunkEmbeddings(sessionId, cleaned);
+        res.json({ ok: true, count: cleaned.length });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[CM:bridge] /embeddings error:", msg);
+        res.status(500).json({ error: msg });
+      }
+    });
+
+    // ── /summaries ─ pre-computed tier-1/tier-2 summaries from extension ──
+    app.post("/summaries", (req, res) => {
+      try {
+        const { sessionId, tier, content } = (req.body ?? {}) as {
+          sessionId?: unknown;
+          tier?:      unknown;
+          content?:   unknown;
+        };
+        if (typeof sessionId !== "string" || !sessionId) {
+          res.status(400).json({ error: "sessionId required" });
+          return;
+        }
+        if (typeof tier !== "number" || !Number.isInteger(tier) || tier < 1 || tier > 3) {
+          res.status(400).json({ error: "tier must be integer 1-3" });
+          return;
+        }
+        if (typeof content !== "string") {
+          res.status(400).json({ error: "content required" });
+          return;
+        }
+        storageBridge.upsertSummary(sessionId, tier, content);
+        res.json({ ok: true });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[CM:bridge] /summaries error:", msg);
+        res.status(500).json({ error: msg });
+      }
+    });
+
+    // ── /files ─ user-selected project files from File System panel ───────
+    app.post("/files", (req, res) => {
+      try {
+        const { files } = (req.body ?? {}) as { files?: unknown };
+        if (!Array.isArray(files)) {
+          res.status(400).json({ error: "files must be an array" });
+          return;
+        }
+
+        const cleaned = files
+          .filter((f: unknown): f is Record<string, unknown> => !!f && typeof f === "object")
+          .map((f) => {
+            if (typeof f.path    !== "string" || !f.path)    return null;
+            if (typeof f.content !== "string")               return null;
+            const size = typeof f.size === "number"
+              ? f.size
+              : Buffer.byteLength(f.content, "utf8");
+            return {
+              path:     f.path,
+              content:  f.content,
+              language: typeof f.language === "string" ? f.language : null,
+              size,
+            };
+          })
+          .filter((f): f is NonNullable<typeof f> => f !== null);
+
+        storageBridge.upsertSelectedFiles(cleaned);
+        res.json({ ok: true, count: cleaned.length });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[CM:bridge] /files error:", msg);
+        res.status(500).json({ error: msg });
+      }
+    });
+
     // ── Diagnostic endpoint (counts only — no session content) ─────────────
     app.get("/stats", (_req, res) => {
       try {

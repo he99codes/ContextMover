@@ -59,10 +59,25 @@ async function main(): Promise<void> {
 
   console.error(`[CM:mcp] ContextMover MCP Server v${SERVER_VERSION} starting...`);
 
-  // ── 1) Extension HTTP bridge (best-effort — never blocks MCP startup) ────
-  startExtensionBridge().catch(err => {
+  // ── 1) Extension HTTP bridge — MUST be awaited so the listen() callback
+  //       fires before the MCP stdio transport binds stdin. Otherwise the
+  //       IDE could ask the server to call back into the bridge before the
+  //       socket is actually accepting connections.
+  //       startExtensionBridge() resolves with port=-1 on EADDRINUSE so a
+  //       second instance launched by an IDE still produces a working MCP
+  //       transport (the older instance keeps owning the bridge port).
+  try {
+    const bridge = await startExtensionBridge();
+    if (bridge.port < 0) {
+      console.error("[CM:mcp] WARNING: Extension sync DISABLED in this instance.");
+      console.error("[CM:mcp] WARNING: Another MCP server already owns 127.0.0.1:49001.");
+      console.error("[CM:mcp] WARNING: New captures will reach that instance, not this one.");
+    }
+  } catch (err) {
     console.error("[CM:mcp] Extension bridge failed to start:", err);
-  });
+    // Non-fatal — MCP transport still works for read-only IDE queries
+    // against any sessions already in the SQLite file.
+  }
 
   // ── 2) MCP stdio server (the part IDEs actually talk to) ─────────────────
   const server    = await createMcpServer();

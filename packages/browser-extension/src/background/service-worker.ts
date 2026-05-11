@@ -80,6 +80,81 @@ async function syncToMcpBridge(session: ContextSession): Promise<void> {
   }
 }
 
+// Push chunk embeddings for a session to the MCP bridge so the IDE-side
+// `semantic_search` tool can find them. Best-effort; never blocks capture.
+async function syncEmbeddingsToMcpBridge(sessionId: string): Promise<void> {
+  try {
+    const chunks = await db.chunkEmbeddings.where("sessionId").equals(sessionId).toArray();
+    if (chunks.length === 0) return;
+
+    // Strip Dexie-internal fields and ensure embeddings are plain number arrays.
+    // The IDB store keeps embeddings as Float32Array — Float32Array is JSON-
+    // serialisable as a plain array, so spread into Array.from() to be safe
+    // across browser implementations.
+    const payload = chunks.map((c, i) => ({
+      id:           c.id,
+      chunkIndex:   typeof c.chunkIndex === "number" ? c.chunkIndex : i,
+      text:         c.text,
+      embedding:    Array.from(c.embedding as ArrayLike<number>),
+      role:         c.role,
+      messageIndex: typeof c.messageIndex === "number" ? c.messageIndex : i,
+      hasCode:      Boolean(c.hasCode),
+      language:     c.language ?? undefined,
+    }));
+
+    const res = await fetch(`${MCP_BRIDGE_URL}/embeddings`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ sessionId, chunks: payload }),
+      // 5 s — embeddings payloads can be a few MB.
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (res.ok) {
+      console.log(`[CF:sw] Synced ${payload.length} embeddings for ${sessionId}`);
+    }
+  } catch {
+    /* bridge offline — ignore */
+  }
+}
+
+// Push a tier-1 / tier-2 summary to the MCP bridge so it can be used by
+// `migrate_context` and the `contextmover://summary` resource.
+async function syncSummaryToMcpBridge(sessionId: string, tier: number, content: string): Promise<void> {
+  try {
+    await fetch(`${MCP_BRIDGE_URL}/summaries`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ sessionId, tier, content }),
+      signal:  AbortSignal.timeout(2_000),
+    });
+  } catch {
+    /* bridge offline — ignore */
+  }
+}
+
+// Push user-selected project files to the MCP bridge so `get_file_context`
+// and `migrate_context` can include them in IDE prompts.
+interface FileSyncEntry {
+  path:      string;
+  content:   string;
+  language?: string;
+  size:      number;
+}
+async function syncFilesToMcpBridge(files: FileSyncEntry[]): Promise<void> {
+  if (files.length === 0) return;
+  try {
+    await fetch(`${MCP_BRIDGE_URL}/files`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ files }),
+      // 10 s — file payloads can be large (whole project).
+      signal:  AbortSignal.timeout(10_000),
+    });
+  } catch {
+    /* bridge offline — ignore */
+  }
+}
+
 // IDB write buffer — debounces rapid CAPTURE_SESSION calls so only 1 IDB write
 // fires per session per 200ms window instead of one per DOM mutation burst.
 const pendingWrites = new Map<string, ContextSession>();
@@ -323,6 +398,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         } catch {
           sendResponse({ running: false });
         }
+        break;
+      }
+
+      case "SYNC_FILES_TO_MCP": {
+        // Sidebar fires this whenever the user toggles file selection or
+        // commits a new project import. Files arrive as a plain array — we
+        // forward as-is to the bridge, which performs final validation.
+        const filesPayload = (msg as { files?: unknown }).files;
+        const files = Array.isArray(filesPayload) ? filesPayload as FileSyncEntry[] : [];
+        void syncFilesToMcpBridge(files);
+        sendResponse({ ok: true, queued: files.length });
         break;
       }
 
@@ -978,6 +1064,10 @@ async function backgroundIndex(session: ContextSession): Promise<void> {
     await semanticIndex.indexSession(session);
     const dt = (performance.now() - t0).toFixed(0);
     console.log(`[CF:sw:bgIdx] indexed session ${session.id} in ${dt}ms`);
+
+    // Mirror chunk embeddings to the MCP bridge for IDE-side semantic_search.
+    // Fire-and-forget; bridge offline is the common case and fine.
+    void syncEmbeddingsToMcpBridge(session.id);
   } catch (err) {
     console.warn('[CF:sw:bgIdx] indexing failed (non-fatal):', err);
   }
@@ -1337,6 +1427,7 @@ async function handleMigrateContext(
     summary = isResult.goal;
     console.log(`[ContextForge:sw] tier=2 compression=${compressionRatio}% chars=${JSON.stringify(isResult).length}`);
     void semanticIndex.saveSummary(payload.sessionId, 2, payload.task ?? null, JSON.stringify(isResult), isResult.compressionRatio, session.messages.length).catch(() => {});
+    void syncSummaryToMcpBridge(payload.sessionId, 2, JSON.stringify(isResult));
   } else {
     // Tier 1 — summarize
     const summaryResult = await summarize(session.messages, { caveman: payload.caveman });
@@ -1351,6 +1442,7 @@ async function handleMigrateContext(
       console.error(`[ContextForge:sw] Stage5 — conversationTail has no assistant messages`);
     }
     void semanticIndex.saveSummary(payload.sessionId, 1, null, summaryResult.content, compressionRatio, session.messages.length).catch(() => {});
+    void syncSummaryToMcpBridge(payload.sessionId, 1, summaryResult.content);
   }
   } finally {
     // Always stop the load watchdog — even on summarizer error — to avoid a

@@ -1099,6 +1099,9 @@ export default function Sidebar() {
           )}
         </div>
 
+        {/* ── MCP IDE bridge status (Add-on 6) ────────────────────────────── */}
+        <MCPStatusPanel />
+
         <div className="border-t border-[#0D2A0D] px-4 py-3 space-y-2">
           <div
             className="crucible-pulse flex cursor-default flex-col items-center justify-center rounded-[6px] border border-dashed py-5 transition-all hover:scale-[1.01]"
@@ -1130,6 +1133,159 @@ export default function Sidebar() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MCPStatusPanel (Add-on 6) — rich IDE bridge status with platform breakdown
+//   + copy-config buttons. Polls the SW every 10 s while sidebar is open.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface MCPHealthSnapshot {
+  running:        boolean;
+  totalSessions?: number;
+  platforms?:     Record<string, number>;
+  lastUpdated?:   number | null;
+  version?:       string;
+}
+
+const MCP_IDE_CONFIG = JSON.stringify(
+  { mcpServers: { contextmover: { command: "npx", args: ["-y", "@contextmover/mcp-server"] } } },
+  null,
+  2
+);
+
+function MCPStatusPanel() {
+  const [status, setStatus]     = useState<MCPHealthSnapshot | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [toast, setToast]       = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    function probe() {
+      chrome.runtime.sendMessage({ type: "CHECK_MCP_BRIDGE" }, (res) => {
+        if (cancelled) return;
+        if (chrome.runtime.lastError) { setStatus({ running: false }); return; }
+        setStatus(res ?? { running: false });
+      });
+    }
+    probe();
+    const interval = window.setInterval(probe, 10_000);
+    return () => { cancelled = true; window.clearInterval(interval); };
+  }, []);
+
+  function copyConfig() {
+    navigator.clipboard.writeText(MCP_IDE_CONFIG).then(() => {
+      setToast("Config copied — paste into your IDE's MCP config file");
+      window.setTimeout(() => setToast(null), 2500);
+    }).catch(() => {
+      setToast("Copy failed");
+      window.setTimeout(() => setToast(null), 1500);
+    });
+  }
+
+  const running = status?.running === true;
+  const total   = status?.totalSessions ?? 0;
+  const last    = status?.lastUpdated ?? null;
+  const platforms = status?.platforms ?? {};
+
+  return (
+    <div style={{ borderTop: "1px solid #0D2A0D", padding: "8px 16px", background: "#050505" }}>
+      <button
+        onClick={() => setExpanded(v => !v)}
+        style={{
+          display: "flex", alignItems: "center", gap: 6, width: "100%",
+          background: "transparent", border: 0, padding: 0, cursor: "pointer",
+        }}
+      >
+        <span
+          style={{
+            width: 6, height: 6, borderRadius: "50%",
+            background: running ? "#00FF88" : "#3A3A3A",
+            boxShadow:  running ? "0 0 6px rgba(0,255,136,0.6)" : "none",
+            flexShrink: 0,
+          }}
+        />
+        <span
+          style={{
+            fontSize: 9, fontWeight: 700,
+            color: running ? "#00FF88" : "#3A3A3A",
+            textTransform: "uppercase", letterSpacing: "0.18em", flex: 1, textAlign: "left",
+          }}
+        >
+          {running ? "IDE Connected" : "IDE Disconnected"}
+        </span>
+        {running && (
+          <span style={{ fontSize: 9, color: "#6B6B6B" }}>{total} sessions</span>
+        )}
+        <span style={{ fontSize: 9, color: "#3A3A3A" }}>{expanded ? "▲" : "▼"}</span>
+      </button>
+
+      {expanded && (
+        <div style={{ marginTop: 8 }}>
+          {running ? (
+            <>
+              {Object.entries(platforms).length > 0 && (
+                <div style={{ marginBottom: 6 }}>
+                  {Object.entries(platforms).map(([platform, count]) => (
+                    <div
+                      key={platform}
+                      style={{
+                        display: "flex", justifyContent: "space-between",
+                        fontSize: 9, color: "#6B6B6B", marginBottom: 2,
+                      }}
+                    >
+                      <span style={{ textTransform: "capitalize" }}>{platform}</span>
+                      <span>{count} sessions</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {last && (
+                <div style={{ fontSize: 9, color: "#3A3A3A", marginBottom: 8 }}>
+                  Last sync: {new Date(last).toLocaleTimeString()}
+                </div>
+              )}
+
+              <button
+                onClick={copyConfig}
+                style={{
+                  width: "100%", padding: "5px 8px",
+                  background: "transparent", border: "1px solid #1A3A1A",
+                  borderRadius: 4, color: "#6B6B6B", fontSize: 9, cursor: "pointer",
+                  textTransform: "uppercase", letterSpacing: "0.12em",
+                }}
+              >
+                Copy IDE config (JSON)
+              </button>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: 9, color: "#6B6B6B", margin: "4px 0 8px", lineHeight: 1.5 }}>
+                Install the MCP server to access sessions inside your IDE
+                (Cursor / Windsurf / Claude Desktop / Continue).
+              </p>
+              <button
+                onClick={() => chrome.tabs.create({ url: "https://www.npmjs.com/package/@contextmover/mcp-server" })}
+                style={{
+                  width: "100%", padding: "6px",
+                  background: "transparent", border: "1px solid #1A3A1A",
+                  borderRadius: 4, color: "#6B6B6B", fontSize: 9, cursor: "pointer",
+                  textTransform: "uppercase", letterSpacing: "0.12em",
+                }}
+              >
+                View setup guide →
+              </button>
+            </>
+          )}
+
+          {toast && (
+            <div style={{ marginTop: 6, fontSize: 9, color: "#00FF88" }}>{toast}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
