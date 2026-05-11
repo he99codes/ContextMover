@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, Loader2, Copy, Check, User as UserIcon, Database, ExternalLink, Shield, CreditCard, Trash2, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { PaymentStatusBanner } from "@/components/dashboard/PaymentStatusBanner";
 
 interface Props {
   email: string;
@@ -41,6 +42,11 @@ export function SettingsView({ email, userId }: Props) {
 
   return (
     <div className="max-w-3xl mx-auto p-8">
+      {/* Payment success / cancel banner — auto-dismisses after 5s */}
+      <Suspense fallback={null}>
+        <PaymentStatusBanner />
+      </Suspense>
+
       {/* Account */}
       <section className="rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] p-5 mb-4">
         <div className="flex items-center gap-2 mb-4">

@@ -99,6 +99,7 @@ const STRUCTURE_KEY = "singleton";
 // Default model ID — overridden per-tier by TIER_CONFIGS at initialize() time.
 const DEFAULT_MODEL_ID = "Xenova/all-MiniLM-L6-v2";
 const EMBEDDING_DIM = 384;
+const EMBEDDING_CACHE_MAX = 500;
 const SEARCH_TOP_K = 100;
 const TAIL_SIZE = 6;
 
@@ -141,6 +142,16 @@ function grammarUrl(lang: string): string {
 
 export class AttentionEngine {
   private extractor: Extractor | null = null;
+  /** LRU-style cache: first 100 chars of text → Float32Array embedding. */
+  private embeddingCache = new Map<string, number[]>();
+
+  // ── Worker infrastructure (used when running in sidebar/popup context) ──────
+  private worker: Worker | null = null;
+  private pendingRequests = new Map<string, {
+    resolve: (value: unknown) => void;
+    reject: (err: Error) => void;
+  }>();
+  private messageIdCounter = 0;
   private idb: IDBPDatabase | null = null;
   private appStructure: AppStructure | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -931,51 +942,141 @@ export class AttentionEngine {
     return hits / tokens.length;
   }
 
-  // ─── Private: embedding generation ───────────────────────────────────────
+  // ─── Private: worker management ─────────────────────────────────────────
 
-  private async getEmbedding(text: string): Promise<number[]> {
-    if (!this.extractor || !this.modelAvailable) {
-      return new Array(EMBEDDING_DIM).fill(0); // zero vector → triggers keyword fallback
-    }
-    try {
-      const out = await this.extractor(text, { pooling: "mean", normalize: true });
-      return Array.from(out.data);
-    } catch (err) {
-      console.warn(`${TAG} Single embedding failed:`, err);
-      return new Array(EMBEDDING_DIM).fill(0);
-    }
+  private getCacheKey(text: string): string {
+    return text.slice(0, 120);
   }
 
-  private async embedChunks(chunks: AttentionChunk[]): Promise<AttentionChunk[]> {
-    if (!this.extractor || !this.modelAvailable) {
-      return chunks.map((c) => ({ ...c, embedding: new Array(EMBEDDING_DIM).fill(0) }));
+  private getWorker(): Worker | null {
+    // Worker is unavailable in the service-worker context (no DedicatedWorkerGlobalScope).
+    if (typeof Worker === "undefined") return null;
+    if (!this.worker) {
+      this.worker = new Worker(
+        new URL("./workers/embedding.worker.ts", import.meta.url),
+        { type: "module" }
+      );
+      this.worker.onmessage = ({ data }: MessageEvent) => {
+        const { id, type } = data as { id: string; type: string };
+        const pending = this.pendingRequests.get(id);
+        if (!pending) return;
+        if (type === "ERROR") {
+          pending.reject(new Error((data as { error: string }).error));
+          this.pendingRequests.delete(id);
+        } else if (["INIT_DONE", "EMBED_DONE", "EMBED_SINGLE_DONE"].includes(type)) {
+          pending.resolve(data);
+          this.pendingRequests.delete(id);
+        }
+        // PROGRESS — forward only, don't resolve
+      };
+      this.worker.onerror = (err) => {
+        console.error(`${TAG} Worker error:`, err);
+      };
     }
+    return this.worker;
+  }
 
-    const result: AttentionChunk[] = [];
-    const batchSize = this.tierConfig.batchSize || 32;
+  private sendToWorker(type: string, payload: unknown): Promise<unknown> {
+    return new Promise((resolve, reject) => {
+      const id = String(++this.messageIdCounter);
+      this.pendingRequests.set(id, { resolve, reject });
+      this.getWorker()!.postMessage({ type, payload, id });
+      // 30s timeout per request
+      setTimeout(() => {
+        if (this.pendingRequests.has(id)) {
+          this.pendingRequests.delete(id);
+          reject(new Error(`Worker timeout: ${type}`));
+        }
+      }, 30_000);
+    });
+  }
 
-    for (let i = 0; i < chunks.length; i += batchSize) {
-      const batch = chunks.slice(i, i + batchSize);
+  async embedTexts(texts: string[]): Promise<number[][]> {
+    // Check cache; collect uncached indices
+    const results: (number[] | null)[] = new Array(texts.length).fill(null);
+    const uncached: { idx: number; text: string }[] = [];
+
+    texts.forEach((text, idx) => {
+      const cached = this.embeddingCache.get(this.getCacheKey(text));
+      if (cached) {
+        results[idx] = cached;
+      } else {
+        uncached.push({ idx, text });
+      }
+    });
+
+    if (uncached.length === 0) return results as number[][];
+
+    const worker = this.getWorker();
+    if (worker) {
+      // Off-thread path: delegate to worker
       try {
-        // Truncate to 2000 chars (~500 tokens, near full MiniLM-L6 capacity).
-        const texts = batch.map((c) => c.content.slice(0, 2000));
-        const out = await this.extractor(texts, { pooling: "mean", normalize: true });
+        const response = await this.sendToWorker("EMBED_BATCH", {
+          texts: uncached.map((u) => u.text),
+        }) as { embeddings: number[][] };
 
-        // out.data is Float32Array[batch * EMBEDDING_DIM]; out.dims = [batch, 384]
-        for (let j = 0; j < batch.length; j++) {
-          const start = j * EMBEDDING_DIM;
-          const embedding = Array.from(out.data.slice(start, start + EMBEDDING_DIM));
-          result.push({ ...batch[j], embedding });
-        }
+        uncached.forEach(({ idx, text }, i) => {
+          const embedding = response.embeddings[i] ?? new Array(EMBEDDING_DIM).fill(0);
+          results[idx] = embedding;
+          const key = this.getCacheKey(text);
+          if (this.embeddingCache.size >= EMBEDDING_CACHE_MAX) {
+            const first = this.embeddingCache.keys().next().value;
+            if (first !== undefined) this.embeddingCache.delete(first);
+          }
+          this.embeddingCache.set(key, embedding);
+        });
       } catch (err) {
-        console.warn(`${TAG} Batch ${Math.floor(i / batchSize)} embed failed:`, err);
-        for (const c of batch) {
-          result.push({ ...c, embedding: new Array(EMBEDDING_DIM).fill(0) });
+        console.warn(`${TAG} Worker embedTexts failed, using zero vectors:`, err);
+        uncached.forEach(({ idx }) => {
+          results[idx] = new Array(EMBEDDING_DIM).fill(0);
+        });
+      }
+    } else {
+      // On-thread path (service-worker context): use direct extractor
+      if (this.extractor && this.modelAvailable) {
+        for (const { idx, text } of uncached) {
+          try {
+            const out = await this.extractor(text, { pooling: "mean", normalize: true });
+            const embedding = Array.from(out.data);
+            results[idx] = embedding;
+            const key = this.getCacheKey(text);
+            if (this.embeddingCache.size >= EMBEDDING_CACHE_MAX) {
+              const first = this.embeddingCache.keys().next().value;
+              if (first !== undefined) this.embeddingCache.delete(first);
+            }
+            this.embeddingCache.set(key, embedding);
+          } catch {
+            results[idx] = new Array(EMBEDDING_DIM).fill(0);
+          }
         }
+      } else {
+        uncached.forEach(({ idx }) => { results[idx] = new Array(EMBEDDING_DIM).fill(0); });
       }
     }
 
-    return result;
+    return results as number[][];
+  }
+
+  // ─── Private: embedding generation ───────────────────────────────────────
+
+  private async getEmbedding(text: string): Promise<number[]> {
+    if (!this.modelAvailable) {
+      return new Array(EMBEDDING_DIM).fill(0);
+    }
+    const results = await this.embedTexts([text]);
+    return results[0] ?? new Array(EMBEDDING_DIM).fill(0);
+  }
+
+  private async embedChunks(chunks: AttentionChunk[]): Promise<AttentionChunk[]> {
+    if (!this.modelAvailable) {
+      return chunks.map((c) => ({ ...c, embedding: new Array(EMBEDDING_DIM).fill(0) }));
+    }
+    const texts = chunks.map((c) => c.content);
+    const embeddings = await this.embedTexts(texts);
+    return chunks.map((c, i) => ({
+      ...c,
+      embedding: embeddings[i] ?? new Array(EMBEDDING_DIM).fill(0),
+    }));
   }
 
   // ─── Private: chunk generation ────────────────────────────────────────────
@@ -1266,3 +1367,78 @@ function inferModuleType(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const attentionEngine = new AttentionEngine();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hardware detection
+// Detects CPU/GPU capability once per session and recommends a migration tier.
+// Safe to call from SW context (canvas/WebGPU failures are caught silently).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface HardwareProfile {
+  cores: number;
+  memoryGB: number;
+  hasWebGPU: boolean;
+  gpuRenderer: string | null;
+  tier: "minimal" | "balanced" | "full";
+  recommendedMigrationTier: 1 | 2 | 3;
+}
+
+export async function detectHardware(): Promise<HardwareProfile> {
+  const cores = navigator.hardwareConcurrency ?? 2;
+  const memoryGB = (navigator as { deviceMemory?: number }).deviceMemory ?? 4;
+
+  let hasWebGPU = false;
+  let gpuRenderer: string | null = null;
+
+  // WebGPU detection (sidebar / tab context only — unavailable in SW)
+  try {
+    if ("gpu" in navigator) {
+      const adapter = await (navigator as { gpu?: { requestAdapter: () => Promise<{ requestAdapterInfo: () => Promise<{ description?: string; vendor?: string }> } | null> } }).gpu?.requestAdapter();
+      if (adapter) {
+        hasWebGPU = true;
+        const info = await adapter.requestAdapterInfo();
+        gpuRenderer = info.description ?? info.vendor ?? "unknown GPU";
+      }
+    }
+  } catch { hasWebGPU = false; }
+
+  // WebGL renderer fallback (also catches SW context — canvas throws and is caught)
+  if (!hasWebGPU) {
+    try {
+      const canvas = document.createElement("canvas");
+      const gl = (canvas.getContext("webgl2") ?? canvas.getContext("webgl")) as WebGLRenderingContext | null;
+      if (gl) {
+        const ext = gl.getExtension("WEBGL_debug_renderer_info");
+        if (ext) {
+          gpuRenderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) as string;
+          hasWebGPU = !gpuRenderer.toLowerCase().includes("swiftshader") &&
+                      !gpuRenderer.toLowerCase().includes("software");
+        }
+      }
+    } catch { /* SW context or locked canvas */ }
+  }
+
+  let tier: HardwareProfile["tier"];
+  if (hasWebGPU && cores >= 8) {
+    tier = "full";
+  } else if (hasWebGPU || cores >= 6) {
+    tier = "balanced";
+  } else {
+    tier = "minimal";
+  }
+
+  const recommendedMigrationTier: 1 | 2 | 3 =
+    tier === "full" ? 3 : tier === "balanced" ? 2 : 1;
+
+  return { cores, memoryGB, hasWebGPU, gpuRenderer, tier, recommendedMigrationTier };
+}
+
+let cachedHardwareProfile: HardwareProfile | null = null;
+
+export async function getHardwareProfile(): Promise<HardwareProfile> {
+  if (!cachedHardwareProfile) {
+    cachedHardwareProfile = await detectHardware();
+    console.log("[ContextForge:hw]", JSON.stringify(cachedHardwareProfile));
+  }
+  return cachedHardwareProfile;
+}

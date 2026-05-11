@@ -44,7 +44,12 @@ export async function POST(req: NextRequest) {
     .update(body)
     .digest("hex");
 
-  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+  // [SECURITY] Length-guard before timingSafeEqual — that API throws on
+  // mismatched lengths, which would otherwise surface as a 500 (and reveal
+  // that the signature was the wrong shape).
+  const sigBuf = Buffer.from(signature, "utf8");
+  const expBuf = Buffer.from(expected,  "utf8");
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
     console.warn("[webhook] Invalid signature");
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }

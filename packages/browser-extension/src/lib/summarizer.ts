@@ -25,6 +25,59 @@ const MAX_VERBATIM_MESSAGES = 6;
 
 // ── Tier 1 compression helpers ────────────────────────────────────────────────
 
+// Sentence patterns that signal a key decision or outcome worth keeping.
+const KEY_DECISION_PATTERNS = [
+  /\bthe fix is\b/i,
+  /\buse\s+\S+/i,
+  /\bthe issue\b/i,
+  /\bi[\u2019']?ve? updated\b/i,
+  /\bhere[\u2019']?s the\b/i,
+  /\bthe solution\b/i,
+  /\bchanged.*\bto\b/i,
+  /\bswitched to\b/i,
+  /\binstead of\b/i,
+  /\bdecided to\b/i,
+  /\bshould use\b/i,
+  /\bmust use\b/i,
+  /\bneeds? to\b/i,
+  /\bfixed by\b/i,
+  /\b(?:root |the )?cause\b/i,
+  /\bwent with\b/i,
+  /\bopted for\b/i,
+];
+
+// Pure acknowledgment patterns — a message consisting ONLY of these phrases
+// with no substantive content should be dropped entirely.
+const PURE_ACK_RE =
+  /^(?:sure|of course|absolutely|certainly|got it|understood|okay|ok|alright|happy to help|great|sounds good|will do|no problem|perfect)[!.,]?\s*(?:i[\u2019']?ll|let me|here[\u2019']?s|i can|to)?\s*[^a-zA-Z]*$/i;
+
+/**
+ * Extracts the single most important sentence from a (code-stripped) assistant
+ * message body. Returns null when the message is pure filler with no decision,
+ * fix, or key output — signalling the caller should drop it entirely.
+ */
+function extractKeyDecision(text: string): string | null {
+  const cleaned = text.trim();
+  if (cleaned.length < 5) return null;
+
+  // Pure acknowledgment with no real content → drop.
+  if (PURE_ACK_RE.test(cleaned)) return null;
+
+  const sentences = cleaned
+    .split(/(?<=[.!?])\s+|\n{2,}/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 10);
+
+  if (sentences.length === 0) return null;
+
+  // Prefer a sentence that matches a key-decision pattern.
+  const keyMatch = sentences.find((s) => KEY_DECISION_PATTERNS.some((re) => re.test(s)));
+  if (keyMatch) return keyMatch.slice(0, 200);
+
+  // No decision pattern found → signal drop.
+  return null;
+}
+
 // Patterns that indicate the message is an error report or stack trace.
 // Rule: these messages are ALWAYS kept verbatim — never summarised.
 const ERROR_STACKTRACE_RE = [
@@ -124,29 +177,99 @@ export default async function summarize(
     // Tier 1a — short session: return full conversation verbatim.
     content = fullTranscript;
     mode = "verbatim";
-  } else {
-    // Tier 1b (30–100 msgs): keep first 3 + last 10 verbatim; compress middle assistant to 2 sentences.
-    // Tier 1c (>100 msgs):   keep first 3 + last 6  verbatim; compress middle assistant to 1 sentence.
+  } else if (msgCount <= 100) {
+    // Tier 1b (30–100 msgs): keep first 3 + last 10 verbatim; compress middle to 2 sentences.
     mode = "summarized";
-    const tailCount    = msgCount <= 100 ? 10 : 6;
-    const maxSentences = msgCount <= 100 ? 2  : 1;
-    const tailStart    = Math.max(3, messages.length - tailCount);
-
+    const tailCount = 10;
+    const tailStart = Math.max(3, messages.length - tailCount);
+    const head   = messages.slice(0, 3);
+    const middle = messages.slice(3, tailStart);
+    const tail   = messages.slice(tailStart);
+    const processedMiddle = middle.map((msg) =>
+      msg.role === "user" ? msg : { ...msg, content: compressTier1Assistant(msg.content, 2) }
+    );
+    content = [...head, ...processedMiddle, ...tail]
+      .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
+      .join("\n\n");
+  } else {
+    // Tier 1c aggressive (>100 msgs): target 80%+ compression.
+    // • First 3 messages:  verbatim (keep)
+    // • Last 6 messages:   verbatim (keep)
+    // • All code blocks:   100% full content (keep)
+    // • User messages:     verbatim (keep — they are short)
+    // • Middle assistant messages:
+    //     → Extract only the DECISION or KEY OUTPUT (1 sentence max)
+    //     → If message contains ONLY explanation with no decision/code → DROP
+    mode = "summarized";
+    const tailCount = 6;
+    const tailStart = Math.max(3, messages.length - tailCount);
     const head   = messages.slice(0, 3);
     const middle = messages.slice(3, tailStart);
     const tail   = messages.slice(tailStart);
 
-    const processedMiddle: Message[] = middle.map((msg) => {
-      // User messages: verbatim always.
-      if (msg.role === "user") return msg;
-      // Assistant messages: compress prose; code blocks + errors always preserved.
-      return { ...msg, content: compressTier1Assistant(msg.content, maxSentences) };
-    });
+    const processedMiddle: Message[] = [];
+    for (const msg of middle) {
+      if (msg.role === "user") { processedMiddle.push(msg); continue; }
+      // Error / stack trace — always keep verbatim.
+      if (hasErrorOrStackTrace(msg.content)) { processedMiddle.push(msg); continue; }
 
-    const assembled = [...head, ...processedMiddle, ...tail];
-    content = assembled
+      // Extract code blocks first; they are ALWAYS kept verbatim.
+      const codeBlocks: string[] = [];
+      const noCode = msg.content.replace(/```[\s\S]*?```/g, (match) => {
+        codeBlocks.push(match);
+        return "";
+      }).trim();
+
+      // Try to find the single most important sentence from the prose.
+      const keyDecision = noCode ? extractKeyDecision(noCode) : null;
+
+      // If there is neither a key decision NOR any code → drop entirely.
+      if (keyDecision === null && codeBlocks.length === 0) continue;
+
+      const parts: string[] = [];
+      if (keyDecision) parts.push(keyDecision);
+      if (codeBlocks.length > 0) parts.push(codeBlocks.join("\n\n"));
+      processedMiddle.push({ ...msg, content: parts.join("\n\n") });
+    }
+
+    content = [...head, ...processedMiddle, ...tail]
       .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
       .join("\n\n");
+  }
+
+  // ── Hard output limit: 48,000 chars (safe for all AI platforms) ─────────────
+  // If the compressed output is still over the limit, drop oldest middle messages
+  // one by one until we fit. Head (3) and tail (6) are always preserved.
+  const MAX_OUTPUT_CHARS = 48_000;
+  if (content.length > MAX_OUTPUT_CHARS && msgCount >= 30) {
+    const headCount = 3;
+    const tailCount = msgCount > 100 ? 6 : 10;
+    const tailStart = Math.max(headCount, messages.length - tailCount);
+    const head = messages.slice(0, headCount);
+    const tail = messages.slice(tailStart);
+
+    // Re-derive the (possibly already compressed) middle from current content lines.
+    // Rebuild as line-separated blocks so we can drop one message at a time.
+    const lines = content.split("\n\n");
+    const headLines = lines.slice(0, headCount);
+    const tailLines = lines.slice(lines.length - tailCount);
+    let middleLines = lines.slice(headCount, lines.length - tailCount);
+    let trimmed = content;
+
+    let dropped = 0;
+    while (trimmed.length > MAX_OUTPUT_CHARS && middleLines.length > 0) {
+      middleLines = middleLines.slice(1); // drop oldest middle block
+      trimmed = [...headLines, ...middleLines, ...tailLines].join("\n\n");
+      dropped++;
+    }
+    if (dropped > 0) {
+      content = trimmed;
+      mode = "summarized";
+      console.log(
+        `[ContextForge:tier1] Hard limit applied: dropped ${dropped} additional middle messages` +
+        ` (head=${headCount} msgs, tail=${tail.length} msgs kept)`
+      );
+    }
   }
 
   const summaryLen = content.length;
@@ -490,7 +613,7 @@ export interface IntelligentSummary {
   compressionRatio: number;
 }
 
-export function summarizeIntelligent(messages: Message[]): IntelligentSummary {
+export function summarizeIntelligent(messages: Message[], task?: string): IntelligentSummary {
   if (!messages.length) throw new Error('[CF:summarizer:tier2] Empty messages array — nothing to summarize');
   const t0 = Date.now();
 
@@ -532,7 +655,7 @@ export function summarizeIntelligent(messages: Message[]): IntelligentSummary {
       if (TIER2_DECISION_RE.some((re) => re.test(s)) && !META_FILTER_RE.test(s)) rawDecisions.push(s);
     }
   }
-  const decisions = dedupe(rawDecisions).slice(0, 20);
+  let decisions = dedupe(rawDecisions).slice(0, 20);
 
   // ── 3. Bugs fixed — verbatim sentences from ALL messages ──────────────────
   const rawBugs: string[] = [];
@@ -548,7 +671,7 @@ export function summarizeIntelligent(messages: Message[]): IntelligentSummary {
   const bugsFixed = dedupe(rawBugs).slice(0, 15);
 
   // ── 4. Code blocks — ALL ``` fences, 100% content, language + path ────────
-  const codeBlocks: { language: string; path?: string; code: string }[] = [];
+  let codeBlocks: { language: string; path?: string; code: string }[] = [];
   const codeRe = /```([\w-]*)[ \t]*\n([\s\S]*?)```/g;
   for (const msg of messages) {
     let match: RegExpExecArray | null;
@@ -562,6 +685,44 @@ export function summarizeIntelligent(messages: Message[]): IntelligentSummary {
         firstLine.match(/^(?:\/\/|#|--)\s+([\w./\\-]+\.\w+)\s*$/) ??
         firstLine.match(/^\/\*\*?\s*([\w./\\-]+\.\w+)\s*\*\//);
       codeBlocks.push({ language, path: pathMatch?.[1], code });
+    }
+  }
+
+  // ── Dedupe + cap code blocks — path-annotated first, max 10, each ≤800 chars
+  {
+    const seen = new Set<string>();
+    const pathBlocks = codeBlocks.filter(b => b.path);
+    const anonBlocks = codeBlocks.filter(b => !b.path);
+    const deduped = [...pathBlocks, ...anonBlocks].filter(b => {
+      const key = b.path ?? b.code.slice(0, 60);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    codeBlocks = deduped.slice(0, 10).map(b => ({
+      ...b,
+      code: b.code.length > 800 ? b.code.slice(0, 800) + "\n... [truncated]" : b.code,
+    }));
+  }
+
+  // ── Task-aware boosting — re-rank decisions and code blocks by task relevance
+  if (task) {
+    const taskWords = task.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+    if (taskWords.length > 0) {
+      const decisionsAll = decisions;
+      const taskFiltered = decisions.filter((d) =>
+        taskWords.some((w) => d.toLowerCase().includes(w))
+      );
+      decisions = taskFiltered.length > 0 ? taskFiltered : decisionsAll;
+
+      codeBlocks = [...codeBlocks].sort((a, b) => {
+        const score = (item: typeof a) =>
+          taskWords.some(
+            (w) => item.code.toLowerCase().includes(w) ||
+                   (item.path ?? "").toLowerCase().includes(w)
+          ) ? 1 : 0;
+        return score(b) - score(a);
+      });
     }
   }
 

@@ -1,14 +1,20 @@
 // packages/browser-extension/src/background/service-worker.ts
-import { db } from "@/lib/db";
+import { db, sessionCache } from "@/lib/db";
 import summarize, { summarizeIntelligent, summarizeWithAttention } from "@/lib/summarizer";
 import buildMigrationPrompt from "@/lib/translator";
 import { promptEngine } from "@/lib/prompt-engine/engine";
 import { capabilityDetector, type Tier } from "@/lib/capability-detector";
 import type { ContextSession, ExtractedContext, Message } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
-import { syncPromptTemplates, syncPromptAssignments } from "@/lib/cloud-sync";
+import { syncPromptTemplates, syncPromptAssignments, queueVaultSync } from "@/lib/cloud-sync";
+import { getHardwareProfile } from "@/lib/attention-engine";
+import { semanticIndex } from "@/lib/semantic-index/index";
+import { perf } from "@/lib/perf/metrics";
+import { scoreMigration, formatScoreReport, type QualityScore } from "@/lib/quality/migration-scorer";
+import { generateQualityReport } from "@/lib/quality/report-generator";
 import { userVault } from "@/lib/user-vault/connector";
 import { forgetSession, resolveSessionId } from "@/lib/session-id";
+import { WEBAPP_URL } from "@/config/urls";
 
 // Sessions are stored ONLY in local IndexedDB.
 // Optional: synced to user's personal Supabase vault via userVault.getClient().
@@ -39,10 +45,75 @@ async function broadcastToViews(message: unknown): Promise<void> {
 
 const BRIDGE_URL = "http://localhost:49152";
 
+// ── MCP local bridge (ContextMover) ─────────────────────────────────────────
+// Loopback HTTP server provided by `@contextmover/mcp-server`. Optional —
+// the extension functions identically without it. Fire-and-forget syncing
+// makes captured sessions instantly available in Cursor / Windsurf / VS Code
+// (Continue.dev) / Claude Desktop via MCP tools.
+const MCP_BRIDGE_URL = "http://127.0.0.1:49001";
+
+async function syncToMcpBridge(session: ContextSession): Promise<void> {
+  try {
+    // 2 s timeout: bridge should be local; if it can't respond fast,
+    // assume not running and bail.
+    const res = await fetch(`${MCP_BRIDGE_URL}/sessions`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({
+        id:           session.id,
+        platform:     session.platform,
+        title:        session.title,
+        messages:     session.messages.map(m => ({ role: m.role, content: m.content })),
+        createdAt:    session.createdAt,
+        updatedAt:    session.updatedAt,
+        messageCount: session.messages.length,
+        hasCode:      session.messages.some(m => /```/.test(m.content)),
+      }),
+      signal: AbortSignal.timeout(2_000),
+    });
+    if (res.ok) {
+      console.log("[CF:sw] Synced to MCP bridge:", session.id);
+    }
+  } catch {
+    // Bridge not running — silently ignore. Most users will never install
+    // the MCP server, and we never want to noise up the console for them.
+  }
+}
+
 // IDB write buffer — debounces rapid CAPTURE_SESSION calls so only 1 IDB write
 // fires per session per 200ms window instead of one per DOM mutation burst.
 const pendingWrites = new Map<string, ContextSession>();
 const writeTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+// In-flight capture lock — prevents the same session being written to IDB twice
+// simultaneously (e.g. content script + syncOpenTabs both firing at once).
+const captureInFlight = new Set<string>();
+
+// GET_SESSIONS result cache — coalesces rapid-fire sidebar polls within 500ms.
+let getSessionsCache: unknown = null;
+let getSessionsCacheAt = 0;
+const GET_SESSIONS_CACHE_MS = 500;
+
+// Injection guard — tracks tabs already scripted this SW lifetime to prevent
+// the same tab being injected 3× on rapid onInstalled/onStartup events.
+const injectedTabs = new Set<number>();
+
+// Precomputed summary cache — populated by PRECOMPUTE_SUMMARY, consumed by MIGRATE_CONTEXT.
+// Avoids repeating expensive tier-1/tier-2 summarization on the critical migration path.
+interface PrecomputeEntry {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tier1: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tier2: any;
+  cachedAt: number;
+}
+const precomputeCache = new Map<string, PrecomputeEntry>();
+const PRECOMPUTE_TTL = 5 * 60_000; // 5 minutes
+
+// Clean up injectedTabs when a tab closes so reloaded tabs can be re-injected.
+chrome.tabs.onRemoved.addListener((tabId) => {
+  injectedTabs.delete(tabId);
+});
 
 const PLATFORM_URLS = {
   claude:     ["https://claude.ai/*"],
@@ -141,6 +212,11 @@ chrome.runtime.onInstalled.addListener(async () => {
         console.log(`[ContextForge] Tab ${tab.id} already has content script — skipping`);
         continue;
       }
+      if (injectedTabs.has(tab.id)) {
+        console.log(`[ContextForge] Tab ${tab.id} already injected this session — skipping`);
+        continue;
+      }
+      injectedTabs.add(tab.id);
       chrome.scripting
         .executeScript({ target: { tabId: tab.id }, files: cs.js as string[] })
         .then(() => console.log(`[ContextForge] Injected content script into tab ${tab.id} (${tab.url})`))
@@ -215,9 +291,53 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
-      case "GET_SESSIONS":
-        sendResponse(await db.getAllSessions());
+      case "PRECOMPUTE_SUMMARY": {
+        const session = await db.getSession(msg.payload?.sessionId);
+        if (!session) { sendResponse(null); break; }
+        try {
+          const tier1 = await summarize(session.messages);
+          const tier2 = summarizeIntelligent(session.messages);
+          precomputeCache.set(session.id, { tier1, tier2, cachedAt: Date.now() });
+          console.log(`[CF:sw] PRECOMPUTE_SUMMARY cached tier1+tier2 for session ${session.id}`);
+          sendResponse({ cached: true });
+        } catch (err) {
+          console.warn("[CF:sw] PRECOMPUTE_SUMMARY failed:", err);
+          sendResponse(null);
+        }
         break;
+      }
+
+      case "CHECK_MCP_BRIDGE": {
+        // Cheap health probe used by the sidebar status indicator.
+        // Returns { running: boolean, version?, totalSessions?, ... }.
+        try {
+          const res = await fetch(`${MCP_BRIDGE_URL}/health`, {
+            signal: AbortSignal.timeout(1_000),
+          });
+          if (!res.ok) {
+            sendResponse({ running: false });
+            break;
+          }
+          const data = await res.json().catch(() => ({}));
+          sendResponse({ running: true, ...data });
+        } catch {
+          sendResponse({ running: false });
+        }
+        break;
+      }
+
+      case "GET_SESSIONS": {
+        const now = Date.now();
+        if (getSessionsCache !== null && now - getSessionsCacheAt < GET_SESSIONS_CACHE_MS) {
+          sendResponse(getSessionsCache);
+        } else {
+          const sessions = await db.getAllSessions();
+          getSessionsCache = sessions;
+          getSessionsCacheAt = now;
+          sendResponse(sessions);
+        }
+        break;
+      }
 
       case "SYNC_OPEN_TABS":
         await syncOpenTabs();
@@ -261,14 +381,32 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
-      case "MIGRATE_CONTEXT":
+      case "MIGRATE_CONTEXT": {
         // [SECURITY] Migration must come from extension UI (sidebar/popup), never a content script.
         if (!isFromExtensionUI(sender)) {
           sendResponse({ error: 'MIGRATE_CONTEXT must originate from extension UI' });
           break;
         }
+
+        // ── Freemium gate ────────────────────────────────────────────────────
+        // Pro users get { unlimited: true }. Free users get a hard cap per type.
+        // On any error here we fail open (the helper itself fails open too).
+        const _tier = (msg.payload?.tier ?? 2) as 1 | 2 | 3;
+        const usage = await checkMigrationAllowed(_tier);
+        if (!usage.allowed) {
+          sendResponse({
+            error:     "LIMIT_REACHED",
+            type:      usage.type ?? tierToType(_tier),
+            used:      usage.used ?? 0,
+            limit:     usage.limit ?? 0,
+            remaining: usage.remaining ?? 0,
+          });
+          break;
+        }
+
         await handleMigrateContext(msg.payload, sendResponse);
         break;
+      }
 
       case "FETCH_IDE_CONTEXT":
         await handleFetchIdeContext(sendResponse);
@@ -277,6 +415,40 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       case "AUTH_GET_USER": {
         const { data } = await supabase.auth.getUser();
         sendResponse({ user: data.user ?? null });
+        break;
+      }
+
+      case "GET_SUBSCRIPTION_STATUS": {
+        // Returns { plan, isPro, usage, limits } for the sidebar header.
+        // Falls back to { plan: 'free', local: true } if not logged in or
+        // the API is unreachable — never throws.
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const token = session?.access_token;
+          if (!token) {
+            sendResponse({ plan: "free", local: true });
+            break;
+          }
+          const res = await fetch(`${WEBAPP_URL}/api/payments/subscription`, {
+            headers: { authorization: `Bearer ${token}` },
+            signal:  AbortSignal.timeout(4000),
+          });
+          if (!res.ok) {
+            sendResponse({ plan: "free", error: true });
+            break;
+          }
+          const data = await res.json();
+          sendResponse({
+            plan:   data.subscription?.plan ?? "free",
+            isPro:  Boolean(data.isPro),
+            usage:  data.usage,
+            limits: data.limits,
+            status: data.subscription?.status,
+            trialEnd: data.subscription?.trialEnd ?? null,
+          });
+        } catch {
+          sendResponse({ plan: "free", error: true });
+        }
         break;
       }
 
@@ -441,6 +613,82 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
+      case "BACKGROUND_INDEX": {
+        const { sessionId: bgSessionId } = msg as { sessionId?: string };
+        if (!bgSessionId) { sendResponse({ error: 'sessionId required' }); break; }
+        const bgSession = await db.getSession(bgSessionId);
+        if (!bgSession) { sendResponse({ error: 'Session not found' }); break; }
+        void backgroundIndex(bgSession);
+        sendResponse({ ok: true });
+        break;
+      }
+
+      case "WARMUP_MODEL": {
+        void semanticIndex.warmup().catch((e) => console.warn('[CF:sw] warmup failed:', e));
+        sendResponse({ ok: true });
+        break;
+      }
+
+      case "GET_INDEX_STATS": {
+        try {
+          const stats = await semanticIndex.getStats();
+          sendResponse({ ok: true, stats });
+        } catch (e) {
+          sendResponse({ error: String(e) });
+        }
+        break;
+      }
+
+      case "CLEAR_SEMANTIC_INDEX": {
+        try {
+          await semanticIndex.clearAll();
+          console.log('[CF:sw] Semantic index cleared by user');
+          sendResponse({ ok: true });
+        } catch (e) {
+          sendResponse({ error: String(e) });
+        }
+        break;
+      }
+
+      case "GET_QUALITY_REPORT": {
+        try {
+          const sid = (msg.payload as { sessionId?: string } | undefined)?.sessionId;
+          const report = await generateQualityReport(sid);
+          sendResponse({ ok: true, report });
+        } catch (e) {
+          sendResponse({ error: String(e) });
+        }
+        break;
+      }
+
+      case "GET_QUALITY_STATS": {
+        try {
+          const rows = await db.migrationQuality.toArray();
+          const count = rows.length;
+          const avgScore =
+            count > 0 ? rows.reduce((s, r) => s + r.score, 0) / count : 0;
+          sendResponse({
+            ok: true,
+            count,
+            avgScore: Math.round(avgScore),
+          });
+        } catch (e) {
+          sendResponse({ error: String(e) });
+        }
+        break;
+      }
+
+      case "CLEAR_QUALITY_HISTORY": {
+        try {
+          await db.migrationQuality.clear();
+          console.log("[CF:sw] Migration quality history cleared by user");
+          sendResponse({ ok: true });
+        } catch (e) {
+          sendResponse({ error: String(e) });
+        }
+        break;
+      }
+
       default:
         sendResponse({ error: `Unknown message type: ${msg.type}` });
     }
@@ -452,6 +700,134 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   })();
   return true; // keep channel open for async
 });
+
+// ── Quality scoring ─────────────────────────────────────────────────────────
+// Synchronous, fast (regex counts on a 100k string take a few ms even on
+// minimal hardware). Persisting to IDB is fire-and-forget so we never block
+// the migration response on a write. NEVER throws — the inner scoreMigration
+// already catches its own errors and returns a Failed score on any glitch.
+function scoreAndPersist(
+  session: ContextSession,
+  outputPrompt: string,
+  tier: 1 | 2 | 3,
+  platform: string,
+  topK?: number,
+  captureStats?: { userCount: number; assistantCount: number; total: number }
+): QualityScore {
+  const score = scoreMigration({ session, outputPrompt, tier, platform, topK, captureStats });
+  console.log("[CF:quality]\n" + formatScoreReport(score));
+
+  // Fire-and-forget persistence
+  void db.migrationQuality
+    .put({
+      id: score.meta.migrationId,
+      sessionId: session.id,
+      sessionTitle: session.title ?? session.id,
+      platform,
+      tier,
+      score: score.total,
+      grade: score.grade,
+      breakdown: score.breakdown,
+      meta: score.meta,
+      createdAt: Date.now(),
+    })
+    .catch((err) => console.warn("[CF:quality] persist failed (non-fatal):", err));
+
+  return score;
+}
+
+// ── Usage enforcement (freemium gate) ───────────────────────────────────────
+// Two paths:
+//   1. Logged-in users → server-side increment_usage RPC via /api/payments/usage
+//   2. Anonymous users → local chrome.storage counters (best-effort gate)
+//
+// Fails OPEN on any network / auth error — a flaky network must NEVER block a
+// migration. The server-side path is the source of truth for paying users.
+
+interface UsageCheckResult {
+  allowed:    boolean;
+  used?:      number;
+  limit?:     number;
+  remaining?: number;
+  type?:      "simple" | "smart" | "attention";
+}
+
+function tierToType(tier: 1 | 2 | 3): "simple" | "smart" | "attention" {
+  return tier === 1 ? "simple" : tier === 2 ? "smart" : "attention";
+}
+
+function currentMonthKey(): string {
+  const now = new Date();
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+async function checkLocalUsage(tier: 1 | 2 | 3): Promise<UsageCheckResult> {
+  const type  = tierToType(tier);
+  const month = currentMonthKey();
+  const key   = `cf_usage_${month}`;
+
+  const stored = await chrome.storage.local.get(key);
+  const usage: Record<string, number> = stored[key] ?? { simple: 0, smart: 0, attention: 0 };
+
+  const limits = { simple: 50, smart: 50, attention: 10 } as const;
+  const current = usage[type] ?? 0;
+  const limit   = limits[type];
+
+  if (current >= limit) {
+    return { allowed: false, used: current, limit, remaining: 0, type };
+  }
+
+  usage[type] = current + 1;
+  await chrome.storage.local.set({ [key]: usage });
+
+  return {
+    allowed:   true,
+    used:      current + 1,
+    limit,
+    remaining: limit - current - 1,
+    type,
+  };
+}
+
+async function checkMigrationAllowed(tier: 1 | 2 | 3): Promise<UsageCheckResult> {
+  // Try the server-side gate first if we have a session.
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    if (token) {
+      const type = tierToType(tier);
+      const res = await fetch(`${WEBAPP_URL}/api/payments/usage`, {
+        method:  "POST",
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ type }),
+        signal: AbortSignal.timeout(4000),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.unlimited) return { allowed: true, type };
+        return {
+          allowed:   Boolean(data?.allowed),
+          used:      data?.used,
+          limit:     data?.limit,
+          remaining: data?.remaining,
+          type,
+        };
+      }
+      // Non-2xx from API → fall through to local check (fail-open).
+    }
+  } catch (err) {
+    // Network / auth failure → fail open via local counters.
+    console.warn("[CF:usage] server check failed, falling back to local:", err);
+  }
+
+  // No session OR server unreachable → use local counters.
+  return checkLocalUsage(tier);
+}
 
 // ── Handlers ───────────────────────────────────────────────────────────────────
 async function handleCaptureMessage(payload: {
@@ -507,6 +883,16 @@ async function handleCaptureSession(payload: {
   title: string;
   messages: Message[];
 }) {
+  // In-flight deduplication: skip if the same session is already being processed.
+  // Prevents double DB writes when content script + syncOpenTabs fire simultaneously.
+  if (captureInFlight.has(payload.sessionId)) {
+    console.log(`[ContextForge:capture] Skipped in-flight duplicate for session ${payload.sessionId}`);
+    return;
+  }
+  captureInFlight.add(payload.sessionId);
+  // Release lock after debounce window + buffer so rapid-fire pairs are absorbed.
+  setTimeout(() => captureInFlight.delete(payload.sessionId), 2_200);
+
   // ── [CF:sw] received ────────────────────────────────────────────────────────
   const rxUser = payload.messages.filter(m => m.role === "user").length;
   const rxAsst = payload.messages.filter(m => m.role === "assistant").length;
@@ -540,27 +926,26 @@ async function handleCaptureSession(payload: {
     await db.saveSession(toWrite);
     pendingWrites.delete(session.id);
     writeTimers.delete(session.id);
+    sessionCache.invalidate(); // force fresh IDB read on next GET_SESSIONS
     console.log('[CF:sw] saved (debounced)', { session: toWrite.id, total: toWrite.messages.length });
     void broadcastToViews({ type: "SESSIONS_UPDATED" });
+    // Kick off background semantic indexing — fire & forget, never blocks capture
+    void backgroundIndex(toWrite).catch(() => {});
+    // Mirror to local MCP bridge so IDEs (Cursor/Windsurf/Continue/Claude
+    // Desktop) can read the session. Fire-and-forget — never blocks capture
+    // and silently no-ops if the bridge isn't running.
+    void syncToMcpBridge(toWrite).catch(() => {});
   }, 200));
 
   console.log('[ContextForge] Session stored locally only. No cloud sync unless user connects personal Supabase.');
 
-  // Sync to user's personal vault if connected. Never blocks local capture.
+  // Sync to user's personal vault — rate-limited through queueVaultSync (30s minimum).
   void (async () => {
     try {
       const vaultClient = await userVault.getClient();
       if (!vaultClient) return;
-      await vaultClient.from('cf_sessions').upsert({
-        id: session.id, platform: session.platform, title: session.title,
-        messages: session.messages,
-        message_count: session.messages.length,
-        user_message_count: session.messages.filter((m) => m.role === 'user').length,
-        assistant_message_count: session.messages.filter((m) => m.role === 'assistant').length,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
-      console.log(`[ContextForge:vault] Synced session ${session.id} to user's Supabase (${session.messages.length} messages)`);
-    } catch (err) { console.warn('[ContextForge:vault] Sync failed:', err); }
+      await queueVaultSync(session, vaultClient);
+    } catch (err) { console.warn('[ContextForge:vault] queueVaultSync error:', err); }
   })();
 
   // ── [CF:sw] verified — check pending queue and/or IDB ────────────────────
@@ -580,6 +965,22 @@ async function handleCaptureSession(payload: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "BROWSER_CONTEXT", session }),
   }).catch(() => { });
+}
+
+/**
+ * Fire-and-forget semantic indexer: chunks & embeds a session via the offscreen
+ * document. Runs after every debounced IDB write. Errors are silently swallowed
+ * so they never surface as extension failures.
+ */
+async function backgroundIndex(session: ContextSession): Promise<void> {
+  try {
+    const t0 = performance.now();
+    await semanticIndex.indexSession(session);
+    const dt = (performance.now() - t0).toFixed(0);
+    console.log(`[CF:sw:bgIdx] indexed session ${session.id} in ${dt}ms`);
+  } catch (err) {
+    console.warn('[CF:sw:bgIdx] indexing failed (non-fatal):', err);
+  }
 }
 
 /**
@@ -604,6 +1005,35 @@ function isPathAnnotatedCodeBlock(block: unknown): boolean {
   if (/^(?:\/\/|#|--)[\s\S]*[./][\w]/.test(firstLine.trim())) return true;
   // Line itself matches a file path pattern (/path/to/file.ext or file.ext)
   return /[a-z0-9_\-]+\.[a-z]{1,5}/i.test(firstLine);
+}
+
+// ── Migration helpers ──────────────────────────────────────────────────────
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  fallback: () => Promise<T>
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error("TIMEOUT")), ms);
+  });
+  try {
+    const result = await Promise.race([promise, timeout]);
+    clearTimeout(timeoutId!);
+    return result;
+  } catch (err: unknown) {
+    clearTimeout(timeoutId!);
+    if (err instanceof Error && err.message === "TIMEOUT") {
+      console.warn("[CF:sw] Attention Engine timeout — falling back to Tier 2");
+      return fallback();
+    }
+    throw err;
+  }
+}
+
+function reportProgress(progress: number, stage: string): void {
+  void broadcastToViews({ type: "MIGRATION_PROGRESS", progress, stage });
 }
 
 async function handleMigrateContext(
@@ -645,6 +1075,71 @@ async function handleMigrateContext(
   if (session.messages.length === 0) {
     return sendResponse({ error: "Session has no messages. Nothing to migrate." });
   }
+
+  // ── EARLY-EXIT: full prompt cache check ─────────────────────────────────
+  // If we built this exact prompt within the last 5 minutes (same session/task/
+  // platform/tier/template), skip ALL computation and inject straight away.
+  // Skipped when projectContext or caveman are active — they change output but
+  // are not part of the cache key.
+  const t0_migrate = performance.now();
+  if (!payload.projectContext && !payload.caveman) {
+    try {
+      const cached = await perf.measure('migrate.cache_check', () =>
+        semanticIndex.getCachedPrompt(
+          payload.sessionId,
+          payload.task ?? null,
+          payload.targetPlatform,
+          payload.tier ?? 2,
+          payload.promptTemplateId ?? null
+        )
+      );
+      if (cached) {
+        console.log(`[CF:sw] Full prompt cache HIT — skipping all computation (${(performance.now() - t0_migrate).toFixed(0)}ms)`);
+        reportProgress(95, `Injecting into ${payload.targetPlatform} (cached)...`);
+
+        if (payload.targetTabId) {
+          const targetTab = await chrome.tabs.get(payload.targetTabId).catch(() => null);
+          if (!targetTab?.url) {
+            return sendResponse({ error: "Target tab not found or URL unavailable." });
+          }
+          const allowedGlobs = PLATFORM_URLS[payload.targetPlatform as keyof typeof PLATFORM_URLS] ?? [];
+          const domainAllowed = allowedGlobs.some((glob) => {
+            const pattern = new RegExp("^" + glob.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$");
+            return pattern.test(targetTab.url!);
+          });
+          if (!domainAllowed) {
+            return sendResponse({ error: `The active tab (${targetTab.url}) is not a ${payload.targetPlatform} page.` });
+          }
+          const injectionResult = await sendMessageToTab(payload.targetTabId, {
+            type: "INJECT_CONTEXT",
+            prompt: cached,
+            platform: payload.targetPlatform,
+          });
+          if (!injectionResult.ok) {
+            // Injection failed — fall through to normal recompute path
+            console.warn('[CF:sw] Cache-hit injection failed, falling through:', injectionResult.error);
+          } else {
+            const qualityScore = scoreAndPersist(
+              session, cached, (payload.tier ?? 2) as 1 | 2 | 3,
+              payload.targetPlatform, 15
+            );
+            perf.logReport();
+            return sendResponse({ ok: true, prompt: cached, compressionRatio: 0, fromCache: true, qualityScore });
+          }
+        } else {
+          const qualityScore = scoreAndPersist(
+            session, cached, (payload.tier ?? 2) as 1 | 2 | 3,
+            payload.targetPlatform, 15
+          );
+          perf.logReport();
+          return sendResponse({ ok: true, prompt: cached, compressionRatio: 0, fromCache: true, qualityScore });
+        }
+      }
+    } catch (err) {
+      console.warn('[CF:sw] Prompt cache check failed (non-fatal):', err);
+    }
+  }
+
   if (s4Asst === 0) {
     console.warn(`[ContextForge:sw] Stage4 — assistant messages missing from stored session. Migration will proceed with user-only context (degraded).`);
   }
@@ -657,18 +1152,69 @@ async function handleMigrateContext(
       .catch(() => null),
     new Promise<null>(resolve => setTimeout(() => resolve(null), 400)),
   ]);
-
-  // ── DIAGNOSTIC STAGE 5 — summarizer ──────────────────────────────────────
   console.log(`[ContextForge:sw] Stage5 — calling summarizer with ${session.messages.length} messages`);
 
-  let summary: string;
+  let summary = "";
   let extracted: ExtractedContext | undefined;
   let attentionMap: unknown;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let intelligentSummary: any;
   let compressionRatio = 0;
 
-  // ── Resolve tier: explicit > attention-engine flag > capability auto-detect ──
+  // ── Check precompute cache before running summarizer ───────────────────────────
+  const precomputed = precomputeCache.get(payload.sessionId);
+  const precomputeValid = precomputed && (Date.now() - precomputed.cachedAt) < PRECOMPUTE_TTL;
+  let precomputeUsed = false;
+
+  if (precomputeValid && !payload.useAttentionEngine) {
+    const requestedTier = (payload.tier ?? 1) as 1 | 2 | 3;
+    if (requestedTier === 1 && precomputed.tier1) {
+      const r = precomputed.tier1;
+      summary = r.content;
+      extracted = r.extracted;
+      compressionRatio = r.originalTokenEstimate > 0
+        ? Math.round((1 - r.summaryTokenEstimate / r.originalTokenEstimate) * 100) : 0;
+      console.log(`[CF:sw] Stage5 — Precomputed tier1 used (instant)`);
+      precomputeUsed = true;
+    } else if (requestedTier === 2 && precomputed.tier2) {
+      const r = precomputed.tier2;
+      intelligentSummary = r;
+      compressionRatio = r.compressionRatio;
+      summary = r.goal;
+      console.log(`[CF:sw] Stage5 — Precomputed tier2 used (instant)`);
+      precomputeUsed = true;
+    }
+  }
+  // ── IDB summary cache — fallback when in-memory precompute cache misses ──
+  // Latency: ~30-80ms; persists across SW restarts. Tier 3 is always recomputed.
+  if (!precomputeUsed && !payload.useAttentionEngine && (payload.tier ?? 1) !== 3) {
+    try {
+      const requestedTierIdb = (payload.tier ?? 1) as 1 | 2;
+      const idbStored = await perf.measure('migrate.idb_summary', () =>
+        semanticIndex.getSummary(
+          payload.sessionId, requestedTierIdb, payload.task ?? null, session.messages.length
+        )
+      );
+      if (idbStored) {
+        if (requestedTierIdb === 1) {
+          summary = idbStored.content;
+          compressionRatio = idbStored.compressionRatio;
+          precomputeUsed = true;
+          console.log(`[CF:sw] IDB summary cache hit tier=1 (${idbStored.compressionRatio}%)`);
+        } else {
+          try {
+            intelligentSummary = JSON.parse(idbStored.content);
+            summary = (intelligentSummary as { goal?: string }).goal ?? '';
+            compressionRatio = idbStored.compressionRatio;
+            precomputeUsed = true;
+            console.log(`[CF:sw] IDB summary cache hit tier=2 (${idbStored.compressionRatio}%)`);
+          } catch { /* corrupt JSON — skip, recompute below */ }
+        }
+      }
+    } catch (idbErr) {
+      console.warn('[CF:sw] IDB summary cache check failed (non-fatal):', idbErr);
+    }
+  }
   // Capability detector returns minimal | balanced | full — we map back to the
   // existing 1 | 2 | 3 numeric tier the summarizer/translator already speak:
   //   minimal  → 2 (summarizeIntelligent, regex extraction, <100ms)
@@ -676,7 +1222,9 @@ async function handleMigrateContext(
   //   full     → 3 (Attention Engine, WebGPU when available, 4 threads)
   let tier: 1 | 2 | 3;
   let detectedTier: Tier | null = null;
-  if (payload.tier) {
+  if (precomputeUsed) {
+    tier = (payload.tier ?? 1) as 1 | 2 | 3;
+  } else if (payload.tier) {
     tier = payload.tier;
   } else if (payload.useAttentionEngine) {
     tier = 3;
@@ -696,7 +1244,7 @@ async function handleMigrateContext(
       ? capabilityDetector.monitorLoad(detectedTier ?? "balanced")
       : () => { /* tier 1/2 finish in <500ms, no watchdog needed */ };
 
-  try {
+  if (!precomputeUsed) try {
   if (tier === 3 || (payload.useAttentionEngine && payload.task)) {
     // Tier 3 — Attention Engine
     if (payload.precomputedSummary) {
@@ -705,58 +1253,90 @@ async function handleMigrateContext(
       compressionRatio = (payload.precomputedAttentionMap as any)?.compressionRatio ?? 0;
       console.log(`[ContextForge:sw] Stage5 — Attention Engine fast path (pre-computed by sidebar)`);
     } else {
-      console.log(`[ContextForge:sw] Stage5 — Attention Engine path: strength=${payload.strength ?? "light"}`);
-      try {
-        // Warm up the singleton engine at the resolved tier so the model + ONNX
-        // settings match capability detection.  No-op if already initialized.
-        const { attentionEngine } = await import("@/lib/attention-engine");
-        const engineTier: Tier = detectedTier ?? (payload.useAttentionEngine ? "balanced" : "balanced");
-        await attentionEngine.initialize(undefined, engineTier).catch((err) => {
-          console.warn("[ContextForge:sw] attention engine init failed, will fallback:", err);
-        });
-        const atResult = await summarizeWithAttention(
-          session.messages,
-          payload.task ?? "",
-          payload.strength ?? "light",
-          session
+      // ── Hardware gate: skip Attention Engine on minimal hardware (FIX 5) ──────
+      const hwProfile = await getHardwareProfile().catch(() => null);
+      if (hwProfile?.tier === "minimal") {
+        console.log(
+          "[CF:sw] Minimal hardware — using enhanced Tier 2 instead of Attention Engine " +
+          "(" + (hwProfile.cores) + " cores, no GPU)"
         );
-        summary = atResult.summary;
-        attentionMap = atResult.attentionMap;
-        compressionRatio = atResult.compressionRatio;
-        console.log(`[ContextForge:sw] Stage5 — Attention Engine done`);
-        console.log(`[ContextForge:attention] compressionRatio: ${atResult.compressionRatio}%`);
-      } catch (atErr) {
-        // Attention Engine requires browser APIs (window, document, WebGPU) that
-        // are unavailable in the service worker. Pre-computing in the sidebar
-        // (AttentionModal) is the correct path — fall back to tier2 here.
-        const atMsg = atErr instanceof Error ? atErr.message : String(atErr);
-        const isBrowserApiErr = atMsg.includes("window is not defined") ||
-          atMsg.includes("document is not defined") ||
-          atMsg.includes("navigator is not defined") ||
-          atMsg.includes("is not defined");
-        if (isBrowserApiErr) {
-          console.warn(
-            "[CF:sw] Attention Engine unavailable in SW (browser APIs absent) — falling back to tier2.",
-            "Use the sidebar's 'Attention' tab to pre-compute before migrating."
+        tier = 2;
+        const isResult = summarizeIntelligent(session.messages, payload.task);
+        intelligentSummary = isResult;
+        compressionRatio = isResult.compressionRatio;
+        summary = isResult.goal;
+        console.log(`[CF:sw] tier=3→2 (minimal hw) compression=${compressionRatio}%`);
+        void broadcastToViews({ type: "TIER_DOWNGRADED", from: 3, to: 2, reason: "slow_hardware" });
+      } else {
+        // ── Full Attention Engine path with 8s hard timeout ───────────────────
+        console.log(`[ContextForge:sw] Stage5 — Attention Engine path: strength=${payload.strength ?? "light"}`);
+        const t3Start = Date.now();
+        try {
+          const { attentionEngine } = await import("@/lib/attention-engine");
+          const engineTier: Tier = detectedTier ?? "balanced";
+          reportProgress(10, "Loading semantic model...");
+          await attentionEngine.initialize(undefined, engineTier).catch((err) => {
+            console.warn("[ContextForge:sw] attention engine init failed, will fallback:", err);
+          });
+          reportProgress(30, `Analyzing ${session.messages.length} messages...`);
+          const atResult = await withTimeout(
+            summarizeWithAttention(
+              session.messages,
+              payload.task ?? "",
+              payload.strength ?? "light",
+              session
+            ),
+            8_000,
+            async () => {
+              tier = 2;
+              const r = summarizeIntelligent(session.messages, payload.task);
+              intelligentSummary = r;
+              void broadcastToViews({ type: "TIER_DOWNGRADED", from: 3, to: 2, reason: "timeout" });
+              return { summary: r.goal, attentionMap: null, compressionRatio: r.compressionRatio } as unknown as Awaited<ReturnType<typeof summarizeWithAttention>>;
+            }
           );
-          tier = 2;
-          const isResult = summarizeIntelligent(session.messages);
-          intelligentSummary = isResult;
-          compressionRatio = isResult.compressionRatio;
-          summary = isResult.goal;
-          console.log(`[ContextForge:sw] tier=2 (fallback) compression=${compressionRatio}% chars=${JSON.stringify(isResult).length}`);
-        } else {
-          throw atErr;
+          summary = atResult.summary;
+          attentionMap = atResult.attentionMap;
+          compressionRatio = atResult.compressionRatio;
+          reportProgress(65, "Building attention map...");
+          const elapsed = Date.now() - t3Start;
+          if (tier === 2) {
+            console.log(`[CF:sw] tier=3 → TIMEOUT after 8s → fell back to tier=2`);
+          } else {
+            console.log(`[CF:sw] tier=3 → attention engine completed in ${elapsed}ms ✅`);
+            reportProgress(85, "Formatting context...");
+          }
+        } catch (atErr) {
+          const atMsg = atErr instanceof Error ? atErr.message : String(atErr);
+          const isBrowserApiErr = atMsg.includes("window is not defined") ||
+            atMsg.includes("document is not defined") ||
+            atMsg.includes("navigator is not defined") ||
+            atMsg.includes("is not defined");
+          if (isBrowserApiErr) {
+            console.warn(
+              "[CF:sw] Attention Engine unavailable in SW (browser APIs absent) — falling back to tier2.",
+              "Use the sidebar's 'Attention' tab to pre-compute before migrating."
+            );
+            tier = 2;
+            const isResult = summarizeIntelligent(session.messages, payload.task);
+            intelligentSummary = isResult;
+            compressionRatio = isResult.compressionRatio;
+            summary = isResult.goal;
+            console.log(`[CF:sw] tier=3 → ERROR → fell back to tier=2`);
+          } else {
+            throw atErr;
+          }
         }
       }
     }
   } else if (tier === 2) {
     // Tier 2 — summarizeIntelligent (synchronous, no ML)
-    const isResult = summarizeIntelligent(session.messages);
+    const isResult = summarizeIntelligent(session.messages, payload.task);
     intelligentSummary = isResult;
     compressionRatio = isResult.compressionRatio;
     summary = isResult.goal;
     console.log(`[ContextForge:sw] tier=2 compression=${compressionRatio}% chars=${JSON.stringify(isResult).length}`);
+    void semanticIndex.saveSummary(payload.sessionId, 2, payload.task ?? null, JSON.stringify(isResult), isResult.compressionRatio, session.messages.length).catch(() => {});
   } else {
     // Tier 1 — summarize
     const summaryResult = await summarize(session.messages, { caveman: payload.caveman });
@@ -770,12 +1350,15 @@ async function handleMigrateContext(
     if (tailAsst === 0) {
       console.error(`[ContextForge:sw] Stage5 — conversationTail has no assistant messages`);
     }
+    void semanticIndex.saveSummary(payload.sessionId, 1, null, summaryResult.content, compressionRatio, session.messages.length).catch(() => {});
   }
   } finally {
     // Always stop the load watchdog — even on summarizer error — to avoid a
     // dangling setInterval bleeding CPU between migrations.
     stopWatchdog();
-  }
+  } // end !precomputeUsed
+
+  reportProgress(95, "Injecting into " + (payload.targetPlatform ?? "target") + "...");
 
   // Bridge context — already fetched in parallel with Stage 5; collect the result now.
   let ideContext: string | undefined = (await bridgeContextPromise) ?? undefined;
@@ -849,15 +1432,26 @@ async function handleMigrateContext(
   //
   // Strategy: rebuild from structured components with progressively fewer
   // code blocks (oldest dropped first) rather than slicing the flat string.
+  // Realistic 2025 input-box limits (NOT model context windows — those are far
+  // larger). These are how many chars each platform's editor accepts inline
+  // before degrading or auto-converting to an attachment:
+  //   Claude   — ProseMirror, smooth at 500k+
+  //   Gemini   — 1M+ token context, editor handles 500k easily
+  //   ChatGPT  — 128k tokens (GPT-4o); UI accepts ~200k before attaching
+  //   Grok     — 128k tokens, similar UI behaviour to ChatGPT
+  //   DeepSeek — 128k tokens; editor accepts ~200k
+  //   Perplexity — smaller search-style editor, 100k safe
+  // Old caps (32k–60k) were from 2023 GPT-3.5 era and are no longer valid.
+  // They were also forcing a 31-rebuild loop on minimal hardware → ~30s migrations.
   const PLATFORM_MAX_CHARS: Partial<Record<string, number>> = {
-    claude:     120_000,
-    gemini:     120_000,
-    chatgpt:    120_000,
-    grok:       120_000,
-    perplexity: 120_000,
-    deepseek:   120_000,
+    claude:      500_000,
+    gemini:      500_000,
+    chatgpt:     200_000,
+    grok:        200_000,
+    perplexity:  100_000,
+    deepseek:    200_000,
   };
-  const MAX_PROMPT_CHARS = PLATFORM_MAX_CHARS[payload.targetPlatform] ?? 120_000;
+  const MAX_PROMPT_CHARS = PLATFORM_MAX_CHARS[payload.targetPlatform] ?? 200_000;
   if (finalPrompt.length > MAX_PROMPT_CHARS) {
     const beforeChars = finalPrompt.length;
 
@@ -994,6 +1588,18 @@ async function handleMigrateContext(
     finalPrompt = rebuilt;
   }
 
+  // ── Cache final prompt to IDB (fire & forget) ─────────────────────────────
+  // Skipped when projectContext is active — its content changes the output but
+  // is not captured in the cache key, so cache would return stale prompts.
+  if (!payload.projectContext) {
+    void semanticIndex.cachePrompt(
+      payload.sessionId, payload.task ?? null,
+      payload.targetPlatform, tier,
+      payload.promptTemplateId ?? null,
+      finalPrompt, []
+    ).catch(() => {});
+  }
+
   // ── Inject into target tab ─────────────────────────────────────────────────
   if (payload.targetTabId) {
     // Domain whitelist guard — INJECT_CONTEXT must only fire on a known platform page.
@@ -1026,7 +1632,25 @@ async function handleMigrateContext(
     console.log(`[ContextForge:sw] Stage6 — injection confirmed in tab ${payload.targetTabId}`);
   }
 
-  sendResponse({ ok: true, prompt: finalPrompt, compressionRatio });
+  // Score the migration before responding so the sidebar can show the
+  // QualityScoreCard. Scoring is synchronous + fast; persistence is fire-
+  // and-forget. Wrapped in try/catch so a scoring bug never breaks injection.
+  let qualityScore: QualityScore | undefined;
+  try {
+    qualityScore = scoreAndPersist(
+      session,
+      finalPrompt,
+      tier,
+      payload.targetPlatform,
+      tier === 3 ? 15 : undefined
+    );
+  } catch (err) {
+    console.warn("[CF:quality] scoreAndPersist failed (non-fatal):", err);
+  }
+
+  console.log(`[CF:sw] Migration complete in ${(performance.now() - t0_migrate).toFixed(0)}ms`);
+  perf.logReport();
+  sendResponse({ ok: true, prompt: finalPrompt, compressionRatio, qualityScore });
 }
 
 async function handleFetchIdeContext(sendResponse: (r: unknown) => void) {
@@ -1245,6 +1869,29 @@ function injectPromptInPage(
   }
 
   if (input.isContentEditable) {
+    // ── Fast path for large text (>5k chars) ────────────────────────────────
+    // execCommand("insertText") with 30k+ chars freezes ProseMirror/Lexical for
+    // 10-180 seconds because it dispatches per-character beforeinput handling.
+    // Synthetic ClipboardEvent with DataTransfer is handled as a single bulk
+    // paste operation — ~50× faster on large strings.
+    // (Mirrored from content/shared.ts setPromptInputValue.)
+    if (text.length > 5000) {
+      try {
+        document.execCommand("selectAll", false, undefined);
+        const dt = new DataTransfer();
+        dt.setData("text/plain", text);
+        const pasteEvent = new ClipboardEvent("paste", {
+          clipboardData: dt,
+          bubbles: true,
+          cancelable: true,
+        });
+        const dispatched = input.dispatchEvent(pasteEvent);
+        if (dispatched || (input.textContent?.length ?? 0) > text.length / 2) {
+          if ((input.textContent?.trim().length ?? 0) > 0) return { ok: true };
+        }
+      } catch { /* fall through to standard path */ }
+    }
+
     document.execCommand("selectAll", false, undefined);
     const inserted = document.execCommand("insertText", false, text);
     if (inserted && (input.textContent?.trim().length ?? 0) > 0) return { ok: true };
@@ -1268,57 +1915,87 @@ async function sendMessageToTab(
   tabId: number,
   message: { type: "INJECT_CONTEXT"; prompt: string; platform: string }
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  try {
-    const response = await chrome.tabs.sendMessage(tabId, message);
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 500;
+  const ATTEMPT_TIMEOUT_MS = 10_000;
 
-    if (response?.ok) {
-      return { ok: true };
-    }
+  let lastError = "Unknown injection error";
 
-    if (response?.error) {
-      return { ok: false, error: response.error };
-    }
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      // Race the tab message against a per-attempt 10-second timeout.
+      const response = await Promise.race([
+        chrome.tabs.sendMessage(tabId, message) as Promise<unknown>,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Injection timed out after 10s")), ATTEMPT_TIMEOUT_MS)
+        ),
+      ]);
 
-    return {
-      ok: false,
-      error: "The target tab did not confirm that the migrated prompt was inserted.",
-    };
-  } catch (error) {
-    const messageText =
-      error instanceof Error ? error.message : "Unknown tab messaging error";
-    console.warn("[ContextForge] Tab injection failed:", messageText);
+      const res = response as { ok?: boolean; error?: string } | null;
+      if (res?.ok) return { ok: true };
+      if (res?.error) {
+        // Content-script-reported error — surface directly, don't retry.
+        return { ok: false, error: res.error };
+      }
+      lastError = "The target tab did not confirm that the migrated prompt was inserted.";
+    } catch (error) {
+      const messageText = error instanceof Error ? error.message : "Unknown tab messaging error";
+      lastError = messageText;
+      console.warn(`[ContextForge] Tab injection attempt ${attempt}/${MAX_RETRIES} failed:`, messageText);
 
-    // Chrome throws this when the content script hasn't loaded in the tab yet
-    // (tab opened before extension install, or extension was reloaded).
-    // Fall back to a direct executeScript injection — no content script needed.
-    if (messageText.includes("Receiving end does not exist") ||
-        messageText.includes("Could not establish connection")) {
-      console.log(`[ContextForge] Content script absent — falling back to executeScript injection for tab ${tabId}`);
-      try {
-        const [result] = await chrome.scripting.executeScript({
-          target: { tabId },
-          func: injectPromptInPage,
-          args: [message.prompt, message.platform],
-        });
-        const res = result?.result as { ok: boolean; error?: string } | undefined;
-        if (res?.ok) {
-          console.log(`[ContextForge] executeScript injection succeeded for tab ${tabId}`);
-          return { ok: true };
+      // Content script absent — fall back to executeScript immediately (no retry needed).
+      if (
+        messageText.includes("Receiving end does not exist") ||
+        messageText.includes("Could not establish connection")
+      ) {
+        console.log(`[ContextForge] Content script absent — falling back to executeScript injection for tab ${tabId}`);
+        try {
+          const [result] = await chrome.scripting.executeScript({
+            target: { tabId },
+            func: injectPromptInPage,
+            args: [message.prompt, message.platform],
+          });
+          const res = result?.result as { ok: boolean; error?: string } | undefined;
+          if (res?.ok) {
+            console.log(`[ContextForge] executeScript injection succeeded for tab ${tabId}`);
+            return { ok: true };
+          }
+          return {
+            ok: false,
+            error: res?.error ?? "Direct page injection failed. Reload the target tab and try again.",
+          };
+        } catch (scriptErr) {
+          const scriptMsg = scriptErr instanceof Error ? scriptErr.message : String(scriptErr);
+          console.warn("[ContextForge] executeScript fallback failed:", scriptMsg);
+          return {
+            ok: false,
+            error: `Could not reach the ${message.platform} tab: ${scriptMsg}. Try reloading that tab.`,
+          };
         }
-        return {
-          ok: false,
-          error: res?.error ?? "Direct page injection failed. Reload the target tab and try again.",
-        };
-      } catch (scriptErr) {
-        const scriptMsg = scriptErr instanceof Error ? scriptErr.message : String(scriptErr);
-        console.warn("[ContextForge] executeScript fallback failed:", scriptMsg);
-        return {
-          ok: false,
-          error: `Could not reach the ${message.platform} tab: ${scriptMsg}. Try reloading that tab.`,
-        };
+      }
+
+      // Timeout or other transient error — wait before retry.
+      if (attempt < MAX_RETRIES) {
+        await new Promise<void>((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
       }
     }
-
-    return { ok: false, error: messageText };
   }
+
+  return {
+    ok: false,
+    error: `Injection failed after ${MAX_RETRIES} attempts — make sure the ${message.platform} tab is active and not loading. (${lastError})`,
+  };
 }
+
+// ── SW lifecycle ────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(self as unknown as ServiceWorkerGlobalScope).addEventListener("activate", (event) => {
+  event.waitUntil((async () => {
+    try {
+      await semanticIndex.cleanupOldData();
+      console.log('[CF:sw] activate: IDB cleanup complete');
+    } catch (e) {
+      console.warn('[CF:sw] activate: cleanup failed (non-fatal):', e);
+    }
+  })());
+});

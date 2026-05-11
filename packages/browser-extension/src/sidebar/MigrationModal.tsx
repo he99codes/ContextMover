@@ -6,7 +6,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
-import { attentionEngine } from "@/lib/attention-engine";
+import { attentionEngine, getHardwareProfile } from "@/lib/attention-engine";
+import type { HardwareProfile } from "@/lib/attention-engine";
 import { capabilityDetector } from "@/lib/capability-detector";
 import { summarizeWithAttention } from "@/lib/summarizer";
 import { promptEngine } from "@/lib/prompt-engine/engine";
@@ -15,6 +16,7 @@ import { fileContextBuilder } from "@/lib/file-system/context-builder";
 import type { ProjectFile, FileTreeNode } from "@/lib/file-system/project-reader";
 import type { PromptTemplate } from "@/lib/prompt-engine/types";
 import type { ContextSession, Platform } from "@/lib/types";
+import type { QualityScore } from "@/lib/quality/migration-scorer";
 import { PROMPTS_URL } from "@/config/urls";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,7 +63,17 @@ interface Props {
   session: ContextSession;
   targetPlatform: Platform;
   onClose: () => void;
-  onSuccess?: (tier: 1 | 2 | 3, compressionRatio: number, chars: number) => void;
+  onSuccess?: (
+    tier: 1 | 2 | 3,
+    compressionRatio: number,
+    chars: number,
+    qualityScore?: QualityScore
+  ) => void;
+  onLimitReached?: (info: {
+    type: "simple" | "smart" | "attention";
+    used: number;
+    limit: number;
+  }) => void;
 }
 
 type EngineState =
@@ -83,45 +95,6 @@ type MigrateState =
   | { status: "error"; message: string };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Hardware detection
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface HardwareProfile {
-  cores: number;
-  memory: number;
-  hasGPU: boolean;
-  isSlowDevice: boolean;
-  isFastDevice: boolean;
-}
-
-function detectHardware(): HardwareProfile {
-  const cores = navigator.hardwareConcurrency ?? 2;
-  const memory = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? -1;
-  let hasGPU = false;
-  try {
-    const canvas = document.createElement("canvas");
-    const gl = (
-      canvas.getContext("webgl") || canvas.getContext("experimental-webgl")
-    ) as WebGLRenderingContext | null;
-    if (gl) {
-      const ext = gl.getExtension("WEBGL_debug_renderer_info");
-      if (ext) {
-        const renderer = (gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) as string).toLowerCase();
-        if (!renderer.includes("swiftshader") && !renderer.includes("software")) {
-          hasGPU = renderer.includes("nvidia") || renderer.includes("amd") ||
-                   renderer.includes("intel") || renderer.includes("apple");
-        }
-      }
-    }
-  } catch { /* ignore */ }
-  const isSlowDevice = cores <= 4 && memory !== -1 && memory <= 8;
-  const isFastDevice = cores >= 8 || hasGPU;
-  return { cores, memory, hasGPU, isSlowDevice, isFastDevice };
-}
-
-const HW_PROFILE = detectHardware();
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -130,25 +103,30 @@ export default function MigrationModal({
   targetPlatform,
   onClose,
   onSuccess,
+  onLimitReached,
 }: Props) {
   const savedTier = (): 1 | 2 | 3 => {
     try {
       const v = Number(localStorage.getItem(LAST_TIER_KEY));
       if (v === 1 || v === 2 || v === 3) return v;
     } catch { /* ignore */ }
-    return HW_PROFILE.isFastDevice ? 3 : 2;
+    return 2;
   };
 
   const [tier, setTierRaw] = useState<1 | 2 | 3>(savedTier);
   const [caveman, setCaveman] = useState(false);
   const [task, setTask] = useState("");
   const [strength, setStrength] = useState<"light" | "strict">("light");
-  const [hw] = useState<HardwareProfile>(() => HW_PROFILE);
+  const [hw, setHw] = useState<HardwareProfile | null>(null);
   const [engineState, setEngineState] = useState<EngineState>({ status: "idle" });
   const [preview, setPreview] = useState<PreviewState>({ status: "idle" });
   const [migrateState, setMigrateState] = useState<MigrateState>({ status: "idle" });
   const [isWeakDevice, setIsWeakDevice] = useState(false);
   const [preindexed, setPreindexed] = useState(false);
+  const [migrateProgress, setMigrateProgress] = useState(0);
+  const [migrateStage, setMigrateStage] = useState("");
+  const [downgradedToast, setDowngradedToast] = useState<string | null>(null);
+  const userHasManuallySelected = useRef(false);
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Prompt Engine state
@@ -172,11 +150,36 @@ export default function MigrationModal({
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  // ── Detect weak device on mount ─────────────────────────────────────────────
+  // ── Detect weak device + load hardware profile on mount ────────────────────
   useEffect(() => {
     capabilityDetector.getEffectiveTier()
-      .then((tier) => setIsWeakDevice(tier === "minimal"))
+      .then((t) => setIsWeakDevice(t === "minimal"))
       .catch(() => setIsWeakDevice(false));
+    getHardwareProfile().then((profile) => {
+      setHw(profile);
+      if (!userHasManuallySelected.current) {
+        const saved = Number(localStorage.getItem(LAST_TIER_KEY));
+        if (saved !== 1 && saved !== 2 && saved !== 3) {
+          setTierRaw(profile.recommendedMigrationTier);
+        }
+      }
+    }).catch(() => { /* ignore — hardware detection is best-effort */ });
+  }, []);
+
+  // ── Listen for migration progress + downgrade events ────────────────────────
+  useEffect(() => {
+    const handler = (msg: { type: string; progress?: number; stage?: string; from?: number; to?: number; reason?: string }) => {
+      if (msg.type === "MIGRATION_PROGRESS") {
+        setMigrateProgress(msg.progress ?? 0);
+        setMigrateStage(msg.stage ?? "");
+      } else if (msg.type === "TIER_DOWNGRADED") {
+        const reason = msg.reason === "timeout" ? "8s timeout" : "slow device";
+        setDowngradedToast(`Used Smart Summary (${reason} — Attention Engine skipped)`);
+        setTimeout(() => setDowngradedToast(null), 5000);
+      }
+    };
+    chrome.runtime.onMessage.addListener(handler);
+    return () => chrome.runtime.onMessage.removeListener(handler);
   }, []);
 
   // ── Load prompt templates on mount ──────────────────────────────────────────
@@ -263,6 +266,7 @@ export default function MigrationModal({
   }, [task]);
 
   function setTier(t: 1 | 2 | 3) {
+    userHasManuallySelected.current = true;
     setTierRaw(t);
     try { localStorage.setItem(LAST_TIER_KEY, String(t)); } catch { /* ignore */ }
     setMigrateState({ status: "idle" });
@@ -335,6 +339,8 @@ export default function MigrationModal({
   // ── Migration handler ───────────────────────────────────────────────────────
   async function handleMigrate() {
     setMigrateState({ status: "migrating" });
+    setMigrateProgress(0);
+    setMigrateStage("");
 
     const tab = await findTargetPlatformTab(targetPlatform);
     if (!tab?.id) {
@@ -394,6 +400,15 @@ export default function MigrationModal({
         },
       },
       (response) => {
+        if (response?.error === "LIMIT_REACHED" && onLimitReached) {
+          onLimitReached({
+            type:  response.type  as "simple" | "smart" | "attention",
+            used:  response.used  as number,
+            limit: response.limit as number,
+          });
+          onClose();
+          return;
+        }
         if (response?.error) {
           setMigrateState({ status: "error", message: response.error });
           return;
@@ -404,7 +419,7 @@ export default function MigrationModal({
             ? preview.compressionRatio
             : (response?.compressionRatio as number | undefined) ?? 0;
         setMigrateState({ status: "success", tier, chars, compressionRatio: ratio });
-        onSuccess?.(tier, ratio, chars);
+        onSuccess?.(tier, ratio, chars, response?.qualityScore as QualityScore | undefined);
       }
     );
   }
@@ -470,14 +485,25 @@ export default function MigrationModal({
         </div>
 
         {/* ── Hardware recommendation banner ── */}
-        {hw.isFastDevice && (
+        {hw?.tier === "full" && (
           <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)", borderRadius: "4px", fontSize: "9px", color: "#00FF88", letterSpacing: "0.06em", lineHeight: "1" }}>
-            ▸ GPU detected — Attention Engine ready
+            {"\uD83D\uDE80 GPU detected (" + (hw.gpuRenderer ?? "GPU") + ") — Full power"}
           </div>
         )}
-        {!hw.isFastDevice && hw.isSlowDevice && (
+        {hw?.tier === "balanced" && (
+          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)", borderRadius: "4px", fontSize: "9px", color: "#00FF88", letterSpacing: "0.06em", lineHeight: "1" }}>
+            {"\u26A1 " + hw.cores + " cores detected — Balanced mode"}
+          </div>
+        )}
+        {hw?.tier === "minimal" && (
           <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F59E0B", letterSpacing: "0.06em", lineHeight: "1" }}>
-            ⚠ Slow device detected — Smart Summary recommended
+            ⚠ Slow device — Smart Summary recommended. Attention Engine may take 2+ min.
+          </div>
+        )}
+        {/* ── Tier-downgrade toast ── */}
+        {downgradedToast && (
+          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: "4px", fontSize: "9px", color: "#F59E0B", letterSpacing: "0.04em" }}>
+            {"\uD83E\uDDE0 " + downgradedToast}
           </div>
         )}
 
@@ -518,11 +544,33 @@ export default function MigrationModal({
                   {label}
                 </div>
                 <div style={{ fontSize: "8px", color: active ? "#00CC6A" : "#333" }}>{speed}</div>
+                {t === 3 && active && hw?.tier === "minimal" && (
+                  <div style={{ fontSize: "8px", color: "#F59E0B", marginTop: "2px", textAlign: "center" }}>
+                    ⚠ May take 2+ min
+                  </div>
+                )}
               </button>
             );
           })}
         </div>
 
+
+        {/* ── Tier 3: migration progress bar ── */}
+        {tier === 3 && migrateState.status === "migrating" && (
+          <div style={{ marginBottom: "6px" }}>
+            <div style={{ width: "100%", background: "#1A1A1A", borderRadius: "4px", height: "4px", overflow: "hidden" }}>
+              <div style={{ width: migrateProgress + "%", height: "100%", background: "#00FF88", transition: "width 300ms ease", boxShadow: "0 0 8px rgba(0,255,136,0.5)" }} />
+            </div>
+            <div style={{ fontSize: "9px", color: "#6B6B6B", marginTop: "4px", textAlign: "center" }}>
+              {migrateStage || "Processing..."} ({migrateProgress}%)
+            </div>
+            {hw?.tier === "minimal" && (
+              <div style={{ fontSize: "8px", color: "#F59E0B", marginTop: "2px", textAlign: "center" }}>
+                Will auto-switch to Smart Summary if not done in 8s
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Tier 3: engine init progress ── */}
         {tier === 3 && engineState.status === "loading" && (
@@ -647,12 +695,12 @@ export default function MigrationModal({
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: "0.06em",
-                background: hw.hasGPU ? "rgba(0,255,136,0.1)" : "#111",
-                border: `1px solid ${hw.hasGPU ? "rgba(0,255,136,0.3)" : "#222"}`,
-                color: hw.hasGPU ? "#00FF88" : "#555",
+                background: hw?.hasWebGPU ? "rgba(0,255,136,0.1)" : "#111",
+                border: `1px solid ${hw?.hasWebGPU ? "rgba(0,255,136,0.3)" : "#222"}`,
+                color: hw?.hasWebGPU ? "#00FF88" : "#555",
               }}
             >
-              {hw.hasGPU ? "▸ GPU" : "□ CPU"}
+              {hw?.hasWebGPU ? "▸ GPU" : "□ CPU"}
             </span>
           </div>
         )}

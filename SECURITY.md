@@ -22,6 +22,10 @@
 
 | Date | Change | File(s) Affected |
 |------|--------|-----------------|
+| 2026-05-11 | Webhook idempotency: `isDuplicateEvent()` blocks replay of any `(gateway, event_id)` already in `payment_events` | `src/lib/payments/subscription.ts`, `src/app/api/webhooks/stripe/route.ts`, `src/app/api/webhooks/razorpay/route.ts` |
+| 2026-05-11 | Razorpay v2 webhook: timing-safe constant-time signature compare + length guard; removed `RAZORPAY_KEY_SECRET` fallback (must use dedicated webhook secret) | `src/app/api/webhooks/razorpay/route.ts` |
+| 2026-05-11 | Legacy Razorpay webhook: length-guard added before `timingSafeEqual` to prevent 500 on mismatched-shape signatures | `src/app/api/payments/razorpay/webhook/route.ts` |
+| 2026-05-11 | Rate-limiter applied to `/api/payments/{subscription,usage,cancel}` (60/min/user) | three payment route handlers |
 | 2026-05-03 | Next.js upgraded 14.2.5 → 14.2.35 (fixes CVE-2025-29927 critical auth bypass + 8 other CVEs) | `packages/web/package.json` |
 | 2026-05-03 | Reverted `'strict-dynamic'` from extension CSP — Chrome MV3 explicitly rejects it; not valid in `extension_pages` | `packages/browser-extension/manifest.json` |
 | 2026-05-03 | Auth callback hardened: open-redirect guard on `?next=`, explicit error redirect on failed code exchange | `packages/web/src/app/auth/callback/route.ts` |

@@ -83,6 +83,23 @@ export function defaultSessionTitle(messages: Message[]): string {
   return truncate(source.replace(/\s+/g, " ").trim(), 72);
 }
 
+/**
+ * djb2 hash of a message array — fast, no dependencies.
+ * Incorporates every message's role + content length + last 20 chars
+ * so any edit (including to middle messages) changes the fingerprint.
+ */
+function hashMessages(messages: Message[]): string {
+  const str = messages.map((m) =>
+    m.role + m.content.length + m.content.slice(-20)
+  ).join("|");
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash = hash & hash; // force 32-bit signed int
+  }
+  return hash.toString(36);
+}
+
 export function startSessionCapture(config: {
   platform: string;
   selectorOrElement: string | Element;
@@ -111,10 +128,18 @@ export function startSessionCapture(config: {
   });
 
   let sessionId: string | null = null;
-  let lastSnapshotKey = "";
+  let lastMessageHash = "";
   let lastHref = window.location.href;
   let lastUnchangedAt = 0;
   const UNCHANGED_COOLDOWN_MS = 5_000; // don't re-scrape if last result was unchanged < 5s ago
+
+  // Double-capture guards:
+  // captureInFlight — prevents concurrent executions of capture() overlapping on ensureSessionId().
+  // lastSentAt / MIN_SEND_INTERVAL_MS — enforces minimum 2s between CAPTURE_SESSION sends
+  //   for the same session (absorbs rapid setTimeout + load-event pairs).
+  let captureInFlight = false;
+  let lastSentAt = 0;
+  const MIN_SEND_INTERVAL_MS = 2_000;
 
   let pendingCaptureAfterStream = false;
   let streamPollId: ReturnType<typeof setInterval> | null = null;
@@ -143,7 +168,7 @@ export function startSessionCapture(config: {
         `[ContextForge] ${config.platform}: received SESSION_FORGOTTEN for ${sessionId} — clearing cache, next capture will mint new id`
       );
       sessionId = null;
-      lastSnapshotKey = "";
+      lastMessageHash = "";
     }
   });
 
@@ -155,7 +180,7 @@ export function startSessionCapture(config: {
     if (currentHref !== lastHref) {
       lastHref = currentHref;
       sessionId = null;
-      lastSnapshotKey = "";
+      lastMessageHash = "";
       console.log(`[ContextForge] URL changed — re-resolving sessionId`);
     }
 
@@ -205,6 +230,15 @@ export function startSessionCapture(config: {
       return;
     }
 
+    // Prevent concurrent capture executions — if ensureSessionId() is still
+    // awaiting from a previous call, skip rather than sending a duplicate.
+    if (captureInFlight) {
+      console.log(`[ContextForge] ${config.platform}: capture already in flight, skipping`);
+      return;
+    }
+    captureInFlight = true;
+    try {
+
     console.log(`[ContextForge] Capture triggered for ${config.platform} (DOM fallback)`);
     const messages = config.scrapeMessages();
     if (!messages.length) {
@@ -227,18 +261,36 @@ export function startSessionCapture(config: {
     const title =
       config.getTitle?.(messages) ??
       defaultSessionTitle(messages);
-    const lastMessage = messages[messages.length - 1];
-    const snapshotKey = `${messages.length}:${lastMessage?.role ?? ""}:${lastMessage?.content ?? ""}`;
 
-    if (snapshotKey === lastSnapshotKey) {
+    // djb2 hash of all messages — catches edits anywhere in the conversation,
+    // not just appends. Only skip if the ENTIRE message array is identical.
+    const newHash = hashMessages(messages);
+    if (newHash === lastMessageHash) {
       lastUnchangedAt = Date.now();
-      console.log(`[ContextForge] Snapshot unchanged, skipping`);
+      console.log(`[ContextForge] Snapshot hash unchanged, skipping`);
       return;
     }
     lastUnchangedAt = 0; // new content — allow immediate re-scrapes
-    lastSnapshotKey = snapshotKey;
+    // NOTE: intentionally NOT committing newHash yet.
+    // If we bail on the time-gate below, the next MutationObserver fire
+    // will re-check and retry since lastMessageHash is still the old value.
 
     const resolvedId = await ensureSessionId();
+
+    // Minimum 2s between sends for the same session.
+    // Guards against setTimeout(capture,1000) + load event firing simultaneously.
+    const now = Date.now();
+    if (now - lastSentAt < MIN_SEND_INTERVAL_MS) {
+      console.log(
+        `[ContextForge:capture] Skipped duplicate for ${resolvedId}` +
+        ` (hash changed but ${now - lastSentAt}ms since last send)`
+      );
+      return;
+    }
+    // Commit hash + timestamp only after deciding to send.
+    lastMessageHash = newHash;
+    lastSentAt = now;
+
     console.log(`[ContextForge] Sending CAPTURE_SESSION for session: ${resolvedId}`);
     chrome.runtime.sendMessage({
       type: "CAPTURE_SESSION",
@@ -249,6 +301,9 @@ export function startSessionCapture(config: {
         messages,
       },
     });
+    } finally {
+      captureInFlight = false;
+    }
   };
 
   createObserver(config.selectorOrElement, capture);
@@ -417,6 +472,14 @@ export const sleep = (ms: number): Promise<void> => new Promise(r => setTimeout(
  * Verifies success by checking that the first 50 chars of text landed in the input.
  * Falls back to navigator.clipboard on total failure and notifies the sidebar.
  */
+// Hard cap on inject size — prevents pathological inputs from crashing tabs.
+// Raised from 30k → 200k after the >5k ClipboardEvent fast path was added
+// (single bulk-paste transaction instead of per-char insertText). All major
+// editors (ProseMirror / Lexical / Quill / native textarea) accept 200k via
+// the paste path on minimal hardware in <2s. Aligned with service-worker
+// PLATFORM_MAX_CHARS so the user gets the full context they asked for.
+const INJECT_HARD_CAP = 200_000;
+
 export async function injectWithRetry(
   input: HTMLElement | HTMLTextAreaElement,
   text: string,
@@ -424,6 +487,12 @@ export async function injectWithRetry(
   maxAttempts = 3,
   delayMs = 300
 ): Promise<boolean> {
+  // Hard cap — prevents SIGILL tab crashes from oversized prompts
+  if (text.length > INJECT_HARD_CAP) {
+    const dropped = text.length - INJECT_HARD_CAP;
+    console.warn(`[ContextForge:inject] Prompt too large (${text.length} chars) — truncating to ${INJECT_HARD_CAP} (dropped ${dropped} chars)`);
+    text = text.slice(0, INJECT_HARD_CAP) + `\n\n... [ContextForge: ${dropped} chars trimmed — use Tier 1 for full context]`;
+  }
   let currentDelay = delayMs;
   const first50 = text.slice(0, 50);
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {

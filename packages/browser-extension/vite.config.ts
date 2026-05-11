@@ -20,6 +20,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         sidebar: "src/sidebar/index.html",
+        offscreen: "src/offscreen/offscreen.html",
         "src/content/claude": "src/content/claude.ts",
         "src/content/chatgpt": "src/content/chatgpt.ts",
         "src/content/gemini": "src/content/gemini.ts",

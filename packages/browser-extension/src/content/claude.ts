@@ -263,8 +263,10 @@ startSessionCapture({
 // Listen for injection requests from the service worker
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === "INJECT_CONTEXT" && msg.platform === "claude") {
-    void injectIntoClaudeInput(msg.prompt).then(sendResponse);
-    return true;
+    injectIntoClaudeInput(msg.prompt)
+      .then((result) => sendResponse(result))
+      .catch((err) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
+    return true; // CRITICAL — keeps channel open for async response
   }
 });
 

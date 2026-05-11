@@ -11,10 +11,92 @@
 import { supabase, isSupabaseConfigured } from "./supabase";
 import { getDb } from "./db";
 import type { PromptTemplate, PromptAssignment } from "./prompt-engine/types";
+import type { ContextSession } from "./types";
+
+// ── Vault sync rate limiter ──────────────────────────────────────────────────
+// Only fires at most once per MIN_VAULT_SYNC_INTERVAL.
+// Multiple rapid captures coalesce — only the latest session is flushed.
+
+let lastVaultSyncTime = 0;
+let pendingVaultSync: ContextSession | null = null;
+let vaultSyncTimer: ReturnType<typeof setTimeout> | null = null;
+const MIN_VAULT_SYNC_INTERVAL = 30_000;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function queueVaultSync(session: ContextSession, vaultClient: any): Promise<void> {
+  pendingVaultSync = session;
+
+  const now = Date.now();
+  const timeSinceLast = now - lastVaultSyncTime;
+
+  if (timeSinceLast >= MIN_VAULT_SYNC_INTERVAL) {
+    await flushVaultSync(vaultClient);
+  } else {
+    if (vaultSyncTimer) clearTimeout(vaultSyncTimer);
+    const delay = MIN_VAULT_SYNC_INTERVAL - timeSinceLast;
+    vaultSyncTimer = setTimeout(() => {
+      void flushVaultSync(vaultClient);
+    }, delay);
+    console.log(`[ContextForge:vault] Sync queued in ${delay}ms for session ${session.id}`);
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function flushVaultSync(vaultClient: any): Promise<void> {
+  if (!pendingVaultSync) return;
+  const session = pendingVaultSync;
+  pendingVaultSync = null;
+  lastVaultSyncTime = Date.now();
+
+  try {
+    await vaultClient.from("cf_sessions").upsert({
+      id: session.id,
+      platform: session.platform,
+      title: session.title,
+      messages: session.messages,
+      message_count: session.messages.length,
+      user_message_count: session.messages.filter((m) => m.role === "user").length,
+      assistant_message_count: session.messages.filter((m) => m.role === "assistant").length,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "id" });
+    console.log(`[ContextForge:vault] Synced session ${session.id} (${session.messages.length} messages)`);
+  } catch (err) {
+    console.warn("[ContextForge:vault] Sync failed:", err);
+    // Re-queue on failure so the next interval picks it up
+    pendingVaultSync = session;
+  }
+}
 
 async function getUserId(): Promise<string | null> {
   const { data } = await supabase.auth.getUser();
   return data.user?.id ?? null;
+}
+
+/**
+ * Returns true if the named table exists and is accessible in Supabase.
+ * Uses a lightweight SELECT id LIMIT 1 probe — a table-not-found error
+ * means the table is absent; any other error is treated as "inaccessible".
+ * Never throws.
+ */
+async function tableExists(tableName: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.from(tableName).select('id').limit(1);
+    if (!error) return true;
+    // Supabase returns code '42P01' (undefined_table) when the table is missing.
+    // The message check is a human-readable fallback for older client versions.
+    const isMissing =
+      (error as unknown as { code?: string }).code === '42P01' ||
+      error.message?.toLowerCase().includes('does not exist') ||
+      error.message?.toLowerCase().includes('could not find');
+    if (isMissing) {
+      console.log(`[ContextForge:cloud] ${tableName} not found in Supabase, skipping sync`);
+    } else {
+      console.warn(`[ContextForge:cloud] ${tableName} probe failed:`, error.message);
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -24,6 +106,7 @@ async function getUserId(): Promise<string | null> {
 export async function syncPromptTemplates(userId: string): Promise<void> {
   if (!isSupabaseConfigured || !userId) return;
   try {
+    if (!await tableExists('prompt_templates')) return;
     const { data: cloudRows, error } = await supabase
       .from("prompt_templates")
       .select("*")
@@ -90,6 +173,7 @@ export async function syncPromptTemplates(userId: string): Promise<void> {
 export async function syncPromptAssignments(userId: string): Promise<void> {
   if (!isSupabaseConfigured || !userId) return;
   try {
+    if (!await tableExists('prompt_assignments')) return;
     const { data: cloudRows, error } = await supabase
       .from("prompt_assignments")
       .select("*")

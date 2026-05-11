@@ -15,7 +15,54 @@ import {
 
 const MAX_VERBATIM = 6;
 
+// ── Translation cache (TTL-based, max 5 entries, 60s expiry) ─────────────────
+// Avoids rebuilding identical prompts on double-click, sidebar retry, or
+// precomputed preview. SessionId in key prevents cross-session collisions.
+
+interface TranslatorCacheEntry {
+  prompt: string;
+  builtAt: number;
+}
+
+const promptCache = new Map<string, TranslatorCacheEntry>();
+const CACHE_TTL    = 60_000;
+const MAX_CACHE_SIZE = 5;
+
+function buildCacheKey(payload: MigrationPayload): string {
+  return [
+    payload.sourceSession?.id ?? "no-session",
+    payload.targetPlatform,
+    String(payload.tier ?? 1),
+    payload.task ?? "",
+    payload.promptTemplateId ?? "",
+    payload.caveman ? "1" : "0",
+    String(payload.summary?.length ?? 0),
+  ].join("|");
+}
+
 export default function buildMigrationPrompt(
+  payload: MigrationPayload
+): string {
+  const key = buildCacheKey(payload);
+  const cached = promptCache.get(key);
+
+  if (cached && Date.now() - cached.builtAt < CACHE_TTL) {
+    console.log("[ContextForge:translator] Cache hit");
+    return cached.prompt;
+  }
+
+  const result = buildMigrationPromptInternal(payload);
+
+  // Evict oldest entry when at capacity
+  if (promptCache.size >= MAX_CACHE_SIZE) {
+    const oldest = [...promptCache.entries()].sort((a, b) => a[1].builtAt - b[1].builtAt)[0][0];
+    promptCache.delete(oldest);
+  }
+  promptCache.set(key, { prompt: result, builtAt: Date.now() });
+  return result;
+}
+
+function buildMigrationPromptInternal(
   payload: MigrationPayload
 ): string {
   if (payload.summary === undefined && !payload.intelligentSummary) {

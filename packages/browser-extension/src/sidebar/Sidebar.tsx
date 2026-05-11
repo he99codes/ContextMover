@@ -1,9 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
 import type { ContextSession, Platform } from "@/lib/types";
 import ExportMenu from "@/components/ExportMenu";
 import { PlatformBadge, PlatformLogo } from "@/components/PlatformLogo";
 import MigrationModal from "./MigrationModal";
+import { QualityScoreCard } from "./QualityScoreCard";
+import type { QualityScore } from "@/lib/quality/migration-scorer";
+import { UpgradeModal, type LimitType } from "./UpgradeModal";
 import { attentionEngine } from "@/lib/attention-engine";
 import { capabilityDetector } from "@/lib/capability-detector";
 import { projectReader } from "@/lib/file-system/project-reader";
@@ -13,6 +16,101 @@ import type { FileTreeNode } from "@/lib/file-system/project-reader";
 import { VAULT_URL, DASHBOARD_URL, PRICING_URL } from "@/config/urls";
 import { healthMonitor } from "@/lib/capture/health-monitor";
 import type { CaptureAlert } from "@/lib/capture/health-monitor";
+
+interface IndexStats {
+  sessionCount: number;
+  indexedCount: number;
+  chunkCount: number;
+  summaryCount: number;
+  cacheCount: number;
+  estimatedStorageMB: number;
+  modelTier?: string | null;
+  modelLabel?: string | null;
+}
+
+// ── SessionCard — memoized to prevent re-renders when unrelated state changes ──
+interface SessionCardProps {
+  session: ContextSession;
+  vaultConnected: boolean | null;
+  migrationTier?: 1 | 2 | 3;
+  onSelect: () => void;
+  onExportSuccess: (fmt: string) => void;
+  onExportError: (text: string) => void;
+}
+
+const SessionCard = memo<SessionCardProps>(function SessionCard({
+  session,
+  vaultConnected,
+  migrationTier,
+  onSelect,
+  onExportSuccess,
+  onExportError,
+}) {
+  const pColor = PLATFORM_COLORS[session.platform];
+  return (
+    <div
+      key={session.id}
+      role="button"
+      tabIndex={0}
+      onClick={onSelect}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(); } }}
+      className="stagger-item group relative block w-full cursor-pointer overflow-hidden rounded-[6px] border bg-[#0A0A0A] px-4 py-4 text-left transition-all duration-200 hover:shadow-[0_0_0_1px_rgba(0,255,136,0.5),0_4px_22px_rgba(0,255,136,0.12),0_0_50px_rgba(0,255,136,0.04)] hover:-translate-y-[2px] hover:bg-[#0D1A0D]"
+      style={{ borderColor: `${pColor}25`, boxShadow: `0 1px 0 ${pColor}10` }}
+    >
+      <span className="absolute inset-y-0 left-0 w-[3px] rounded-l-[6px]" style={{ background: pColor }} />
+      <div className="flex items-start gap-2.5 pl-1">
+        <div className="min-w-0 flex-1">
+          <PlatformBadge platform={session.platform} logoSize={11} />
+          <p className="mt-2 truncate text-sm font-semibold text-[#F5F5F5] transition-all duration-200 group-hover:text-[#00FF88] typing-glow">
+            {session.title}
+          </p>
+          <div className="mt-1.5 flex items-center gap-2 text-[10px] uppercase" style={{ letterSpacing: "0.1em", color: "#1A3A1A" }}>
+            <span>{session.messages.length} turns</span>
+            <span>·</span>
+            <span>{formatRelativeTime(session.updatedAt)}</span>
+            <span>·</span>
+            <span style={{ fontSize: "8px", color: vaultConnected === true ? "#00AA55" : "#4A4A4A" }}>
+              {vaultConnected === true ? "🔒 Vault" : "📱 Local"}
+            </span>
+            {migrationTier && (
+              <>
+                <span>·</span>
+                <span style={{
+                  padding: "1px 6px",
+                  borderRadius: "10px",
+                  background: (migrationTier ?? 1) >= 2 ? "rgba(0,255,136,0.12)" : "rgba(255,255,255,0.06)",
+                  border: `1px solid ${(migrationTier ?? 1) >= 2 ? "rgba(0,255,136,0.3)" : "#2A2A2A"}`,
+                  color: (migrationTier ?? 1) >= 2 ? "#00FF88" : "#666",
+                  fontSize: "8px",
+                  letterSpacing: "0.06em",
+                  fontWeight: 700,
+                }}>
+                  {migrationTier === 1 ? "Full" : migrationTier === 2 ? "Smart" : "▸ AE"}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-1 pt-0.5">
+          <ExportMenu
+            session={session}
+            variant="icon"
+            align="right"
+            onSuccess={onExportSuccess}
+            onError={onExportError}
+          />
+          <span className="text-[#3A3A3A] transition-colors group-hover:text-[#00FF88]">›</span>
+        </div>
+      </div>
+    </div>
+  );
+}, (prev, next) =>
+  prev.session.id === next.session.id &&
+  prev.session.updatedAt === next.session.updatedAt &&
+  prev.session.messages.length === next.session.messages.length &&
+  prev.vaultConnected === next.vaultConnected &&
+  prev.migrationTier === next.migrationTier
+);
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   claude:     "Claude",
@@ -62,13 +160,41 @@ export default function Sidebar() {
   );
   const [tick, setTick] = useState(0);
   const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [latestQualityScore, setLatestQualityScore] = useState<QualityScore | null>(null);
+  const [qualityStats, setQualityStats] = useState<{ count: number; avgScore: number } | null>(null);
+  const [upgradeModal, setUpgradeModal] = useState<{
+    open:      boolean;
+    limitType: LimitType | null;
+    used:      number;
+    limit:     number;
+  }>({ open: false, limitType: null, used: 0, limit: 0 });
+  const [planStatus, setPlanStatus] = useState<{
+    plan:      "free" | "pro" | "team";
+    isPro:     boolean;
+    used?:     number;   // simple migrations used this month
+    limit?:    number;   // simple migrations limit
+    status?:   string;
+    trialEnd?: string | null;
+    loaded:    boolean;
+  }>({ plan: "free", isPro: false, loaded: false });
   const [vaultConnected, setVaultConnected] = useState<boolean | null>(null);
   const [vaultName, setVaultName] = useState<string | undefined>(undefined);
+  // MCP bridge status — green when the local @contextmover/mcp-server is up
+  // and listening on 127.0.0.1:49001. Independent from the VS Code IDE bridge.
+  const [mcpStatus, setMcpStatus] = useState<{ running: boolean; totalSessions?: number }>({ running: false });
   const [semanticQuery, setSemanticQuery] = useState("");
   const [semanticResults, setSemanticResults] = useState<{ sessionId: string; score: number }[]>([]);
   const loadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const semanticTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [captureAlert, setCaptureAlert] = useState<CaptureAlert | null>(null);
+  // Ref-stable message handler — avoids re-registering the listener on every render.
+  const handleMessageRef = useRef<(msg: { type: string }) => void>();
+  // Precomputed summaries — keyed by sessionId, populated on session card click.
+  const precomputedSummaries = useRef<Map<string, { cached: boolean }>>(new Map());
+  const hardwareTierRef = useRef<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [indexStats, setIndexStats] = useState<IndexStats | null>(null);
+  const [indexStatsLoading, setIndexStatsLoading] = useState(false);
 
   useEffect(() => {
     healthMonitor.getAlerts().then((alerts) => {
@@ -81,25 +207,75 @@ export default function Sidebar() {
     loadSessions();
     void checkBridge();
     void checkVault();
+    void checkMcpBridge();
 
     const clockInterval = window.setInterval(() => {
       setTick((value) => value + 1);
     }, 30_000);
 
-    // Instant refresh on SW broadcast, debounced so rapid captures
-    // (e.g. a 150-msg session upsert) don’t fire 140 GET_SESSIONS calls.
-    const onMessage = (msg: { type: string }) => {
-      if (msg.type === "SESSIONS_UPDATED") loadSessions();
-    };
-    chrome.runtime.onMessage.addListener(onMessage);
+    // Instant refresh on SW broadcast — handler stored in ref so the listener
+    // is registered exactly once (empty deps) and always calls the latest closure.
+    const stableListener = (msg: { type: string }) => handleMessageRef.current?.(msg);
+    chrome.runtime.onMessage.addListener(stableListener);
 
     return () => {
       window.clearInterval(clockInterval);
-      chrome.runtime.onMessage.removeListener(onMessage);
+      chrome.runtime.onMessage.removeListener(stableListener);
       if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
       if (semanticTimerRef.current) clearTimeout(semanticTimerRef.current);
     };
   }, []);
+
+  // Keep handleMessageRef in sync with latest loadSessions closure every render.
+  handleMessageRef.current = (msg) => {
+    if (msg.type === "SESSIONS_UPDATED") loadSessions();
+  };
+
+  // ── One-time hardware detection + model warmup ──────────────────────────────
+  // Detect once, memoize in a ref, send WARMUP_MODEL if capable hardware.
+  useEffect(() => {
+    capabilityDetector.getEffectiveTier()
+      .then((tier) => {
+        hardwareTierRef.current = tier;
+        if (tier !== 'minimal') {
+          chrome.runtime.sendMessage({ type: 'WARMUP_MODEL' }).catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // ── Plan status (Free / Pro / Team) for the header badge ───────────────────
+  // Re-fetches whenever `tick` changes — pollSidebar bumps `tick` after every
+  // migration so the "X/50" counter updates without a manual refresh.
+  useEffect(() => {
+    let cancelled = false;
+    chrome.runtime.sendMessage({ type: "GET_SUBSCRIPTION_STATUS" })
+      .then((res: {
+        plan?:     "free" | "pro" | "team";
+        isPro?:    boolean;
+        usage?:    { simpleMigrations: number };
+        limits?:   { simpleMigrations: number | "unlimited" };
+        status?:   string;
+        trialEnd?: string | null;
+      } | undefined) => {
+        if (cancelled || !res) return;
+        const used  = res.usage?.simpleMigrations;
+        const limit = res.limits?.simpleMigrations;
+        setPlanStatus({
+          plan:     res.plan ?? "free",
+          isPro:    Boolean(res.isPro),
+          used,
+          limit:    typeof limit === "number" ? limit : undefined,
+          status:   res.status,
+          trialEnd: res.trialEnd ?? null,
+          loaded:   true,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setPlanStatus((s) => ({ ...s, loaded: true }));
+      });
+    return () => { cancelled = true; };
+  }, [tick]);
 
   // ── Silent background preload of Attention Engine ───────────────────────────
   // Warming up the model (~23 MB download on first run) while the user is
@@ -161,6 +337,18 @@ export default function Sidebar() {
     });
   }
 
+  // Probe the local ContextMover MCP server health endpoint via the service
+  // worker (CORS-restricted from a sidebar page, the SW does the fetch).
+  function checkMcpBridge() {
+    chrome.runtime.sendMessage({ type: 'CHECK_MCP_BRIDGE' }, (res) => {
+      if (chrome.runtime.lastError) { setMcpStatus({ running: false }); return; }
+      setMcpStatus({
+        running:       Boolean(res?.running),
+        totalSessions: typeof res?.totalSessions === 'number' ? res.totalSessions : undefined,
+      });
+    });
+  }
+
   function loadSessions() {
     // Collapse rapid bursts into a single GET_SESSIONS call after 250 ms quiet
     if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
@@ -171,6 +359,35 @@ export default function Sidebar() {
       });
     }, 250);
   }
+
+  // ── Precompute summaries in background when user selects a session ────────────
+  // Session is already selected/highlighted; we silently ask the SW to run
+  // tier-1 + tier-2 summarization now so migration feels instant.
+  const warmupSession = useCallback(async (session: ContextSession): Promise<void> => {
+    // 1. Trigger background semantic indexing via SW (fire & forget)
+    chrome.runtime.sendMessage({ type: 'BACKGROUND_INDEX', sessionId: session.id }).catch(() => {});
+    // 2. Precompute tier-2 summary if not already cached
+    if (!precomputedSummaries.current.has(session.id)) {
+      chrome.runtime.sendMessage(
+        { type: 'PRECOMPUTE_SUMMARY', payload: { sessionId: session.id } },
+        (result) => {
+          if (chrome.runtime.lastError) return;
+          if (result?.cached) precomputedSummaries.current.set(session.id, { cached: true });
+        }
+      );
+    }
+    // 3. Warm embedding model if hardware can handle it (memoized at mount)
+    if (hardwareTierRef.current !== null && hardwareTierRef.current !== 'minimal') {
+      chrome.runtime.sendMessage({ type: 'WARMUP_MODEL' }).catch(() => {});
+    }
+  }, []);
+
+  const handleSessionSelect = useCallback((session: ContextSession) => {
+    setSelected(session);
+    setShowFullTranscript(false);
+    setView('detail');
+    warmupSession(session).catch(() => {});
+  }, [warmupSession]);
 
   async function checkBridge() {
     try {
@@ -184,6 +401,71 @@ export default function Sidebar() {
     } catch {
       setBridgeStatus("offline");
     }
+  }
+
+  function loadIndexStats() {
+    setIndexStatsLoading(true);
+    chrome.runtime.sendMessage({ type: 'GET_INDEX_STATS' }, (res) => {
+      setIndexStatsLoading(false);
+      if (chrome.runtime.lastError || !res?.ok) return;
+      setIndexStats(res.stats as IndexStats);
+    });
+  }
+
+  function clearSemanticIndex() {
+    if (!window.confirm('Sessions will be re-indexed on next capture. Continue?')) return;
+    chrome.runtime.sendMessage({ type: 'CLEAR_SEMANTIC_INDEX' }, () => {
+      if (chrome.runtime.lastError) return;
+      setIndexStats(null);
+      setShowSettings(false);
+      setStatusMessage({ tone: 'success', text: '🧠 Semantic index cleared — re-indexes on next capture.' });
+    });
+  }
+
+  // ── Migration Quality handlers ──────────────────────────────────────────────
+  function refreshQualityStats() {
+    chrome.runtime.sendMessage({ type: "GET_QUALITY_STATS" }, (resp) => {
+      if (chrome.runtime.lastError || !resp?.ok) return;
+      setQualityStats({ count: resp.count ?? 0, avgScore: resp.avgScore ?? 0 });
+    });
+  }
+
+  function downloadQualityReport() {
+    chrome.runtime.sendMessage({ type: "GET_QUALITY_REPORT", payload: {} }, (resp) => {
+      if (chrome.runtime.lastError || !resp?.ok || !resp.report) {
+        setStatusMessage({ tone: "error", text: "Could not generate quality report." });
+        return;
+      }
+      const blob = new Blob([resp.report as string], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const dateStr = new Date().toISOString().slice(0, 10);
+      // Prefer chrome.downloads when available; fall back to anchor click
+      // (works inside the side-panel where chrome.downloads sometimes refuses).
+      try {
+        chrome.downloads?.download(
+          { url, filename: `contextforge-quality-${dateStr}.txt` },
+          (downloadId) => {
+            if (chrome.runtime.lastError || !downloadId) {
+              triggerAnchorDownload(url, `contextforge-quality-${dateStr}.txt`);
+            }
+            setTimeout(() => URL.revokeObjectURL(url), 60_000);
+          }
+        );
+      } catch {
+        triggerAnchorDownload(url, `contextforge-quality-${dateStr}.txt`);
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      }
+      setStatusMessage({ tone: "success", text: "📊 Quality report downloaded." });
+    });
+  }
+
+  function clearQualityHistory() {
+    if (!window.confirm("Delete all stored migration quality scores? This cannot be undone.")) return;
+    chrome.runtime.sendMessage({ type: "CLEAR_QUALITY_HISTORY" }, () => {
+      if (chrome.runtime.lastError) return;
+      setQualityStats({ count: 0, avgScore: 0 });
+      setStatusMessage({ tone: "success", text: "Quality history cleared." });
+    });
   }
 
   async function deleteSession(id: string) {
@@ -281,6 +563,15 @@ export default function Sidebar() {
                   ×
                 </button>
               </div>
+            </div>
+          )}
+
+          {latestQualityScore && (
+            <div className="mx-3">
+              <QualityScoreCard
+                score={latestQualityScore}
+                onDismiss={() => setLatestQualityScore(null)}
+              />
             </div>
           )}
 
@@ -441,14 +732,31 @@ export default function Sidebar() {
             session={selected}
             targetPlatform={targetPlatform}
             onClose={() => setShowMigrationModal(false)}
-            onSuccess={(tier, _compressionRatio, chars) => {
+            onSuccess={(tier, _compressionRatio, chars, qualityScore) => {
               setShowMigrationModal(false);
               setMigrationTiers((prev) => ({ ...prev, [selected.id]: tier }));
               const tierName = tier === 3 ? "Attention Engine" : tier === 2 ? "Smart Summary" : "Full Context";
               setStatusMessage({ tone: "success", text: `✅ Migrated via ${tierName} · Stayed in your browser` });
+              if (qualityScore) setLatestQualityScore(qualityScore);
+              void chars; // referenced to avoid unused-var lint
+            }}
+            onLimitReached={(info) => {
+              setUpgradeModal({
+                open:      true,
+                limitType: info.type,
+                used:      info.used,
+                limit:     info.limit,
+              });
             }}
           />
         )}
+        <UpgradeModal
+          isOpen={upgradeModal.open}
+          onClose={() => setUpgradeModal((s) => ({ ...s, open: false }))}
+          limitType={upgradeModal.limitType}
+          used={upgradeModal.used}
+          limit={upgradeModal.limit}
+        />
       </div>
     );
   }
@@ -478,6 +786,36 @@ export default function Sidebar() {
               <div className="flex flex-col gap-px">
                 <span className="text-[13px] font-black uppercase neon-flicker" style={{ letterSpacing: "0.18em", color: "#00FF88", textShadow: "0 0 10px rgba(0,255,136,0.45)" }}>ContextForge</span>
                 <span className="text-[8px] uppercase" style={{ letterSpacing: "0.22em", color: "#1A3A1A" }}>CMD CENTER v1</span>
+                {/* Plan status badge — Free shows usage, Pro/Team shows unlimited */}
+                {planStatus.loaded && (
+                  planStatus.isPro ? (
+                    <button
+                      type="button"
+                      onClick={() => chrome.tabs.create({ url: `${PRICING_URL.replace("/pricing", "")}/settings/billing` })}
+                      title="Manage billing"
+                      className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-left"
+                      style={{ color: "#00FF88", letterSpacing: "0.18em" }}
+                    >
+                      {planStatus.plan === "team" ? "Team" : "Pro"} ✦{" "}
+                      {planStatus.status === "trialing" && planStatus.trialEnd
+                        ? `Trial · ${Math.max(0, Math.ceil((new Date(planStatus.trialEnd).getTime() - Date.now()) / 86_400_000))}d left`
+                        : "Unlimited"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => chrome.tabs.create({ url: PRICING_URL })}
+                      title="Upgrade to Pro"
+                      className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-left hover:text-[#00FF88]"
+                      style={{ color: "#6B6B6B", letterSpacing: "0.18em" }}
+                    >
+                      Free
+                      {typeof planStatus.used === "number" && typeof planStatus.limit === "number"
+                        ? ` · ${planStatus.used}/${planStatus.limit}`
+                        : ""}
+                    </button>
+                  )
+                )}
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -512,6 +850,39 @@ export default function Sidebar() {
               >
                 <span className={vaultConnected === true ? 'animate-pulse-green inline-block h-1.5 w-1.5 rounded-full bg-[#00FF88]' : 'inline-block h-1.5 w-1.5 rounded-full bg-[#3A3A3A]'} />
                 Vault
+              </button>
+              <button
+                onClick={() => {
+                  if (mcpStatus.running) {
+                    // Already connected — re-probe & flash counter.
+                    void checkMcpBridge();
+                  } else {
+                    // Not running — open setup instructions.
+                    chrome.tabs.create({ url: 'https://www.npmjs.com/package/@contextmover/mcp-server' });
+                  }
+                }}
+                title={mcpStatus.running
+                  ? `MCP bridge running — ${mcpStatus.totalSessions ?? 0} sessions mirrored. Click to re-probe.`
+                  : 'MCP bridge offline. Click for setup (Cursor / Windsurf / Claude Desktop).'}
+                className={`flex items-center gap-1 rounded-[4px] border px-2 py-1 text-[9px] font-black uppercase tracking-widest transition-all duration-200 ${
+                  mcpStatus.running
+                    ? 'border-[#00FF88]/30 bg-[#00FF88]/8 text-[#00FF88] shadow-[0_0_12px_rgba(0,255,136,0.25)]'
+                    : 'border-[#1A3A1A] bg-[#060606] text-[#1A3A1A]'
+                }`}
+              >
+                <span className={mcpStatus.running ? 'animate-pulse-green inline-block h-1.5 w-1.5 rounded-full bg-[#00FF88]' : 'inline-block h-1.5 w-1.5 rounded-full bg-[#3A3A3A]'} />
+                MCP
+              </button>
+              <button
+                onClick={() => { const opening = !showSettings; setShowSettings(opening); if (opening) { loadIndexStats(); refreshQualityStats(); } }}
+                title="Semantic index settings"
+                className={`flex h-6 w-6 items-center justify-center rounded-[4px] border transition-all duration-200 ${
+                  showSettings
+                    ? 'border-[#00FF88]/40 bg-[#00FF88]/10 text-[#00FF88] shadow-[0_0_10px_rgba(0,255,136,0.25)]'
+                    : 'border-[#1A3A1A] bg-[#060606] text-[#2A6A2A] hover:border-[#00FF88]/40 hover:text-[#00FF88]'
+                }`}
+              >
+                <span className="text-[11px]">⚙</span>
               </button>
             </div>
           </div>
@@ -634,7 +1005,22 @@ export default function Sidebar() {
           })}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-3">
+        {showSettings && (
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+            <SemanticIndexPanel
+              stats={indexStats}
+              loading={indexStatsLoading}
+              onClear={clearSemanticIndex}
+            />
+            <QualityStatsPanel
+              stats={qualityStats}
+              onRefresh={refreshQualityStats}
+              onDownload={downloadQualityReport}
+              onClear={clearQualityHistory}
+            />
+          </div>
+        )}
+        <div className={showSettings ? 'hidden' : 'flex-1 overflow-y-auto px-4 py-3'}>
           {semanticSessions.length > 0 && (
             <div className="mb-4 space-y-2">
               <div className="pb-2 text-[9px] uppercase tracking-widest text-[#6366f1]">Semantic matches</div>
@@ -697,77 +1083,17 @@ export default function Sidebar() {
           ) : (
             <div className="space-y-3">
               {filtered.map((session) => (
-                <div
+                <SessionCard
                   key={session.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    setSelected(session);
-                    setShowFullTranscript(false);
-                    setView("detail");
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setSelected(session);
-                      setShowFullTranscript(false);
-                      setView("detail");
-                    }
-                  }}
-                  className="stagger-item group relative block w-full cursor-pointer overflow-hidden rounded-[6px] border bg-[#0A0A0A] px-4 py-4 text-left transition-all duration-200 hover:shadow-[0_0_0_1px_rgba(0,255,136,0.5),0_4px_22px_rgba(0,255,136,0.12),0_0_50px_rgba(0,255,136,0.04)] hover:-translate-y-[2px] hover:bg-[#0D1A0D]"
-                  style={{ borderColor: `${PLATFORM_COLORS[session.platform]}25`, boxShadow: `0 1px 0 ${PLATFORM_COLORS[session.platform]}10` }}
-                >
-                  <span
-                    className="absolute inset-y-0 left-0 w-[3px] rounded-l-[6px]"
-                    style={{ background: PLATFORM_COLORS[session.platform] }}
-                  />
-                  <div className="flex items-start gap-2.5 pl-1">
-                    <div className="min-w-0 flex-1">
-                      <PlatformBadge platform={session.platform} logoSize={11} />
-                      <p className="mt-2 truncate text-sm font-semibold text-[#F5F5F5] transition-all duration-200 group-hover:text-[#00FF88] typing-glow">
-                        {session.title}
-                      </p>
-                      <div className="mt-1.5 flex items-center gap-2 text-[10px] uppercase" style={{ letterSpacing: "0.1em", color: "#1A3A1A" }}>
-                        <span>{session.messages.length} turns</span>
-                        <span>·</span>
-                        <span>{formatRelativeTime(session.updatedAt)}</span>
-                        <span>·</span>
-                        <span style={{ fontSize: "8px", color: vaultConnected === true ? "#00AA55" : "#4A4A4A" }}>
-                          {vaultConnected === true ? "🔒 Vault" : "📱 Local"}
-                        </span>
-                        {migrationTiers[session.id] && (
-                          <>
-                            <span>·</span>
-                            <span style={{
-                              padding: "1px 6px",
-                              borderRadius: "10px",
-                              background: (migrationTiers[session.id] ?? 1) >= 2 ? "rgba(0,255,136,0.12)" : "rgba(255,255,255,0.06)",
-                              border: `1px solid ${(migrationTiers[session.id] ?? 1) >= 2 ? "rgba(0,255,136,0.3)" : "#2A2A2A"}`,
-                              color: (migrationTiers[session.id] ?? 1) >= 2 ? "#00FF88" : "#666",
-                              fontSize: "8px",
-                              letterSpacing: "0.06em",
-                              fontWeight: 700,
-                            }}>
-                              {migrationTiers[session.id] === 1 ? "Full" : migrationTiers[session.id] === 2 ? "Smart" : "▸ AE"}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1 pt-0.5">
-                      <ExportMenu
-                        session={session}
-                        variant="icon"
-                        align="right"
-                        onSuccess={(fmt) =>
-                          setStatusMessage({ tone: "success", text: `Exported as ${fmt.toUpperCase()} — check downloads.` })
-                        }
-                        onError={(text) => setStatusMessage({ tone: "error", text })}
-                      />
-                      <span className="text-[#3A3A3A] transition-colors group-hover:text-[#00FF88]">›</span>
-                    </div>
-                  </div>
-                </div>
+                  session={session}
+                  vaultConnected={vaultConnected}
+                  migrationTier={migrationTiers[session.id]}
+                  onSelect={() => handleSessionSelect(session)}
+                  onExportSuccess={(fmt) =>
+                    setStatusMessage({ tone: "success", text: `Exported as ${fmt.toUpperCase()} — check downloads.` })
+                  }
+                  onExportError={(text) => setStatusMessage({ tone: "error", text })}
+                />
               ))}
             </div>
           )}
@@ -806,6 +1132,156 @@ export default function Sidebar() {
       </div>
     </div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SemanticIndexPanel — shows index stats + clear button in the settings panel
+// ─────────────────────────────────────────────────────────────────────────────
+
+function StatRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between py-0.5">
+      <span className="text-[10px] text-[#4A6A4A]">{label}</span>
+      <span className="text-[10px] font-semibold tabular-nums" style={{ color: "#00CC66" }}>{value}</span>
+    </div>
+  );
+}
+
+function SemanticIndexPanel({
+  stats,
+  loading,
+  onClear,
+}: {
+  stats: IndexStats | null;
+  loading: boolean;
+  onClear: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">⚙ Semantic Index</div>
+      <div
+        className="rounded-[6px] border border-[#1A2A1A] bg-[#080808] p-4 space-y-3"
+        style={{ boxShadow: "0 0 20px rgba(0,255,136,0.04)" }}
+      >
+        <div className="flex items-center gap-2 border-b border-[#0D2A0D] pb-2">
+          <span className="text-base">🧠</span>
+          <span className="text-[11px] font-bold text-[#F5F5F5]">Semantic Index</span>
+        </div>
+
+        {loading && (
+          <div className="py-2 text-[10px] text-[#2A6A2A] animate-pulse">Loading stats…</div>
+        )}
+        {!loading && !stats && (
+          <div className="py-2 text-[10px] text-[#3A3A3A]">No data — capture a session to start indexing.</div>
+        )}
+        {!loading && stats && (
+          <div className="space-y-0.5">
+            <StatRow
+              label="Sessions indexed"
+              value={`${stats.indexedCount.toLocaleString()} / ${stats.sessionCount.toLocaleString()}`}
+            />
+            <StatRow label="Chunks stored" value={stats.chunkCount.toLocaleString()} />
+            <StatRow label="Storage used" value={`~${stats.estimatedStorageMB} MB`} />
+            <StatRow label="Cached summaries" value={stats.summaryCount.toLocaleString()} />
+            <StatRow label="Cached prompts" value={stats.cacheCount.toLocaleString()} />
+            {stats.modelLabel && (
+              <StatRow label="Model" value={stats.modelLabel} />
+            )}
+          </div>
+        )}
+
+        <button
+          onClick={onClear}
+          className="mt-1 w-full rounded-[4px] border border-red-500/20 bg-red-500/5 py-2 text-[9px] font-black uppercase tracking-widest text-red-400 transition-all hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300"
+        >
+          Clear Index
+        </button>
+      </div>
+      <p className="text-[9px] leading-relaxed" style={{ color: "#2A3A2A" }}>
+        Clearing removes embeddings, summaries and prompt cache — not your sessions. Re-indexing happens automatically on next capture.
+      </p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QualityStatsPanel — aggregate scorecard + report download (settings panel)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function QualityStatsPanel({
+  stats,
+  onRefresh,
+  onDownload,
+  onClear,
+}: {
+  stats: { count: number; avgScore: number } | null;
+  onRefresh: () => void;
+  onDownload: () => void;
+  onClear: () => void;
+}) {
+  // Refresh once on mount so the panel never shows stale "—" if the parent
+  // hadn't yet pre-loaded.
+  useEffect(() => {
+    if (stats === null) onRefresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const count = stats?.count ?? 0;
+  const avg = stats?.avgScore ?? 0;
+  return (
+    <div className="space-y-4">
+      <div className="text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">📊 Migration Quality</div>
+      <div
+        className="rounded-[6px] border border-[#1A2A1A] bg-[#080808] p-4 space-y-3"
+        style={{ boxShadow: "0 0 20px rgba(0,255,136,0.04)" }}
+      >
+        <div className="flex items-center gap-2 border-b border-[#0D2A0D] pb-2">
+          <span className="text-base">📊</span>
+          <span className="text-[11px] font-bold text-[#F5F5F5]">Migration Quality</span>
+        </div>
+
+        {count === 0 ? (
+          <div className="py-2 text-[10px] text-[#3A3A3A]">
+            No migrations scored yet — run a migration to populate this panel.
+          </div>
+        ) : (
+          <div className="space-y-0.5">
+            <StatRow label="Avg score" value={`${avg}/100`} />
+            <StatRow label="Migrations tracked" value={count.toLocaleString()} />
+          </div>
+        )}
+
+        <button
+          onClick={onDownload}
+          className="mt-1 w-full rounded-[4px] border border-[#00FF88]/30 bg-[#00FF88]/5 py-2 text-[9px] font-black uppercase tracking-widest text-[#00FF88] transition-all hover:border-[#00FF88]/50 hover:bg-[#00FF88]/10"
+        >
+          Download Report .txt
+        </button>
+        <button
+          onClick={onClear}
+          disabled={count === 0}
+          className="w-full rounded-[4px] border border-red-500/20 bg-red-500/5 py-2 text-[9px] font-black uppercase tracking-widest text-red-400 transition-all hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Clear History
+        </button>
+      </div>
+      <p className="text-[9px] leading-relaxed" style={{ color: "#2A3A2A" }}>
+        Quality scores are computed locally after every migration. The downloaded .txt is a plain-text engine-evaluation report — share it with the team to surface compression / retention regressions.
+      </p>
+    </div>
+  );
+}
+
+// Anchor-tag download fallback for environments where chrome.downloads
+// is unavailable (e.g. inside the side-panel context on some Chrome versions).
+function triggerAnchorDownload(url: string, filename: string): void {
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => a.remove(), 0);
 }
 
 function renderInline(text: string): React.ReactNode {

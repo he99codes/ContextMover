@@ -132,8 +132,10 @@ startSessionCapture({
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === "INJECT_CONTEXT" && msg.platform === "grok") {
-    void injectIntoGrokInput(msg.prompt).then(sendResponse);
-    return true;
+    injectIntoGrokInput(msg.prompt)
+      .then((result) => sendResponse(result))
+      .catch((err) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
+    return true; // CRITICAL — keeps channel open for async response
   }
 });
 
