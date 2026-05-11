@@ -5,6 +5,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { upsertSubscription, logPaymentEvent, isDuplicateEvent } from "@/lib/payments/subscription";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { sendEmail, SENDERS } from "@/lib/mailer";
+import {
+  proActivatedEmail,
+  proCancelledEmail,
+  paymentFailedEmail,
+} from "@/lib/emails/templates";
 
 // Required: opt out of body parsing so we can verify the raw signature.
 export const runtime = "nodejs";
@@ -82,6 +89,14 @@ export async function POST(req: NextRequest) {
           trialEnd:              sub.trial_end ? new Date(sub.trial_end * 1000) : null,
         });
         console.log("[CM:webhook:stripe] Subscription updated:", userId);
+        // Send pro-activated email (only on created, not every update)
+        if (event.type === "customer.subscription.created" || event.type === "checkout.session.completed") {
+          const email = dataObject.customer_email ?? await getUserEmail(userId);
+          if (email) {
+            const tpl = proActivatedEmail(email, "stripe");
+            await sendEmail({ ...tpl, to: email, from: SENDERS.support });
+          }
+        }
         break;
       }
 
@@ -97,6 +112,11 @@ export async function POST(req: NextRequest) {
           cancelledAt:           new Date(),
         });
         console.log("[CM:webhook:stripe] Cancelled:", userId);
+        const cancelEmail = await getUserEmail(userId);
+        if (cancelEmail) {
+          const tpl = proCancelledEmail(cancelEmail);
+          await sendEmail({ ...tpl, to: cancelEmail, from: SENDERS.support });
+        }
         break;
       }
 
@@ -111,6 +131,11 @@ export async function POST(req: NextRequest) {
           gatewaySubscriptionId: invoice.subscription,
         });
         console.log("[CM:webhook:stripe] Payment failed:", userId);
+        const failEmail = invoice.customer_email ?? await getUserEmail(userId);
+        if (failEmail) {
+          const tpl = paymentFailedEmail(failEmail);
+          await sendEmail({ ...tpl, to: failEmail, from: SENDERS.support });
+        }
         break;
       }
     }
@@ -120,4 +145,16 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ received: true });
+}
+
+// ── Helper: fetch user email from Supabase auth ───────────────────────────────
+async function getUserEmail(userId: string | null): Promise<string | null> {
+  if (!userId) return null;
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin.auth.admin.getUserById(userId);
+    return data?.user?.email ?? null;
+  } catch {
+    return null;
+  }
 }

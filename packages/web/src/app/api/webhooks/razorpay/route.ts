@@ -6,6 +6,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { upsertSubscription, logPaymentEvent, isDuplicateEvent } from "@/lib/payments/subscription";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { sendEmail, SENDERS } from "@/lib/mailer";
+import {
+  proActivatedEmail,
+  proCancelledEmail,
+  paymentFailedEmail,
+} from "@/lib/emails/templates";
 
 export const runtime = "nodejs";
 
@@ -103,6 +110,12 @@ export async function POST(req: NextRequest) {
             : undefined,
         });
         console.log("[CM:webhook:razorpay] Activated:", userId);
+        // Send pro-activated email
+        const activatedEmail = await getUserEmail(userId);
+        if (activatedEmail) {
+          const tpl = proActivatedEmail(activatedEmail, "razorpay");
+          await sendEmail({ ...tpl, to: activatedEmail, from: SENDERS.support });
+        }
         break;
       }
 
@@ -119,6 +132,12 @@ export async function POST(req: NextRequest) {
           cancelledAt:           new Date(),
         });
         console.log("[CM:webhook:razorpay] Cancelled:", userId);
+        // Send cancellation email
+        const cancelledEmail = await getUserEmail(userId);
+        if (cancelledEmail) {
+          const tpl = proCancelledEmail(cancelledEmail);
+          await sendEmail({ ...tpl, to: cancelledEmail, from: SENDERS.support });
+        }
         break;
       }
 
@@ -131,6 +150,12 @@ export async function POST(req: NextRequest) {
           gatewaySubscriptionId: subEntity.id,
         });
         console.log("[CM:webhook:razorpay] Payment failed:", userId);
+        // Send payment-failed email — use payment entity email if available
+        const failEmail = paymentEntity?.email ?? await getUserEmail(userId);
+        if (failEmail) {
+          const tpl = paymentFailedEmail(failEmail);
+          await sendEmail({ ...tpl, to: failEmail, from: SENDERS.support });
+        }
         break;
       }
     }
@@ -139,4 +164,16 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ received: true });
+}
+
+// ── Helper: fetch user email from Supabase auth ───────────────────────────────
+async function getUserEmail(userId: string | null): Promise<string | null> {
+  if (!userId) return null;
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin.auth.admin.getUserById(userId);
+    return data?.user?.email ?? null;
+  } catch {
+    return null;
+  }
 }
