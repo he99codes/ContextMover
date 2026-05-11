@@ -37,6 +37,7 @@ function buildCacheKey(payload: MigrationPayload): string {
     payload.promptTemplateId ?? "",
     payload.caveman ? "1" : "0",
     String(payload.summary?.length ?? 0),
+    payload.ideContext ? String(payload.ideContext.length) : "0",
   ].join("|");
 }
 
