@@ -804,13 +804,13 @@ export default function Sidebar() {
         <div className="border-b border-[#0D2A0D] px-4 py-4" style={{ background: "linear-gradient(135deg, #050505 0%, #091409 55%, #050505 100%)", boxShadow: "0 1px 0 rgba(0,255,136,0.07)" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[5px] bg-[#00FF88] neon-flicker" style={{ boxShadow: "0 0 16px rgba(0,255,136,0.65), 0 0 32px rgba(0,255,136,0.2)" }}>
-                <span className="text-[11px] font-black text-black" style={{ letterSpacing: "-0.04em" }}>CF</span>
-                <span className="animate-pulse-green absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[#00FF88]" style={{ boxShadow: "0 0 6px #00FF88" }} />
-              </div>
+              <img
+                src={chrome.runtime.getURL("logo.png")}
+                alt="ContextMover"
+                style={{ height: 30, display: "block", maxWidth: 108, filter: "drop-shadow(0 0 6px rgba(0,255,136,0.4))" }}
+              />
               <div className="flex flex-col gap-px">
-                <span className="text-[13px] font-black uppercase neon-flicker" style={{ letterSpacing: "0.18em", color: "#00FF88", textShadow: "0 0 10px rgba(0,255,136,0.45)" }}>ContextMover</span>
-                <span className="text-[8px] uppercase" style={{ letterSpacing: "0.22em", color: "#1A3A1A" }}>CMD CENTER v1</span>
+                <span className="text-[8px] uppercase" style={{ letterSpacing: "0.22em", color: "#2A5A2A" }}>CMD CENTER v1</span>
                 {/* Plan status badge — Free shows usage, Pro/Team shows unlimited */}
                 {planStatus.loaded && (
                   planStatus.isPro ? (

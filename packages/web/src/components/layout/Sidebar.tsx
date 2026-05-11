@@ -8,7 +8,6 @@ import {
   BarChart3,
   Settings,
   LogOut,
-  Zap,
   FileCode,
   Database,
   CreditCard,
@@ -84,19 +83,18 @@ export function Sidebar({ user }: SidebarProps) {
           mobileOpen ? "translate-x-0" : "",
         ].join(" ")}>
       {/* Logo */}
-      <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-[#2A2A2A] px-4">
+      <div className="flex h-14 shrink-0 items-center border-b border-[#2A2A2A] px-4">
         <Link
           href="/"
-          className="flex items-center gap-2.5 flex-1 min-w-0 group"
+          className="flex items-center flex-1 min-w-0 group"
           title="Back to home"
         >
-          <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] bg-[#00FF88] transition-opacity group-hover:opacity-80">
-            <Zap size={14} className="text-black" />
-            <span className="animate-pulse-green absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#00FF88]" />
-          </div>
-          <span className="text-[15px] font-semibold text-[#F5F5F5] tracking-tight truncate group-hover:text-[#00FF88] transition-colors">
-            ContextMover
-          </span>
+          <img
+            src="/logo.png"
+            alt="ContextMover"
+            style={{ height: 34, display: "block", maxWidth: 160, opacity: 1, transition: "opacity 0.2s" }}
+            className="group-hover:opacity-80"
+          />
         </Link>
         <button
           onClick={() => setMobileOpen(false)}
