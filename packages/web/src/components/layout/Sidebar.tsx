@@ -92,13 +92,16 @@ export function Sidebar({ user }: SidebarProps) {
         >
           <Image
             src="/logo.png"
-            alt="ContextMover"
-            width={160}
-            height={56}
+            alt="ContextMover logo"
+            width={40}
+            height={40}
             priority
-            style={{ height: 34, width: "auto" }}
-            className="group-hover:opacity-80"
+            style={{ height: 26, width: "auto" }}
+            className="shrink-0"
           />
+          <span className="ml-2 text-[15px] font-semibold text-[#F5F5F5] tracking-tight truncate group-hover:text-[#00FF88] transition-colors">
+            ContextMover
+          </span>
         </Link>
         <button
           onClick={() => setMobileOpen(false)}

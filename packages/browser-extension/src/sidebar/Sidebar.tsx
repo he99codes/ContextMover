@@ -807,9 +807,10 @@ export default function Sidebar() {
               <img
                 src={chrome.runtime.getURL("logo.png")}
                 alt="ContextMover"
-                style={{ height: 30, display: "block", maxWidth: 108, filter: "drop-shadow(0 0 6px rgba(0,255,136,0.4))" }}
+                style={{ height: 26, display: "block", width: "auto", filter: "drop-shadow(0 0 6px rgba(0,255,136,0.4))" }}
               />
               <div className="flex flex-col gap-px">
+                <span className="text-[13px] font-black neon-flicker" style={{ letterSpacing: "0.05em", color: "#00FF88", textShadow: "0 0 10px rgba(0,255,136,0.45)" }}>ContextMover</span>
                 <span className="text-[8px] uppercase" style={{ letterSpacing: "0.22em", color: "#2A5A2A" }}>CMD CENTER v1</span>
                 {/* Plan status badge — Free shows usage, Pro/Team shows unlimited */}
                 {planStatus.loaded && (

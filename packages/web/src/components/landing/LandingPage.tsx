@@ -221,8 +221,9 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-[#1A1A1A] bg-[#0A0A0A]/92 backdrop-blur-md transition-all">
         <div className="max-w-6xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
           {/* Logo */}
-          <a href="/" className="flex items-center shrink-0">
-            <Image src="/logo.png" alt="ContextMover" width={160} height={56} priority style={{ height: 38, width: "auto" }} />
+          <a href="/" className="flex items-center gap-2.5 shrink-0">
+            <Image src="/logo.png" alt="ContextMover" width={56} height={56} priority style={{ height: 32, width: "auto" }} />
+            <span className="font-bold text-[#F5F5F5] tracking-tight">ContextMover</span>
           </a>
 
           {/* Desktop center nav */}
@@ -652,8 +653,9 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row justify-between items-start gap-10 mb-10">
             {/* Brand */}
             <div className="flex flex-col gap-3 max-w-xs">
-              <div className="flex items-center">
-                <Image src="/logo.png" alt="ContextMover" width={160} height={56} style={{ height: 36, width: "auto" }} />
+              <div className="flex items-center gap-2.5">
+                <Image src="/logo.png" alt="ContextMover" width={56} height={56} style={{ height: 28, width: "auto" }} />
+                <span className="font-bold text-[#F5F5F5]">ContextMover</span>
               </div>
               <p className="text-sm text-[#6B6B6B] leading-relaxed">Context Operating System for AI developers.</p>
             </div>
