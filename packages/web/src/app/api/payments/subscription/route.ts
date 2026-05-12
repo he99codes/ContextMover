@@ -3,6 +3,8 @@
 // POST: creates a checkout session (Stripe) or Razorpay subscription.
 
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import {
   getUserSubscription,
   getUserUsage,
