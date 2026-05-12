@@ -91,8 +91,11 @@ export default function PricingPage() {
         // Stripe → redirect to hosted checkout.
         window.location.href = data.url;
       } else if (data.subscriptionId) {
-        // Razorpay → open modal.
+        // Razorpay subscription modal.
         openRazorpayCheckout(data);
+      } else if (data.orderId) {
+        // Razorpay Standard Checkout (no subscription plan configured).
+        openRazorpayOrderCheckout({ ...data, plan: planType });
       } else if (data.error) {
         setMockNotice(`Checkout error: ${data.error}`);
       }
@@ -124,6 +127,60 @@ export default function PricingPage() {
       image:           "/icon128.png",
       theme:           { color: "#00FF88" },
       handler:         () => { window.location.href = "/settings?payment=success"; },
+    };
+    new Ctor(options).open();
+  }
+
+  function openRazorpayOrderCheckout(data: {
+    keyId?:    string;
+    orderId?:  string;
+    amount?:   number;
+    currency?: string;
+    plan?:     string;
+  }) {
+    const Ctor = (window as unknown as { Razorpay?: SubscriptionRazorpayCtor }).Razorpay;
+    if (!Ctor) {
+      setMockNotice("Razorpay SDK not loaded yet — refresh and try again.");
+      return;
+    }
+    const planLabel = (data.plan ?? "pro");
+    const options: Record<string, unknown> = {
+      key:         data.keyId,
+      amount:      data.amount,
+      currency:    data.currency ?? "INR",
+      name:        "ContextMover",
+      description: `${planLabel.charAt(0).toUpperCase() + planLabel.slice(1)} Plan — Unlimited AI context migration`,
+      order_id:    data.orderId,
+      image:       "/icon128.png",
+      theme:       { color: "#00FF88" },
+      modal: {
+        ondismiss: () => setCheckoutLoading(null),
+      },
+      handler: async (response: {
+        razorpay_payment_id: string;
+        razorpay_order_id:   string;
+        razorpay_signature:  string;
+      }) => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const verifyRes = await fetch("/api/payments/razorpay/verify", {
+            method:  "POST",
+            headers: {
+              "Content-Type":  "application/json",
+              ...(session ? { "Authorization": `Bearer ${session.access_token}` } : {}),
+            },
+            body: JSON.stringify({ ...response, plan: data.plan ?? "pro" }),
+          });
+          if (verifyRes.ok) {
+            window.location.href = "/settings?payment=success";
+          } else {
+            const err = (await verifyRes.json()) as { error?: string };
+            setMockNotice(`Payment verification failed: ${err.error ?? "unknown"}`);
+          }
+        } catch {
+          setMockNotice("Payment verification failed — please contact support.");
+        }
+      },
     };
     new Ctor(options).open();
   }

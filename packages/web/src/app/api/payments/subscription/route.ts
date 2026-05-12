@@ -160,6 +160,9 @@ async function createRazorpaySubscription(
     });
   }
 
+  // One-time amounts in paise (used when no subscription plan is configured).
+  const ORDER_AMOUNTS: Record<string, number> = { pro: 19900, team: 99900 };
+
   try {
     // Razorpay v2 SDK has no published types — use a runtime import + any cast.
     const Razorpay = (await import("razorpay")).default as unknown as new (opts: {
@@ -176,6 +179,14 @@ async function createRazorpaySubscription(
           notes?:          Record<string, string>;
         }) => Promise<{ id: string }>;
       };
+      orders: {
+        create: (opts: {
+          amount:    number;
+          currency:  string;
+          receipt:   string;
+          notes?:    Record<string, string>;
+        }) => Promise<{ id: string; amount: number; currency: string }>;
+      };
     };
 
     const razorpay = new Razorpay({
@@ -185,9 +196,29 @@ async function createRazorpaySubscription(
 
     const planId =
       plan === "team"
-        ? process.env.RAZORPAY_TEAM_PLAN_ID!
-        : process.env.RAZORPAY_PRO_PLAN_ID!;
+        ? process.env.RAZORPAY_TEAM_PLAN_ID
+        : process.env.RAZORPAY_PRO_PLAN_ID;
 
+    // ── Fallback: no subscription plan configured → Standard Checkout (one-time order)
+    // Create a subscription plan in the Razorpay dashboard and set
+    // RAZORPAY_PRO_PLAN_ID / RAZORPAY_TEAM_PLAN_ID to enable recurring billing.
+    if (!planId || planId.startsWith("plan_placeholder")) {
+      const order = await razorpay.orders.create({
+        amount:   ORDER_AMOUNTS[plan] ?? 19900,
+        currency: "INR",
+        receipt:  `cf_${plan}_${Date.now()}`,
+        notes:    { userId, plan },
+      });
+      return NextResponse.json({
+        gateway:  "razorpay",
+        orderId:  order.id,
+        amount:   order.amount,
+        currency: order.currency,
+        keyId:    process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      });
+    }
+
+    // ── Subscription plan configured → recurring subscription checkout
     // Razorpay has no native trial — emulate 14 days free by deferring the
     // first charge. start_at is unix seconds.
     const startAt = Math.floor((Date.now() + 14 * 24 * 60 * 60 * 1000) / 1000);
