@@ -149,8 +149,6 @@ export default function Sidebar() {
   const [view, setView] = useState<View>("sessions");
   const [targetPlatform, setTargetPlatform] = useState<Platform>("claude");
   const [migrationTiers, setMigrationTiers] = useState<Record<string, 1 | 2 | 3>>({});
-  const [bridgeStatus, setBridgeStatus] = useState<"ok" | "offline">("offline");
-  const [ideContext, setIdeContext] = useState<string | null>(null);
   const [filter, setFilter] = useState<Platform | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFullTranscript, setShowFullTranscript] = useState(false);
@@ -219,7 +217,6 @@ export default function Sidebar() {
 
   useEffect(() => {
     loadSessions();
-    void checkBridge();
     void checkVault();
     void checkMcpBridge();
 
@@ -402,20 +399,6 @@ export default function Sidebar() {
     setView('detail');
     warmupSession(session).catch(() => {});
   }, [warmupSession]);
-
-  async function checkBridge() {
-    try {
-      await fetch("http://localhost:49152/health");
-      setBridgeStatus("ok");
-      chrome.runtime.sendMessage({ type: "FETCH_IDE_CONTEXT" }, (res) => {
-        if (res?.ideContext) {
-          setIdeContext(res.ideContext);
-        }
-      });
-    } catch {
-      setBridgeStatus("offline");
-    }
-  }
 
   function loadIndexStats() {
     setIndexStatsLoading(true);
@@ -706,12 +689,6 @@ export default function Sidebar() {
               </div>
             </div>
 
-            {ideContext && (
-              <div className="rounded-[4px] border border-[#00FF88]/20 bg-[#00FF88]/5 px-3 py-2 text-xs text-[#00FF88]/80">
-                IDE context attached.
-              </div>
-            )}
-
             <div className="flex gap-2">
               <button
                 onClick={() => setShowMigrationModal(true)}
@@ -851,19 +828,6 @@ export default function Sidebar() {
                 className="flex h-6 w-6 items-center justify-center rounded-[4px] border border-[#1A3A1A] bg-[#060606] text-[#2A6A2A] transition-all duration-200 hover:border-[#00FF88]/50 hover:text-[#00FF88] hover:shadow-[0_0_10px_rgba(0,255,136,0.3)] hover:scale-[1.1]"
               >
                 <span className="text-sm">↻</span>
-              </button>
-              <button
-                onClick={() => { void checkBridge(); void loadSessions(); }}
-                className={`flex items-center gap-1 rounded-[4px] border px-2 py-1 text-[9px] font-black uppercase tracking-widest transition-all duration-200 ${
-                  bridgeStatus === "ok"
-                    ? "border-[#00FF88]/30 bg-[#00FF88]/8 text-[#00FF88] shadow-[0_0_12px_rgba(0,255,136,0.25)]"
-                    : "border-[#1A3A1A] bg-[#060606] text-[#1A3A1A]"
-                }`}
-              >
-                <span
-                  className={bridgeStatus === "ok" ? "animate-pulse-green inline-block h-1.5 w-1.5 rounded-full bg-[#00FF88]" : "inline-block h-1.5 w-1.5 rounded-full bg-[#3A3A3A]"}
-                />
-                IDE
               </button>
               <button
                 onClick={() => void checkVault()}

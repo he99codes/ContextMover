@@ -44,8 +44,6 @@ async function broadcastToViews(message: unknown): Promise<void> {
   }
 }
 
-const BRIDGE_URL = "http://localhost:49152";
-
 // ── MCP local bridge (ContextMover) ─────────────────────────────────────────
 // Loopback HTTP server provided by `@contextmover/mcp-server`. Optional —
 // the extension functions identically without it. Fire-and-forget syncing
@@ -505,10 +503,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
-      case "FETCH_IDE_CONTEXT":
-        await handleFetchIdeContext(sendResponse);
-        break;
-
       case "AUTH_GET_USER": {
         const { data } = await supabase.auth.getUser();
         sendResponse({ user: data.user ?? null });
@@ -966,12 +960,6 @@ async function handleCaptureMessage(payload: {
     } catch (err) { console.warn('[ContextMover:vault] CAPTURE_MESSAGE sync failed:', err); }
   })();
 
-  // Mirror to VS Code bridge (fire-and-forget — bridge may not be running)
-  fetch(`${BRIDGE_URL}/context`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "BROWSER_CONTEXT", session }),
-  }).catch(() => { });
 }
 
 async function handleCaptureSession(payload: {
@@ -1056,12 +1044,6 @@ async function handleCaptureSession(payload: {
   } else if (savedAsst === 0 && savedUser > 0) {
     console.error('[CM:sw] verified — ASSISTANT MESSAGES MISSING');
   }
-
-  fetch(`${BRIDGE_URL}/context`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "BROWSER_CONTEXT", session }),
-  }).catch(() => { });
 }
 
 /**
@@ -1245,14 +1227,6 @@ async function handleMigrateContext(
     console.warn(`[ContextMover:sw] Stage4 — assistant messages missing from stored session. Migration will proceed with user-only context (degraded).`);
   }
 
-  // Fire bridge fetch in parallel with Stage 5 summarization — 400ms timeout.
-  // Bridge is usually offline; this prevents a slow bridge from blocking every migration.
-  const bridgeContextPromise: Promise<string | null> = Promise.race([
-    fetch(`${BRIDGE_URL}/context`)
-      .then(r => r.ok ? (r.json() as Promise<{ ideContext?: string }>).then(d => d.ideContext ?? null) : null)
-      .catch(() => null),
-    new Promise<null>(resolve => setTimeout(() => resolve(null), 400)),
-  ]);
   console.log(`[ContextMover:sw] Stage5 — calling summarizer with ${session.messages.length} messages`);
 
   let summary = "";
@@ -1463,18 +1437,13 @@ async function handleMigrateContext(
 
   reportProgress(95, "Injecting into " + (payload.targetPlatform ?? "target") + "...");
 
-  // Bridge context — already fetched in parallel with Stage 5; collect the result now.
-  let ideContext: string | undefined = (await bridgeContextPromise) ?? undefined;
-
   // Inject project-file context (built in the sidebar by FileContextBuilder).
-  // Appended after VS Code bridge context so both are available to the model.
+  let ideContext: string | undefined = undefined;
   if (payload.projectContext) {
     const fileCount = (payload.projectContext.match(/<file |###\s|^\[FILE:/gm) ?? []).length;
     const chars = payload.projectContext.length;
     console.log(`[ContextMover:files] injected project context files=${fileCount} chars=${chars}`);
-    ideContext = ideContext
-      ? `${ideContext}\n\n${payload.projectContext}`
-      : payload.projectContext;
+    ideContext = payload.projectContext;
   }
 
   // ── DIAGNOSTIC STAGE 6 — translator ──────────────────────────────────────
@@ -1754,16 +1723,6 @@ async function handleMigrateContext(
   console.log(`[CM:sw] Migration complete in ${(performance.now() - t0_migrate).toFixed(0)}ms`);
   perf.logReport();
   sendResponse({ ok: true, prompt: finalPrompt, compressionRatio, qualityScore });
-}
-
-async function handleFetchIdeContext(sendResponse: (r: unknown) => void) {
-  try {
-    const res = await fetch(`${BRIDGE_URL}/context`);
-    if (!res.ok) return sendResponse({ error: "Bridge not reachable" });
-    sendResponse(await res.json());
-  } catch {
-    sendResponse({ error: "Bridge not reachable" });
-  }
 }
 
 async function syncOpenTabs() {

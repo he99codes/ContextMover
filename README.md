@@ -30,8 +30,7 @@ ContextForge/
 ├── packages/
 │   ├── browser-extension/      # Chrome MV3 extension (React + Vite + crxjs)
 │   ├── web/                    # Next.js 14 web app (contextmover.com)
-│   ├── mcp-server/             # @contextmover/mcp-server (npm package)
-│   └── vscode-extension/       # VS Code IDE bridge
+│   └── mcp-server/             # @contextmover/mcp-server (npm package)
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml                    # Test + build on every push
@@ -89,28 +88,28 @@ ContextForge/
 │  │                                                                  │   │
 │  │  Popup (popup/Popup.tsx) — quick migrate from icon              │   │
 │  └──────────────────────────────────────────────────────────────────┘   │
-│         │ HTTP :49152                │ cloud-sync / Supabase            │
+│         │                           │ cloud-sync / Supabase            │
 └─────────┼──────────────────────────┼──────────────────────────────────┘
           │                          │
           ▼                          ▼
-┌──────────────────┐      ┌──────────────────────────────────────────────┐
-│  VS Code         │      │  WEB APP  (contextmover.com)                 │
-│  Extension       │      │                                              │
-│                  │      │  Next.js 14 · Supabase · Tailwind            │
-│  BridgeServer    │      │                                              │
-│  GET /health     │      │  Pages:                                      │
-│  GET /context    │      │  /             Landing page                  │
-│  POST /context   │      │  /auth         Sign up / Log in              │
-│                  │      │  /dashboard    Overview                      │
-│  IDESnapshot:    │      │  /analytics    Usage overview                │
-│  · active file   │      │  /settings     Profile + Prompts + Agents    │
-│  · open tabs     │      │  /settings/billing  Subscription mgmt        │
-│  · git branch    │      │  /settings/vault    Supabase vault setup     │
-│  · git diff      │      │  /pricing      Plans (Free / Pro)            │
-│  · diagnostics   │      │  /docs         Documentation (stub)          │
-│                  │      │  /privacy  /terms                            │
-└──────────────────┘      │                                              │
-          │               │  API Routes:                                 │
+┌──────────────────────────────────────────────────────────────────────┐
+│  WEB APP  (contextmover.com)                                         │
+│                                                                      │
+│  Next.js 14 · Supabase · Tailwind                                    │
+│                                                                      │
+│  Pages:                                                              │
+│  /             Landing page                                          │
+│  /auth         Sign up / Log in                                      │
+│  /dashboard    Overview                                              │
+│  /analytics    Usage overview                                        │
+│  /settings     Profile + Prompts + Agents                            │
+│  /settings/billing  Subscription mgmt                                │
+│  /settings/vault    Supabase vault setup                             │
+│  /pricing      Plans (Free / Pro)                                    │
+│  /docs         Documentation (stub)                                  │
+│  /privacy  /terms                                                    │
+│                                                                      │
+│  API Routes:                                                         │
           │               │  /api/payments/subscription  checkout        │
           │               │  /api/payments/cancel        cancel sub      │
           │               │  /api/payments/status        plan status     │
@@ -126,8 +125,7 @@ ContextForge/
           │               │  Email (ZeptoMail SMTP):                     │
           │               │  · Pro activated · Cancelled · Payment failed│
           │               │  · All Supabase auth emails (custom templates│
-          └───────────────┤                                              │
-                          └──────────────────────────────────────────────┘
+                          └──────────────────────────────────────────┘
                                         │ Supabase (auth + DB)
                           ┌─────────────┘
                           ▼
@@ -354,34 +352,6 @@ Add to your AI agent config (Claude Desktop example):
 
 ---
 
-## Package 4 — VS Code Extension
-
-Runs a local HTTP bridge server on `127.0.0.1:49152`.
-
-### Bridge API
-
-| Endpoint | Description |
-|---|---|
-| `GET /health` | `{ status: "ok", port: 49152 }` |
-| `GET /context` | Full IDE snapshot |
-| `POST /context` | Store browser session mirror |
-
-### IDE Snapshot Contents
-
-- Active file: path, language, full content, cursor position, selection
-- Open tabs (up to `contextmover.maxFilesInContext`)
-- Workspace name + root path
-- Git branch (`git rev-parse --abbrev-ref HEAD`)
-- Git diff summary (`git diff --stat HEAD`)
-- Up to 20 diagnostics (errors + warnings)
-
-### VS Code Commands
-
-- `ContextMover: Capture Context` — manual snapshot
-- `ContextMover: Start Bridge` — start HTTP server
-
----
-
 ## Feature Map
 
 ### ✅ Fully Working
@@ -397,7 +367,6 @@ Runs a local HTTP bridge server on `127.0.0.1:49152`.
 - File System Access API — project folder context
 - Prompt Engine — reusable migration templates
 - Migration Quality Scorer
-- VS Code IDE bridge integration
 - Personal Supabase Vault (optional cloud sync)
 - MCP server with 8 tools
 - Dual payment gateway (Stripe + Razorpay) with geo-routing
@@ -510,7 +479,6 @@ Runs a local HTTP bridge server on `127.0.0.1:49152`.
 | `cloud-sync.ts` | Implemented but no UI to enable/disable sync | Add toggle in `/settings/vault` |
 | Team plan checkout | Pricing shows Team card, clicking it creates a payment but no team features activate | Build team features or hide the card |
 | Extension → "Open Dashboard" emails | Links go to `contextmover.com/dashboard` which redirects to `/analytics` (just quick links) | Build real dashboard or update link target |
-| MCP server bridge | MCP server calls `localhost:49001` but VS Code bridge runs on `49152` | Verify port alignment in `mcp-server/src/bridge/` |
 
 ---
 

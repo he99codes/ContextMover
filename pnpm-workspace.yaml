@@ -1,7 +1,7 @@
 packages:
   - "packages/*"
 allowBuilds:
-  '@vscode/vsce-sign': true
+  '@vscode/vsce-sign': set this to true or false
   better-sqlite3: true
   esbuild: true
   keytar: true

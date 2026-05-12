@@ -39,8 +39,8 @@ export default function DocsPage() {
               body: "Go to Settings → Personal Vault to connect your own Supabase project. Your sessions sync encrypted to your database — ContextMover never sees the data.",
             },
             {
-              title: "IDE Integration",
-              body: "Install the ContextMover VS Code extension, enable the bridge server, and your live codebase context is automatically included in migrations.",
+              title: "Project File Context",
+              body: "Open any local project folder in the extension sidebar, select files, and they are included in your migration prompt. Works with the MCP server for AI agent access too.",
             },
           ].map((section) => (
             <div key={section.title} className="rounded-[8px] border border-[#2A2A2A] bg-[#111] p-6">

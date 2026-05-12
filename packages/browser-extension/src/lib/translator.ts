@@ -312,7 +312,7 @@ function buildChatGPTPrompt(payload: MigrationPayload): string {
   }
 
   if (ideContext) {
-    out.push(`---`, ``, `## Current Codebase State (VS Code)`, ``, ideContext, ``);
+    out.push(`---`, ``, `## Project Files`, ``, ideContext, ``);
   }
 
   out.push(
@@ -412,7 +412,7 @@ function buildGrokPrompt(payload: MigrationPayload): string {
   }
 
   if (ideContext) {
-    out.push(`---`, ``, `## Codebase State (VS Code)`, ``, ideContext, ``);
+    out.push(`---`, ``, `## Project Files`, ``, ideContext, ``);
   }
 
   out.push(
@@ -498,7 +498,7 @@ function buildGeminiPrompt(payload: MigrationPayload): string {
   }
 
   if (ideContext) {
-    out.push(`[IDE CONTEXT]`, ideContext, ``);
+    out.push(`[PROJECT FILES]`, ideContext, ``);
   }
 
   out.push(
@@ -571,7 +571,7 @@ function buildPerplexityPrompt(payload: MigrationPayload): string {
   }
 
   if (ideContext) {
-    out.push(`CODEBASE STATE`, ideContext, ``);
+    out.push(`PROJECT FILES`, ideContext, ``);
   }
 
   out.push(
@@ -657,7 +657,7 @@ function buildDeepSeekPrompt(payload: MigrationPayload): string {
   }
 
   if (ideContext) {
-    out.push(`---`, ``, `## Live Codebase (VS Code)`, ``, ideContext, ``);
+    out.push(`---`, ``, `## Project Files`, ``, ideContext, ``);
   }
 
   out.push(
@@ -877,7 +877,7 @@ function buildMarkdownPromptTier2(payload: MigrationPayload): string {
   }
 
   if (ideContext) {
-    out.push(`---`, ``, `## Codebase State (VS Code)`, ``, ideContext, ``);
+    out.push(`---`, ``, `## Project Files`, ``, ideContext, ``);
   }
 
   out.push(
@@ -956,7 +956,7 @@ function buildGeminiPromptTier2(payload: MigrationPayload): string {
   }
 
   if (ideContext) {
-    out.push(`[IDE CONTEXT]`, ideContext, ``);
+    out.push(`[PROJECT FILES]`, ideContext, ``);
   }
 
   out.push(

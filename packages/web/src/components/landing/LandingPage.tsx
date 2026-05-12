@@ -232,7 +232,7 @@ export default function LandingPage() {
               { label: "Smart Summary",    desc: "60–80% compression",   href: "#tiers" },
               { label: "Attention Engine", desc: "Semantic AI memory",   href: "#tiers" },
               { label: "Caveman Mode",     desc: "Faster AI responses",  href: "#tiers" },
-              { label: "IDE Connection",   desc: "VSCode + MCP server",  href: "#tiers" },
+              { label: "Project Files",    desc: "Local folder context", href: "#tiers" },
               { label: "Personal Vault",   desc: "Your own Supabase",    href: "/settings/vault" },
             ]} />
             <NavDropdown label="Platforms" items={[
