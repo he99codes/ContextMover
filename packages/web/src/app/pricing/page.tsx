@@ -155,6 +155,13 @@ export default function PricingPage() {
       theme:       { color: "#00FF88" },
       modal: {
         ondismiss: () => setCheckoutLoading(null),
+        confirm_close: true,
+        escape: true,
+        backdropclose: true,
+      },
+      "payment.failed": (response: { error: { description: string; code?: string } }) => {
+        setMockNotice(`Payment failed: ${response.error.description}`);
+        setCheckoutLoading(null);
       },
       handler: async (response: {
         razorpay_payment_id: string;
