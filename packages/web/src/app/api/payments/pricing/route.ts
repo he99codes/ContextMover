@@ -1,12 +1,12 @@
 // packages/web/src/app/api/payments/pricing/route.ts
 // Returns the geo-detected pricing config (no secret keys leaked).
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getPricingConfig } from "@/lib/payments/geo";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const config = await getPricingConfig();
+    const config = await getPricingConfig(req);
     return NextResponse.json({
       gateway:  config.gateway,
       currency: config.currency,

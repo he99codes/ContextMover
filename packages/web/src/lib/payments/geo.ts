@@ -1,9 +1,11 @@
 // packages/web/src/lib/payments/geo.ts
 // Geo-detection + pricing config for the v2 payment system.
 // SAFE for both server (Next API routes) and client usage:
-//   - On server: ipapi.co is hit each call (no localStorage). Cheap fallback.
+//   - On server: reads x-vercel-ip-country header (user's real country, set by
+//     Vercel edge). Falls back to ipapi.co only when header is absent.
 //   - On client: 24h localStorage cache to avoid burning the ipapi.co quota.
 
+import { type NextRequest } from "next/server";
 import { type PricingConfig, SOUTH_ASIA_COUNTRIES } from "./types";
 
 const GEO_CACHE_KEY = "cm_geo_country";
@@ -16,10 +18,17 @@ interface GeoCache {
 
 /**
  * Detect the user's ISO-3166-2 country code.
- * Client: localStorage cache (24h). Server: per-call fetch. Falls back to "US"
- * on any error so the caller still gets a valid PricingConfig.
+ * Server: reads x-vercel-ip-country header (user's real country, injected by
+ * Vercel edge — no external call needed). Falls back to ipapi.co if absent.
+ * Client: localStorage cache (24h) → ipapi.co fetch.
  */
-export async function detectCountry(): Promise<string> {
+export async function detectCountry(req?: NextRequest): Promise<string> {
+  // ── Server-side: Vercel sets x-vercel-ip-country on every request ─────────
+  if (typeof window === "undefined" && req) {
+    const vercelCountry = req.headers.get("x-vercel-ip-country");
+    if (vercelCountry) return vercelCountry;
+  }
+
   // ── Client-side: try cached value first ───────────────────────────────────
   if (typeof window !== "undefined") {
     try {
@@ -67,8 +76,8 @@ export async function detectCountry(): Promise<string> {
  * Uses placeholder plan IDs when env vars are absent so the system still
  * boots in mock mode.
  */
-export async function getPricingConfig(): Promise<PricingConfig> {
-  const country = await detectCountry();
+export async function getPricingConfig(req?: NextRequest): Promise<PricingConfig> {
+  const country = await detectCountry(req);
   const isSouthAsia = SOUTH_ASIA_COUNTRIES.includes(country);
 
   if (isSouthAsia) {

@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const plan = body?.plan === "team" ? "team" : "pro"; // default to pro
 
-  const pricing = await getPricingConfig();
+  const pricing = await getPricingConfig(req);
 
   if (pricing.gateway === "stripe") {
     return createStripeCheckout(user.id, user.email ?? "", plan, pricing);
