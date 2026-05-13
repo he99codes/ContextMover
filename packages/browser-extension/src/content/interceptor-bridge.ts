@@ -13,11 +13,23 @@ import type { Message, Platform } from "@/lib/types";
 
 type CapturedMessage = Message & {
   codeBlocks?: { language: string; code: string }[];
+  toolCalls?: Array<{ id: string; name: string; arguments: string; result?: string }>;
+  artifacts?: Array<{ type: string; title?: string; language?: string; content?: string; url?: string }>;
+};
+
+type RequestMetadata = {
+  model?: string;
+  temperature?: number;
+  systemPrompt?: string;
+  tools?: Array<{ name: string; description?: string }>;
+  conversationId?: string;
+  messageId?: string;
 };
 
 type CapturedDetail = {
   platform: Platform;
   messages: CapturedMessage[];
+  metadata?: RequestMetadata;
 };
 
 const TAG = "[ContextMover:bridge]";
@@ -42,6 +54,8 @@ function install() {
   // with prior captures keyed by session id so the service worker
   // always sees the FULL conversation, not just the latest exchange.
   const accumulator = new Map<string, CapturedMessage[]>();
+  // Per-session metadata accumulator (model, system prompt, tools, etc.)
+  const metadataAccumulator = new Map<string, RequestMetadata>();
   // Per-platform cached session id (cleared on URL change or SESSION_FORGOTTEN).
   const sessionCache = new Map<Platform, { href: string; id: string }>();
 
@@ -62,6 +76,7 @@ function install() {
     const forgottenId: string | undefined = msg.sessionId;
     if (!forgottenId) return;
     accumulator.delete(forgottenId);
+    metadataAccumulator.delete(forgottenId);
     for (const [p, entry] of sessionCache) {
       if (entry.id === forgottenId) sessionCache.delete(p);
     }
@@ -78,7 +93,7 @@ function install() {
         const detail = event.detail;
         if (!detail || typeof detail !== "object") return;
 
-        const { platform, messages } = detail;
+        const { platform, messages, metadata } = detail;
 
         // ── Validation ──────────────────────────────────────────────────────
         if (!VALID_PLATFORMS.includes(platform)) {
@@ -101,6 +116,12 @@ function install() {
             ...(Array.isArray(m.codeBlocks) && m.codeBlocks.length > 0
               ? { codeBlocks: m.codeBlocks }
               : {}),
+            ...(Array.isArray(m.toolCalls) && m.toolCalls.length > 0
+              ? { toolCalls: m.toolCalls }
+              : {}),
+            ...(Array.isArray(m.artifacts) && m.artifacts.length > 0
+              ? { artifacts: m.artifacts }
+              : {}),
           });
         }
         if (cleaned.length === 0) return;
@@ -110,6 +131,12 @@ function install() {
         const prior = accumulator.get(sessionId) ?? [];
         const merged = mergeMessages(prior, cleaned);
         accumulator.set(sessionId, merged);
+
+        // Accumulate metadata per session
+        if (metadata) {
+          const existingMeta = metadataAccumulator.get(sessionId) ?? {};
+          metadataAccumulator.set(sessionId, { ...existingMeta, ...metadata });
+        }
 
         const userCount = merged.filter((m) => m.role === "user").length;
         const assistantCount = merged.filter((m) => m.role === "assistant").length;
@@ -133,6 +160,7 @@ function install() {
         );
 
         try {
+          const sessionMeta = metadataAccumulator.get(sessionId);
           chrome.runtime.sendMessage(
             {
               type: "CAPTURE_SESSION",
@@ -142,6 +170,7 @@ function install() {
                 title,
                 messages: merged,
                 source: "fetch-intercept",
+                metadata: sessionMeta ?? undefined,
               },
             },
             () => {

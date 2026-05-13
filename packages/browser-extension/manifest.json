@@ -132,6 +132,9 @@
             "js": [
                 "src/content/sidebar-toggle/toggle.ts"
             ],
+            "css": [
+                "src/content/sidebar-toggle/toggle.css"
+            ],
             "run_at": "document_idle"
         }
     ],

@@ -23,7 +23,7 @@
 // We preserve the legacy schemas by declaring v1, v2, then bumping to v3.
 
 import Dexie, { type Table } from "dexie";
-import type { ContextSession } from "./types";
+import type { ContextSession, MetaPrompt } from "./types";
 import type { PromptTemplate } from "./prompt-engine/types";
 import type { QualityScore } from "./quality/migration-scorer";
 
@@ -169,6 +169,9 @@ class ContextMoverDB extends Dexie {
   // Migration quality store (v4)
   migrationQuality!: Table<MigrationQualityRecord, string>;
 
+  // Pre-built MetaPrompt store (v5) — per-session per-platform per-tier
+  metaPrompts!: Table<MetaPrompt, string>;
+
   constructor() {
     super("contextmover");
 
@@ -209,6 +212,20 @@ class ContextMoverDB extends Dexie {
       retrievalCache: "id, sessionId, builtAt",
       migrationQuality: "id, sessionId, platform, tier, score, createdAt",
     });
+
+    // ── v5: + metaPrompts store (pre-built migration prompts) ──
+    // Indexed by sessionId for fast lookup during migration.
+    this.version(5).stores({
+      sessions: "id, platform, updatedAt",
+      prompt_templates: "id, userId, isDefault, usageCount, updatedAt",
+      prompt_assignments: "id, sessionId, platform, templateId",
+      chunkEmbeddings: "id, sessionId, createdAt, hasCode",
+      sessionHashes: "sessionId, indexedAt",
+      storedSummaries: "id, sessionId, tier, builtAt",
+      retrievalCache: "id, sessionId, builtAt",
+      migrationQuality: "id, sessionId, platform, tier, score, createdAt",
+      metaPrompts: "id, platform, tier, builtAt",
+    });
   }
 }
 
@@ -220,6 +237,7 @@ export const sessionHashes: Table<SessionHash, string> = dexieDb.sessionHashes;
 export const storedSummaries: Table<StoredSummary, string> = dexieDb.storedSummaries;
 export const retrievalCache: Table<RetrievalCache, string> = dexieDb.retrievalCache;
 export const migrationQuality: Table<MigrationQualityRecord, string> = dexieDb.migrationQuality;
+export const metaPrompts: Table<MetaPrompt, string> = dexieDb.metaPrompts;
 
 // ──────────────────────────────────────────────────────────────────────────
 // Backwards-compatible facade — same public surface as the old `db` object
@@ -233,6 +251,7 @@ export const db = {
   storedSummaries: dexieDb.storedSummaries,
   retrievalCache: dexieDb.retrievalCache,
   migrationQuality: dexieDb.migrationQuality,
+  metaPrompts: dexieDb.metaPrompts,
 
   // Legacy methods — preserved exactly so existing callers do not break
   async saveSession(session: ContextSession): Promise<void> {
@@ -261,6 +280,21 @@ export const db = {
 
   async getSessionsByPlatform(platform: string): Promise<ContextSession[]> {
     return dexieDb.sessions.where("platform").equals(platform).toArray();
+  },
+
+  async saveMetaPrompt(metaPrompt: MetaPrompt): Promise<void> {
+    await dexieDb.metaPrompts.put(metaPrompt);
+  },
+
+  async getMetaPrompt(sessionId: string, platform?: string, tier?: 1 | 2 | 3): Promise<MetaPrompt | undefined> {
+    if (platform && tier !== undefined) {
+      return dexieDb.metaPrompts.get(sessionId);
+    }
+    return dexieDb.metaPrompts.get(sessionId);
+  },
+
+  async deleteMetaPrompt(sessionId: string): Promise<void> {
+    await dexieDb.metaPrompts.delete(sessionId);
   },
 };
 

@@ -16,6 +16,7 @@ import { generateQualityReport } from "@/lib/quality/report-generator";
 import { userVault } from "@/lib/user-vault/connector";
 import { forgetSession, resolveSessionId } from "@/lib/session-id";
 import { WEBAPP_URL } from "@/config/urls";
+import { getMcpClient, connectToFirstAvailableMcp, type IdeContext } from "@/lib/mcp/client";
 
 // Sessions are stored ONLY in local IndexedDB.
 // Optional: synced to user's personal Supabase vault via userVault.getClient().
@@ -274,6 +275,10 @@ chrome.runtime.onInstalled.addListener(async () => {
 
   const existing = await chrome.storage.local.get(["sessions"]);
   if (!existing.sessions) await chrome.storage.local.set({ sessions: [] });
+
+  // Disable Chrome's built-in click-to-open side panel — our toggle button handles it.
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
+    .catch((e) => console.warn("[CM:sw] setPanelBehavior failed:", e));
 
   // MV3 does NOT auto-inject content scripts into already-open tabs after a
   // reload. Re-inject only into tabs that DON'T already have a live listener —
@@ -669,37 +674,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "TOGGLE_SIDEBAR": {
-        if (sender.tab?.id == null) { sendResponse({ isOpen: false }); break; }
+        if (sender.tab?.id == null) {
+          sendResponse({ isOpen: false, error: "no tab" });
+          break;
+        }
         const tabId = sender.tab.id;
 
-        // Ask the browser directly — immune to SW restart state loss.
-        let panelIsOpen = false;
+        // Try to open first — if already open Chrome throws, so we close it.
         try {
-          const contexts = await chrome.runtime.getContexts({
-            contextTypes: ["SIDE_PANEL" as chrome.runtime.ContextType],
-          });
-          // A SIDE_PANEL context exists means our panel is currently open.
-          panelIsOpen = contexts.length > 0;
+          await chrome.sidePanel.open({ tabId });
+          sendResponse({ isOpen: true });
         } catch {
-          panelIsOpen = false; // getContexts unavailable — assume closed
-        }
-
-        if (panelIsOpen) {
-          // sidePanel.close() was added in Chrome 123; use setOptions fallback for
-          // broader compatibility (setOptions available since Chrome 116).
           try {
             await (chrome.sidePanel as unknown as { close(d: { tabId: number }): Promise<void> })
               .close({ tabId });
-          } catch {
-            await chrome.sidePanel.setOptions({ tabId, enabled: false }).catch(() => {});
-            await chrome.sidePanel.setOptions({ tabId, enabled: true, path: "src/sidebar/index.html" }).catch(() => {});
+            sendResponse({ isOpen: false });
+          } catch (err) {
+            sendResponse({ isOpen: false, error: String(err) });
           }
-          sendResponse({ isOpen: false });
-        } else {
-          await chrome.sidePanel
-            .open({ tabId })
-            .then(() => sendResponse({ isOpen: true }))
-            .catch((err: unknown) => sendResponse({ error: String(err), isOpen: false }));
         }
         break;
       }
@@ -777,6 +769,42 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         } catch (e) {
           sendResponse({ error: String(e) });
         }
+        break;
+      }
+
+      case "CAPTURE_HEALTH": {
+        const { platform: hPlatform, success, userCount: hUser, assistantCount: hAsst, total: hTotal } = msg.payload ?? {};
+        if (!hPlatform) {
+          sendResponse({ error: "payload.platform required" });
+          break;
+        }
+
+        // Store last 10 success flags per platform
+        const key = `health_${hPlatform}`;
+        const stored = await chrome.storage.local.get(key);
+        const history: boolean[] = stored[key] ?? [];
+        history.push(Boolean(success));
+        if (history.length > 10) history.shift();
+        await chrome.storage.local.set({ [key]: history });
+
+        const successRate = history.filter(Boolean).length / history.length;
+        if (successRate < 0.7 && history.length >= 3) {
+          console.warn(
+            `[CM:health] ${hPlatform} capture rate: ${(successRate * 100).toFixed(0)}% — selectors may be broken`
+          );
+          await chrome.storage.local.set({
+            [`alert_${hPlatform}`]: {
+              platform: hPlatform,
+              successRate,
+              timestamp: Date.now(),
+              message: `Capture quality dropped on ${hPlatform}. Assistant messages may be missing.`,
+            },
+          });
+        } else {
+          await chrome.storage.local.remove(`alert_${hPlatform}`);
+        }
+
+        sendResponse({ ok: true, rate: successRate });
         break;
       }
 
@@ -967,6 +995,7 @@ async function handleCaptureSession(payload: {
   sessionId: string;
   title: string;
   messages: Message[];
+  metadata?: import("@/lib/types").RequestMetadata;
 }) {
   // In-flight deduplication: skip if the same session is already being processed.
   // Prevents double DB writes when content script + syncOpenTabs fire simultaneously.
@@ -998,6 +1027,7 @@ async function handleCaptureSession(payload: {
     updatedAt,
     title: payload.title,
     messages: payload.messages,
+    metadata: payload.metadata,
   };
 
   // Debounced IDB write — coalesces rapid-fire captures for the same session.
@@ -1020,6 +1050,13 @@ async function handleCaptureSession(payload: {
     // Desktop) can read the session. Fire-and-forget — never blocks capture
     // and silently no-ops if the bridge isn't running.
     void syncToMcpBridge(toWrite).catch(() => {});
+    // ── Pre-build MetaPrompt in background ──────────────────────────────
+    // As each turn arrives, immediately re-run the summarizer + translator
+    // and store the full translated prompt in IndexedDB. On migrate, this
+    // prompt is returned instantly with zero computation.
+    void buildMetaPromptAsync(toWrite).catch((e) =>
+      console.warn('[CM:sw] background MetaPrompt build failed (non-fatal):', e)
+    );
   }, 200));
 
   console.log('[ContextMover] Session stored locally only. No cloud sync unless user connects personal Supabase.');
@@ -1064,6 +1101,83 @@ async function backgroundIndex(session: ContextSession): Promise<void> {
   } catch (err) {
     console.warn('[CM:sw:bgIdx] indexing failed (non-fatal):', err);
   }
+}
+
+/**
+ * Background MetaPrompt builder — runs after every capture to pre-build
+ * translated prompts for all major platforms. When the user clicks migrate,
+ * the prompt is already ready and injection is instant.
+ *
+ * Builds tier-1 and tier-2 MetaPrompts for all supported target platforms.
+ * Stores them in IndexedDB (metaPrompts table). Invalidated when new messages
+ * arrive (replaced on next build).
+ */
+async function buildMetaPromptAsync(session: ContextSession): Promise<void> {
+  const t0 = performance.now();
+
+  // Quick tier-1 summary (fast, < 100ms)
+  const summaryResult = await summarize(session.messages).catch(() => null);
+  if (!summaryResult) return;
+
+  const tier1Meta = summaryResult.extracted;
+  const tier1Compression = summaryResult.originalTokenEstimate > 0
+    ? Math.round((1 - summaryResult.summaryTokenEstimate / summaryResult.originalTokenEstimate) * 100)
+    : 0;
+
+  // Build tier-2 intelligent summary
+  const tier2Result = summarizeIntelligent(session.messages);
+  const tier2Compression = tier2Result.compressionRatio;
+
+  const targets: import("@/lib/types").Platform[] = ["claude", "chatgpt", "gemini", "grok", "deepseek", "perplexity"];
+
+  for (const target of targets) {
+    try {
+      // Tier 1 MetaPrompt (full summary + tail)
+      const tier1Prompt = buildMigrationPrompt({
+        summary: summaryResult.content,
+        extracted: tier1Meta,
+        targetPlatform: target,
+        sourceSession: session,
+        tier: 1,
+        compressionRatio: tier1Compression,
+        metadata: session.metadata,
+      });
+      await db.saveMetaPrompt({
+        id: session.id,
+        platform: target,
+        tier: 1,
+        prompt: tier1Prompt,
+        compressionRatio: tier1Compression,
+        builtAt: Date.now(),
+        messageCount: session.messages.length,
+      });
+
+      // Tier 2 MetaPrompt (intelligent summary)
+      const tier2Prompt = buildMigrationPrompt({
+        summary: tier2Result.goal,
+        extracted: undefined,
+        intelligentSummary: tier2Result,
+        targetPlatform: target,
+        sourceSession: session,
+        tier: 2,
+        compressionRatio: tier2Compression,
+        metadata: session.metadata,
+      });
+      await db.saveMetaPrompt({
+        id: session.id,
+        platform: target,
+        tier: 2,
+        prompt: tier2Prompt,
+        compressionRatio: tier2Compression,
+        builtAt: Date.now(),
+        messageCount: session.messages.length,
+      });
+    } catch (err) {
+      console.warn(`[CM:sw:metaPrompt] build failed for ${target}:`, err);
+    }
+  }
+
+  console.log(`[CM:sw:metaPrompt] built ${targets.length * 2} prompts in ${(performance.now() - t0).toFixed(0)}ms`);
 }
 
 /**
@@ -1221,6 +1335,57 @@ async function handleMigrateContext(
     } catch (err) {
       console.warn('[CM:sw] Prompt cache check failed (non-fatal):', err);
     }
+  }
+
+  // ── Check pre-built MetaPrompt from IndexedDB ──────────────────────────
+  // If the background builder already constructed this prompt, skip ALL
+  // summarization and return the stored translation instantly.
+  const requestedTier = (payload.tier ?? 2) as 1 | 2 | 3;
+  try {
+    const metaPrompt = await db.getMetaPrompt(payload.sessionId, payload.targetPlatform, requestedTier);
+    if (metaPrompt && metaPrompt.messageCount >= session.messages.length) {
+      console.log(`[CM:sw] MetaPrompt HIT — skipping summarization (${(performance.now() - t0_migrate).toFixed(0)}ms)`);
+      reportProgress(95, `Injecting into ${payload.targetPlatform} (MetaPrompt)...`);
+
+      if (payload.targetTabId) {
+        const targetTab = await chrome.tabs.get(payload.targetTabId).catch(() => null);
+        if (!targetTab?.url) {
+          return sendResponse({ error: "Target tab not found or URL unavailable." });
+        }
+        const allowedGlobs = PLATFORM_URLS[payload.targetPlatform as keyof typeof PLATFORM_URLS] ?? [];
+        const domainAllowed = allowedGlobs.some((glob) => {
+          const pattern = new RegExp("^" + glob.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$");
+          return pattern.test(targetTab.url!);
+        });
+        if (!domainAllowed) {
+          return sendResponse({ error: `The active tab (${targetTab.url}) is not a ${payload.targetPlatform} page.` });
+        }
+        const injectionResult = await sendMessageToTab(payload.targetTabId, {
+          type: "INJECT_CONTEXT",
+          prompt: metaPrompt.prompt,
+          platform: payload.targetPlatform,
+        });
+        if (!injectionResult.ok) {
+          console.warn('[CM:sw] MetaPrompt injection failed, falling through to recompute:', injectionResult.error);
+        } else {
+          const qualityScore = scoreAndPersist(
+            session, metaPrompt.prompt, requestedTier,
+            payload.targetPlatform, requestedTier === 3 ? 15 : undefined
+          );
+          perf.logReport();
+          return sendResponse({ ok: true, prompt: metaPrompt.prompt, compressionRatio: metaPrompt.compressionRatio, fromMetaPrompt: true, qualityScore });
+        }
+      } else {
+        const qualityScore = scoreAndPersist(
+          session, metaPrompt.prompt, requestedTier,
+          payload.targetPlatform, requestedTier === 3 ? 15 : undefined
+        );
+        perf.logReport();
+        return sendResponse({ ok: true, prompt: metaPrompt.prompt, compressionRatio: metaPrompt.compressionRatio, fromMetaPrompt: true, qualityScore });
+      }
+    }
+  } catch (err) {
+    console.warn('[CM:sw] MetaPrompt check failed (non-fatal):', err);
   }
 
   if (s4Asst === 0) {
@@ -1672,8 +1837,51 @@ async function handleMigrateContext(
     ).catch(() => {});
   }
 
+  // ── MCP Migration path (optional, when a local MCP server is available) ──
+  // If an MCP server is connected and exposes create_conversation, use it
+  // instead of DOM injection. This works with Claude Desktop, Continue.dev,
+  // and any custom MCP server that implements the create_conversation tool.
+  let mcpConversationId: string | undefined;
+  try {
+    const mcpClient = await connectToFirstAvailableMcp();
+    if (mcpClient) {
+      const hasCreateConv = mcpClient.availableTools.some((t) =>
+        /create_conversation|create_chat|new_chat/i.test(t.name)
+      );
+      if (hasCreateConv) {
+        reportProgress(96, "Creating conversation via MCP...");
+        const mcpResult = await mcpClient.createConversation(session.title, [
+          { role: "user", content: finalPrompt },
+        ]);
+        if (mcpResult.conversationId) {
+          mcpConversationId = mcpResult.conversationId;
+          console.log(`[CM:sw] MCP conversation created: ${mcpConversationId}`);
+          // Open the target platform URL with the new conversation
+          const platformUrls: Record<string, string> = {
+            claude: "https://claude.ai/chat",
+            chatgpt: "https://chat.openai.com",
+            gemini: "https://gemini.google.com/app",
+            grok: "https://grok.x.ai",
+            deepseek: "https://chat.deepseek.com",
+            perplexity: "https://perplexity.ai",
+          };
+          const baseUrl = platformUrls[payload.targetPlatform];
+          if (baseUrl && payload.targetTabId) {
+            const targetUrl = `${baseUrl}?cm_mcp_id=${encodeURIComponent(mcpConversationId)}`;
+            await chrome.tabs.update(payload.targetTabId, { url: targetUrl });
+          }
+        }
+        mcpClient.disconnect();
+      } else {
+        mcpClient.disconnect();
+      }
+    }
+  } catch (err) {
+    console.warn("[CM:sw] MCP migration path failed (non-fatal):", err);
+  }
+
   // ── Inject into target tab ─────────────────────────────────────────────────
-  if (payload.targetTabId) {
+  if (payload.targetTabId && !mcpConversationId) {
     // Domain whitelist guard — INJECT_CONTEXT must only fire on a known platform page.
     const targetTab = await chrome.tabs.get(payload.targetTabId).catch(() => null);
     if (!targetTab?.url) {
@@ -1722,7 +1930,13 @@ async function handleMigrateContext(
 
   console.log(`[CM:sw] Migration complete in ${(performance.now() - t0_migrate).toFixed(0)}ms`);
   perf.logReport();
-  sendResponse({ ok: true, prompt: finalPrompt, compressionRatio, qualityScore });
+  sendResponse({
+    ok: true,
+    prompt: finalPrompt,
+    compressionRatio,
+    qualityScore,
+    ...(mcpConversationId ? { mcpConversationId, migratedViaMcp: true } : {}),
+  });
 }
 
 async function syncOpenTabs() {

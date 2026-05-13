@@ -4,6 +4,53 @@ import type { Message } from "@/lib/types";
 
 console.log("[ContextMover] Claude content script loaded");
 
+// Selector cascade — try each selector in order, return first that yields results
+function findElements(selectors: string[]): Element[] {
+  for (const selector of selectors) {
+    try {
+      const els = document.querySelectorAll(selector);
+      if (els.length > 0) {
+        console.log(`[CM:claude] matched: ${selector} (${els.length})`);
+        return Array.from(els);
+      }
+    } catch { /* invalid selector, continue */ }
+  }
+  return [];
+}
+
+const CLAUDE_SELECTORS = {
+  user: [
+    '[data-testid="user-message"]',
+    '[data-testid="human-turn"]',
+    '.human-turn',
+    '[data-role="user"]',
+    '[data-message-author-role="user"]',
+  ],
+  assistant: [
+    '[data-testid="ai-turn"]',
+    '[data-testid="assistant-message"]',
+    '.font-claude-message',
+    '[data-role="assistant"]',
+    '[data-message-author-role="assistant"]',
+    '.claude-message',
+    '[data-is-streaming="false"] .prose',
+  ],
+  streaming: [
+    '[data-is-streaming="true"]',
+    '.streaming-indicator',
+    '[data-loading="true"]',
+  ],
+};
+
+function isStreaming(el: HTMLElement): boolean {
+  return (
+    el.hasAttribute("data-is-streaming") ||
+    el.closest("[data-is-streaming]") !== null ||
+    el.classList.contains("result-streaming") ||
+    el.querySelector(".result-streaming") !== null
+  );
+}
+
 function scrapeMessages(): Message[] {
   if (window.location.pathname === "/new") return [];
 
@@ -57,9 +104,6 @@ function scrapeMessages(): Message[] {
   }
 
   // ── Strategy 5: sr-only h2 accessibility anchors ──────────────────────────
-  // Claude renders <h2 class="sr-only">You said: ...</h2> for user turns and
-  // a sibling <h2 class="sr-only">Claude said: ...</h2> (or "Claude replied:")
-  // for assistant turns. These are stable since they're a11y-driven.
   if (!hasAsst()) {
     document.querySelectorAll<HTMLHeadingElement>('h2.sr-only, h3.sr-only').forEach((h) => {
       const text = (h.textContent ?? "").trim().toLowerCase();
@@ -69,7 +113,6 @@ function scrapeMessages(): Message[] {
         text.startsWith("assistant said") ||
         /^claude[: ]/.test(text);
       if (!isAssistantHeading) return;
-      // The parent div is the assistant turn wrapper.
       const turn = (h.parentElement as HTMLElement | null) ?? h;
       if (isStreaming(turn)) return;
       if (collected.some((entry) => entry.el === turn)) return;
@@ -79,7 +122,6 @@ function scrapeMessages(): Message[] {
   }
 
   // ── Strategy 6: render-root sibling walk ──────────────────────────────────
-  // Use [data-test-render-count] as a stable conversation root anchor.
   if (!hasAsst()) {
     const renderRoot = document.querySelector<HTMLElement>("[data-test-render-count]");
     const turnsContainer =
@@ -102,20 +144,12 @@ function scrapeMessages(): Message[] {
         dedup.add(turn);
       }
       console.log(`[ContextMover:claude] S6 render-root: asst=${collected.filter(e=>e.role==="assistant").length}`);
-    } else {
-      console.log(`[ContextMover:claude] S6 render-root: no [data-test-render-count] found`);
     }
   }
 
   // ── Strategy 7: action-bar-retry / action-bar-copy as assistant anchors ────
-  // Claude removed ai-turn/assistant-message testids but action-bar-retry and
-  // action-bar-copy are ONLY rendered inside assistant turns. Walk UP from each
-  // action bar until we find a container whose sibling is a user turn — that
-  // container IS the assistant turn, regardless of its own classes/testids.
   if (!hasAsst()) {
     const dedup = new Set(collected.map((e) => e.el));
-
-    // Prefer action-bar-retry (retry is unique to assistant); fallback to copy
     let actionBars = [
       ...document.querySelectorAll<HTMLElement>('[data-testid="action-bar-retry"]'),
     ];
@@ -124,27 +158,19 @@ function scrapeMessages(): Message[] {
         ...document.querySelectorAll<HTMLElement>('[data-testid="action-bar-copy"]'),
       ].filter((el) => !el.closest('[data-testid="user-message"]'));
     }
-
     for (const bar of actionBars) {
-      // Guard: never enter user-message territory
       if (bar.closest('[data-testid="user-message"]')) continue;
-
       let cur: HTMLElement | null = bar.parentElement;
       while (cur && cur !== document.body) {
         if (cur.matches('[data-testid="user-message"]')) break;
-
         const parent = cur.parentElement;
         if (!parent) break;
-
-        // Check if any sibling (not cur itself) contains a user-message — that
-        // means `cur` is a peer turn in the conversation container.
         const hasSiblingUser = ([...parent.children] as HTMLElement[]).some(
           (s) =>
             s !== cur &&
             (s.matches('[data-testid="user-message"]') ||
               !!s.querySelector('[data-testid="user-message"]'))
         );
-
         if (hasSiblingUser) {
           if (!dedup.has(cur) && !isStreaming(cur)) {
             const text = (cur.textContent ?? "").trim();
@@ -153,9 +179,8 @@ function scrapeMessages(): Message[] {
               dedup.add(cur);
             }
           }
-          break; // found the right level — stop walking up for this bar
+          break;
         }
-
         cur = cur.parentElement;
       }
     }
@@ -163,9 +188,6 @@ function scrapeMessages(): Message[] {
   }
 
   // ── Strategy 4: STRUCTURAL — no testid dependency ─────────────────────────
-  // Fixed: only stop at a container that actually has non-user children.
-  // Previously it stopped at the user-messages wrapper (children == userCount,
-  // all user), skipping the real conversation root one level higher.
   if (!hasAsst() && collected.length > 0) {
     const firstUser = collected[0].el;
     let container: HTMLElement | null = null;
@@ -176,7 +198,6 @@ function scrapeMessages(): Message[] {
       cur = cur.parentElement;
       if (cur.children.length >= userCount) {
         const children = [...cur.children] as HTMLElement[];
-        // Only use this level if at least one child is NOT a user turn
         const hasNonUser = children.some(
           (child) =>
             !child.matches('[data-testid="user-message"]') &&
@@ -194,7 +215,6 @@ function scrapeMessages(): Message[] {
       const dedup = new Set(collected.map((e) => e.el));
       const turns = [...container.children] as HTMLElement[];
       console.log(`[ContextMover:claude] S4 structural: container has ${turns.length} children, userAnchors=${userCount}`);
-
       for (const turn of turns) {
         if (isStreaming(turn)) continue;
         if (turn.querySelector('[data-testid="user-message"]')) continue;
@@ -209,6 +229,18 @@ function scrapeMessages(): Message[] {
       console.log(`[ContextMover:claude] S4 structural: asst=${collected.filter(e=>e.role==="assistant").length}`);
     } else {
       console.warn(`[ContextMover:claude] S4 structural: could not find conversation container`);
+    }
+  }
+
+  // ── Strategy 8: EXTREME FALLBACK — alternate by DOM position ──────────────
+  // When ALL selectors fail but we have user messages, try alternating
+  // user/assistant by position within the deepest common container.
+  if (!hasAsst() && collected.filter(e => e.role === "user").length > 0) {
+    console.warn(`[ContextMover:claude] ALL selectors failed — trying position-based structural detection`);
+    const structural = detectByStructure();
+    if (structural.length > 0 && structural.some(m => m.role === "assistant")) {
+      console.log(`[ContextMover:claude] S8 position-based: recovered ${structural.length} messages (${structural.filter(m=>m.role==="assistant").length} assistant)`);
+      return structural;
     }
   }
 
@@ -247,11 +279,49 @@ function scrapeMessages(): Message[] {
   return messages;
 }
 
-function isStreaming(el: HTMLElement): boolean {
-  return (
-    el.hasAttribute("data-is-streaming") ||
-    el.closest("[data-is-streaming]") !== null
+// ── Structural detection fallback ───────────────────────────────────────────
+// When all selectors fail, find the chat container and alternate roles by DOM
+// position: first substantial child = user, next = assistant, and so on.
+function detectByStructure(): Message[] {
+  const container = findChatContainer();
+  if (!container) return [];
+
+  const children = Array.from(container.children).filter(
+    (el) => (el.textContent?.trim().length ?? 0) > 10
   );
+
+  const messages: Message[] = [];
+  for (let i = 0; i < children.length; i++) {
+    const el = children[i] as HTMLElement;
+    if (isStreaming(el)) continue;
+    const content = extractMessageContent(el);
+    if (!content) continue;
+    // Even indices = user, odd = assistant (typical chat layout)
+    messages.push({
+      role: i % 2 === 0 ? "user" : "assistant",
+      content,
+      timestamp: Date.now(),
+    });
+  }
+
+  return messages;
+}
+
+function findChatContainer(): Element | null {
+  const selectors = [
+    'main',
+    '[role="main"]',
+    '.conversation',
+    '[class*="conversation"]',
+    '[class*="messages"]',
+    '[class*="chat"]',
+    '[data-test-render-count]',
+  ];
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    if (el && el.children.length > 2) return el;
+  }
+  return null;
 }
 
 startSessionCapture({

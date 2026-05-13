@@ -19,6 +19,29 @@
     content: string;
     timestamp: number;
     codeBlocks?: { language: string; code: string }[];
+    toolCalls?: ToolCall[];
+    artifacts?: Artifact[];
+  };
+  type ToolCall = {
+    id: string;
+    name: string;
+    arguments: string;
+    result?: string;
+  };
+  type Artifact = {
+    type: "code" | "document" | "image" | "file";
+    title?: string;
+    language?: string;
+    content?: string;
+    url?: string;
+  };
+  type RequestMetadata = {
+    model?: string;
+    temperature?: number;
+    systemPrompt?: string;
+    tools?: Array<{ name: string; description?: string }>;
+    conversationId?: string;
+    messageId?: string;
   };
   type Platform = "chatgpt" | "claude" | "gemini" | "grok" | "deepseek" | "perplexity";
 
@@ -110,17 +133,164 @@
     };
   }
 
-  function dispatchCaptured(platform: Platform, messages: CapturedMessage[]): void {
+  // In-memory metadata accumulator per conversation
+  const metadataAccumulator = new Map<string, RequestMetadata>();
+
+  function dispatchCaptured(
+    platform: Platform,
+    messages: CapturedMessage[],
+    meta?: RequestMetadata
+  ): void {
     if (!messages.length) return;
+    // Merge accumulated metadata for this conversation
+    let mergedMeta: RequestMetadata | undefined = meta;
+    if (meta?.conversationId) {
+      const acc = metadataAccumulator.get(meta.conversationId);
+      if (acc) {
+        mergedMeta = { ...acc, ...meta };
+        metadataAccumulator.set(meta.conversationId, mergedMeta);
+      } else if (mergedMeta) {
+        metadataAccumulator.set(meta.conversationId, mergedMeta);
+      }
+    }
     try {
       window.dispatchEvent(
         new CustomEvent("contextmover:captured", {
-          detail: { platform, messages },
+          detail: { platform, messages, metadata: mergedMeta },
         })
       );
     } catch (err) {
       console.warn(`${TAG} dispatch failed`, err);
     }
+  }
+
+  // ── Request metadata extraction ─────────────────────────────────────────────
+  function extractRequestMetadata(bodyText: string | null, url: string): RequestMetadata | undefined {
+    if (!bodyText) return undefined;
+    try {
+      const body = JSON.parse(bodyText) as Record<string, unknown>;
+      const meta: RequestMetadata = {};
+
+      // Model from body.model or URL path
+      meta.model = typeof body.model === "string" ? body.model : undefined;
+      if (!meta.model) {
+        const modelMatch = url.match(/\/models\/([^/]+)/);
+        if (modelMatch) meta.model = modelMatch[1];
+      }
+
+      // Temperature
+      if (typeof body.temperature === "number") meta.temperature = body.temperature;
+
+      // System prompt
+      if (typeof body.system === "string") {
+        meta.systemPrompt = body.system;
+      } else if (Array.isArray(body.messages)) {
+        const sysMsg = (body.messages as Array<Record<string, unknown>>).find((m) => m.role === "system");
+        if (sysMsg && typeof sysMsg.content === "string") meta.systemPrompt = sysMsg.content;
+      }
+
+      // Tools
+      if (Array.isArray(body.tools)) {
+        meta.tools = (body.tools as Array<Record<string, unknown>>).map((t) => ({
+          name: String((t.function as Record<string, unknown>)?.name ?? t.name ?? ""),
+          description: typeof (t.function as Record<string, unknown>)?.description === "string"
+            ? String((t.function as Record<string, unknown>).description)
+            : undefined,
+        })).filter((t) => t.name);
+      }
+
+      // Conversation ID from body or URL
+      meta.conversationId =
+        (typeof body.conversation_id === "string" && body.conversation_id) ||
+        (typeof body.conversationId === "string" && body.conversationId) ||
+        (typeof body.parent_message_id === "string" && body.parent_message_id) ||
+        undefined;
+      if (!meta.conversationId) {
+        const convMatch = url.match(/\/conversation\/([a-zA-Z0-9_-]+)/);
+        if (convMatch) meta.conversationId = convMatch[1];
+      }
+
+      // Message ID
+      meta.messageId = typeof body.message_id === "string" ? body.message_id : undefined;
+
+      return Object.keys(meta).length > 0 ? meta : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  // ── Tool call extraction ──────────────────────────────────────────────────
+  function extractToolCalls(obj: Record<string, unknown>): ToolCall[] {
+    const calls: ToolCall[] = [];
+    try {
+      // OpenAI format: choices[0].delta.tool_calls
+      const choices = obj.choices as Array<Record<string, unknown>> | undefined;
+      if (Array.isArray(choices)) {
+        const delta = choices[0]?.delta as Record<string, unknown> | undefined;
+        const tc = delta?.tool_calls as Array<Record<string, unknown>> | undefined;
+        if (Array.isArray(tc)) {
+          for (const c of tc) {
+            const fn = c.function as Record<string, unknown> | undefined;
+            if (fn?.name) {
+              calls.push({
+                id: String(c.id ?? ""),
+                name: String(fn.name),
+                arguments: String(fn.arguments ?? ""),
+              });
+            }
+          }
+        }
+      }
+      // Anthropic format: content_block with type=tool_use
+      const cb = obj.content_block as Record<string, unknown> | undefined;
+      if (cb?.type === "tool_use") {
+        calls.push({
+          id: String(cb.id ?? ""),
+          name: String(cb.name ?? ""),
+          arguments: typeof cb.input === "object" ? JSON.stringify(cb.input) : String(cb.input ?? ""),
+        });
+      }
+      // Tool result format
+      const result = obj.tool_result as Record<string, unknown> | undefined;
+      if (result?.tool_use_id) {
+        calls.push({
+          id: String(result.tool_use_id ?? ""),
+          name: "tool_result",
+          arguments: typeof result.content === "string" ? result.content : JSON.stringify(result.content ?? ""),
+        });
+      }
+    } catch { /* ignore */ }
+    return calls;
+  }
+
+  // ── Artifact extraction ───────────────────────────────────────────────────
+  function extractArtifacts(obj: Record<string, unknown>): Artifact[] {
+    const arts: Artifact[] = [];
+    try {
+      // Claude artifacts: content_block with type=artifact
+      const cb = obj.content_block as Record<string, unknown> | undefined;
+      if (cb?.type === "artifact" || cb?.type === "document") {
+        arts.push({
+          type: cb.type === "document" ? "document" : "code",
+          title: String(cb.title ?? cb.name ?? ""),
+          language: String(cb.language ?? ""),
+          content: String(cb.content ?? ""),
+        });
+      }
+      // ChatGPT canvas / code interpreter
+      const msg = obj.message as Record<string, unknown> | undefined;
+      const attachments = msg?.attachments as Array<Record<string, unknown>> | undefined;
+      if (Array.isArray(attachments)) {
+        for (const a of attachments) {
+          arts.push({
+            type: String(a.mime_type)?.startsWith("image") ? "image" : "file",
+            title: String(a.name ?? a.file_name ?? ""),
+            url: String(a.url ?? a.download_url ?? ""),
+          });
+        }
+      }
+    } catch { /* ignore */ }
+    return arts;
   }
 
   // ── Stream parsers ─────────────────────────────────────────────────────────
@@ -517,11 +687,76 @@
       // [SECURITY] Scrub credential patterns from captured content before dispatch.
       messages = messages.map((m) => ({ ...m, content: scrubCredentials(m.content) }));
 
-      console.log(`${TAG} ${platform}: parsed ${messages.length} msg(s)`);
-      dispatchCaptured(platform, messages);
+      // Extract metadata from request body
+      const metadata = extractRequestMetadata(requestBody ?? null, response.url);
+
+      console.log(`${TAG} ${platform}: parsed ${messages.length} msg(s)`, metadata ? `model=${metadata.model}` : "");
+      dispatchCaptured(platform, messages, metadata);
     } catch (err) {
       console.warn(`${TAG} handleAIResponse failed`, err);
     }
+  }
+
+  // ── Override XMLHttpRequest ────────────────────────────────────────────────
+  // Some platforms (older ChatGPT UIs, certain enterprise proxies) use XHR
+  // instead of fetch. We override open() to tag AI URLs, and send() to capture
+  // request bodies, then hook into the response via a custom load listener.
+  try {
+    const _origXHROpen = XMLHttpRequest.prototype.open;
+    const _origXHRSend = XMLHttpRequest.prototype.send;
+
+    // Store per-instance platform and URL
+    const xhrMeta = new WeakMap<XMLHttpRequest, { platform: Platform | null; url: string }>();
+
+    XMLHttpRequest.prototype.open = function (
+      this: XMLHttpRequest,
+      method: string,
+      url: string | URL,
+      async?: boolean,
+      user?: string | null,
+      password?: string | null
+    ) {
+      const urlStr = typeof url === "string" ? url : url.toString();
+      const platform = detectPlatform(urlStr);
+      xhrMeta.set(this, { platform, url: urlStr });
+      return _origXHROpen.apply(this, arguments as unknown as [string, string, boolean, string | null, string | null]);
+    };
+
+    XMLHttpRequest.prototype.send = function (this: XMLHttpRequest, body?: XMLHttpRequestBodyInit | null) {
+      const meta = xhrMeta.get(this);
+      if (!meta?.platform) {
+        return _origXHRSend.call(this, body);
+      }
+
+      // Capture request body
+      let requestBodyText: string | null = null;
+      if (typeof body === "string") requestBodyText = body;
+      else if (body instanceof URLSearchParams) requestBodyText = body.toString();
+
+      // Attach one-time load listener to capture response
+      const onLoad = () => {
+        try {
+          const responseText = this.responseText;
+          if (responseText) {
+            // Wrap in a Response-like object for handleAIResponse
+            const fakeResponse = {
+              text: () => Promise.resolve(responseText),
+              url: meta.url,
+              clone: () => fakeResponse,
+            } as Response;
+            void handleAIResponse(meta.platform!, fakeResponse, requestBodyText);
+          }
+        } catch { /* ignore */ }
+        this.removeEventListener("load", onLoad);
+      };
+      this.addEventListener("load", onLoad);
+
+      return _origXHRSend.call(this, body as XMLHttpRequestBodyInit | null);
+    };
+
+    console.log(`${TAG} XMLHttpRequest override installed`);
+  } catch (err) {
+    console.warn(`${TAG} XMLHttpRequest override failed (non-critical)`, err);
   }
 
   // ── Override window.fetch ──────────────────────────────────────────────────

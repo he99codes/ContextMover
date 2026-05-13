@@ -62,11 +62,24 @@ function inject(): HTMLElement {
   let isOpen = false;
 
   btn.addEventListener("click", () => {
-    chrome.runtime.sendMessage({ type: "TOGGLE_SIDEBAR" }, (res: { isOpen?: boolean }) => {
-      if (chrome.runtime.lastError) return;
+    console.log("[CM:toggle] button clicked");
+    chrome.runtime.sendMessage({ type: "TOGGLE_SIDEBAR" }, (res: { isOpen?: boolean; error?: string }) => {
+      if (chrome.runtime.lastError) {
+        console.error("[CM:toggle] lastError:", chrome.runtime.lastError.message);
+        return;
+      }
+      console.log("[CM:toggle] response:", res);
       isOpen = res?.isOpen ?? !isOpen;
       btn.classList.toggle("cf-toggle--open", isOpen);
     });
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && isOpen) {
+      chrome.runtime.sendMessage({ type: "CLOSE_SIDEBAR" });
+      isOpen = false;
+      btn.classList.remove("cf-toggle--open");
+    }
   });
 
   // Update capture dot when the service worker broadcasts a capture event.

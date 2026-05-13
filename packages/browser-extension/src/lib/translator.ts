@@ -124,6 +124,7 @@ function buildClaudePrompt(payload: MigrationPayload): string {
   const ratio = payload.compressionRatio ?? 0;
   const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
 
+  const meta = payload.metadata;
   const metaBlock = [
     `  <meta>`,
     `    <source_platform>${sourceSession.platform}</source_platform>`,
@@ -132,8 +133,18 @@ function buildClaudePrompt(payload: MigrationPayload): string {
     `    <compression_ratio>${ratio}%</compression_ratio>`,
     `    <migration_tier>${tierLabel}</migration_tier>`,
     `    <session_title>${sourceSession.title}</session_title>`,
+    ...(meta?.model ? [`    <model>${meta.model}</model>`] : []),
+    ...(meta?.temperature !== undefined ? [`    <temperature>${meta.temperature}</temperature>`] : []),
     `  </meta>`,
   ].join("\n");
+
+  const systemBlock = meta?.systemPrompt
+    ? `\n  <system_context>\n${indent(meta.systemPrompt, 4)}\n  </system_context>`
+    : "";
+
+  const toolsBlock = meta?.tools?.length
+    ? `\n  <available_tools>\n${meta.tools.map((t) => `    <tool name="${t.name}"${t.description ? ` description="${t.description.replace(/"/g, "'")}"` : ""} />`).join("\n")}\n  </available_tools>`
+    : "";
 
   const goalBlock = [
     `  <goal>`,
@@ -228,6 +239,8 @@ function buildClaudePrompt(payload: MigrationPayload): string {
     `<context_migration>`,
     ``,
     metaBlock,
+    systemBlock,
+    toolsBlock,
     ``,
     goalBlock,
     ``,
@@ -256,19 +269,41 @@ function buildChatGPTPrompt(payload: MigrationPayload): string {
   const currentFocus = ex?.currentFocus ?? "See recent messages below";
   const ratio = payload.compressionRatio ?? 0;
   const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
+  const meta = payload.metadata;
 
-  const out: string[] = [
-    `## Migrated Session`,
-    ``,
+  const metaLines: string[] = [
     `> **Source platform:** ${sourceSession.platform}  `,
     `> **Session:** "${sourceSession.title}"  `,
     `> **Messages captured:** ${sourceSession.messages.length}  `,
     `> **Compression:** ${ratio}%  `,
     `> **Migration tier:** ${tierLabel}  `,
     `> **Migrated at:** ${now}`,
+  ];
+  if (meta?.model) metaLines.push(`> **Model:** ${meta.model}  `);
+  if (meta?.temperature !== undefined) metaLines.push(`> **Temperature:** ${meta.temperature}  `);
+
+  const out: string[] = [
+    `## Migrated Session`,
+    ``,
+    ...metaLines,
     ``,
     `---`,
     ``,
+  ];
+
+  if (meta?.systemPrompt) {
+    out.push(`## System Prompt`, ``, meta.systemPrompt, ``, `---`, ``);
+  }
+
+  if (meta?.tools?.length) {
+    out.push(`## Available Tools`, ``);
+    for (const t of meta.tools) {
+      out.push(`- **${t.name}**${t.description ? `: ${t.description}` : ""}`);
+    }
+    out.push(``, `---`, ``);
+  }
+
+  out.push(
     `## Original Goal`,
     ``,
     ex?.primaryGoal ?? payload.summary,
@@ -299,7 +334,7 @@ function buildChatGPTPrompt(payload: MigrationPayload): string {
     ``,
     `## Code`,
     ``,
-  ];
+  );
 
   if (ex?.codeBlocks.length) {
     for (const block of ex.codeBlocks) {

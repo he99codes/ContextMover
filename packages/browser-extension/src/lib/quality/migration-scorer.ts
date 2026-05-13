@@ -26,6 +26,8 @@ export interface QualityScore {
   meta: {
     originalMessages: number;
     preservedMessages: number;
+    preservedUser: number;
+    preservedAsst: number;
     originalCodeBlocks: number;
     preservedCodeBlocks: number;
     originalSignals: number;
@@ -56,43 +58,190 @@ export interface ScorerInput {
 // Scanned in BOTH the original session (capped at first 50 messages) and the
 // final output prompt — retention ratio drives the keySignalRetention score.
 const SIGNAL_PATTERNS: RegExp[] = [
+  // Decisions
   /\bwe decided\b/i,
+  /\bdecided to\b/i,
+  /\bgoing with\b/i,
+  /\bopted for\b/i,
+  /\bwe('?ll| will) use\b/i,
+  /\bchose to\b/i,
+  /\bwe chose\b/i,
+  /\bswitching to\b/i,
+  /\bmigrating to\b/i,
+  /\bbest approach\b/i,
+  /\bthe approach is\b/i,
+  /\bwe use\b/i,
+  /\busing\b/i,
+  /\bwent with\b/i,
   /\bthe (fix|bug|issue|problem|root cause)\b/i,
   /\broot cause\b/i,
-  /\bthe goal\b/i,
-  /\bwe chose\b/i,
-  /\bwe('?ll| will) use\b/i,
-  /\bwe('?re| are) going with\b/i,
-  /\bopted for\b/i,
-  /\bgoing with\b/i,
-  /\bdecision\b/i,
+  // Bug / fix signals
+  /\bthe fix\b/i,
+  /\bfixed by\b/i,
   /\bbug was\b/i,
+  /\berror occurs\b/i,
+  /\bissue was\b/i,
+  /\bresolved by\b/i,
+  /\bfound it\b/i,
+  // Goal signals
+  /\bthe goal\b/i,
+  /\bour goal\b/i,
+  /\bwe want to\b/i,
+  /\bwe need to\b/i,
+  /\bwe('?re| are) building\b/i,
+  /\bthe plan\b/i,
+  /\bnext step\b/i,
+  // Architecture / facts
+  /\bthis works because\b/i,
+  /\bthe reason\b/i,
+  /\bbecause of\b/i,
+  /\bturns out\b/i,
+  /\brealized that\b/i,
+  /\barchitecture\b/i,
+  // Legacy patterns (kept for compatibility)
+  /\bwe chose\b/i,
+  /\bwe('?re| are) going with\b/i,
+  /\bdecision\b/i,
   /\bcompleted\b/i,
   /\bpending\b/i,
   /\btodo\b/i,
 ];
 
-// Role markers the prompt-builder uses to delineate messages in the output.
-// We count how many distinct role-prefixed lines survive in the final prompt
-// to estimate preservedMessages (does NOT need to be 1:1 — it's an estimate).
-const ROLE_PREFIXES: RegExp[] = [
-  /^\s*user\s*:/gim,
-  /^\s*you\s*:/gim,
-  /^\s*assistant\s*:/gim,
-  /^\s*ai\s*:/gim,
-  /^\s*human\s*:/gim,
-];
+// ── Platform-aware message counting ─────────────────────────────────────────
+// Each platform uses a different format for role markers in the output prompt.
+// We match the ACTUAL format the translator emits per platform.
 
-const CODE_BLOCK_RE = /```[\s\S]*?```/g;
+interface PlatformPatterns {
+  user: RegExp[];
+  assistant: RegExp[];
+}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+const PLATFORM_MESSAGE_PATTERNS: Record<string, PlatformPatterns> = {
+  claude: {
+    user: [
+      /<message role="user">/gi,
+      /\[HUMAN\]/gi,
+    ],
+    assistant: [
+      /<message role="assistant">/gi,
+      /\[ASSISTANT\]/gi,
+    ],
+  },
+  chatgpt: {
+    user: [
+      /\*\*You:\*\*/gi,
+      /\*\*User:\*\*/gi,
+      /^\s*User:/gim,
+    ],
+    assistant: [
+      /\*\*AI:\*\*/gi,
+      /\*\*Assistant:\*\*/gi,
+      /^\s*Assistant:/gim,
+    ],
+  },
+  gemini: {
+    user: [
+      /\[USER\]/gi,
+      /^\s*USER:/gim,
+      /^\s*User:/gim,
+    ],
+    assistant: [
+      /\[ASSISTANT\]/gi,
+      /\[MODEL\]/gi,
+      /^\s*ASSISTANT:/gim,
+      /^\s*Assistant:/gim,
+    ],
+  },
+  grok: {
+    user: [
+      /\*\*You:\*\*/gi,
+      /\*\*User:\*\*/gi,
+    ],
+    assistant: [
+      /\*\*Previous AI:\*\*/gi,
+      /\*\*AI:\*\*/gi,
+      /\*\*Assistant:\*\*/gi,
+      /\*\*Grok:\*\*/gi,
+    ],
+  },
+  deepseek: {
+    user: [
+      /^\s*User:/gim,
+      /\*\*User:\*\*/gi,
+    ],
+    assistant: [
+      /^\s*Assistant:/gim,
+      /\*\*Assistant:\*\*/gi,
+    ],
+  },
+  perplexity: {
+    user: [
+      /^\s*User:/gim,
+      /\*\*User:\*\*/gi,
+    ],
+    assistant: [
+      /^\s*AI:/gim,
+      /^\s*Perplexity:/gim,
+      /\*\*AI:\*\*/gi,
+    ],
+  },
+};
 
+// Universal fallback patterns when platform is unknown
+const UNIVERSAL_MESSAGE_PATTERNS: PlatformPatterns = {
+  user: [
+    /<message role="user">/gi,
+    /\*\*(You|User):\*\*/gi,
+    /^\s*(?:You|User):/gim,
+    /\[USER\]/gi,
+    /role="user"/gi,
+  ],
+  assistant: [
+    /<message role="assistant">/gi,
+    /\*\*(AI|Assistant|Grok|Claude|Gemini|Previous AI):\*\*/gi,
+    /^\s*(?:AI|Assistant):/gim,
+    /\[ASSISTANT\]/gi,
+    /role="assistant"/gi,
+  ],
+};
+
+function countMessagesInOutput(
+  prompt: string,
+  platform: string
+): { user: number; assistant: number; total: number } {
+  const patterns = PLATFORM_MESSAGE_PATTERNS[platform] ?? UNIVERSAL_MESSAGE_PATTERNS;
+
+  const countMax = (regexes: RegExp[]): number => {
+    let max = 0;
+    for (const re of regexes) {
+      const matches = prompt.match(re);
+      const count = matches?.length ?? 0;
+      if (count > max) max = count;
+    }
+    return max;
+  };
+
+  const userCount = countMax(patterns.user);
+  const assistantCount = countMax(patterns.assistant);
+
+  return {
+    user: userCount,
+    assistant: assistantCount,
+    total: userCount + assistantCount,
+  };
+}
+
+// ── Code block counting (platform-aware) ────────────────────────────────────
 function countCodeBlocks(text: string): number {
   if (!text) return 0;
-  const m = text.match(CODE_BLOCK_RE);
-  return m ? m.length : 0;
+  // Markdown triple-backtick blocks
+  const tripleBacktick = (text.match(/```/g) ?? []).length;
+  const mdBlockCount = Math.floor(tripleBacktick / 2);
+  // Claude XML <code> / <file> / <snippet> tags
+  const codeTags = (text.match(/<code[^>]*>/gi) ?? []).length;
+  const fileTags = (text.match(/<file\s/gi) ?? []).length;
+  const snippetTags = (text.match(/<snippet\s/gi) ?? []).length;
+  return Math.max(mdBlockCount, codeTags + fileTags + snippetTags);
 }
 
 function hasTruncatedCodeBlock(text: string): boolean {
@@ -109,17 +258,6 @@ function countSignals(text: string): number {
     // Use a global flag manually — clone with /g to count all hits without
     // re-mutating the original (top-level RegExps are not /g).
     const re = new RegExp(pat.source, pat.flags.includes("g") ? pat.flags : pat.flags + "g");
-    const m = text.match(re);
-    if (m) total += m.length;
-  }
-  return total;
-}
-
-function countRolePrefixedLines(text: string): number {
-  if (!text) return 0;
-  let total = 0;
-  for (const re of ROLE_PREFIXES) {
-    re.lastIndex = 0;
     const m = text.match(re);
     if (m) total += m.length;
   }
@@ -164,10 +302,12 @@ export function scoreMigration(input: ScorerInput): QualityScore {
     const outputLen = outputPrompt.length;
 
     // ── 1. Message Survival (/25) ────────────────────────────────────────────
-    // Estimate how many messages survived by counting role-prefixed lines in
-    // the output. Cap at originalMessages so a chatty output doesn't score >25.
-    const preservedMessages = Math.min(originalMessages, countRolePrefixedLines(outputPrompt));
-    const survivalRatio = originalMessages > 0 ? preservedMessages / originalMessages : 0;
+    // Estimate how many messages survived by counting platform-specific role
+    // markers in the output prompt. Cap at originalMessages.
+    const { total: preservedMessages, user: preservedUser, assistant: preservedAsst } =
+      countMessagesInOutput(outputPrompt, platform);
+    const cappedPreserved = Math.min(originalMessages, preservedMessages);
+    const survivalRatio = originalMessages > 0 ? cappedPreserved / originalMessages : 0;
     const messageSurvival = safeRound(clamp(survivalRatio * 25, 0, 25));
 
     // ── 2. Code Integrity (/20) ──────────────────────────────────────────────
@@ -242,19 +382,20 @@ export function scoreMigration(input: ScorerInput): QualityScore {
     const compressionRatio = outputLen / originalLen;
     let compressionEfficiency = 0;
     if (tier === 1) {
+      // Full context — no compression expected
       compressionEfficiency = 10;
     } else if (tier === 2) {
-      // Spec ranges interpreted on COMPRESSION ratio (1 - outputLen/originalLen):
-      //   60-80% compressed → 10/10  (output is 20-40% of original)
-      //   80-90% compressed → 7/10
-      //   >90% compressed   → 4/10  (over-compressed)
-      const compressed = clamp(1 - compressionRatio, 0, 1);
-      const pct = compressed * 100;
-      if (pct >= 60 && pct <= 80) compressionEfficiency = 10;
-      else if (pct > 80 && pct <= 90) compressionEfficiency = 7;
-      else if (pct > 90) compressionEfficiency = 4;
-      else if (pct >= 40) compressionEfficiency = 8; // light compression — still healthy
-      else compressionEfficiency = 6;                // very light or none
+      // Smart Summary: score by message preservation ratio
+      // 70-90% preserved → 10/10 (good compression, still useful)
+      // 90-100% preserved → 8/10 (light compression)
+      // 50-70% preserved → 6/10 (heavy compression)
+      // < 50% preserved → 3/10 (over-compressed)
+      const msgRatio = originalMessages > 0 ? preservedMessages / originalMessages : 0;
+      const pct = msgRatio * 100;
+      if (pct >= 70 && pct < 90) compressionEfficiency = 10;
+      else if (pct >= 90) compressionEfficiency = 8;
+      else if (pct >= 50) compressionEfficiency = 6;
+      else compressionEfficiency = 3;
     } else {
       // Tier 3 — score by retrieval depth (topK).
       const k = topK ?? 0;
@@ -288,7 +429,9 @@ export function scoreMigration(input: ScorerInput): QualityScore {
       },
       meta: {
         originalMessages,
-        preservedMessages,
+        preservedMessages: cappedPreserved,
+        preservedUser,
+        preservedAsst,
         originalCodeBlocks,
         preservedCodeBlocks,
         originalSignals,
@@ -319,6 +462,8 @@ export function scoreMigration(input: ScorerInput): QualityScore {
       meta: {
         originalMessages: input.session?.messages?.length ?? 0,
         preservedMessages: 0,
+        preservedUser: 0,
+        preservedAsst: 0,
         originalCodeBlocks: 0,
         preservedCodeBlocks: 0,
         originalSignals: 0,

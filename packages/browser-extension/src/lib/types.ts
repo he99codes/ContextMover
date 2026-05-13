@@ -2,10 +2,36 @@
 
 export type Platform = "claude" | "chatgpt" | "gemini" | "grok" | "perplexity" | "deepseek";
 
+export interface ToolCall {
+  id: string;
+  name: string;
+  arguments: string;
+  result?: string;
+}
+
+export interface Artifact {
+  type: "code" | "document" | "image" | "file";
+  title?: string;
+  language?: string;
+  content?: string;
+  url?: string;
+}
+
+export interface RequestMetadata {
+  model?: string;
+  temperature?: number;
+  systemPrompt?: string;
+  tools?: Array<{ name: string; description?: string }>;
+  conversationId?: string;
+  messageId?: string;
+}
+
 export interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: number;
+  toolCalls?: ToolCall[];
+  artifacts?: Artifact[];
 }
 
 export interface ContextSession {
@@ -15,6 +41,17 @@ export interface ContextSession {
   messages: Message[];
   createdAt: number;
   updatedAt: number;
+  metadata?: RequestMetadata;
+}
+
+export interface MetaPrompt {
+  id: string; // sessionId
+  platform: Platform;
+  tier: 1 | 2 | 3;
+  prompt: string;
+  compressionRatio: number;
+  builtAt: number;
+  messageCount: number;
 }
 
 export interface CodeBlock {
@@ -61,4 +98,6 @@ export interface MigrationPayload {
   // Pre-built project-file context block (XML/MD/plain, platform-formatted).
   // Built in the sidebar by FileContextBuilder and injected before conversation_tail.
   projectContext?: string | null;
+  // Live session metadata captured from API requests
+  metadata?: RequestMetadata;
 }

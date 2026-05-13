@@ -27,23 +27,59 @@ const MAX_VERBATIM_MESSAGES = 6;
 
 // Sentence patterns that signal a key decision or outcome worth keeping.
 const KEY_DECISION_PATTERNS = [
+  // Architecture decisions
+  /\bwe decided\b/i,
+  /\bdecided to\b/i,
+  /\bgoing with\b/i,
+  /\bopted for\b/i,
+  /\bwe('?ll| will) use\b/i,
+  /\bchose to\b/i,
+  /\bwe chose\b/i,
+  /\bswitching to\b/i,
+  /\bmigrating to\b/i,
+  /\bbest approach\b/i,
+  /\bthe approach is\b/i,
+  /\bwe use\b/i,
+  /\busing\b/i,
+  /\bwent with\b/i,
+  /\bshould use\b/i,
+  /\bmust use\b/i,
+  // Bug / fix signals
   /\bthe fix is\b/i,
-  /\buse\s+\S+/i,
+  /\bthe fix\b/i,
+  /\bfixed by\b/i,
+  /\b(?:root |the )?cause\b/i,
+  /\broot cause\b/i,
+  /\bbug was\b/i,
+  /\berror occurs\b/i,
+  /\bissue was\b/i,
+  /\bthe problem\b/i,
   /\bthe issue\b/i,
+  /\bresolved by\b/i,
+  /\bfound it\b/i,
+  // Goal signals
+  /\bthe goal\b/i,
+  /\bour goal\b/i,
+  /\bwe want to\b/i,
+  /\bwe need to\b/i,
+  /\bwe('?re| are) building\b/i,
+  /\bthe plan\b/i,
+  /\bnext step\b/i,
+  // Facts / reasoning
+  /\bthis works because\b/i,
+  /\bthe reason\b/i,
+  /\bbecause of\b/i,
+  /\bturns out\b/i,
+  /\brealized that\b/i,
+  /\barchitecture\b/i,
+  // Legacy patterns (kept for compatibility)
+  /\buse\s+\S+/i,
   /\bi[\u2019']?ve? updated\b/i,
   /\bhere[\u2019']?s the\b/i,
   /\bthe solution\b/i,
   /\bchanged.*\bto\b/i,
-  /\bswitched to\b/i,
   /\binstead of\b/i,
-  /\bdecided to\b/i,
-  /\bshould use\b/i,
-  /\bmust use\b/i,
   /\bneeds? to\b/i,
-  /\bfixed by\b/i,
-  /\b(?:root |the )?cause\b/i,
-  /\bwent with\b/i,
-  /\bopted for\b/i,
 ];
 
 // Pure acknowledgment patterns — a message consisting ONLY of these phrases
@@ -424,15 +460,26 @@ function extractPending(messages: Message[]): string[] {
 // ── Key decisions ─────────────────────────────────────────────────────────────
 
 const DECISION_RE = [
+  // Architecture decisions
   /instead of|rather than|chose|chosen|decided|opted for|went with/im,
-  /the reason|because.*approach|trade-?off/im,
-  /(?:will|'ll) use .{3,30} (?:instead|for this|here)/im,
   /\bgoing with\b/im,
   /\bopted for\b/im,
   /\blet['\u2019]s use\b/im,
   /\bsticking with\b/im,
   /\bswitching to\b/im,
   /\binstead I['\u2019]ll\b/im,
+  /\bmigrating to\b/im,
+  /\bbest approach\b/im,
+  /\bthe approach is\b/im,
+  /\bwe use\b/im,
+  // Reasoning
+  /the reason|because.*approach|trade-?off/im,
+  /\bthis works because\b/im,
+  /\bthe reason\b/im,
+  /\bbecause of\b/im,
+  // Usage
+  /(?:will|'ll) use .{3,30} (?:instead|for this|here)/im,
+  /\bwe('?ll| will) use\b/im,
 ];
 
 const META_FILTER_RE =
@@ -572,7 +619,7 @@ function dedupe<T>(arr: T[]): T[] {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TIER2_DECISION_RE = [
-  /\bi['’]ll use\b/i,
+  /\bi['']ll use\b/i,
   /\bbest approach\b/i,
   /\bwe decided\b/i,
   /\bthe fix is\b/i,
@@ -580,16 +627,22 @@ const TIER2_DECISION_RE = [
   /\bthis works because\b/i,
   /\bgoing with\b/i,
   /\bopted for\b/i,
-  /\blet['’]s use\b/i,
+  /\blet['']s use\b/i,
   /\bswitched to\b/i,
   /\bmoved to\b/i,
   /\breplaced with\b/i,
   /\bchose\b/i,
+  /\bchose to\b/i,
   /\binstead of\b/i,
   /\brather than\b/i,
   /\bsticking with\b/i,
-  /\bwe['’]re using\b/i,
+  /\bwe['']re using\b/i,
   /\bwent with\b/i,
+  /\bmigrating to\b/i,
+  /\bwe will use\b/i,
+  /\bthe approach is\b/i,
+  /\bwe use\b/i,
+  /\bdecided to\b/i,
 ];
 
 const TIER2_BUG_RE = [
