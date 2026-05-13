@@ -2,6 +2,7 @@
 // Fixed right-edge tab that opens/closes the ContextMover side panel.
 // Vanilla TS only — no React, no drag, no settings.
 import css from "./toggle.css?inline";
+import logoUrl from "../../assets/logo.png?url";
 
 const GUARD = "__cf_toggle_v1";
 const w = window as unknown as Record<string, unknown>;
@@ -51,35 +52,72 @@ function inject(): HTMLElement {
   btn.className = "cf-toggle";
   btn.setAttribute("aria-label", "Toggle ContextMover sidebar");
   btn.innerHTML = `
-    <svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M10 2L3 6.5V13.5L10 18L17 13.5V6.5L10 2Z" fill="currentColor"/>
-      <path d="M10 5.5L5.5 8V12L10 14.5L14.5 12V8L10 5.5Z" style="fill:var(--cf-inner)"/>
-      <circle cx="10" cy="10" r="2.2" fill="currentColor"/>
-    </svg>
+    <img
+      src="${logoUrl}"
+      alt="ContextMover"
+      style="
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+        display: block;
+        pointer-events: none;
+      "
+      aria-hidden="true"
+    />
     <span class="cf-dot cf-dot--idle" aria-hidden="true"></span>`;
   shadow.appendChild(btn);
 
   let isOpen = false;
 
-  btn.addEventListener("click", () => {
-    console.log("[CM:toggle] button clicked");
-    chrome.runtime.sendMessage({ type: "TOGGLE_SIDEBAR" }, (res: { isOpen?: boolean; error?: string }) => {
-      if (chrome.runtime.lastError) {
-        console.error("[CM:toggle] lastError:", chrome.runtime.lastError.message);
-        return;
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    console.log("[CM:toggle] clicked — sending TOGGLE_SIDEBAR");
+
+    chrome.runtime.sendMessage(
+      { type: "TOGGLE_SIDEBAR" },
+      (res: { isOpen?: boolean; error?: string } | undefined) => {
+        if (chrome.runtime.lastError) {
+          console.error("[CM:toggle] lastError:", chrome.runtime.lastError.message);
+          // SW may have gone to sleep — retry once after 500ms
+          setTimeout(() => {
+            chrome.runtime.sendMessage(
+              { type: "TOGGLE_SIDEBAR" },
+              (retryRes) => {
+                if (chrome.runtime.lastError) return;
+                isOpen = retryRes?.isOpen ?? !isOpen;
+                btn.classList.toggle("cf-toggle--open", isOpen);
+                console.log("[CM:toggle] retry response:", retryRes);
+              }
+            );
+          }, 500);
+          return;
+        }
+        console.log("[CM:toggle] response:", res);
+        isOpen = res?.isOpen ?? !isOpen;
+        btn.classList.toggle("cf-toggle--open", isOpen);
       }
-      console.log("[CM:toggle] response:", res);
-      isOpen = res?.isOpen ?? !isOpen;
-      btn.classList.toggle("cf-toggle--open", isOpen);
-    });
+    );
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden && isOpen) {
-      chrome.runtime.sendMessage({ type: "CLOSE_SIDEBAR" });
-      isOpen = false;
-      btn.classList.remove("cf-toggle--open");
-    }
+    if (!document.hidden) return;
+    // Tab hidden → reset toggle state
+    // Do NOT send close message — let sidebar persist
+    // Just reset the icon visual state
+    isOpen = false;
+    btn.classList.remove("cf-toggle--open");
+  });
+
+  // Also handle actual tab switching via focus:
+  window.addEventListener("blur", () => {
+    // When tab loses focus but document stays visible
+    // (e.g. switching between browser windows)
+    // Reset icon state only — sidebar may still be open
+    isOpen = false;
+    btn.classList.remove("cf-toggle--open");
   });
 
   // Update capture dot when the service worker broadcasts a capture event.

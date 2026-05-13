@@ -680,19 +680,54 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
         const tabId = sender.tab.id;
 
-        // Try to open first — if already open Chrome throws, so we close it.
+        // Detect actual panel state via getContexts() — immune to SW restart state loss
+        let panelIsOpen = false;
         try {
-          await chrome.sidePanel.open({ tabId });
-          sendResponse({ isOpen: true });
+          const contexts = await chrome.runtime.getContexts({
+            contextTypes: ["SIDE_PANEL" as chrome.runtime.ContextType],
+          });
+          panelIsOpen = contexts.length > 0;
         } catch {
+          panelIsOpen = false;
+        }
+
+        if (panelIsOpen) {
+          // Try close — sidePanel.close() requires Chrome 123+
           try {
-            await (chrome.sidePanel as unknown as { close(d: { tabId: number }): Promise<void> })
-              .close({ tabId });
+            await (chrome.sidePanel as unknown as { close(d: { tabId: number }): Promise<void> }).close({ tabId });
             sendResponse({ isOpen: false });
+          } catch {
+            // Fallback for Chrome < 123
+            await chrome.sidePanel.setOptions({ tabId, enabled: false }).catch(() => {});
+            await chrome.sidePanel.setOptions({
+              tabId, enabled: true, path: "src/sidebar/index.html",
+            }).catch(() => {});
+            sendResponse({ isOpen: false });
+          }
+        } else {
+          try {
+            await chrome.sidePanel.open({ tabId });
+            sendResponse({ isOpen: true });
           } catch (err) {
             sendResponse({ isOpen: false, error: String(err) });
           }
         }
+        break;
+      }
+
+      case "CLOSE_SIDEBAR": {
+        if (sender.tab?.id == null) {
+          sendResponse({ ok: true });
+          break;
+        }
+        try {
+          await (chrome.sidePanel as unknown as { close(d: { tabId: number }): Promise<void> }).close({
+            tabId: sender.tab.id,
+          });
+        } catch {
+          // ignore — panel may already be closed
+        }
+        sendResponse({ ok: true });
         break;
       }
 

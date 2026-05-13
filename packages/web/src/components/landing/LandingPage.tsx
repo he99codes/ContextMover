@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Check, Mail } from "lucide-react";
 import { CHROME_STORE_URL } from "@/config/urls";
+import BuildWithMe from "@/components/BuildWithMe";
 
 // ─── Scroll-reveal hook ───────────────────────────────────────────────────────
 
@@ -632,7 +633,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ══════════════════════════ 10. FAQ ══════════════════════════ */}
+      {/* ══════════════════════════ 10. BUILD WITH ME ══════════════════════════ */}
+      <BuildWithMe />
+
+      {/* ══════════════════════════ 11. FAQ ══════════════════════════ */}
       <section className="bg-[#111111] py-24 px-5">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-14">Questions.</h2>

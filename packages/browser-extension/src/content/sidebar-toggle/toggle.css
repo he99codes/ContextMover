@@ -1,71 +1,109 @@
 /* Shadow DOM — page styles cannot affect this */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 .cf-toggle {
-  /* Position: shift left by own width, up by half own height from the 0×0 host */
+  /* Position: shift left by own width from 0×0 host */
   position: absolute;
   top: 0;
   left: 0;
   transform: translateX(-100%);
 
-  /* Tab shape: rounded on left only, flush on right */
-  width: 40px;
-  height: 64px;
-  background: #111111;
-  border: 1px solid #00D26A;
-  border-right: none;
-  border-radius: 10px 0 0 10px;
+  /* Size and shape */
+  width: 48px;
+  height: 48px;
+  border-radius: 50% 0 0 50%;
 
-  /* Content */
+  /* Colors */
+  background: #0A0A0A;
+  border: none;
+  outline: none;
+
+  /* Layout */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   padding: 0;
-  cursor: pointer;
+
+  /* CRITICAL: must be auto — host is pointer-events: none */
   pointer-events: auto;
-  outline: none;
+  cursor: pointer;
 
-  /* Color tokens */
-  color: #00D26A;
-  --cf-inner: #111111;
-
-  /* Default state */
-  opacity: 0.7;
-  transition: opacity 150ms ease, box-shadow 150ms ease,
-              background 150ms ease, color 150ms ease;
+  /* Effects */
+  box-shadow: -2px 0 12px rgba(0, 255, 120, 0.15);
+  opacity: 0.85;
+  transition:
+    box-shadow 200ms ease,
+    opacity 150ms ease,
+    background 150ms ease;
 }
 
-.cf-toggle:hover,
+.cf-toggle:hover {
+  opacity: 1;
+  box-shadow: -2px 0 20px rgba(0, 255, 120, 0.35);
+}
+
+.cf-toggle:active {
+  opacity: 0.9;
+  transform: translateX(-100%) scale(0.96);
+}
+
 .cf-toggle:focus-visible {
-  opacity: 1;
-  box-shadow: -2px 0 12px rgba(0, 210, 106, 0.30);
+  outline: 2px solid #00D26A;
+  outline-offset: 2px;
 }
 
-/* Sidebar open — invert colours */
+/* Sidebar open state */
 .cf-toggle--open {
-  background: #00D26A;
-  color: #000000;
-  --cf-inner: #00D26A; /* same as bg → cutout effect on the hex */
   opacity: 1;
+  box-shadow: -2px 0 24px rgba(0, 255, 120, 0.50);
+  background: #0F1A0F;
 }
 
-.cf-toggle--open:hover,
-.cf-toggle--open:focus-visible {
-  box-shadow: -2px 0 16px rgba(0, 210, 106, 0.50);
+.cf-toggle--open:hover {
+  box-shadow: -2px 0 32px rgba(0, 255, 120, 0.65);
 }
 
-/* ── Capture status dot ───────────────────────────────────────────────────── */
+/* Logo image */
+.cf-toggle img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  /* CRITICAL: must not intercept clicks */
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Capture status dot */
 .cf-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
+  pointer-events: none;
 }
-.cf-dot--idle   { background: #333333; }
-.cf-dot--active { background: #00D26A; }
 
-/* When sidebar is open, dot uses contrasting colours */
-.cf-toggle--open .cf-dot--idle   { background: rgba(0, 0, 0, 0.25); }
-.cf-toggle--open .cf-dot--active { background: #000000; }
+.cf-dot--idle {
+  background: #2A2A2A;
+}
+
+.cf-dot--active {
+  background: #00D26A;
+  box-shadow: 0 0 6px rgba(0, 210, 106, 0.6);
+}
+
+/* Open state dot contrast */
+.cf-toggle--open .cf-dot--idle {
+  background: rgba(0, 255, 120, 0.2);
+}
+
+.cf-toggle--open .cf-dot--active {
+  background: #00FF88;
+}
