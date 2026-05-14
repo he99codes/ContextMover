@@ -103,9 +103,16 @@ function inject(): HTMLElement {
     isOpen = !isOpen;
     updateBtn();
 
+    // Safety — always clear busy after 2s in case SW callback never fires
+    const safetyTimer = setTimeout(() => {
+      busy = false;
+      updateBtn();
+    }, 2000);
+
     chrome.runtime.sendMessage(
       { type: "TOGGLE_SIDEBAR" },
       (res) => {
+        clearTimeout(safetyTimer);
         busy = false;
 
         if (chrome.runtime.lastError) {

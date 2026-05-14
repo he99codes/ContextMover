@@ -57,7 +57,7 @@ export function buildInstructionPrompt(params: {
   }
 
   if (targetPlatform === 'gemini') {
-    return `[CONTEXTFORGE MIGRATION]
+    return `[CONTEXTMOVER MIGRATION]
 Source: ${session.platform} | Messages: ${session.messages.length} | Tier: ${tierNames[tier]}
 
 [INSTRUCTION]
@@ -80,7 +80,7 @@ Do not re-explain what was already decided.${caveatBlock}`
   }
 
   // ChatGPT / Grok / Perplexity / DeepSeek
-  return `## ContextForge Migration
+  return `## ContextMover Migration
 
 **From:** ${session.platform} → **${targetPlatform}**
 **Session:** ${session.title}

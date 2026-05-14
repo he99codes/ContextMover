@@ -2,14 +2,12 @@
 //
 // Dexie wrapper around the IndexedDB database "contextmover".
 //
-// REBRAND MIGRATION NOTE:
-//   DB was renamed from "contextforge" to "contextmover" as part of the
-//   ContextForge → ContextMover rebrand. For existing users this means local
-//   IndexedDB data will NOT carry over automatically. A best-effort migration
-//   is implemented in db-migration.ts and invoked from the service-worker
-//   install handler. It copies sessions from the old "contextforge" DB into
-//   the new "contextmover" DB and then deletes the old one. Safe to skip if
-//   the old DB does not exist (pre-launch / fresh installs).
+// LEGACY MIGRATION NOTE:
+//   This database was previously named "contextforge" (pre-rebrand).
+//   A one-shot migration in db-migration.ts copies sessions from the
+//   legacy "contextforge" IDB into this "contextmover" database and
+//   then deletes the old one. Safe to skip on fresh installs where the
+//   legacy database does not exist.
 //
 // Migration strategy:
 //   v1 (legacy idb): sessions store
@@ -226,6 +224,21 @@ class ContextMoverDB extends Dexie {
       migrationQuality: "id, sessionId, platform, tier, score, createdAt",
       metaPrompts: "id, platform, tier, builtAt",
     });
+
+    // ── v6: metaPrompts composite key ── the prior simple "id" keyPath caused
+    // every platform/tier record for the same session to overwrite each other.
+    // Recreate the store with a compound primary key [sessionId+platform+tier].
+    this.version(6).stores({
+      sessions: "id, platform, updatedAt",
+      prompt_templates: "id, userId, isDefault, usageCount, updatedAt",
+      prompt_assignments: "id, sessionId, platform, templateId",
+      chunkEmbeddings: "id, sessionId, createdAt, hasCode",
+      sessionHashes: "sessionId, indexedAt",
+      storedSummaries: "id, sessionId, tier, builtAt",
+      retrievalCache: "id, sessionId, builtAt",
+      migrationQuality: "id, sessionId, platform, tier, score, createdAt",
+      metaPrompts: "[sessionId+platform+tier], sessionId, builtAt",
+    });
   }
 }
 
@@ -286,15 +299,12 @@ export const db = {
     await dexieDb.metaPrompts.put(metaPrompt);
   },
 
-  async getMetaPrompt(sessionId: string, platform?: string, tier?: 1 | 2 | 3): Promise<MetaPrompt | undefined> {
-    if (platform && tier !== undefined) {
-      return dexieDb.metaPrompts.get(sessionId);
-    }
-    return dexieDb.metaPrompts.get(sessionId);
+  async getMetaPrompt(sessionId: string, platform: string, tier: 1 | 2 | 3): Promise<MetaPrompt | undefined> {
+    return dexieDb.metaPrompts.get([sessionId, platform, tier]);
   },
 
   async deleteMetaPrompt(sessionId: string): Promise<void> {
-    await dexieDb.metaPrompts.delete(sessionId);
+    await dexieDb.metaPrompts.where("sessionId").equals(sessionId).delete();
   },
 };
 

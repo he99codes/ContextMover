@@ -45,7 +45,7 @@ export interface ContextSession {
 }
 
 export interface MetaPrompt {
-  id: string; // sessionId
+  sessionId: string;
   platform: Platform;
   tier: 1 | 2 | 3;
   prompt: string;

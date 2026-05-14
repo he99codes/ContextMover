@@ -128,6 +128,7 @@ function MigrationSuccess({
   const [fetchError, setFetchError] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fileObjectUrl, setFileObjectUrl] = useState<string | null>(null)
+  const [fileContent, setFileContent] = useState<string | null>(null)
   const [downloaded, setDownloaded] = useState(false)
   const sizeKB = Math.round(migrationFile.charCount / 1024)
 
@@ -150,8 +151,9 @@ function MigrationSuccess({
     )
   }
 
-  function triggerDownload(content: string): void {
-    const blob = new Blob([content], { type: 'application/xml' })
+  function handleManualDownload() {
+    if (!fileContent) return
+    const blob = new Blob([fileContent], { type: 'application/xml' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -160,16 +162,6 @@ function MigrationSuccess({
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-  }
-
-  function handleManualDownload() {
-    if (!fileObjectUrl) return
-    const a = document.createElement('a')
-    a.href = fileObjectUrl
-    a.download = migrationFile.filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
     setDownloaded(true)
     setDropped(true)
     deleteCachedFile()
@@ -185,9 +177,8 @@ function MigrationSuccess({
         const blob = new Blob([content], { type: 'application/xml' })
         const url = URL.createObjectURL(blob)
         setFileObjectUrl(url)
+        setFileContent(content)
         setFileReady(true)
-        triggerDownload(content)
-        setDownloaded(true)
       } catch { if (!cancelled) setFetchError(true) }
     }
     prefetchFile()

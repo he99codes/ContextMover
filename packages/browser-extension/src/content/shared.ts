@@ -333,16 +333,42 @@ export function startSessionCapture(config: {
 
   createObserver(config.selectorOrElement, capture);
 
-  // Initial capture with small delay to let page render
+  // Staggered initial captures — catches lazy-rendered messages at each stage
+  void capture();
+  setTimeout(capture, 100);
+  setTimeout(capture, 500);
   setTimeout(capture, 1000);
+  setTimeout(capture, 1500);
+  setTimeout(capture, 3000);
+  setTimeout(capture, 6000);
   window.addEventListener("load", capture, { once: true });
+
+  // Re-scrape when tab becomes active (covers switching back to an AI tab)
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
-      capture();
+      setTimeout(() => void capture(), 300);
     }
   });
-  // Handle back/forward navigation in SPAs
+
+  // Back/forward navigation in SPAs
   window.addEventListener("popstate", () => setTimeout(capture, 500));
+
+  // Virtual scroll — re-scrape when user scrolls to load lazy history
+  let scrollTimer: ReturnType<typeof setTimeout> | undefined;
+  window.addEventListener("scroll", () => {
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => void capture(), 800);
+  }, { passive: true });
+
+  // SPA pushState navigation detection (history.pushState doesn't fire popstate)
+  let lastNavUrl = location.href;
+  new MutationObserver(() => {
+    if (location.href === lastNavUrl) return;
+    lastNavUrl = location.href;
+    setTimeout(capture, 800);
+    setTimeout(capture, 2000);
+    setTimeout(capture, 4000);
+  }).observe(document, { subtree: true, childList: true });
 }
 
 const CF_CHROME_SELECTORS = [
@@ -622,4 +648,160 @@ export function setPromptInputValue(
   }
 
   return false;
+}
+
+export function detectRoleFromElement(
+  el: HTMLElement,
+  platform: string
+): 'user' | 'assistant' | null {
+
+  // ── 1. Data attributes (most reliable) ──
+  const dataRole =
+    el.getAttribute('data-role') ??
+    el.getAttribute('data-message-author-role') ??
+    el.closest('[data-role]')?.getAttribute('data-role') ??
+    el.closest('[data-message-author-role]')
+      ?.getAttribute('data-message-author-role');
+
+  if (dataRole === 'user') return 'user';
+  if (dataRole === 'assistant') return 'assistant';
+
+  // ── 2. Class name signals ──
+  const cls = [
+    el.className,
+    el.getAttribute('class') ?? '',
+    el.parentElement?.className ?? ''
+  ].join(' ').toLowerCase();
+
+  const userSignals = [
+    'human', 'user-turn', 'humanturn', 'user-message',
+    'usermessage', 'human-message', 'humanmessage',
+    'user-query', 'userquery', 'human-turn',
+    'request', 'prompt-wrapper'
+  ];
+  const assistantSignals = [
+    'assistant', 'ai-turn', 'aiturn', 'ai-message',
+    'claude', 'model-response', 'modelresponse',
+    'bot-message', 'response', 'answer', 'reply',
+    'assistant-message', 'assistantmessage',
+    'ds-markdown', 'prose'
+  ];
+
+  for (const s of userSignals) {
+    if (cls.includes(s)) return 'user';
+  }
+  for (const s of assistantSignals) {
+    if (cls.includes(s)) return 'assistant';
+  }
+
+  // ── 3. Platform-specific data attributes ──
+  if (platform === 'chatgpt') {
+    const testId = el.getAttribute('data-testid') ?? '';
+    if (testId.includes('human') || testId.includes('user')) return 'user';
+    if (testId.includes('assistant') || testId.includes('gpt')) return 'assistant';
+  }
+
+  if (platform === 'claude') {
+    if (el.getAttribute('data-testid') === 'human-turn') return 'user';
+    if (el.getAttribute('data-testid') === 'ai-turn') return 'assistant';
+  }
+
+  if (platform === 'gemini') {
+    const tag = el.tagName?.toLowerCase();
+    if (tag === 'user-query' || el.matches('user-query, .user-query')) return 'user';
+    if (tag === 'model-response' || el.matches('model-response, .model-response')) return 'assistant';
+  }
+
+  // ── 4. Content signals (code/markdown = assistant) ──
+  if (el.querySelector(
+    'pre code, .prose, [class*="markdown"], [class*="code-block"], .ds-code-block'
+  )) {
+    return 'assistant';
+  }
+
+  // ── 5. Visual alignment signals ──
+  try {
+    const style = window.getComputedStyle(el);
+    const ml = parseFloat(style.marginLeft || '0');
+    const mr = parseFloat(style.marginRight || '0');
+    if (mr > ml + 40) return 'user';
+    if (ml > mr + 40) return 'assistant';
+  } catch { /* ignore */ }
+
+  // ── 6. Avatar / icon signals ──
+  const avatarEl = el.querySelector('img[alt], [aria-label], [title]');
+  if (avatarEl) {
+    const label = (
+      avatarEl.getAttribute('alt') ??
+      avatarEl.getAttribute('aria-label') ??
+      avatarEl.getAttribute('title') ?? ''
+    ).toLowerCase();
+    if (label.includes('you') || label.includes('user')) return 'user';
+    if (
+      label.includes('claude') || label.includes('assistant') ||
+      label.includes('gemini') || label.includes('gpt') ||
+      label.includes('grok') || label.includes('deepseek') ||
+      label.includes('perplexity')
+    ) return 'assistant';
+  }
+
+  return null;
+}
+
+export function findChatContainerFor(platform: string): Element | null {
+  const platformSelectors: Record<string, string[]> = {
+    claude: [
+      '[data-test-render-count]',
+      '[class*="ConversationContent"]',
+      '[class*="conversation-content"]',
+      '[class*="ThreadLayout"]',
+    ],
+    chatgpt: [
+      '[class*="react-scroll-to-bottom"]',
+      '[class*="conversation-content"]',
+      'main [class*="flex-col"]',
+    ],
+    gemini: [
+      'chat-history',
+      '[class*="chat-history"]',
+      'infinite-scroller',
+    ],
+    grok: [
+      '[class*="conversation"]',
+      '[class*="message-list"]',
+      '[class*="chat-container"]',
+    ],
+    deepseek: [
+      '[class*="chat-content"]',
+      '[class*="message-list"]',
+      '[class*="conversation"]',
+    ],
+    perplexity: [
+      '[class*="conversation"]',
+      '[class*="thread"]',
+      '[class*="answer-container"]',
+    ],
+  };
+
+  const genericSelectors = [
+    '[class*="messages"]',
+    '[class*="chat-content"]',
+    '[class*="thread"]',
+  ];
+
+  const selectors = [
+    ...(platformSelectors[platform] ?? []),
+    ...genericSelectors,
+  ];
+
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    if (!el) continue;
+    const substantive = Array.from(el.children).filter(
+      c => (c.textContent?.trim().length ?? 0) > 30
+    );
+    if (substantive.length >= 2) return el;
+  }
+
+  return null;
 }

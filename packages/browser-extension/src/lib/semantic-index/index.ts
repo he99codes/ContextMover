@@ -122,6 +122,11 @@ async function offscreenEmbedQuery(
 }
 
 // ──────────────────────────────────────────────────────────────────────────
+// In-memory retrieval cache (30 s TTL, keyed by sessionId + query prefix)
+// ──────────────────────────────────────────────────────────────────────
+const _retrieveCache = new Map<string, { results: ChunkEmbedding[]; ts: number }>();
+
+// ──────────────────────────────────────────────────────────────────────────
 // SemanticIndex
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -243,6 +248,13 @@ export class SemanticIndex {
   ): Promise<ChunkEmbedding[]> {
     const t0 = performance.now();
 
+    // ── In-memory cache check (30 s TTL) ──
+    const cacheKey = `${sessionId}::${query?.slice(0, 50) ?? ''}`;
+    const _cached = _retrieveCache.get(cacheKey);
+    if (_cached && Date.now() - _cached.ts < 30_000) {
+      return _cached.results;
+    }
+
     const allChunks = await dexieDb.chunkEmbeddings.where("sessionId").equals(sessionId).toArray();
     if (allChunks.length === 0) {
       console.warn(`[CM:index] No chunks for ${sessionId}`);
@@ -252,7 +264,9 @@ export class SemanticIndex {
     if (!query || !query.trim()) {
       // No query — return most recent N chunks
       const sorted = [...allChunks].sort((a, b) => b.messageIndex - a.messageIndex);
-      return sorted.slice(0, topK).reverse();
+      const result = sorted.slice(0, topK).reverse();
+      _retrieveCache.set(cacheKey, { results: result, ts: Date.now() });
+      return result;
     }
 
     // Embed the query — prefer offscreen path, fall back to in-process
@@ -289,6 +303,7 @@ export class SemanticIndex {
       .sort((a, b) => a.chunk.messageIndex - b.chunk.messageIndex)
       .map((s) => s.chunk);
 
+    _retrieveCache.set(cacheKey, { results: retrieved, ts: Date.now() });
     console.log(
       `[CM:index] Retrieved ${retrieved.length}/${allChunks.length} chunks in ${(performance.now() - t0).toFixed(1)}ms`
     );

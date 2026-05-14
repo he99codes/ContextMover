@@ -18,7 +18,7 @@ export function buildFilename(session: ContextSession, tier: number): string {
   const names: Record<number, string> = { 1: 'full', 2: 'summary', 3: 'attention' }
   const slug = session.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30)
   const date = new Date().toISOString().slice(0, 10)
-  return `contextforge-${names[tier]}-${session.platform}-${date}-${slug}.xml`
+  return `contextmover-${names[tier]}-${session.platform}-${date}-${slug}.xml`
 }
 
 export function getMessagesFromChunks(
@@ -44,7 +44,7 @@ export function getMessagesFromChunks(
 
 export function buildTier1File(session: ContextSession): MigrationFile {
   const content = `<?xml version="1.0" encoding="UTF-8"?>
-<contextforge_migration tier="1" type="full_context">
+<contextmover_migration tier="1" type="full_context">
 
   <meta>
     <source_platform>${session.platform}</source_platform>
@@ -67,7 +67,7 @@ ${session.messages.map((m, i) => `
     </message>`).join('')}
   </conversation>
 
-</contextforge_migration>`
+</contextmover_migration>`
 
   return {
     filename: buildFilename(session, 1),
@@ -95,7 +95,7 @@ ${summary.codeBlocks.map((cb: any, i: number) => `
   </code_blocks>` : ''
 
   const content = `<?xml version="1.0" encoding="UTF-8"?>
-<contextforge_migration tier="2" type="smart_summary">
+<contextmover_migration tier="2" type="smart_summary">
 
   <meta>
     <source_platform>${session.platform}</source_platform>
@@ -137,7 +137,7 @@ ${(summary.tail ?? []).map((m: Message, i: number) => `
     </message>`).join('')}
   </conversation_tail>
 
-</contextforge_migration>`
+</contextmover_migration>`
 
   return {
     filename: buildFilename(session, 2),
@@ -160,7 +160,7 @@ export function buildTier3File(
   const retrievedMessages = getMessagesFromChunks(chunks, session)
 
   const content = `<?xml version="1.0" encoding="UTF-8"?>
-<contextforge_migration tier="3" type="attention_engine">
+<contextmover_migration tier="3" type="attention_engine">
 
   <meta>
     <source_platform>${session.platform}</source_platform>
@@ -184,7 +184,7 @@ export function buildTier3File(
 
   <instructions_for_ai>
     This context was semantically filtered from a ${session.messages.length}-message
-    conversation using the ContextForge Attention Engine.
+    conversation using the ContextMover Attention Engine.
     Only the most relevant content for the task "${task}" is included.
     Continue from exactly where this conversation left off.
     Do not re-explain what was already decided.
@@ -197,7 +197,7 @@ ${retrievedMessages.map((m: Message, i: number) => `
     </message>`).join('')}
   </focused_context>
 
-</contextforge_migration>`
+</contextmover_migration>`
 
   return {
     filename: buildFilename(session, 3),

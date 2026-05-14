@@ -71,19 +71,33 @@ export class FileContextBuilder {
 
   // ── Formats ─────────────────────────────────────────────────────────────────
 
+  private static cdata(s: string): string {
+    return `<![CDATA[${s.replace(/\]\]>/g, "]]]]><![CDATA[>")}]]>`;
+  }
+
+  private static xmlAttr(s: string): string {
+    return s
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
   private buildXml(files: ProjectFile[], rootName: string, fileTreeText: string): string {
     const fileTags = files.map((f) =>
-      `    <file path="${f.path}" language="${f.language}" size="${this.formatSize(f.size)}">\n${f.content}\n    </file>`
+      `    <file path="${FileContextBuilder.xmlAttr(f.path)}" language="${FileContextBuilder.xmlAttr(f.language)}" size="${this.formatSize(f.size)}">\n${FileContextBuilder.cdata(f.content)}\n    </file>`
     ).join("\n");
+
+    const indentedTree = fileTreeText.split("\n").map((l) => `    ${l}`).join("\n");
 
     return [
       `<project_context>`,
-      `  <folder>${rootName}</folder>`,
+      `  <folder>${FileContextBuilder.cdata(rootName)}</folder>`,
       `  <selected_files count="${files.length}">`,
       fileTags,
       `  </selected_files>`,
       `  <file_tree>`,
-      fileTreeText.split("\n").map((l) => `    ${l}`).join("\n"),
+      FileContextBuilder.cdata(indentedTree),
       `  </file_tree>`,
       `</project_context>`,
     ].join("\n");

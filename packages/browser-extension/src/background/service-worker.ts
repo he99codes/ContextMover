@@ -1,5 +1,5 @@
 // packages/browser-extension/src/background/service-worker.ts
-import { db, sessionCache } from "@/lib/db";
+import { db, dexieDb, sessionCache } from "@/lib/db";
 import { migrateFromContextForge } from "@/lib/db-migration";
 import summarize, { summarizeIntelligent, summarizeWithAttention, type IntelligentSummary } from "@/lib/summarizer";
 import buildMigrationPrompt from "@/lib/translator";
@@ -50,7 +50,7 @@ function purgeStaleCacheEntries(): void {
   for (const [key, entry] of migrationFileCache.entries()) {
     if (now - entry.cachedAt > FILE_CACHE_TTL_MS) {
       migrationFileCache.delete(key)
-      console.debug(`[CF:cache] Purged stale file: ${entry.filename}`)
+      console.debug(`[CM:cache] Purged stale file: ${entry.filename}`)
     }
   }
 }
@@ -229,6 +229,25 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   injectedTabs.delete(tabId);
 });
 
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  try {
+    const contexts = await chrome.runtime.getContexts({
+      contextTypes: ["SIDE_PANEL" as chrome.runtime.ContextType],
+    });
+    for (const ctx of contexts as { tabId?: number }[]) {
+      if (ctx.tabId !== undefined && ctx.tabId !== activeInfo.tabId) {
+        try {
+          await (chrome.sidePanel as unknown as { close(d: { tabId: number }): Promise<void> }).close({ tabId: ctx.tabId });
+        } catch {
+          // Tab may have navigated or panel already closed — ignore
+        }
+      }
+    }
+  } catch {
+    // getContexts may fail on SW restart — ignore silently
+  }
+});
+
 const PLATFORM_URLS = {
   claude:     ["https://claude.ai/*"],
   chatgpt:    ["https://chatgpt.com/*", "https://chat.openai.com/*"],
@@ -291,13 +310,6 @@ async function broadcastForgetToTabs(sessionId: string): Promise<void> {
   }
 }
 
-// ── Side panel behaviour ───────────────────────────────────────────────────────
-// Register at module load so it is always active, even after the service worker
-// wakes from sleep. chrome.sidePanel persists the setting in Chrome storage, but
-// calling it again on each wake is cheap and ensures it is never stale.
-chrome.sidePanel
-  .setPanelBehavior({ openPanelOnActionClick: true })
-  .catch((err: unknown) => console.warn("[ContextMover] setPanelBehavior failed:", err));
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────────
 // Rebrand migration — runs on every SW cold start (install / update / spawn).
@@ -309,7 +321,7 @@ void migrateFromContextForge();
 chrome.runtime.onInstalled.addListener(async () => {
   console.log("[ContextMover] Extension installed.");
   // Belt-and-braces: also trigger on install/update so a fresh-install path
-  // during the ContextForge → ContextMover upgrade is always covered.
+  // during the legacy database upgrade to ContextMover is always covered.
   await migrateFromContextForge().catch(() => { /* non-fatal */ });
 
   const existing = await chrome.storage.local.get(["sessions"]);
@@ -351,6 +363,11 @@ chrome.runtime.onInstalled.addListener(async () => {
         .catch(() => { /* non-scriptable tab */ });
     }
   }
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
+    .catch(() => {});
 });
 
 // Fallback: explicitly open the panel when the toolbar icon is clicked.
@@ -744,7 +761,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           const contexts = await chrome.runtime.getContexts({
             contextTypes: ["SIDE_PANEL" as chrome.runtime.ContextType],
           });
-          panelIsOpen = contexts.length > 0;
+          panelIsOpen = contexts.some((ctx: { tabId?: number }) => ctx.tabId === tabId);
         } catch {
           panelIsOpen = false;
         }
@@ -898,7 +915,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         await chrome.storage.local.set({ [key]: history });
 
         const successRate = history.filter(Boolean).length / history.length;
-        if (successRate < 0.7 && history.length >= 3) {
+        if (successRate < 0.8 && history.length >= 3) {
           console.warn(
             `[CM:health] ${hPlatform} capture rate: ${(successRate * 100).toFixed(0)}% — selectors may be broken`
           );
@@ -930,9 +947,30 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       case "DELETE_CACHED_FILE": {
         migrationFileCache.delete(msg.cacheKey)
-        console.debug(`[CF:cache] Deleted on user action: ${msg.cacheKey}`)
+        console.debug(`[CM:cache] Deleted on user action: ${msg.cacheKey}`)
         sendResponse({ success: true })
         break
+      }
+
+      case "GET_SIDEBAR_STATE": {
+        let isOpen = false;
+        try {
+          const contexts = await chrome.runtime.getContexts({
+            contextTypes: ["SIDE_PANEL" as chrome.runtime.ContextType],
+          });
+          const senderTabId = sender.tab?.id;
+          if (senderTabId !== undefined) {
+            isOpen = contexts.some(
+              (ctx: { tabId?: number }) => ctx.tabId === senderTabId
+            );
+          } else {
+            isOpen = contexts.length > 0;
+          }
+        } catch {
+          isOpen = false;
+        }
+        sendResponse({ isOpen });
+        break;
       }
 
       default:
@@ -1268,7 +1306,7 @@ async function buildMetaPromptAsync(session: ContextSession): Promise<void> {
         metadata: session.metadata,
       });
       await db.saveMetaPrompt({
-        id: session.id,
+        sessionId: session.id,
         platform: target,
         tier: 1,
         prompt: tier1Prompt,
@@ -1289,7 +1327,7 @@ async function buildMetaPromptAsync(session: ContextSession): Promise<void> {
         metadata: session.metadata,
       });
       await db.saveMetaPrompt({
-        id: session.id,
+        sessionId: session.id,
         platform: target,
         tier: 2,
         prompt: tier2Prompt,
@@ -1441,9 +1479,52 @@ async function handleMigrateContext(
       }
     }
   } catch (err: any) {
-    console.warn('[CF:sw] File build failed, falling back to tier 1:', err)
+    console.warn('[CM:sw] File build failed, falling back to tier 1:', err)
     migrationFile = buildTier1File(session)
   }
+
+  // ── Attach prompt template to XML if specified ────────────────────────────────────
+  if (payload.promptTemplateId) {
+    try {
+      const template = await dexieDb.prompt_templates.get(payload.promptTemplateId);
+      if (template) {
+        const templateSection = `
+  <prompt_template>
+    <name><![CDATA[${template.name}]]></name>
+    <content><![CDATA[${template.content}]]></content>
+  </prompt_template>`;
+        migrationFile.content = migrationFile.content.replace(
+          '</meta>',
+          `</meta>\n${templateSection}`
+        );
+        migrationFile.charCount = migrationFile.content.length;
+        migrationFile.estimatedTokens = Math.ceil(migrationFile.content.length / 4);
+      }
+    } catch (err) {
+      console.warn('[CM:sw] Prompt template attach failed:', err);
+    }
+  }
+
+  // ── Append project files if provided ──────────────────────────────────────────
+  if (payload.projectContext && payload.projectContext.length > 0) {
+    const projectSection = `
+  <project_files>
+    <![CDATA[${payload.projectContext.replace(/\]\]>/g, ']]]]><![CDATA[>')}]]>
+  </project_files>`;
+    const closingTag = migrationFile.content.lastIndexOf('</contextmover_migration>');
+    if (closingTag !== -1) {
+      migrationFile.content =
+        migrationFile.content.slice(0, closingTag) +
+        projectSection + '\n' +
+        migrationFile.content.slice(closingTag);
+    } else {
+      migrationFile.content += projectSection;
+    }
+    migrationFile.charCount = migrationFile.content.length;
+    migrationFile.estimatedTokens = Math.ceil(migrationFile.content.length / 4);
+    console.debug('[CM:sw] Project files appended:', payload.projectContext.length, 'chars');
+  }
+
   reportProgress(80, 'Building instructions...')
   const instructionPrompt = buildInstructionPrompt({
     session,
@@ -1456,15 +1537,19 @@ async function handleMigrateContext(
   })
   reportProgress(90, 'Injecting instructions...')
   let injected = false
-  try {
-    const result = await sendMessageToTab(payload.targetTabId!, {
-      type: 'INJECT_CONTEXT',
-      prompt: instructionPrompt,
-      platform: payload.targetPlatform
-    })
-    injected = result.ok
-  } catch (err) {
-    console.warn('[CF:sw] Injection failed (non-fatal):', err)
+  if (!payload.targetTabId) {
+    console.warn('[CM:sw] No targetTabId — skipping injection')
+  } else {
+    try {
+      const result = await sendMessageToTab(payload.targetTabId, {
+        type: 'INJECT_CONTEXT',
+        prompt: instructionPrompt,
+        platform: payload.targetPlatform
+      })
+      injected = result?.ok ?? false
+    } catch (err) {
+      console.warn('[CM:sw] Injection failed (non-fatal):', err)
+    }
   }
   const elapsed = performance.now() - t0
   reportProgress(100, 'Done')
@@ -1480,7 +1565,7 @@ async function handleMigrateContext(
     cachedAt: Date.now(),
     sessionId: session.id
   })
-  console.debug(`[CF:cache] Stored: ${migrationFile.filename}`)
+  console.debug(`[CM:cache] Stored: ${migrationFile.filename}`)
   // Fire-and-forget usage increment — never block the response.
   if (accessToken) {
     void incrementUsage(tier, accessToken);
@@ -1612,6 +1697,44 @@ function scrapeSessionFromPage(platform: string) {
     )
       .map((el) => {
         const role = el.className.includes("User") ? "user" : "assistant";
+        const content = el.innerText.trim();
+        return content ? { role, content, timestamp: Date.now() } : null;
+      })
+      .filter(Boolean) as typeof messages;
+  } else if (platform === "perplexity") {
+    type PEntry = { el: HTMLElement; role: "user" | "assistant" };
+    const pCollected: PEntry[] = [];
+    document.querySelectorAll<HTMLElement>(
+      '.user-query, [data-testid="user-message"], [class*="UserQuery"], [class*="user-message"]'
+    ).forEach((el) => pCollected.push({ el, role: "user" }));
+    document.querySelectorAll<HTMLElement>(
+      '.assistant-content, [data-testid="answer"], [class*="AnswerBody"], .prose, [class*="answer-content"]'
+    ).forEach((el) => pCollected.push({ el, role: "assistant" }));
+    pCollected.sort((a, b) => {
+      const rel = a.el.compareDocumentPosition(b.el);
+      return rel & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    });
+    messages = pCollected
+      .map(({ el, role }) => {
+        const content = el.innerText.trim();
+        return content ? { role, content, timestamp: Date.now() } : null;
+      })
+      .filter(Boolean) as typeof messages;
+  } else if (platform === "deepseek") {
+    type DEntry = { el: HTMLElement; role: "user" | "assistant" };
+    const dCollected: DEntry[] = [];
+    document.querySelectorAll<HTMLElement>(
+      '[class*="human-message"], [class*="user-message"], [data-role="user"], .fbb737a4'
+    ).forEach((el) => dCollected.push({ el, role: "user" }));
+    document.querySelectorAll<HTMLElement>(
+      '[class*="assistant-message"], [class*="ds-markdown"], [data-role="assistant"], .f9bf7997'
+    ).forEach((el) => dCollected.push({ el, role: "assistant" }));
+    dCollected.sort((a, b) => {
+      const rel = a.el.compareDocumentPosition(b.el);
+      return rel & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    });
+    messages = dCollected
+      .map(({ el, role }) => {
         const content = el.innerText.trim();
         return content ? { role, content, timestamp: Date.now() } : null;
       })

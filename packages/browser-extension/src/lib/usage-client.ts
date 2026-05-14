@@ -1,5 +1,5 @@
 // packages/browser-extension/src/lib/usage-client.ts
-// Extension-side client for ContextForge usage-limit API.
+// Extension-side client for ContextMover usage-limit API.
 // FAILS OPEN on network errors — never blocks the user when the API is down.
 
 const API_BASE = "https://contextmover.com";

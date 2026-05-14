@@ -1,5 +1,5 @@
 // packages/browser-extension/src/content/claude.ts
-import { extractContent, extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { detectRoleFromElement, extractContent, extractMessageContent, findChatContainerFor, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "./shared";
 
 console.log("[ContextMover] Claude content script loaded");
@@ -86,48 +86,26 @@ function scrapeMessages(): Message[] {
 }
 
 // ── Structural detection fallback ───────────────────────────────────────────
-// When all selectors fail, find the chat container and alternate roles by DOM
-// position: first substantial child = user, next = assistant, and so on.
+// When all selectors fail, use semantic role detection rather than index parity.
 function detectByStructure(): Message[] {
-  const container = findChatContainer();
+  const container = findChatContainerFor('claude');
   if (!container) return [];
 
-  const children = Array.from(container.children).filter(
-    (el) => (el.textContent?.trim().length ?? 0) > 10
-  );
-
   const messages: Message[] = [];
-  for (let i = 0; i < children.length; i++) {
-    const el = children[i] as HTMLElement;
+  for (const child of Array.from(container.children)) {
+    const el = child as HTMLElement;
     if (isStreaming(el)) continue;
+
     const content = extractMessageContent(el);
-    if (!content) continue;
-    // Even indices = user, odd = assistant (typical chat layout)
-    messages.push({
-      role: i % 2 === 0 ? "user" : "assistant",
-      content,
-      timestamp: Date.now(),
-    });
+    if (!content || content.trim().length < 5) continue;
+
+    const role = detectRoleFromElement(el, 'claude');
+    if (!role) continue;
+
+    messages.push({ role, content, timestamp: Date.now() });
   }
 
   return messages;
-}
-
-function findChatContainer(): Element | null {
-  const selectors = [
-    'main',
-    '[role="main"]',
-    '.conversation',
-    '[class*="conversation"]',
-    '[class*="messages"]',
-    '[class*="chat"]',
-    '[data-test-render-count]',
-  ];
-  for (const sel of selectors) {
-    const el = document.querySelector(sel);
-    if (el && el.children.length > 2) return el;
-  }
-  return null;
 }
 
 startSessionCapture({
