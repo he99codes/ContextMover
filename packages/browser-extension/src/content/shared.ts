@@ -1,11 +1,36 @@
 // packages/browser-extension/src/content/shared.ts
-import type { Message, Platform } from "@/lib/types";
+import type { Message as LibMessage, Platform } from "@/lib/types";
 import { resolveSessionId, makeLegacyChecker } from "@/lib/session-id";
 import { validateCapture } from "@/lib/capture/capture-validator";
 import { detectByStructure } from "@/lib/capture/structural-detector";
 import { healthMonitor } from "@/lib/capture/health-monitor";
 
+export type Message = LibMessage;
+
 const legacyChecker = makeLegacyChecker();
+
+export function extractContent(el: Element): string {
+  return extractMessageContent(el as HTMLElement);
+}
+
+export function debounce<T extends (...args: any[]) => void>(fn: T, ms: number): T {
+  let t: ReturnType<typeof setTimeout> | undefined;
+  return ((...args: any[]) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  }) as T;
+}
+
+export function detectPlatform(): string {
+  const host = location.hostname;
+  if (host === 'claude.ai') return 'claude';
+  if (host === 'chatgpt.com') return 'chatgpt';
+  if (host === 'gemini.google.com') return 'gemini';
+  if (host === 'grok.com') return 'grok';
+  if (host === 'perplexity.ai') return 'perplexity';
+  if (host === 'deepseek.com') return 'deepseek';
+  return 'unknown';
+}
 
 export function createObserver(
   selectorOrElement: string | Element,

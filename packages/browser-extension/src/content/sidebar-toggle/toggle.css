@@ -107,3 +107,14 @@
 .cf-toggle--open .cf-dot--active {
   background: #00FF88;
 }
+
+/* Busy state */
+.cf-toggle--busy {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.cf-toggle--busy:hover {
+  opacity: 0.6;
+  box-shadow: -2px 0 12px rgba(0, 255, 120, 0.15);
+}

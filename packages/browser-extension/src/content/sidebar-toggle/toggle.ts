@@ -1,10 +1,7 @@
-// packages/browser-extension/src/content/sidebar-toggle/toggle.ts
-// Fixed right-edge tab that opens/closes the ContextMover side panel.
-// Vanilla TS only — no React, no drag, no settings.
 import css from "./toggle.css?inline";
 import logoUrl from "../../assets/logo.png?url";
 
-const GUARD = "__cf_toggle_v1";
+const GUARD = "__cm_toggle_v2";
 const w = window as unknown as Record<string, unknown>;
 if (!w[GUARD]) { w[GUARD] = true; init(); }
 
@@ -18,19 +15,25 @@ function init(): void {
 
   ensureInjected();
 
-  // Re-attach after SPA navigation (pushState / popstate).
+  // Re-attach after SPA navigation
   window.addEventListener("popstate", ensureInjected);
+
   const _push = history.pushState.bind(history);
-  history.pushState = (...args: Parameters<typeof history.pushState>) => {
+  history.pushState = (
+    ...args: Parameters<typeof history.pushState>
+  ) => {
     _push(...args);
-    ensureInjected();
+    // Small delay — let SPA render first
+    setTimeout(ensureInjected, 100);
   };
 }
 
 function inject(): HTMLElement {
-  // Zero-size host fixed to viewport right edge, vertically centred.
+  // Remove any existing toggle first
+  document.getElementById("cm-toggle-host")?.remove();
+
   const host = document.createElement("div");
-  host.id = "cf-toggle-host";
+  host.id = "cm-toggle-host";
   Object.assign(host.style, {
     position:      "fixed",
     top:           "72px",
@@ -41,9 +44,11 @@ function inject(): HTMLElement {
     zIndex:        "2147483647",
     pointerEvents: "none",
   });
+
   (document.documentElement ?? document.body).appendChild(host);
 
-  const shadow  = host.attachShadow({ mode: "open" });
+  const shadow = host.attachShadow({ mode: "open" });
+
   const styleEl = document.createElement("style");
   styleEl.textContent = css;
   shadow.appendChild(styleEl);
@@ -55,77 +60,113 @@ function inject(): HTMLElement {
     <img
       src="${logoUrl}"
       alt="ContextMover"
-      style="
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        object-fit: cover;
-        display: block;
-        pointer-events: none;
-      "
+      style="width:36px;height:36px;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"
       aria-hidden="true"
     />
-    <span class="cf-dot cf-dot--idle" aria-hidden="true"></span>`;
+    <span class="cf-dot cf-dot--idle" aria-hidden="true"></span>
+  `;
   shadow.appendChild(btn);
 
+  // Local state
   let isOpen = false;
+  let busy = false;
 
-  btn.addEventListener("click", (e) => {
+  // Sync state on inject
+  syncState();
+
+  function syncState(): void {
+    chrome.runtime.sendMessage(
+      { type: "GET_SIDEBAR_STATE" },
+      (res) => {
+        if (chrome.runtime.lastError) return;
+        isOpen = res?.isOpen ?? false;
+        updateBtn();
+      }
+    );
+  }
+
+  function updateBtn(): void {
+    btn.classList.toggle("cf-toggle--open", isOpen);
+    btn.classList.toggle("cf-toggle--busy", busy);
+  }
+
+  btn.addEventListener("click", async (e) => {
     e.stopPropagation();
     e.preventDefault();
 
-    console.log("[CM:toggle] clicked — sending TOGGLE_SIDEBAR");
+    // Prevent double-click
+    if (busy) return;
+    busy = true;
+    updateBtn();
+
+    // Optimistic update — feels instant
+    isOpen = !isOpen;
+    updateBtn();
 
     chrome.runtime.sendMessage(
       { type: "TOGGLE_SIDEBAR" },
-      (res: { isOpen?: boolean; error?: string } | undefined) => {
+      (res) => {
+        busy = false;
+
         if (chrome.runtime.lastError) {
-          console.error("[CM:toggle] lastError:", chrome.runtime.lastError.message);
-          // SW may have gone to sleep — retry once after 500ms
+          // SW was sleeping — wake it up and retry
+          console.warn("[CM:toggle] SW sleeping, retrying...");
           setTimeout(() => {
             chrome.runtime.sendMessage(
               { type: "TOGGLE_SIDEBAR" },
               (retryRes) => {
-                if (chrome.runtime.lastError) return;
-                isOpen = retryRes?.isOpen ?? !isOpen;
-                btn.classList.toggle("cf-toggle--open", isOpen);
-                console.log("[CM:toggle] retry response:", retryRes);
+                if (chrome.runtime.lastError) {
+                  // Both failed — revert
+                  isOpen = !isOpen;
+                  updateBtn();
+                  return;
+                }
+                isOpen = retryRes?.isOpen ?? isOpen;
+                updateBtn();
               }
             );
-          }, 500);
+          }, 150); // Short retry — SW wakes fast
           return;
         }
-        console.log("[CM:toggle] response:", res);
-        isOpen = res?.isOpen ?? !isOpen;
-        btn.classList.toggle("cf-toggle--open", isOpen);
+
+        // Confirm actual state from SW
+        isOpen = res?.isOpen ?? isOpen;
+        updateBtn();
       }
     );
   });
 
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) return;
-    // Tab hidden → reset toggle state
-    // Do NOT send close message — let sidebar persist
-    // Just reset the icon visual state
-    isOpen = false;
-    btn.classList.remove("cf-toggle--open");
-  });
+  // Sync when tab becomes visible again
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+      if (!document.hidden) syncState();
+    },
+    { passive: true }
+  );
 
-  // Also handle actual tab switching via focus:
-  window.addEventListener("blur", () => {
-    // When tab loses focus but document stays visible
-    // (e.g. switching between browser windows)
-    // Reset icon state only — sidebar may still be open
-    isOpen = false;
-    btn.classList.remove("cf-toggle--open");
-  });
+  // Listen for capture status
+  chrome.runtime.onMessage.addListener(
+    (msg: { type: string; status?: string }) => {
+      if (msg.type !== "CAPTURE_STATUS_UPDATE") return;
+      const dot = shadow.querySelector(".cf-dot");
+      if (!dot) return;
+      dot.className = `cf-dot cf-dot--${
+        msg.status === "capturing" ? "active" : "idle"
+      }`;
+    }
+  );
 
-  // Update capture dot when the service worker broadcasts a capture event.
-  chrome.runtime.onMessage.addListener((msg: { type: string; status?: string }) => {
-    if (msg.type !== "CAPTURE_STATUS_UPDATE") return;
-    const dot = shadow.querySelector(".cf-dot");
-    if (dot) dot.className = `cf-dot cf-dot--${msg.status === "capturing" ? "active" : "idle"}`;
-  });
+  // Listen for sidebar closed from outside
+  // (user clicks X in sidebar, or navigates away)
+  chrome.runtime.onMessage.addListener(
+    (msg: { type: string }) => {
+      if (msg.type === "SIDEBAR_CLOSED") {
+        isOpen = false;
+        updateBtn();
+      }
+    }
+  );
 
   return host;
 }

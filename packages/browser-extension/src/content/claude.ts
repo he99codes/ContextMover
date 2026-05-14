@@ -1,6 +1,6 @@
 // packages/browser-extension/src/content/claude.ts
-import { extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
-import type { Message } from "@/lib/types";
+import { extractContent, extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import type { Message } from "./shared";
 
 console.log("[ContextMover] Claude content script loaded");
 
@@ -52,231 +52,37 @@ function isStreaming(el: HTMLElement): boolean {
 }
 
 function scrapeMessages(): Message[] {
-  if (window.location.pathname === "/new") return [];
+  const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
 
-  // ── Diagnostics: dump testids so we know what Claude exposes ──────────────
-  const allTestIds = new Set(
-    [...document.querySelectorAll("[data-testid]")]
-      .map((el) => (el as HTMLElement).dataset.testid ?? "")
-      .filter(Boolean)
-  );
-  console.log(`[ContextMover:claude] testids on page:`, [...allTestIds].sort().join(", "));
+  // Primary selectors
+  document.querySelectorAll('[data-testid="human-turn"]')
+    .forEach(el => found.push({ el, role: 'user' }))
+  document.querySelectorAll('[data-testid="ai-turn"]')
+    .forEach(el => found.push({ el, role: 'assistant' }))
 
-  type Entry = { el: HTMLElement; role: "user" | "assistant" };
-  const collected: Entry[] = [];
-  const hasAsst = () => collected.some(e => e.role === "assistant");
-
-  // ── Strategy 1: testid selectors (user-message / ai-turn) ─────────────────
-  document.querySelectorAll<HTMLElement>('[data-testid="user-message"]').forEach((el) => {
-    if (isStreaming(el)) return;
-    if (!el.parentElement?.closest('[data-testid="user-message"]'))
-      collected.push({ el, role: "user" });
-  });
-  document.querySelectorAll<HTMLElement>(
-    '[data-testid="ai-turn"], [data-testid="assistant-message"]'
-  ).forEach((el) => {
-    if (isStreaming(el)) return;
-    if (el.closest('[data-testid="user-message"]')) return;
-    if (el.parentElement?.closest('[data-testid="ai-turn"], [data-testid="assistant-message"]')) return;
-    collected.push({ el, role: "assistant" });
-  });
-  console.log(`[ContextMover:claude] S1 testid: user=${collected.filter(e=>e.role==="user").length} asst=${collected.filter(e=>e.role==="assistant").length}`);
-
-  // ── Strategy 2: legacy testids (human-turn / ai-turn together) ────────────
-  if (!hasAsst()) {
-    document.querySelectorAll<HTMLElement>('[data-testid="human-turn"], [data-testid="ai-turn"]').forEach((el) => {
-      if (isStreaming(el)) return;
-      if (el.parentElement?.closest('[data-testid="human-turn"], [data-testid="ai-turn"]')) return;
-      const role = el.dataset.testid === "human-turn" ? "user" : "assistant";
-      if (role === "assistant") collected.push({ el, role });
-    });
-    console.log(`[ContextMover:claude] S2 legacy: asst=${collected.filter(e=>e.role==="assistant").length}`);
+  // Fallback if primary returns nothing
+  if (found.length === 0) {
+    document.querySelectorAll(
+      '.font-claude-message, [class*="human-turn"], ' +
+      '[class*="ai-turn"], [class*="HumanTurn"], [class*="AssistantTurn"]'
+    ).forEach(el => {
+      const cls = el.className + (el.getAttribute('class') ?? '')
+      found.push({ el, role: cls.toLowerCase().includes('human') ? 'user' : 'assistant' })
+    })
   }
-
-  // ── Strategy 3: class-name fallback (.font-claude-message) ────────────────
-  if (!hasAsst()) {
-    document.querySelectorAll<HTMLElement>('[class*="font-claude-message"]').forEach((el) => {
-      if (isStreaming(el)) return;
-      if (!el.parentElement?.closest('[class*="font-claude-message"]'))
-        collected.push({ el, role: "assistant" });
-    });
-    console.log(`[ContextMover:claude] S3 class: asst=${collected.filter(e=>e.role==="assistant").length}`);
-  }
-
-  // ── Strategy 5: sr-only h2 accessibility anchors ──────────────────────────
-  if (!hasAsst()) {
-    document.querySelectorAll<HTMLHeadingElement>('h2.sr-only, h3.sr-only').forEach((h) => {
-      const text = (h.textContent ?? "").trim().toLowerCase();
-      const isAssistantHeading =
-        text.startsWith("claude said") ||
-        text.startsWith("claude replied") ||
-        text.startsWith("assistant said") ||
-        /^claude[: ]/.test(text);
-      if (!isAssistantHeading) return;
-      const turn = (h.parentElement as HTMLElement | null) ?? h;
-      if (isStreaming(turn)) return;
-      if (collected.some((entry) => entry.el === turn)) return;
-      collected.push({ el: turn, role: "assistant" });
-    });
-    console.log(`[ContextMover:claude] S5 sr-only: asst=${collected.filter(e=>e.role==="assistant").length}`);
-  }
-
-  // ── Strategy 6: render-root sibling walk ──────────────────────────────────
-  if (!hasAsst()) {
-    const renderRoot = document.querySelector<HTMLElement>("[data-test-render-count]");
-    const turnsContainer =
-      renderRoot?.querySelector<HTMLElement>(":scope > .contents") ?? renderRoot;
-    if (turnsContainer) {
-      const dedup = new Set(collected.map((e) => e.el));
-      const turns = [...turnsContainer.children] as HTMLElement[];
-      for (const turn of turns) {
-        if (isStreaming(turn)) continue;
-        if (dedup.has(turn)) continue;
-        const isUserTurn =
-          turn.querySelector('[data-user-message-bubble="true"]') ||
-          turn.querySelector('[data-testid="user-message"]') ||
-          turn.matches('[data-user-message-bubble="true"]') ||
-          turn.matches('[data-testid="user-message"]');
-        if (isUserTurn) continue;
-        const text = (turn.textContent ?? "").trim();
-        if (text.length < 20) continue;
-        collected.push({ el: turn, role: "assistant" });
-        dedup.add(turn);
-      }
-      console.log(`[ContextMover:claude] S6 render-root: asst=${collected.filter(e=>e.role==="assistant").length}`);
-    }
-  }
-
-  // ── Strategy 7: action-bar-retry / action-bar-copy as assistant anchors ────
-  if (!hasAsst()) {
-    const dedup = new Set(collected.map((e) => e.el));
-    let actionBars = [
-      ...document.querySelectorAll<HTMLElement>('[data-testid="action-bar-retry"]'),
-    ];
-    if (actionBars.length === 0) {
-      actionBars = [
-        ...document.querySelectorAll<HTMLElement>('[data-testid="action-bar-copy"]'),
-      ].filter((el) => !el.closest('[data-testid="user-message"]'));
-    }
-    for (const bar of actionBars) {
-      if (bar.closest('[data-testid="user-message"]')) continue;
-      let cur: HTMLElement | null = bar.parentElement;
-      while (cur && cur !== document.body) {
-        if (cur.matches('[data-testid="user-message"]')) break;
-        const parent = cur.parentElement;
-        if (!parent) break;
-        const hasSiblingUser = ([...parent.children] as HTMLElement[]).some(
-          (s) =>
-            s !== cur &&
-            (s.matches('[data-testid="user-message"]') ||
-              !!s.querySelector('[data-testid="user-message"]'))
-        );
-        if (hasSiblingUser) {
-          if (!dedup.has(cur) && !isStreaming(cur)) {
-            const text = (cur.textContent ?? "").trim();
-            if (text.length > 20) {
-              collected.push({ el: cur, role: "assistant" });
-              dedup.add(cur);
-            }
-          }
-          break;
-        }
-        cur = cur.parentElement;
-      }
-    }
-    console.log(`[ContextMover:claude] S7 action-bar: asst=${collected.filter(e=>e.role==="assistant").length}`);
-  }
-
-  // ── Strategy 4: STRUCTURAL — no testid dependency ─────────────────────────
-  if (!hasAsst() && collected.length > 0) {
-    const firstUser = collected[0].el;
-    let container: HTMLElement | null = null;
-    let cur: HTMLElement | null = firstUser;
-    const userCount = collected.filter((e) => e.role === "user").length;
-
-    for (let depth = 0; depth < 15 && cur?.parentElement; depth++) {
-      cur = cur.parentElement;
-      if (cur.children.length >= userCount) {
-        const children = [...cur.children] as HTMLElement[];
-        const hasNonUser = children.some(
-          (child) =>
-            !child.matches('[data-testid="user-message"]') &&
-            !child.querySelector('[data-testid="user-message"]') &&
-            (child.textContent ?? "").trim().length > 20
-        );
-        if (hasNonUser) {
-          container = cur;
-          break;
-        }
-      }
-    }
-
-    if (container) {
-      const dedup = new Set(collected.map((e) => e.el));
-      const turns = [...container.children] as HTMLElement[];
-      console.log(`[ContextMover:claude] S4 structural: container has ${turns.length} children, userAnchors=${userCount}`);
-      for (const turn of turns) {
-        if (isStreaming(turn)) continue;
-        if (turn.querySelector('[data-testid="user-message"]')) continue;
-        if (turn.matches('[data-testid="user-message"]')) continue;
-        if (dedup.has(turn)) continue;
-        const text = (turn.textContent ?? "").trim();
-        if (text.length > 20) {
-          collected.push({ el: turn, role: "assistant" });
-          dedup.add(turn);
-        }
-      }
-      console.log(`[ContextMover:claude] S4 structural: asst=${collected.filter(e=>e.role==="assistant").length}`);
-    } else {
-      console.warn(`[ContextMover:claude] S4 structural: could not find conversation container`);
-    }
-  }
-
-  // ── Strategy 8: EXTREME FALLBACK — alternate by DOM position ──────────────
-  // When ALL selectors fail but we have user messages, try alternating
-  // user/assistant by position within the deepest common container.
-  if (!hasAsst() && collected.filter(e => e.role === "user").length > 0) {
-    console.warn(`[ContextMover:claude] ALL selectors failed — trying position-based structural detection`);
-    const structural = detectByStructure();
-    if (structural.length > 0 && structural.some(m => m.role === "assistant")) {
-      console.log(`[ContextMover:claude] S8 position-based: recovered ${structural.length} messages (${structural.filter(m=>m.role==="assistant").length} assistant)`);
-      return structural;
-    }
-  }
-
-  if (collected.length === 0) return [];
 
   // Sort by DOM position
-  collected.sort((a, b) => {
-    const pos = a.el.compareDocumentPosition(b.el);
-    return pos & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
-  });
+  found.sort((a, b) =>
+    a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+  )
 
-  // Extract content
-  const messages: Message[] = [];
-  for (const { el, role } of collected) {
-    const content = extractMessageContent(el);
-    if (content) {
-      messages.push({ role, content, timestamp: Date.now() });
-    } else {
-      console.warn(`[ContextMover:claude] empty content for role=${role} testid=${el.dataset.testid ?? "none"}`);
-    }
-  }
-
-  // ── Diagnostic: preview every message ──────────────────────────────────────
-  const userC = messages.filter(m => m.role === "user").length;
-  const asstC = messages.filter(m => m.role === "assistant").length;
-  console.log('[CM:capture]', 'claude', {
-    total: messages.length,
-    user: userC,
-    assistant: asstC,
-    preview: messages.map(m => ({ role: m.role, len: m.content.length }))
-  });
-  if (asstC === 0 && userC > 0) {
-    console.error(`[ContextMover:claude] ASSISTANT MESSAGES STILL MISSING after all strategies`);
-  }
-
-  return messages;
+  return found
+    .map(({ el, role }) => ({
+      role,
+      content: extractContent(el),
+      timestamp: Date.now()
+    }))
+    .filter(m => m.content.trim().length > 0)
 }
 
 // ── Structural detection fallback ───────────────────────────────────────────

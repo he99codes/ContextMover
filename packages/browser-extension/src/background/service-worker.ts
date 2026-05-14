@@ -1,7 +1,7 @@
 // packages/browser-extension/src/background/service-worker.ts
 import { db, sessionCache } from "@/lib/db";
 import { migrateFromContextForge } from "@/lib/db-migration";
-import summarize, { summarizeIntelligent, summarizeWithAttention } from "@/lib/summarizer";
+import summarize, { summarizeIntelligent, summarizeWithAttention, type IntelligentSummary } from "@/lib/summarizer";
 import buildMigrationPrompt from "@/lib/translator";
 import { promptEngine } from "@/lib/prompt-engine/engine";
 import { capabilityDetector, type Tier } from "@/lib/capability-detector";
@@ -16,7 +16,43 @@ import { generateQualityReport } from "@/lib/quality/report-generator";
 import { userVault } from "@/lib/user-vault/connector";
 import { forgetSession, resolveSessionId } from "@/lib/session-id";
 import { WEBAPP_URL } from "@/config/urls";
+import { buildTier1File, buildTier2File, buildTier3File } from "@/lib/file-builder"
+import { buildInstructionPrompt } from "@/lib/instruction-builder"
+import { checkUsage, incrementUsage } from "@/lib/usage-client";
+import type { MigrationFile } from "@/lib/file-builder"
 import { getMcpClient, connectToFirstAvailableMcp, type IdeContext } from "@/lib/mcp/client";
+
+// ── In-memory migration file cache ────────────────────────────────────────────
+interface CachedMigrationFile {
+  filename: string
+  content: string
+  charCount: number
+  estimatedTokens: number
+  tier: number
+  platform: string
+  sessionTitle: string
+  cachedAt: number
+  sessionId: string
+}
+
+const migrationFileCache = new Map<string, CachedMigrationFile>()
+const FILE_CACHE_TTL_MS = 30 * 60 * 1000  // 30 minutes
+
+function makeCacheKey(sessionId: string, tier: number): string {
+  return `${sessionId}-tier${tier}`
+}
+
+function purgeStaleCacheEntries(): void {
+  const now = Date.now()
+  for (const [key, entry] of migrationFileCache.entries()) {
+    if (now - entry.cachedAt > FILE_CACHE_TTL_MS) {
+      migrationFileCache.delete(key)
+      console.debug(`[CF:cache] Purged stale file: ${entry.filename}`)
+    }
+  }
+}
+
+setInterval(purgeStaleCacheEntries, 5 * 60 * 1000)
 
 // Sessions are stored ONLY in local IndexedDB.
 // Optional: synced to user's personal Supabase vault via userVault.getClient().
@@ -489,22 +525,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
 
         // ── Freemium gate ────────────────────────────────────────────────────
-        // Pro users get { unlimited: true }. Free users get a hard cap per type.
-        // On any error here we fail open (the helper itself fails open too).
         const _tier = (msg.payload?.tier ?? 2) as 1 | 2 | 3;
-        const usage = await checkMigrationAllowed(_tier);
-        if (!usage.allowed) {
-          sendResponse({
-            error:     "LIMIT_REACHED",
-            type:      usage.type ?? tierToType(_tier),
-            used:      usage.used ?? 0,
-            limit:     usage.limit ?? 0,
-            remaining: usage.remaining ?? 0,
-          });
-          break;
+        const { accessToken } = await chrome.storage.local.get("accessToken");
+
+        if (accessToken) {
+          const usage = await checkMigrationAllowed(_tier, accessToken as string);
+          if (!usage.allowed) {
+            sendResponse({
+              success: false,
+              error: "limit_reached",
+              limitData: {
+                tier: _tier,
+                used: usage.used,
+                limit: usage.limit,
+                daysUntilReset: usage.daysUntilReset ?? 0,
+                upgradeUrl: usage.upgradeUrl ?? "https://contextmover.com/pricing",
+              },
+            });
+            break;
+          }
         }
 
-        await handleMigrateContext(msg.payload, sendResponse);
+        await handleMigrateContext(msg.payload, sendResponse, accessToken as string | undefined);
         break;
       }
 
@@ -558,6 +600,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sendResponse({ error: error.message });
         } else {
           sendResponse({ user: data.user });
+          // Store token for usage-limit API calls.
+          if (data.session?.access_token) {
+            await chrome.storage.local.set({
+              accessToken: data.session.access_token,
+              userId: data.user?.id,
+            });
+          }
           // Bulk-sync any locally-captured sessions to the cloud now that we
           // have an authenticated user, then begin listening for remote edits.
           void (async () => {
@@ -586,6 +635,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       case "AUTH_SIGN_OUT": {
         await supabase.auth.signOut();
+        await chrome.storage.local.remove(["accessToken", "userId"]);
         sendResponse({ ok: true });
         void broadcastToViews({ type: "AUTH_STATE_CHANGED" });
         break;
@@ -843,6 +893,23 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
+      case "GET_CACHED_FILE": {
+        const entry = migrationFileCache.get(msg.cacheKey)
+        if (!entry) {
+          sendResponse({ success: false, error: 'File not in cache or expired' })
+          break
+        }
+        sendResponse({ success: true, file: entry })
+        break
+      }
+
+      case "DELETE_CACHED_FILE": {
+        migrationFileCache.delete(msg.cacheKey)
+        console.debug(`[CF:cache] Deleted on user action: ${msg.cacheKey}`)
+        sendResponse({ success: true })
+        break
+      }
+
       default:
         sendResponse({ error: `Unknown message type: ${msg.type}` });
     }
@@ -899,15 +966,25 @@ function scoreAndPersist(
 // migration. The server-side path is the source of truth for paying users.
 
 interface UsageCheckResult {
-  allowed:    boolean;
-  used?:      number;
-  limit?:     number;
-  remaining?: number;
-  type?:      "simple" | "smart" | "attention";
+  allowed:        boolean;
+  plan:           string;
+  unlimited:      boolean;
+  tier:           number;
+  used:           number;
+  limit:          number;
+  remaining:      number;
+  reason?:        string;
+  daysUntilReset?: number;
+  resetDate?:     string;
+  upgradeUrl?:    string;
+  fallback?:      boolean;
 }
 
-function tierToType(tier: 1 | 2 | 3): "simple" | "smart" | "attention" {
-  return tier === 1 ? "simple" : tier === 2 ? "smart" : "attention";
+async function checkMigrationAllowed(
+  tier: 1 | 2 | 3,
+  accessToken: string
+): Promise<UsageCheckResult> {
+  return checkUsage(tier, accessToken);
 }
 
 function currentMonthKey(): string {
@@ -916,7 +993,8 @@ function currentMonthKey(): string {
 }
 
 async function checkLocalUsage(tier: 1 | 2 | 3): Promise<UsageCheckResult> {
-  const type  = tierToType(tier);
+  const tierNames = { 1: "simple", 2: "smart", 3: "attention" } as const;
+  const type  = tierNames[tier];
   const month = currentMonthKey();
   const key   = `cm_usage_${month}`;
 
@@ -928,59 +1006,38 @@ async function checkLocalUsage(tier: 1 | 2 | 3): Promise<UsageCheckResult> {
   const limit   = limits[type];
 
   if (current >= limit) {
-    return { allowed: false, used: current, limit, remaining: 0, type };
+    const now = new Date();
+    const resetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const daysUntilReset = Math.ceil(
+      (resetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return {
+      allowed: false,
+      plan: "free",
+      unlimited: false,
+      tier,
+      used: current,
+      limit,
+      remaining: 0,
+      reason: "limit_reached",
+      daysUntilReset,
+      resetDate: resetDate.toISOString(),
+      upgradeUrl: "https://contextmover.com/pricing",
+    };
   }
 
   usage[type] = current + 1;
   await chrome.storage.local.set({ [key]: usage });
 
   return {
-    allowed:   true,
-    used:      current + 1,
+    allowed: true,
+    plan: "free",
+    unlimited: false,
+    tier,
+    used: current + 1,
     limit,
     remaining: limit - current - 1,
-    type,
   };
-}
-
-async function checkMigrationAllowed(tier: 1 | 2 | 3): Promise<UsageCheckResult> {
-  // Try the server-side gate first if we have a session.
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-
-    if (token) {
-      const type = tierToType(tier);
-      const res = await fetch(`${WEBAPP_URL}/api/payments/usage`, {
-        method:  "POST",
-        headers: {
-          "Content-Type":  "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({ type }),
-        signal: AbortSignal.timeout(4000),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.unlimited) return { allowed: true, type };
-        return {
-          allowed:   Boolean(data?.allowed),
-          used:      data?.used,
-          limit:     data?.limit,
-          remaining: data?.remaining,
-          type,
-        };
-      }
-      // Non-2xx from API → fall through to local check (fail-open).
-    }
-  } catch (err) {
-    // Network / auth failure → fail open via local counters.
-    console.warn("[CM:usage] server check failed, falling back to local:", err);
-  }
-
-  // No session OR server unreachable → use local counters.
-  return checkLocalUsage(tier);
 }
 
 // ── Handlers ───────────────────────────────────────────────────────────────────
@@ -1283,695 +1340,116 @@ async function handleMigrateContext(
     promptTemplateId?: string | null;
     projectContext?: string | null;
   },
-  sendResponse: (r: unknown) => void
+  sendResponse: (r: unknown) => void,
+  accessToken?: string
 ) {
-  // Flush any pending debounced write for this session before reading from IDB.
-  // Guarantees migrate always sees the latest captured data.
-  if (pendingWrites.has(payload.sessionId)) {
-    const pendingSession = pendingWrites.get(payload.sessionId)!;
-    const pendingTimer = writeTimers.get(payload.sessionId);
-    if (pendingTimer !== undefined) { clearTimeout(pendingTimer); writeTimers.delete(payload.sessionId); }
-    await db.saveSession(pendingSession);
-    pendingWrites.delete(payload.sessionId);
-    console.log(`[CM:sw] migrate flush: flushed pending write for session ${payload.sessionId}`);
+  const t0 = performance.now()
+  const session = await db.sessions.get(payload.sessionId)
+  if (!session) {
+    sendResponse({ success: false, error: 'Session not found' })
+    return
   }
-
-  // ── DIAGNOSTIC STAGE 4 — load session from IndexedDB ──────────────────────
-  const session = await db.getSession(payload.sessionId);
-  if (!session) return sendResponse({ error: "Session not found in storage." });
-
-  const s4User = session.messages.filter(m => m.role === "user").length;
-  const s4Asst = session.messages.filter(m => m.role === "assistant").length;
-  console.log(`[ContextMover:sw] Stage4 — session loaded: total=${session.messages.length} user=${s4User} assistant=${s4Asst}`);
-
-  if (session.messages.length === 0) {
-    return sendResponse({ error: "Session has no messages. Nothing to migrate." });
-  }
-
-  // ── EARLY-EXIT: full prompt cache check ─────────────────────────────────
-  // If we built this exact prompt within the last 5 minutes (same session/task/
-  // platform/tier/template), skip ALL computation and inject straight away.
-  // Skipped when projectContext or caveman are active — they change output but
-  // are not part of the cache key.
-  const t0_migrate = performance.now();
-  if (!payload.projectContext && !payload.caveman) {
-    try {
-      const cached = await perf.measure('migrate.cache_check', () =>
-        semanticIndex.getCachedPrompt(
-          payload.sessionId,
-          payload.task ?? null,
-          payload.targetPlatform,
-          payload.tier ?? 2,
-          payload.promptTemplateId ?? null
-        )
-      );
-      if (cached) {
-        console.log(`[CM:sw] Full prompt cache HIT — skipping all computation (${(performance.now() - t0_migrate).toFixed(0)}ms)`);
-        reportProgress(95, `Injecting into ${payload.targetPlatform} (cached)...`);
-
-        if (payload.targetTabId) {
-          const targetTab = await chrome.tabs.get(payload.targetTabId).catch(() => null);
-          if (!targetTab?.url) {
-            return sendResponse({ error: "Target tab not found or URL unavailable." });
-          }
-          const allowedGlobs = PLATFORM_URLS[payload.targetPlatform as keyof typeof PLATFORM_URLS] ?? [];
-          const domainAllowed = allowedGlobs.some((glob) => {
-            const pattern = new RegExp("^" + glob.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$");
-            return pattern.test(targetTab.url!);
-          });
-          if (!domainAllowed) {
-            return sendResponse({ error: `The active tab (${targetTab.url}) is not a ${payload.targetPlatform} page.` });
-          }
-          const injectionResult = await sendMessageToTab(payload.targetTabId, {
-            type: "INJECT_CONTEXT",
-            prompt: cached,
-            platform: payload.targetPlatform,
-          });
-          if (!injectionResult.ok) {
-            // Injection failed — fall through to normal recompute path
-            console.warn('[CM:sw] Cache-hit injection failed, falling through:', injectionResult.error);
-          } else {
-            const qualityScore = scoreAndPersist(
-              session, cached, (payload.tier ?? 2) as 1 | 2 | 3,
-              payload.targetPlatform, 15
-            );
-            perf.logReport();
-            return sendResponse({ ok: true, prompt: cached, compressionRatio: 0, fromCache: true, qualityScore });
-          }
-        } else {
-          const qualityScore = scoreAndPersist(
-            session, cached, (payload.tier ?? 2) as 1 | 2 | 3,
-            payload.targetPlatform, 15
-          );
-          perf.logReport();
-          return sendResponse({ ok: true, prompt: cached, compressionRatio: 0, fromCache: true, qualityScore });
-        }
-      }
-    } catch (err) {
-      console.warn('[CM:sw] Prompt cache check failed (non-fatal):', err);
-    }
-  }
-
-  // ── Check pre-built MetaPrompt from IndexedDB ──────────────────────────
-  // If the background builder already constructed this prompt, skip ALL
-  // summarization and return the stored translation instantly.
-  const requestedTier = (payload.tier ?? 2) as 1 | 2 | 3;
+  reportProgress(10, 'Loading session...')
+  const tier = (payload.tier ?? 2) as 1 | 2 | 3
+  let migrationFile: MigrationFile
+  reportProgress(20, 'Building context file...')
   try {
-    const metaPrompt = await db.getMetaPrompt(payload.sessionId, payload.targetPlatform, requestedTier);
-    if (metaPrompt && metaPrompt.messageCount >= session.messages.length) {
-      console.log(`[CM:sw] MetaPrompt HIT — skipping summarization (${(performance.now() - t0_migrate).toFixed(0)}ms)`);
-      reportProgress(95, `Injecting into ${payload.targetPlatform} (MetaPrompt)...`);
-
-      if (payload.targetTabId) {
-        const targetTab = await chrome.tabs.get(payload.targetTabId).catch(() => null);
-        if (!targetTab?.url) {
-          return sendResponse({ error: "Target tab not found or URL unavailable." });
-        }
-        const allowedGlobs = PLATFORM_URLS[payload.targetPlatform as keyof typeof PLATFORM_URLS] ?? [];
-        const domainAllowed = allowedGlobs.some((glob) => {
-          const pattern = new RegExp("^" + glob.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$");
-          return pattern.test(targetTab.url!);
-        });
-        if (!domainAllowed) {
-          return sendResponse({ error: `The active tab (${targetTab.url}) is not a ${payload.targetPlatform} page.` });
-        }
-        const injectionResult = await sendMessageToTab(payload.targetTabId, {
-          type: "INJECT_CONTEXT",
-          prompt: metaPrompt.prompt,
-          platform: payload.targetPlatform,
-        });
-        if (!injectionResult.ok) {
-          console.warn('[CM:sw] MetaPrompt injection failed, falling through to recompute:', injectionResult.error);
-        } else {
-          const qualityScore = scoreAndPersist(
-            session, metaPrompt.prompt, requestedTier,
-            payload.targetPlatform, requestedTier === 3 ? 15 : undefined
-          );
-          perf.logReport();
-          return sendResponse({ ok: true, prompt: metaPrompt.prompt, compressionRatio: metaPrompt.compressionRatio, fromMetaPrompt: true, qualityScore });
-        }
+    if (tier === 1) {
+      migrationFile = buildTier1File(session)
+    } else if (tier === 2) {
+      reportProgress(30, 'Extracting smart summary...')
+      const stored = await semanticIndex.getSummary(
+        session.id, 2, payload.task ?? null, session.messages.length
+      )
+      let summary: IntelligentSummary
+      if (stored) {
+        summary = JSON.parse(stored.content)
       } else {
-        const qualityScore = scoreAndPersist(
-          session, metaPrompt.prompt, requestedTier,
-          payload.targetPlatform, requestedTier === 3 ? 15 : undefined
-        );
-        perf.logReport();
-        return sendResponse({ ok: true, prompt: metaPrompt.prompt, compressionRatio: metaPrompt.compressionRatio, fromMetaPrompt: true, qualityScore });
-      }
-    }
-  } catch (err) {
-    console.warn('[CM:sw] MetaPrompt check failed (non-fatal):', err);
-  }
-
-  if (s4Asst === 0) {
-    console.warn(`[ContextMover:sw] Stage4 — assistant messages missing from stored session. Migration will proceed with user-only context (degraded).`);
-  }
-
-  console.log(`[ContextMover:sw] Stage5 — calling summarizer with ${session.messages.length} messages`);
-
-  let summary = "";
-  let extracted: ExtractedContext | undefined;
-  let attentionMap: unknown;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let intelligentSummary: any;
-  let compressionRatio = 0;
-
-  // ── Check precompute cache before running summarizer ───────────────────────────
-  const precomputed = precomputeCache.get(payload.sessionId);
-  const precomputeValid = precomputed && (Date.now() - precomputed.cachedAt) < PRECOMPUTE_TTL;
-  let precomputeUsed = false;
-
-  if (precomputeValid && !payload.useAttentionEngine) {
-    const requestedTier = (payload.tier ?? 1) as 1 | 2 | 3;
-    if (requestedTier === 1 && precomputed.tier1) {
-      const r = precomputed.tier1;
-      summary = r.content;
-      extracted = r.extracted;
-      compressionRatio = r.originalTokenEstimate > 0
-        ? Math.round((1 - r.summaryTokenEstimate / r.originalTokenEstimate) * 100) : 0;
-      console.log(`[CM:sw] Stage5 — Precomputed tier1 used (instant)`);
-      precomputeUsed = true;
-    } else if (requestedTier === 2 && precomputed.tier2) {
-      const r = precomputed.tier2;
-      intelligentSummary = r;
-      compressionRatio = r.compressionRatio;
-      summary = r.goal;
-      console.log(`[CM:sw] Stage5 — Precomputed tier2 used (instant)`);
-      precomputeUsed = true;
-    }
-  }
-  // ── IDB summary cache — fallback when in-memory precompute cache misses ──
-  // Latency: ~30-80ms; persists across SW restarts. Tier 3 is always recomputed.
-  if (!precomputeUsed && !payload.useAttentionEngine && (payload.tier ?? 1) !== 3) {
-    try {
-      const requestedTierIdb = (payload.tier ?? 1) as 1 | 2;
-      const idbStored = await perf.measure('migrate.idb_summary', () =>
-        semanticIndex.getSummary(
-          payload.sessionId, requestedTierIdb, payload.task ?? null, session.messages.length
+        summary = summarizeIntelligent(session.messages, payload.task)
+        await semanticIndex.saveSummary(
+          session.id, 2, payload.task ?? null,
+          JSON.stringify(summary), summary.compressionRatio,
+          session.messages.length
         )
-      );
-      if (idbStored) {
-        if (requestedTierIdb === 1) {
-          summary = idbStored.content;
-          compressionRatio = idbStored.compressionRatio;
-          precomputeUsed = true;
-          console.log(`[CM:sw] IDB summary cache hit tier=1 (${idbStored.compressionRatio}%)`);
-        } else {
-          try {
-            intelligentSummary = JSON.parse(idbStored.content);
-            summary = (intelligentSummary as { goal?: string }).goal ?? '';
-            compressionRatio = idbStored.compressionRatio;
-            precomputeUsed = true;
-            console.log(`[CM:sw] IDB summary cache hit tier=2 (${idbStored.compressionRatio}%)`);
-          } catch { /* corrupt JSON — skip, recompute below */ }
-        }
       }
-    } catch (idbErr) {
-      console.warn('[CM:sw] IDB summary cache check failed (non-fatal):', idbErr);
-    }
-  }
-  // Capability detector returns minimal | balanced | full — we map back to the
-  // existing 1 | 2 | 3 numeric tier the summarizer/translator already speak:
-  //   minimal  → 2 (summarizeIntelligent, regex extraction, <100ms)
-  //   balanced → 3 (Attention Engine, WASM, 2 threads)
-  //   full     → 3 (Attention Engine, WebGPU when available, 4 threads)
-  let tier: 1 | 2 | 3;
-  let detectedTier: Tier | null = null;
-  if (precomputeUsed) {
-    tier = (payload.tier ?? 1) as 1 | 2 | 3;
-  } else if (payload.tier) {
-    tier = payload.tier;
-  } else if (payload.useAttentionEngine) {
-    tier = 3;
-  } else {
-    detectedTier = await capabilityDetector.getEffectiveTier().catch(() => "balanced" as Tier);
-    tier = detectedTier === "minimal" ? 2 : 3;
-    console.log(`[ContextMover:sw] Auto-tier: capability=${detectedTier} → numeric tier=${tier}`);
-  }
-
-  // ── Start the load watchdog around tier-3 work — it can fire at any time ──
-  // and the AttentionEngine listens via capabilityDetector.onDowngrade(). When
-  // it fires, the engine drops its model and subsequent embed calls fall
-  // through to keyword scoring — same behavior as if minimal had been picked
-  // from the start, but without aborting the in-flight migration.
-  const stopWatchdog =
-    tier === 3
-      ? capabilityDetector.monitorLoad(detectedTier ?? "balanced")
-      : () => { /* tier 1/2 finish in <500ms, no watchdog needed */ };
-
-  if (!precomputeUsed) try {
-  if (tier === 3 || (payload.useAttentionEngine && payload.task)) {
-    // Tier 3 — Attention Engine
-    if (payload.precomputedSummary) {
-      summary = payload.precomputedSummary;
-      attentionMap = payload.precomputedAttentionMap;
-      compressionRatio = (payload.precomputedAttentionMap as any)?.compressionRatio ?? 0;
-      console.log(`[ContextMover:sw] Stage5 — Attention Engine fast path (pre-computed by sidebar)`);
+      migrationFile = buildTier2File(session, summary, payload.task)
     } else {
-      // ── Hardware gate: skip Attention Engine on minimal hardware (FIX 5) ──────
-      const hwProfile = await getHardwareProfile().catch(() => null);
-      if (hwProfile?.tier === "minimal") {
-        console.log(
-          "[CM:sw] Minimal hardware — using enhanced Tier 2 instead of Attention Engine " +
-          "(" + (hwProfile.cores) + " cores, no GPU)"
-        );
-        tier = 2;
-        const isResult = summarizeIntelligent(session.messages, payload.task);
-        intelligentSummary = isResult;
-        compressionRatio = isResult.compressionRatio;
-        summary = isResult.goal;
-        console.log(`[CM:sw] tier=3→2 (minimal hw) compression=${compressionRatio}%`);
-        void broadcastToViews({ type: "TIER_DOWNGRADED", from: 3, to: 2, reason: "slow_hardware" });
-      } else {
-        // ── Full Attention Engine path with 8s hard timeout ───────────────────
-        console.log(`[ContextMover:sw] Stage5 — Attention Engine path: strength=${payload.strength ?? "light"}`);
-        const t3Start = Date.now();
-        try {
-          const { attentionEngine } = await import("@/lib/attention-engine");
-          const engineTier: Tier = detectedTier ?? "balanced";
-          reportProgress(10, "Loading semantic model...");
-          await attentionEngine.initialize(undefined, engineTier).catch((err) => {
-            console.warn("[ContextMover:sw] attention engine init failed, will fallback:", err);
-          });
-          reportProgress(30, `Analyzing ${session.messages.length} messages...`);
-          const atResult = await withTimeout(
-            summarizeWithAttention(
-              session.messages,
-              payload.task ?? "",
-              payload.strength ?? "light",
-              session
-            ),
-            8_000,
-            async () => {
-              tier = 2;
-              const r = summarizeIntelligent(session.messages, payload.task);
-              intelligentSummary = r;
-              void broadcastToViews({ type: "TIER_DOWNGRADED", from: 3, to: 2, reason: "timeout" });
-              return { summary: r.goal, attentionMap: null, compressionRatio: r.compressionRatio } as unknown as Awaited<ReturnType<typeof summarizeWithAttention>>;
-            }
-          );
-          summary = atResult.summary;
-          attentionMap = atResult.attentionMap;
-          compressionRatio = atResult.compressionRatio;
-          reportProgress(65, "Building attention map...");
-          const elapsed = Date.now() - t3Start;
-          if (tier === 2) {
-            console.log(`[CM:sw] tier=3 → TIMEOUT after 8s → fell back to tier=2`);
-          } else {
-            console.log(`[CM:sw] tier=3 → attention engine completed in ${elapsed}ms ✅`);
-            reportProgress(85, "Formatting context...");
-          }
-        } catch (atErr) {
-          const atMsg = atErr instanceof Error ? atErr.message : String(atErr);
-          const isBrowserApiErr = atMsg.includes("window is not defined") ||
-            atMsg.includes("document is not defined") ||
-            atMsg.includes("navigator is not defined") ||
-            atMsg.includes("is not defined");
-          if (isBrowserApiErr) {
-            console.warn(
-              "[CM:sw] Attention Engine unavailable in SW (browser APIs absent) — falling back to tier2.",
-              "Use the sidebar's 'Attention' tab to pre-compute before migrating."
-            );
-            tier = 2;
-            const isResult = summarizeIntelligent(session.messages, payload.task);
-            intelligentSummary = isResult;
-            compressionRatio = isResult.compressionRatio;
-            summary = isResult.goal;
-            console.log(`[CM:sw] tier=3 → ERROR → fell back to tier=2`);
-          } else {
-            throw atErr;
-          }
-        }
+      reportProgress(30, 'Running attention engine...')
+      const needsIndex = await semanticIndex.needsIndexing(session)
+      if (needsIndex) {
+        reportProgress(35, 'Indexing session...')
+        await semanticIndex.indexSession(session, (pct: number, stage: string) => {
+          reportProgress(35 + pct * 0.4, stage)
+        })
       }
+      reportProgress(75, 'Retrieving relevant chunks...')
+      const chunks = await semanticIndex.retrieve(
+        session.id, payload.task ?? null, 15
+      )
+      migrationFile = buildTier3File(
+        session, chunks,
+        payload.task ?? 'Continue from where we left off'
+      )
     }
-  } else if (tier === 2) {
-    // Tier 2 — summarizeIntelligent (synchronous, no ML)
-    const isResult = summarizeIntelligent(session.messages, payload.task);
-    intelligentSummary = isResult;
-    compressionRatio = isResult.compressionRatio;
-    summary = isResult.goal;
-    console.log(`[ContextMover:sw] tier=2 compression=${compressionRatio}% chars=${JSON.stringify(isResult).length}`);
-    void semanticIndex.saveSummary(payload.sessionId, 2, payload.task ?? null, JSON.stringify(isResult), isResult.compressionRatio, session.messages.length).catch(() => {});
-    void syncSummaryToMcpBridge(payload.sessionId, 2, JSON.stringify(isResult));
-  } else {
-    // Tier 1 — summarize
-    const summaryResult = await summarize(session.messages, { caveman: payload.caveman });
-    summary = summaryResult.content;
-    extracted = summaryResult.extracted;
-    compressionRatio = summaryResult.originalTokenEstimate > 0
-      ? Math.round((1 - summaryResult.summaryTokenEstimate / summaryResult.originalTokenEstimate) * 100)
-      : 0;
-    console.log(`[ContextMover:sw] Stage5 — summarizer done: mode=${summaryResult.mode} tokens~${summaryResult.originalTokenEstimate} codeBlocks=${summaryResult.extracted.codeBlocks.length} tailMessages=${summaryResult.extracted.conversationTail.length}`);
-    const tailAsst = summaryResult.extracted.conversationTail.filter(m => m.role === "assistant").length;
-    if (tailAsst === 0) {
-      console.error(`[ContextMover:sw] Stage5 — conversationTail has no assistant messages`);
-    }
-    void semanticIndex.saveSummary(payload.sessionId, 1, null, summaryResult.content, compressionRatio, session.messages.length).catch(() => {});
-    void syncSummaryToMcpBridge(payload.sessionId, 1, summaryResult.content);
+  } catch (err: any) {
+    console.warn('[CF:sw] File build failed, falling back to tier 1:', err)
+    migrationFile = buildTier1File(session)
   }
-  } finally {
-    // Always stop the load watchdog — even on summarizer error — to avoid a
-    // dangling setInterval bleeding CPU between migrations.
-    stopWatchdog();
-  } // end !precomputeUsed
-
-  reportProgress(95, "Injecting into " + (payload.targetPlatform ?? "target") + "...");
-
-  // Inject project-file context (built in the sidebar by FileContextBuilder).
-  let ideContext: string | undefined = undefined;
-  if (payload.projectContext) {
-    const fileCount = (payload.projectContext.match(/<file |###\s|^\[FILE:/gm) ?? []).length;
-    const chars = payload.projectContext.length;
-    console.log(`[ContextMover:files] injected project context files=${fileCount} chars=${chars}`);
-    ideContext = payload.projectContext;
-  }
-
-  // ── DIAGNOSTIC STAGE 6 — translator ──────────────────────────────────────
-  const prompt = buildMigrationPrompt({
-    summary,
-    extracted,
-    ideContext,
-    targetPlatform: payload.targetPlatform as ContextSession["platform"],
-    sourceSession: session,
-    caveman: payload.caveman,
-    task: payload.task,
-    attentionMap,
+  reportProgress(80, 'Building instructions...')
+  const instructionPrompt = buildInstructionPrompt({
+    session,
+    targetPlatform: payload.targetPlatform,
     tier,
-    compressionRatio,
-    intelligentSummary,
-  });
-  console.log(`[ContextMover:sw] tier=${tier} compression=${compressionRatio}% chars=${prompt.length}`);
-
-  console.log(`[ContextMover:sw] Stage6 — prompt built: length=${prompt.length} chars, target=${payload.targetPlatform}`);
-  if (prompt.length < 500) {
-    console.error(`[ContextMover:sw] Stage6 — prompt suspiciously short (${prompt.length} chars), context likely lost`);
-    return sendResponse({
-      error: `Migration prompt is too short (${prompt.length} chars) — context was lost during summarization. Check console for Stage1–5 errors.`,
-    });
-  }
-
-  // ── Prompt Engine template injection (never blocks migration) ─────────────
-  let finalPrompt = prompt;
-  if (payload.promptTemplateId) {
-    try {
-      const mergeResult = await promptEngine.mergeWithContext(
-        prompt,
-        payload.promptTemplateId,
-        payload.targetPlatform,
-        payload.caveman ?? false
-      );
-      finalPrompt = mergeResult.finalContext;
-      console.log(
-        `[ContextMover:prompt-engine] template="${mergeResult.templateName}"`,
-        `totalChars=${mergeResult.stats.totalLength}`,
-        `estimatedTokens=${mergeResult.stats.estimatedTokens}`
-      );
-    } catch (err) {
-      console.warn("[ContextMover:prompt-engine] failed, migrating without template:", err);
-    }
-  }
-
-  // ── Priority-ordered prompt cap ───────────────────────────────────────────
-  // Uniform 200k char cap for all platforms — equal treatment, no discrimination.
-  // Claude (ProseMirror) is confirmed smooth at 200k+; other editors may show
-  // minor lag on very large payloads but will still accept the full context.
-  //
-  // Priority order (never drop P1–P3):
-  //   P1 — metadata, primaryGoal, currentFocus, decisions  (always kept)
-  //   P2 — code blocks  (kept newest-first; oldest pruned until budget fits)
-  //   P3 — last 6 verbatim messages + instructions  (always kept)
-  //   P4 — middle messages  (already compressed by summariser; no standalone section)
-  //
-  // Strategy: rebuild from structured components with progressively fewer
-  // code blocks (oldest dropped first) rather than slicing the flat string.
-  // Realistic 2025 input-box limits (NOT model context windows — those are far
-  // larger). These are how many chars each platform's editor accepts inline
-  // before degrading or auto-converting to an attachment:
-  //   Claude   — ProseMirror, smooth at 500k+
-  //   Gemini   — 1M+ token context, editor handles 500k easily
-  //   ChatGPT  — 128k tokens (GPT-4o); UI accepts ~200k before attaching
-  //   Grok     — 128k tokens, similar UI behaviour to ChatGPT
-  //   DeepSeek — 128k tokens; editor accepts ~200k
-  //   Perplexity — smaller search-style editor, 100k safe
-  // Old caps (32k–60k) were from 2023 GPT-3.5 era and are no longer valid.
-  // They were also forcing a 31-rebuild loop on minimal hardware → ~30s migrations.
-  const PLATFORM_MAX_CHARS: Partial<Record<string, number>> = {
-    claude:      500_000,
-    gemini:      500_000,
-    chatgpt:     200_000,
-    grok:        200_000,
-    perplexity:  100_000,
-    deepseek:    200_000,
-  };
-  const MAX_PROMPT_CHARS = PLATFORM_MAX_CHARS[payload.targetPlatform] ?? 200_000;
-  if (finalPrompt.length > MAX_PROMPT_CHARS) {
-    const beforeChars = finalPrompt.length;
-
-    // Helper: rebuild base prompt with a given code-block array.
-    const buildWith = (codeBlocks: unknown[]): string =>
-      buildMigrationPrompt({
-        summary,
-        extracted: tier !== 2 && extracted
-          ? { ...extracted, codeBlocks: codeBlocks as typeof extracted.codeBlocks }
-          : extracted,
-        intelligentSummary: tier === 2 && intelligentSummary
-          ? { ...intelligentSummary, codeBlocks: codeBlocks }
-          : intelligentSummary,
-        ideContext,
-        targetPlatform: payload.targetPlatform as ContextSession["platform"],
-        sourceSession: session,
-        caveman: payload.caveman,
-        task: payload.task,
-        attentionMap,
-        tier,
-        compressionRatio,
-      });
-
-    // Collect the active code-block array (newest are last; prune from front = oldest).
-    const allBlocks: unknown[] =
-      tier === 2
-        ? ((intelligentSummary as { codeBlocks?: unknown[] } | undefined)?.codeBlocks ?? [])
-        : (extracted?.codeBlocks ?? []);
-
-    // Split into path-annotated (foundational — drop LAST) and unnamed (drop FIRST).
-    const pathAnnotatedBlocks = allBlocks.filter(isPathAnnotatedCodeBlock);
-    const unnamedBlocks       = allBlocks.filter((b) => !isPathAnnotatedCodeBlock(b));
-
-    let rebuilt = finalPrompt;
-    if (allBlocks.length > 0) {
-      // Pass 1 — drop unnamed (non-path-annotated) blocks oldest-first.
-      // Path-annotated blocks are always included in every candidate.
-      for (let keep = unnamedBlocks.length; keep >= 0; keep--) {
-        const candidate = buildWith([
-          ...unnamedBlocks.slice(unnamedBlocks.length - keep),
-          ...pathAnnotatedBlocks,
-        ]);
-        if (candidate.length <= MAX_PROMPT_CHARS) {
-          rebuilt = candidate;
-          const droppedUnnamed = unnamedBlocks.length - keep;
-          if (droppedUnnamed > 0) {
-            console.warn(
-              `[ContextMover:sw] Priority cap P3: dropped ${droppedUnnamed} unnamed block(s), ` +
-              `${pathAnnotatedBlocks.length} path-annotated block(s) preserved. ` +
-              `${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
-            );
-          }
-          break;
-        }
-      }
-      // Pass 2 — last resort: drop path-annotated blocks oldest-first
-      // (only reached if all unnamed blocks were already removed and still over budget).
-      if (rebuilt.length > MAX_PROMPT_CHARS && pathAnnotatedBlocks.length > 0) {
-        for (let keep = pathAnnotatedBlocks.length - 1; keep >= 0; keep--) {
-          const candidate = buildWith(pathAnnotatedBlocks.slice(pathAnnotatedBlocks.length - keep));
-          if (candidate.length <= MAX_PROMPT_CHARS) {
-            rebuilt = candidate;
-            const droppedPath = pathAnnotatedBlocks.length - keep;
-            console.warn(
-              `[ContextMover:sw] Priority cap P4: forced to drop ${droppedPath} path-annotated block(s) ` +
-              `(last resort — all unnamed already removed). ` +
-              `${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
-            );
-            break;
-          }
-        }
-      }
-    }
-
-    // Tier3 (attention engine) — summary is a flat string with no code blocks
-    // to prune. Measure the exact "shell" cost (attentionMap + metadata sections)
-    // so we know precisely how many chars the summary may use.
-    if (rebuilt.length > MAX_PROMPT_CHARS && tier === 3) {
-      const TRIM_MARKER = `\n\n... [ContextMover: attention summary trimmed to fit editor limit] ...\n\n`;
-      const shellPrompt = buildMigrationPrompt({
-        summary: "",
-        extracted,
-        ideContext,
-        targetPlatform: payload.targetPlatform as ContextSession["platform"],
-        sourceSession: session,
-        caveman: payload.caveman,
-        task: payload.task,
-        attentionMap,
-        tier,
-        compressionRatio,
-        intelligentSummary,
-      });
-      const summaryBudget = MAX_PROMPT_CHARS - shellPrompt.length - TRIM_MARKER.length - 50;
-      if (summaryBudget > 500 && summary.length > summaryBudget) {
-        const head = Math.floor(summaryBudget * 0.75);
-        const tail = summaryBudget - head;
-        const trimmedSummary =
-          summary.slice(0, head) + TRIM_MARKER + summary.slice(-tail);
-        const candidate = buildMigrationPrompt({
-          summary: trimmedSummary,
-          extracted,
-          ideContext,
-          targetPlatform: payload.targetPlatform as ContextSession["platform"],
-          sourceSession: session,
-          caveman: payload.caveman,
-          task: payload.task,
-          attentionMap,
-          tier,
-          compressionRatio,
-          intelligentSummary,
-        });
-        rebuilt = candidate;
-        console.warn(
-          `[ContextMover:sw] Priority cap tier3: summary trimmed to ${summaryBudget.toLocaleString()} chars. ` +
-          `${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
-        );
-      }
-    }
-
-    // Last-resort fallback: structured sections alone exceed the cap (unusual).
-    if (rebuilt.length > MAX_PROMPT_CHARS) {
-      const headChars = Math.floor(MAX_PROMPT_CHARS * 0.7);
-      const tailChars = MAX_PROMPT_CHARS - headChars - 200;
-      const dropped = rebuilt.length - headChars - tailChars;
-      rebuilt =
-        rebuilt.slice(0, headChars) +
-        `\n\n... [ContextMover: ${dropped.toLocaleString()} chars trimmed — all code blocks removed, structured sections preserved] ...\n\n` +
-        rebuilt.slice(-tailChars);
-      console.warn(
-        `[ContextMover:sw] Priority cap fallback: ${beforeChars.toLocaleString()} → ${rebuilt.length.toLocaleString()} chars`
-      );
-    }
-
-    finalPrompt = rebuilt;
-  }
-
-  // ── Cache final prompt to IDB (fire & forget) ─────────────────────────────
-  // Skipped when projectContext is active — its content changes the output but
-  // is not captured in the cache key, so cache would return stale prompts.
-  if (!payload.projectContext) {
-    void semanticIndex.cachePrompt(
-      payload.sessionId, payload.task ?? null,
-      payload.targetPlatform, tier,
-      payload.promptTemplateId ?? null,
-      finalPrompt, []
-    ).catch(() => {});
-  }
-
-  // ── MCP Migration path (optional, when a local MCP server is available) ──
-  // If an MCP server is connected and exposes create_conversation, use it
-  // instead of DOM injection. This works with Claude Desktop, Continue.dev,
-  // and any custom MCP server that implements the create_conversation tool.
-  let mcpConversationId: string | undefined;
+    task: payload.task,
+    filename: migrationFile.filename,
+    estimatedTokens: migrationFile.estimatedTokens,
+    caveman: payload.caveman
+  })
+  reportProgress(90, 'Injecting instructions...')
+  let injected = false
   try {
-    const mcpClient = await connectToFirstAvailableMcp();
-    if (mcpClient) {
-      const hasCreateConv = mcpClient.availableTools.some((t) =>
-        /create_conversation|create_chat|new_chat/i.test(t.name)
-      );
-      if (hasCreateConv) {
-        reportProgress(96, "Creating conversation via MCP...");
-        const mcpResult = await mcpClient.createConversation(session.title, [
-          { role: "user", content: finalPrompt },
-        ]);
-        if (mcpResult.conversationId) {
-          mcpConversationId = mcpResult.conversationId;
-          console.log(`[CM:sw] MCP conversation created: ${mcpConversationId}`);
-          // Open the target platform URL with the new conversation
-          const platformUrls: Record<string, string> = {
-            claude: "https://claude.ai/chat",
-            chatgpt: "https://chat.openai.com",
-            gemini: "https://gemini.google.com/app",
-            grok: "https://grok.x.ai",
-            deepseek: "https://chat.deepseek.com",
-            perplexity: "https://perplexity.ai",
-          };
-          const baseUrl = platformUrls[payload.targetPlatform];
-          if (baseUrl && payload.targetTabId) {
-            const targetUrl = `${baseUrl}?cm_mcp_id=${encodeURIComponent(mcpConversationId)}`;
-            await chrome.tabs.update(payload.targetTabId, { url: targetUrl });
-          }
-        }
-        mcpClient.disconnect();
-      } else {
-        mcpClient.disconnect();
-      }
-    }
+    const result = await sendMessageToTab(payload.targetTabId!, {
+      type: 'INJECT_CONTEXT',
+      prompt: instructionPrompt,
+      platform: payload.targetPlatform
+    })
+    injected = result.ok
   } catch (err) {
-    console.warn("[CM:sw] MCP migration path failed (non-fatal):", err);
+    console.warn('[CF:sw] Injection failed (non-fatal):', err)
   }
-
-  // ── Inject into target tab ─────────────────────────────────────────────────
-  if (payload.targetTabId && !mcpConversationId) {
-    // Domain whitelist guard — INJECT_CONTEXT must only fire on a known platform page.
-    const targetTab = await chrome.tabs.get(payload.targetTabId).catch(() => null);
-    if (!targetTab?.url) {
-      return sendResponse({ error: "Target tab not found or URL unavailable." });
-    }
-    const allowedGlobs = PLATFORM_URLS[payload.targetPlatform as keyof typeof PLATFORM_URLS] ?? [];
-    const domainAllowed = allowedGlobs.some((glob) => {
-      const pattern = new RegExp("^" + glob.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$");
-      return pattern.test(targetTab.url!);
-    });
-    if (!domainAllowed) {
-      console.error(`[CM:sw] injection blocked — tab ${payload.targetTabId} (${targetTab.url}) not whitelisted for platform=${payload.targetPlatform}`);
-      return sendResponse({ error: `The active tab (${targetTab.url}) is not a ${payload.targetPlatform} page. Open ${payload.targetPlatform} in the target tab and try again.` });
-    }
-    console.log(`[CM:sw] injection domain verified: ${targetTab.url} → ${payload.targetPlatform}`);
-    const injectionResult = await sendMessageToTab(payload.targetTabId, {
-      type: "INJECT_CONTEXT",
-      prompt: finalPrompt,
-      platform: payload.targetPlatform,
-    });
-
-    if (!injectionResult.ok) {
-      return sendResponse({
-        error: injectionResult.error ??
-          "Could not inject into the active tab. Open the selected AI platform in the active tab, then try again.",
-      });
-    }
-    console.log(`[ContextMover:sw] Stage6 — injection confirmed in tab ${payload.targetTabId}`);
+  const elapsed = performance.now() - t0
+  reportProgress(100, 'Done')
+  const cacheKey = makeCacheKey(session.id, tier)
+  migrationFileCache.set(cacheKey, {
+    filename: migrationFile.filename,
+    content: migrationFile.content,
+    charCount: migrationFile.charCount,
+    estimatedTokens: migrationFile.estimatedTokens,
+    tier,
+    platform: session.platform,
+    sessionTitle: session.title,
+    cachedAt: Date.now(),
+    sessionId: session.id
+  })
+  console.debug(`[CF:cache] Stored: ${migrationFile.filename}`)
+  // Fire-and-forget usage increment — never block the response.
+  if (accessToken) {
+    void incrementUsage(tier, accessToken);
   }
-
-  // Score the migration before responding so the sidebar can show the
-  // QualityScoreCard. Scoring is synchronous + fast; persistence is fire-
-  // and-forget. Wrapped in try/catch so a scoring bug never breaks injection.
-  let qualityScore: QualityScore | undefined;
-  try {
-    qualityScore = scoreAndPersist(
-      session,
-      finalPrompt,
-      tier,
-      payload.targetPlatform,
-      tier === 3 ? 15 : undefined
-    );
-  } catch (err) {
-    console.warn("[CM:quality] scoreAndPersist failed (non-fatal):", err);
-  }
-
-  console.log(`[CM:sw] Migration complete in ${(performance.now() - t0_migrate).toFixed(0)}ms`);
-  perf.logReport();
   sendResponse({
-    ok: true,
-    prompt: finalPrompt,
-    compressionRatio,
-    qualityScore,
-    ...(mcpConversationId ? { mcpConversationId, migratedViaMcp: true } : {}),
-  });
+    success: true,
+    injected,
+    cacheKey,
+    migrationFile: {
+      filename: migrationFile.filename,
+      charCount: migrationFile.charCount,
+      estimatedTokens: migrationFile.estimatedTokens,
+      tier,
+      platform: session.platform,
+      sessionTitle: session.title
+    },
+    elapsed: Math.round(elapsed)
+  })
 }
 
 async function syncOpenTabs() {

@@ -1,6 +1,6 @@
 // packages/browser-extension/src/content/gemini.ts
-import { extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
-import type { Message } from "@/lib/types";
+import { extractContent, extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import type { Message } from "./shared";
 
 const GEMINI_SELECTORS = {
   user: [
@@ -55,64 +55,22 @@ function findElements(selectors: string[]): Element[] {
 
 // ── DIAGNOSTIC STAGE 1 ────────────────────────────────────────────────────────
 function scrapeMessages(): Message[] {
-  const messages: Message[] = [];
+  const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
 
-  // Strategy 1: Custom elements (user-query / model-response)
-  document.querySelectorAll<HTMLElement>("user-query").forEach((container) => {
-    if (isStreaming(container)) return;
-    const el = container.querySelector<HTMLElement>(".query-text");
-    if (!el) return;
-    const content = extractMessageContent(el);
-    if (content) messages.push({ role: "user", content, timestamp: Date.now() });
-  });
-  document.querySelectorAll<HTMLElement>("model-response").forEach((container) => {
-    if (isStreaming(container)) return;
-    const el = container.querySelector<HTMLElement>(".response-content");
-    if (!el) return;
-    const content = extractMessageContent(el);
-    if (content) messages.push({ role: "assistant", content, timestamp: Date.now() });
-  });
+  document.querySelectorAll('user-query, .user-query, [class*="user-query"]')
+    .forEach(el => found.push({ el, role: 'user' }))
+  document.querySelectorAll('model-response, .model-response, [class*="model-response"]')
+    .forEach(el => found.push({ el, role: 'assistant' }))
 
-  // Strategy 2: Selector cascade fallback for user
-  const userCountS1 = messages.filter(m => m.role === "user").length;
-  if (userCountS1 === 0) {
-    const userEls = findElements(GEMINI_SELECTORS.user);
-    for (const el of userEls) {
-      if (isStreaming(el as HTMLElement)) continue;
-      const content = extractMessageContent(el as HTMLElement);
-      if (content) messages.push({ role: "user", content, timestamp: Date.now() });
-    }
-  }
+  found.sort((a, b) =>
+    a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+  )
 
-  // Strategy 3: Selector cascade fallback for assistant
-  const asstCountS1 = messages.filter(m => m.role === "assistant").length;
-  if (asstCountS1 === 0) {
-    const asstEls = findElements(GEMINI_SELECTORS.assistant);
-    for (const el of asstEls) {
-      if (isStreaming(el as HTMLElement)) continue;
-      const content = extractMessageContent(el as HTMLElement);
-      if (content) messages.push({ role: "assistant", content, timestamp: Date.now() });
-    }
-  }
-
-  const userCount = messages.filter(m => m.role === "user").length;
-  const asstCount = messages.filter(m => m.role === "assistant").length;
-  console.log('[CM:capture]', 'gemini', {
-    total: messages.length,
-    user: userCount,
-    assistant: asstCount,
-    preview: messages.map(m => ({ role: m.role, len: m.content.length }))
-  });
-  if (asstCount === 0 && userCount > 0) {
-    console.error(`[ContextMover:gemini] ASSISTANT MESSAGES MISSING — trying structural fallback`);
-    const structural = detectByStructure();
-    if (structural.length > 0 && structural.some(m => m.role === "assistant")) {
-      console.log(`[CM:gemini] structural fallback recovered ${structural.length} messages`);
-      return structural;
-    }
-  }
-
-  return messages;
+  return found.map(({ el, role }) => ({
+    role,
+    content: extractContent(el),
+    timestamp: Date.now()
+  })).filter(m => m.content.trim().length > 0)
 }
 
 // ── Structural detection fallback ───────────────────────────────────────────

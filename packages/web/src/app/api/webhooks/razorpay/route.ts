@@ -37,8 +37,8 @@ export async function POST(req: NextRequest) {
 
   if (!secret) {
     console.error("[CM:webhook:razorpay] RAZORPAY_WEBHOOK_SECRET not configured");
-    // 500 — never accept unverified events when secret is missing.
-    return NextResponse.json({ error: "Misconfigured" }, { status: 500 });
+    // Return 200 so Razorpay does not retry; ops will alert on logs.
+    return NextResponse.json({ received: true, error: "Misconfigured" });
   }
 
   const expected = crypto
@@ -120,11 +120,11 @@ export async function POST(req: NextRequest) {
       }
 
       case "subscription.cancelled":
-      case "subscription.completed":
-      case "subscription.halted": {
+      case "subscription.completed": {
         if (!userId || !subEntity) break;
+        const planType = (subEntity.notes?.plan as "pro" | "team") ?? "pro";
         await upsertSubscription(userId, {
-          plan:                  "free",
+          plan:                  planType,
           status:                "cancelled",
           gateway:               "razorpay",
           gatewayCustomerId:     subEntity.customer_id,
@@ -132,7 +132,6 @@ export async function POST(req: NextRequest) {
           cancelledAt:           new Date(),
         });
         console.log("[CM:webhook:razorpay] Cancelled:", userId);
-        // Send cancellation email
         const cancelledEmail = await getUserEmail(userId);
         if (cancelledEmail) {
           const tpl = proCancelledEmail(cancelledEmail);
@@ -141,16 +140,32 @@ export async function POST(req: NextRequest) {
         break;
       }
 
+      case "subscription.halted": {
+        if (!userId || !subEntity) break;
+        const planType = (subEntity.notes?.plan as "pro" | "team") ?? "pro";
+        await upsertSubscription(userId, {
+          plan:                  planType,
+          status:                "halted",
+          gateway:               "razorpay",
+          gatewayCustomerId:     subEntity.customer_id,
+          gatewaySubscriptionId: subEntity.id,
+        });
+        console.log("[CM:webhook:razorpay] Halted:", userId);
+        break;
+      }
+
+      case "subscription.payment.failed":
       case "payment.failed": {
         if (!userId || !subEntity) break;
+        const planType = (subEntity.notes?.plan as "pro" | "team") ?? "pro";
         await upsertSubscription(userId, {
-          plan:                  "pro",
+          plan:                  planType,
           status:                "past_due",
           gateway:               "razorpay",
+          gatewayCustomerId:     subEntity.customer_id,
           gatewaySubscriptionId: subEntity.id,
         });
         console.log("[CM:webhook:razorpay] Payment failed:", userId);
-        // Send payment-failed email — use payment entity email if available
         const failEmail = paymentEntity?.email ?? await getUserEmail(userId);
         if (failEmail) {
           const tpl = paymentFailedEmail(failEmail);

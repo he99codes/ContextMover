@@ -5,9 +5,11 @@
 // plus a mock-mode pathway when API keys are placeholders.
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { usePricing } from "@/hooks/usePricing";
 import { useSubscription } from "@/hooks/useSubscription";
 import { createClient } from "@/lib/supabase/client";
+import { RazorpaySubscription } from "@/components/payments/RazorpaySubscription";
 
 const FREE_FEATURES = [
   "50 Full Context migrations/mo",
@@ -47,11 +49,15 @@ interface SubscriptionRazorpayCtor {
 }
 
 export default function PricingPage() {
+  const router = useRouter();
   const { pricing, loading: pricingLoading } = usePricing();
   const { isPro } = useSubscription();
   const supabase = createClient();
   const [checkoutLoading, setCheckoutLoading] = useState<"pro" | "team" | null>(null);
   const [mockNotice, setMockNotice] = useState<string | null>(null);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+  const [error, setError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Clear mock-mode notice after a few seconds.
   useEffect(() => {
@@ -236,13 +242,14 @@ export default function PricingPage() {
       {/* Razorpay SDK is loaded globally in app/layout.tsx */}
 
       {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: "60px" }}>
+      <div style={{ textAlign: "center", marginBottom: "40px" }}>
         <h1 style={{ fontSize: "48px", fontWeight: 900, margin: "0 0 16px" }}>
           Simple pricing.
         </h1>
         <p style={{ fontSize: "18px", color: "#6B6B6B", margin: 0 }}>
           Start free. Upgrade when you need more.
         </p>
+        <BillingToggle billingCycle={billingCycle} onChange={setBillingCycle} />
         {pricing && (
           <div style={{ marginTop: "12px", fontSize: "12px", color: "#3A3A3A" }}>
             Showing prices for your region ({pricing.currency.toUpperCase()})
@@ -262,6 +269,16 @@ export default function PricingPage() {
             }}
           >
             {mockNotice}
+          </div>
+        )}
+        {error && (
+          <p style={{ color: "#EF4444", fontSize: "12px", marginTop: "12px" }}>
+            {error}
+          </p>
+        )}
+        {showSuccess && (
+          <div style={{ marginTop: "12px", color: "#00FF88", fontSize: "12px" }}>
+            ✅ Subscription active!
           </div>
         )}
       </div>
@@ -292,21 +309,39 @@ export default function PricingPage() {
         <PlanCard
           tag="Pro"
           tagColor="#00FF88"
-          price={pricingLoading ? "..." : pricing?.pro.display ?? "$5"}
-          subtitle="per month"
+          price={
+            pricingLoading
+              ? "..."
+              : billingCycle === "annual"
+              ? "₹1,499"
+              : (pricing?.pro.display ?? "₹199")
+          }
+          subtitle={billingCycle === "annual" ? "per year · save ₹889" : "per month"}
           features={PRO_FEATURES}
           featureColor="#F5F5F5"
           featured
-          cta={
-            checkoutLoading === "pro"
-              ? "Loading…"
-              : isPro
-              ? "Current plan"
-              : "Upgrade to Pro"
-          }
-          ctaDisabled={isPro || checkoutLoading !== null}
-          onCta={() => handleUpgrade("pro")}
-        />
+          cta={isPro ? "Current plan" : undefined}
+          ctaDisabled={isPro}
+        >
+          {!isPro && (
+            <div style={{ marginTop: "16px" }}>
+              <RazorpaySubscription
+                plan="pro"
+                billing={billingCycle}
+                buttonText={billingCycle === "annual" ? "Subscribe Yearly" : "Subscribe Monthly"}
+                onSuccess={() => {
+                  setShowSuccess(true);
+                  setError(null);
+                  setTimeout(() => router.push("/settings?payment=success"), 1_000);
+                }}
+                onFailure={(err) => {
+                  setError(err);
+                  setShowSuccess(false);
+                }}
+              />
+            </div>
+          )}
+        </PlanCard>
 
         {/* Team */}
         <PlanCard
@@ -358,6 +393,51 @@ export default function PricingPage() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// BillingToggle
+// ─────────────────────────────────────────────────────────────────────────────
+
+function BillingToggle({
+  billingCycle,
+  onChange,
+}: {
+  billingCycle: "monthly" | "annual";
+  onChange:     (c: "monthly" | "annual") => void;
+}) {
+  return (
+    <div style={{ marginTop: "24px", display: "flex", justifyContent: "center", gap: "8px" }}>
+      {(["monthly", "annual"] as const).map((cycle) => {
+        const active = billingCycle === cycle;
+        return (
+          <button
+            key={cycle}
+            onClick={() => onChange(cycle)}
+            style={{
+              padding:       "6px 16px",
+              borderRadius:  "6px",
+              fontSize:      "12px",
+              fontWeight:    700,
+              cursor:        "pointer",
+              border:        `1px solid ${active ? "#00FF88" : "#2A2A2A"}`,
+              background:    active ? "rgba(0,255,136,0.12)" : "transparent",
+              color:         active ? "#00FF88" : "#6B6B6B",
+              textTransform: "capitalize",
+              letterSpacing: "0.04em",
+              transition:    "all 0.15s",
+            }}
+          >
+            {cycle}
+            {cycle === "annual" && (
+              <span style={{ marginLeft: "6px", fontSize: "10px", color: "#F59E0B" }}>
+                Save 37%
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
 // PlanCard
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -368,11 +448,12 @@ interface PlanCardProps {
   subtitle:     string;
   features:     string[];
   featureColor: string;
-  cta:          string;
+  cta?:         string;
   ctaDisabled?: boolean;
   ctaVariant?:  "solid" | "outline";
   featured?:    boolean;
   onCta?:       () => void;
+  children?:    React.ReactNode;
 }
 
 function PlanCard({
@@ -387,6 +468,7 @@ function PlanCard({
   ctaVariant = "solid",
   featured,
   onCta,
+  children,
 }: PlanCardProps) {
   const border = featured ? "1px solid rgba(0,255,136,0.4)" : "1px solid #2A2A2A";
   const shadow = featured ? "0 0 40px rgba(0,255,136,0.08)" : undefined;
@@ -452,41 +534,44 @@ function PlanCard({
         </div>
       ))}
 
-      <button
-        onClick={onCta}
-        disabled={ctaDisabled}
-        style={{
-          width:          "100%",
-          marginTop:      "24px",
-          padding:        "14px",
-          background:
-            ctaVariant === "outline"
-              ? "transparent"
-              : ctaDisabled
-              ? "#1A1A1A"
-              : "#00FF88",
-          border:
-            ctaVariant === "outline" ? "1px solid #00FF88" : "none",
-          borderRadius:   "6px",
-          color:
-            ctaVariant === "outline"
-              ? "#00FF88"
-              : ctaDisabled
-              ? "#6B6B6B"
-              : "#0A0A0A",
-          fontSize:       "12px",
-          fontWeight:     900,
-          cursor:         ctaDisabled ? "default" : "pointer",
-          textTransform:  "uppercase",
-          letterSpacing:  "0.1em",
-          boxShadow:
-            ctaDisabled || ctaVariant === "outline"
-              ? "none"
-              : "0 0 20px rgba(0,255,136,0.4)",
-        }}
-      >
-        {cta}
-      </button>
+      {cta && (
+        <button
+          onClick={onCta}
+          disabled={ctaDisabled}
+          style={{
+            width:          "100%",
+            marginTop:      children ? "16px" : "24px",
+            padding:        "14px",
+            background:
+              ctaVariant === "outline"
+                ? "transparent"
+                : ctaDisabled
+                ? "#1A1A1A"
+                : "#00FF88",
+            border:
+              ctaVariant === "outline" ? "1px solid #00FF88" : "none",
+            borderRadius:   "6px",
+            color:
+              ctaVariant === "outline"
+                ? "#00FF88"
+                : ctaDisabled
+                ? "#6B6B6B"
+                : "#0A0A0A",
+            fontSize:       "12px",
+            fontWeight:     900,
+            cursor:         ctaDisabled ? "default" : "pointer",
+            textTransform:  "uppercase",
+            letterSpacing:  "0.1em",
+            boxShadow:
+              ctaDisabled || ctaVariant === "outline"
+                ? "none"
+                : "0 0 20px rgba(0,255,136,0.4)",
+          }}
+        >
+          {cta}
+        </button>
+      )}
+      {children}
     </div>
   );
 }

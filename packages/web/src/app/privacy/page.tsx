@@ -123,6 +123,13 @@ export default function PrivacyPage() {
                 technically do not have them.
               </li>
             </ul>
+            <p className="text-[#6B6B6B] mt-4">
+              ContextMover accesses your AI conversations by reading network responses in your
+              browser — the same data your browser already receives when you use these platforms.
+              This is equivalent to using your browser&apos;s built-in developer tools. ContextMover
+              never sends requests to AI platforms on your behalf, never modifies your
+              conversations, and never accesses any data you are not already authorized to see.
+            </p>
           </section>
 
           {/* 5 */}

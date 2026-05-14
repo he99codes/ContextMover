@@ -9,6 +9,7 @@ export type SubscriptionStatus =
   | "active"
   | "cancelled"
   | "past_due"
+  | "halted"
   | "trialing";
 
 export interface PricingConfig {

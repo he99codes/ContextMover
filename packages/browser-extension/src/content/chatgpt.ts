@@ -1,48 +1,29 @@
 // packages/browser-extension/src/content/chatgpt.ts
-import { extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
-import type { Message } from "@/lib/types";
+import { extractContent, extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import type { Message } from "./shared";
 
 // ── DIAGNOSTIC STAGE 1 ────────────────────────────────────────────────────────
 function scrapeMessages(): Message[] {
-  const messages: Message[] = [];
+  const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
 
-  document.querySelectorAll<HTMLElement>("[data-message-author-role]").forEach((el) => {
-    // Outermost only — use el.closest on the parent to handle all nesting depths
-    if (el.parentElement?.closest("[data-message-author-role]")) return;
+  document.querySelectorAll('[data-message-author-role]').forEach(el => {
+    const role = el.getAttribute('data-message-author-role')
+    if (role !== 'user' && role !== 'assistant') return
+    if (el.getAttribute('data-is-streaming') === 'true') return
+    found.push({ el, role })
+  })
 
-    // Skip messages still being streamed
-    if (
-      el.classList.contains("result-streaming") ||
-      el.querySelector(".result-streaming") ||
-      el.closest("[data-is-streaming]")
-    ) return;
+  found.sort((a, b) =>
+    a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+  )
 
-    const role = el.dataset.messageAuthorRole as "user" | "assistant";
-    if (role !== "user" && role !== "assistant") {
-      console.warn(`[ContextMover:chatgpt] Stage1 — unexpected role="${role}", skipping`);
-      return;
-    }
-    const content = extractMessageContent(el);
-    if (content) {
-      messages.push({ role, content, timestamp: Date.now() });
-    } else {
-      console.warn(`[ContextMover:chatgpt] Stage1 — empty content for role=${role}`);
-    }
-  });
-
-  const userCount = messages.filter(m => m.role === "user").length;
-  const asstCount = messages.filter(m => m.role === "assistant").length;
-  console.log('[CM:capture]', 'chatgpt', {
-    total: messages.length,
-    user: userCount,
-    assistant: asstCount,
-    preview: messages.map(m => ({ role: m.role, len: m.content.length }))
-  });
-  if (asstCount === 0 && userCount > 0) {
-    console.error(`[ContextMover:chatgpt] ASSISTANT MESSAGES MISSING`);
-  }
-
-  return messages;
+  return found.map(({ el, role }) => ({
+    role,
+    content: extractContent(
+      el.querySelector('.markdown, .whitespace-pre-wrap') ?? el
+    ),
+    timestamp: Date.now()
+  })).filter(m => m.content.trim().length > 0)
 }
 
 startSessionCapture({

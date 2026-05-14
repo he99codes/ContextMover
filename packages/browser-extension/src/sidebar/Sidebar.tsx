@@ -6,7 +6,7 @@ import { PlatformBadge, PlatformLogo } from "@/components/PlatformLogo";
 import MigrationModal from "./MigrationModal";
 import { QualityScoreCard } from "./QualityScoreCard";
 import type { QualityScore } from "@/lib/quality/migration-scorer";
-import { UpgradeModal, type LimitType } from "./UpgradeModal";
+import { getUsageStatus, type UsageStatus } from "@/lib/usage-client";
 import { attentionEngine } from "@/lib/attention-engine";
 import { capabilityDetector } from "@/lib/capability-detector";
 import { projectReader } from "@/lib/file-system/project-reader";
@@ -160,12 +160,7 @@ export default function Sidebar() {
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [latestQualityScore, setLatestQualityScore] = useState<QualityScore | null>(null);
   const [qualityStats, setQualityStats] = useState<{ count: number; avgScore: number } | null>(null);
-  const [upgradeModal, setUpgradeModal] = useState<{
-    open:      boolean;
-    limitType: LimitType | null;
-    used:      number;
-    limit:     number;
-  }>({ open: false, limitType: null, used: 0, limit: 0 });
+
   const [planStatus, setPlanStatus] = useState<{
     plan:      "free" | "pro" | "team";
     isPro:     boolean;
@@ -175,6 +170,14 @@ export default function Sidebar() {
     trialEnd?: string | null;
     loaded:    boolean;
   }>({ plan: "free", isPro: false, loaded: false });
+  const [usageStatus, setUsageStatus] = useState<UsageStatus | null>(null);
+  const [paywallData, setPaywallData] = useState<{
+    tier: number;
+    used: number;
+    limit: number;
+    daysUntilReset: number;
+    upgradeUrl: string;
+  } | null>(null);
   const [vaultConnected, setVaultConnected] = useState<boolean | null>(null);
   const [vaultName, setVaultName] = useState<string | undefined>(undefined);
   // MCP bridge status — green when the local @contextmover/mcp-server is up
@@ -234,6 +237,8 @@ export default function Sidebar() {
       chrome.runtime.onMessage.removeListener(stableListener);
       if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
       if (semanticTimerRef.current) clearTimeout(semanticTimerRef.current);
+      // Notify toggle button that sidebar closed
+      chrome.runtime.sendMessage({ type: 'SIDEBAR_CLOSED' }).catch(() => {});
     };
   }, []);
 
@@ -285,6 +290,19 @@ export default function Sidebar() {
       .catch(() => {
         if (!cancelled) setPlanStatus((s) => ({ ...s, loaded: true }));
       });
+    return () => { cancelled = true; };
+  }, [tick]);
+
+  // ── Usage status for sidebar meter ─────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const { accessToken } = await chrome.storage.local.get("accessToken");
+      if (!accessToken || cancelled) return;
+      const status = await getUsageStatus(accessToken as string);
+      if (!cancelled) setUsageStatus(status);
+    }
+    load();
     return () => { cancelled = true; };
   }, [tick]);
 
@@ -689,6 +707,24 @@ export default function Sidebar() {
               </div>
             </div>
 
+            {selected && selected.messages.length < 15 && (
+              <div style={{
+                background: 'rgba(245,158,11,0.08)',
+                border: '1px solid rgba(245,158,11,0.25)',
+                borderRadius: '6px',
+                padding: '10px 12px',
+                marginBottom: '8px',
+                fontSize: '10px',
+                color: '#F59E0B',
+                lineHeight: 1.5
+              }}>
+                ⚠️ Only {selected.messages.length} messages captured.
+                <br />
+                Scroll to the top of the conversation to load all messages,
+                then the extension will capture them automatically.
+              </div>
+            )}
+
             <div className="flex gap-2">
               <button
                 onClick={() => setShowMigrationModal(true)}
@@ -732,22 +768,18 @@ export default function Sidebar() {
               void chars; // referenced to avoid unused-var lint
             }}
             onLimitReached={(info) => {
-              setUpgradeModal({
-                open:      true,
-                limitType: info.type,
-                used:      info.used,
-                limit:     info.limit,
-              });
+              setPaywallData(info);
+              setShowMigrationModal(false);
             }}
           />
         )}
-        <UpgradeModal
-          isOpen={upgradeModal.open}
-          onClose={() => setUpgradeModal((s) => ({ ...s, open: false }))}
-          limitType={upgradeModal.limitType}
-          used={upgradeModal.used}
-          limit={upgradeModal.limit}
-        />
+        {usageStatus && <UsageMeter status={usageStatus} />}
+        {paywallData && (
+          <PaywallModal
+            limitData={paywallData}
+            onClose={() => setPaywallData(null)}
+          />
+        )}
       </div>
     );
   }
@@ -2159,6 +2191,119 @@ function ProjectPanel({
   );
 }
 
+
+
+// ── UsageMeter ──────────────────────────────────────────────────────────────
+
+function UsageMeter({ status }: { status: UsageStatus }) {
+  if (status.unlimited) {
+    return (
+      <div style={{ fontSize: "9px", color: "#00FF88", textAlign: "center", padding: "6px 0" }}>
+        ✦ Pro — Unlimited migrations
+      </div>
+    );
+  }
+
+  const tiers = [
+    { key: "tier1" as const, label: "Full Context" },
+    { key: "tier2" as const, label: "Summary" },
+    { key: "tier3" as const, label: "Attention" },
+  ];
+
+  return (
+    <div style={{ padding: "10px 12px", borderBottom: "1px solid #1A1A1A", marginBottom: "8px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+        <span style={{ fontSize: "9px", color: "#6B6B6B", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+          Free plan usage
+        </span>
+        <span style={{ fontSize: "9px", color: "#4A4A4A" }}>
+          Resets in {status.daysUntilReset}d
+        </span>
+      </div>
+      {tiers.map(({ key, label }) => {
+        const t = status.usage[key];
+        const pct = t.limit > 0 ? Math.min((t.used / t.limit) * 100, 100) : 0;
+        const color = pct >= 100 ? "#FF4444" : pct >= 80 ? "#F59E0B" : "#00FF88";
+        return (
+          <div key={key} style={{ marginBottom: "6px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
+              <span style={{ fontSize: "9px", color: "#6B6B6B" }}>{label}</span>
+              <span style={{ fontSize: "9px", color: pct >= 100 ? "#FF4444" : "#4A4A4A" }}>
+                {t.used}/{t.limit}
+              </span>
+            </div>
+            <div style={{ height: "3px", background: "#1A1A1A", borderRadius: "2px", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: pct + "%", background: color, borderRadius: "2px", transition: "width 0.3s ease" }} />
+            </div>
+          </div>
+        );
+      })}
+      <a href="https://contextmover.com/pricing" target="_blank" rel="noreferrer"
+        style={{ display: "block", marginTop: "10px", padding: "7px", background: "transparent",
+          border: "1px solid #2A2A2A", borderRadius: "4px", color: "#6B6B6B", fontSize: "9px",
+          fontWeight: 700, textAlign: "center", textDecoration: "none", textTransform: "uppercase",
+          letterSpacing: "0.1em", cursor: "pointer" }}>
+        Upgrade to Pro ↗
+      </a>
+    </div>
+  );
+}
+
+// ── PaywallModal ─────────────────────────────────────────────────────────────
+
+function PaywallModal({
+  limitData,
+  onClose,
+}: {
+  limitData: {
+    tier: number;
+    used: number;
+    limit: number;
+    daysUntilReset: number;
+    upgradeUrl: string;
+  };
+  onClose: () => void;
+}) {
+  const tierNames: Record<number, string> = {
+    1: "Full Context",
+    2: "Smart Summary",
+    3: "Attention Engine",
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)",
+      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "16px" }}>
+      <div style={{ background: "#111", border: "1px solid #2A2A2A", borderRadius: "12px",
+        padding: "24px", maxWidth: "280px", width: "100%" }}>
+        <div style={{ fontSize: "28px", textAlign: "center", marginBottom: "12px" }}>🔒</div>
+        <div style={{ fontSize: "13px", fontWeight: 900, color: "#F5F5F5",
+          textAlign: "center", marginBottom: "8px" }}>
+          Monthly limit reached
+        </div>
+        <div style={{ fontSize: "10px", color: "#6B6B6B", textAlign: "center",
+          lineHeight: 1.6, marginBottom: "20px" }}>
+          You&apos;ve used all {limitData.limit} free {tierNames[limitData.tier]} migrations this month.
+          <br />
+          Resets in {limitData.daysUntilReset} days.
+        </div>
+        <a href={limitData.upgradeUrl} target="_blank" rel="noreferrer"
+          style={{ display: "block", padding: "12px", background: "#00FF88", border: "none",
+            borderRadius: "6px", color: "#0A0A0A", fontSize: "12px", fontWeight: 900,
+            textAlign: "center", textDecoration: "none", textTransform: "uppercase",
+            letterSpacing: "0.1em", boxShadow: "0 0 20px rgba(0,255,136,0.3)",
+            marginBottom: "10px", cursor: "pointer" }}>
+          Upgrade to Pro — ₹199/month
+        </a>
+        <button onClick={onClose}
+          style={{ width: "100%", padding: "10px", background: "transparent",
+            border: "1px solid #2A2A2A", borderRadius: "4px", color: "#6B6B6B",
+            fontSize: "10px", fontWeight: 700, cursor: "pointer", textTransform: "uppercase" }}>
+          Maybe later
+        </button>
+      </div>
+    </div>
+  );
+}
 function formatRelativeTime(timestamp: number) {
   const diff = Date.now() - timestamp;
 

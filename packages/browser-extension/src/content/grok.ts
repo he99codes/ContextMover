@@ -1,6 +1,6 @@
 // packages/browser-extension/src/content/grok.ts
-import { extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
-import type { Message } from "@/lib/types";
+import { extractContent, extractMessageContent, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import type { Message } from "./shared";
 
 console.log("[ContextMover] Grok content script loaded");
 
@@ -14,114 +14,25 @@ function isStreaming(el: HTMLElement): boolean {
 }
 
 function scrapeMessages(): Message[] {
-  type Entry = { el: HTMLElement; role: "user" | "assistant" };
-  const collected: Entry[] = [];
-  const hasAsst = () => collected.some(e => e.role === "assistant");
-  const hasUser = () => collected.some(e => e.role === "user");
+  const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
 
-  // ── Strategy A: legacy UserMessage / AssistantMessage class suffixes ──────
-  {
-    const sel = '[class*="UserMessage"], [class*="AssistantMessage"]';
-    const els = [...document.querySelectorAll<HTMLElement>(sel)]
-      .filter(el => !el.parentElement?.closest(sel) && !isStreaming(el));
-    for (const el of els) {
-      const role = el.className.includes("User") ? "user" : "assistant";
-      collected.push({ el, role });
-    }
-    console.log(`[ContextMover:grok] A legacy-class: ${els.length}`);
-  }
+  document.querySelectorAll('*').forEach(el => {
+    const cls = (el.getAttribute('class') ?? '').toLowerCase()
+    if (cls.includes('usermessage') || cls.includes('user-message'))
+      found.push({ el, role: 'user' })
+    else if (cls.includes('assistantmessage') || cls.includes('assistant-message'))
+      found.push({ el, role: 'assistant' })
+  })
 
-  // ── Strategy B: data-message-author-role (ChatGPT-style) ──────────────────
-  if (!hasAsst()) {
-    const els = [...document.querySelectorAll<HTMLElement>("[data-message-author-role]")]
-      .filter(el => !el.parentElement?.closest("[data-message-author-role]") && !isStreaming(el));
-    for (const el of els) {
-      const role = el.dataset.messageAuthorRole;
-      if (role === "user" || role === "assistant") collected.push({ el, role });
-    }
-    console.log(`[ContextMover:grok] B data-author: ${els.length}`);
-  }
+  found.sort((a, b) =>
+    a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+  )
 
-  // ── Strategy C: class substrings ("user-message", "bot-message", etc.) ────
-  if (!hasAsst()) {
-    const userSel = '[class*="user-message"], [class*="user-query"], [class*="user-bubble"], [class*="query-bubble"]';
-    const asstSel = '[class*="bot-message"], [class*="assistant-message"], [class*="response-bubble"], [class*="model-response"], [class*="message-bubble"][class*="assistant"]';
-
-    const userEls = [...document.querySelectorAll<HTMLElement>(userSel)]
-      .filter(el => !el.parentElement?.closest(userSel) && !isStreaming(el));
-    const asstEls = [...document.querySelectorAll<HTMLElement>(asstSel)]
-      .filter(el => !el.parentElement?.closest(asstSel) && !isStreaming(el));
-
-    for (const el of userEls) collected.push({ el, role: "user" });
-    for (const el of asstEls) collected.push({ el, role: "assistant" });
-    console.log(`[ContextMover:grok] C class-substr: user=${userEls.length} asst=${asstEls.length}`);
-  }
-
-  // ── Strategy D: generic bubble scan — pairs of siblings with classes that  ─
-  //  look like "message" / "bubble" / "turn"                                   ─
-  if (!hasAsst() && !hasUser()) {
-    const candidates = [...document.querySelectorAll<HTMLElement>(
-      '[class*="message"], [class*="bubble"], [class*="turn"], [class*="chat-item"]'
-    )].filter(el => {
-      // Must be a leaf-ish message container, not its inner wrappers
-      return !el.parentElement?.closest('[class*="message"], [class*="bubble"], [class*="turn"], [class*="chat-item"]') && !isStreaming(el);
-    });
-    // Content-based detection: markdown/code indicators → assistant; otherwise skip.
-    candidates.forEach((el) => {
-      if (el.querySelector("pre, code") || /markdown/i.test(el.className)) {
-        collected.push({ el, role: "assistant" });
-      }
-      // No reliable signal → skip rather than guess wrong role.
-    });
-    console.log(`[ContextMover:grok] D generic-bubble: ${candidates.length} candidates, ${collected.length} classified`);
-  }
-
-  // ── DOM diagnostic if nothing worked ──────────────────────────────────────
-  if (collected.length === 0) {
-    const main = document.querySelector("main") ?? document.body;
-    const classHits = new Map<string, number>();
-    const testidHits = new Set<string>();
-    main.querySelectorAll<HTMLElement>("*").forEach(el => {
-      if (el.dataset.testid) testidHits.add(el.dataset.testid);
-      el.classList.forEach(c => {
-        if (/message|bubble|turn|chat|query|response|prompt|author|user|bot|assistant/i.test(c)) {
-          classHits.set(c, (classHits.get(c) ?? 0) + 1);
-        }
-      });
-    });
-    const topClasses = [...classHits.entries()].sort((a, b) => b[1] - a[1]).slice(0, 30);
-    console.warn(`[ContextMover:grok] NO messages found. DOM diagnostic:`);
-    console.warn(`[ContextMover:grok]   candidate classes (name × count):`, topClasses);
-    console.warn(`[ContextMover:grok]   testids on page:`, [...testidHits].sort().join(", "));
-    return [];
-  }
-
-  // Sort by DOM position
-  collected.sort((a, b) => {
-    const pos = a.el.compareDocumentPosition(b.el);
-    return pos & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
-  });
-
-  const messages: Message[] = [];
-  for (const { el, role } of collected) {
-    const content = extractMessageContent(el);
-    if (content) messages.push({ role, content, timestamp: Date.now() });
-    else console.warn(`[ContextMover:grok] empty content for role=${role}`);
-  }
-
-  const userCount = messages.filter(m => m.role === "user").length;
-  const asstCount = messages.filter(m => m.role === "assistant").length;
-  console.log('[CM:capture]', 'grok', {
-    total: messages.length,
-    user: userCount,
-    assistant: asstCount,
-    preview: messages.map(m => ({ role: m.role, len: m.content.length }))
-  });
-  if (asstCount === 0 && userCount > 0) {
-    console.error(`[ContextMover:grok] ASSISTANT MESSAGES MISSING`);
-  }
-
-  return messages;
+  return found.map(({ el, role }) => ({
+    role,
+    content: extractContent(el),
+    timestamp: Date.now()
+  })).filter(m => m.content.trim().length > 0)
 }
 
 startSessionCapture({

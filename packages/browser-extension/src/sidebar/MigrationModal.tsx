@@ -70,9 +70,11 @@ interface Props {
     qualityScore?: QualityScore
   ) => void;
   onLimitReached?: (info: {
-    type: "simple" | "smart" | "attention";
+    tier: number;
     used: number;
     limit: number;
+    daysUntilReset: number;
+    upgradeUrl: string;
   }) => void;
 }
 
@@ -97,6 +99,278 @@ type MigrateState =
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
+function MigrationSuccess({
+  migrationFile,
+  cacheKey,
+  injected,
+  elapsed,
+  targetPlatform,
+  onClose
+}: {
+  migrationFile: {
+    filename: string
+    charCount: number
+    estimatedTokens: number
+    tier: number
+    platform: string
+    sessionTitle: string
+  }
+  cacheKey: string
+  injected: boolean
+  elapsed: number
+  targetPlatform: string
+  onClose: () => void
+}) {
+  const [dragging, setDragging] = useState(false)
+  const [dropped, setDropped] = useState(false)
+  const [cachedFile, setCachedFile] = useState<File | null>(null)
+  const [fileReady, setFileReady] = useState(false)
+  const [fetchError, setFetchError] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const sizeKB = Math.round(migrationFile.charCount / 1024)
+
+  async function getFileContent(): Promise<string | null> {
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        { type: 'GET_CACHED_FILE', cacheKey },
+        (response) => {
+          if (response?.success) resolve(response.file.content)
+          else resolve(null)
+        }
+      )
+    })
+  }
+
+  function deleteCachedFile(): void {
+    chrome.runtime.sendMessage(
+      { type: 'DELETE_CACHED_FILE', cacheKey },
+      () => {}
+    )
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    async function prefetchFile() {
+      try {
+        const content = await getFileContent()
+        if (cancelled) return
+        if (!content) { setFetchError(true); return }
+        const blob = new Blob([content], { type: 'application/xml' })
+        const file = new File([blob], migrationFile.filename, { type: 'application/xml' })
+        setCachedFile(file)
+        setFileReady(true)
+      } catch { if (!cancelled) setFetchError(true) }
+    }
+    prefetchFile()
+    return () => { cancelled = true }
+  }, [])
+
+  function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
+    if (!cachedFile) { e.preventDefault(); return }
+    e.dataTransfer.items.add(cachedFile)
+    e.dataTransfer.effectAllowed = 'copy'
+    setDragging(true)
+  }
+
+  function handleDragEnd() {
+    setDragging(false)
+    setDropped(true)
+    deleteCachedFile()
+  }
+
+  function handleDownloadFallback() {
+    if (!cachedFile) return
+    const url = URL.createObjectURL(cachedFile)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = migrationFile.filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    setDropped(true)
+    deleteCachedFile()
+  }
+
+  return (
+    <div style={{ padding: '4px' }}>
+
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center',
+        gap:'8px', marginBottom:'16px' }}>
+        <span style={{ fontSize:'20px' }}>✅</span>
+        <div>
+          <div style={{ fontSize:'12px', fontWeight:900,
+            color:'#00FF88', textTransform:'uppercase',
+            letterSpacing:'0.1em' }}>
+            Migration complete
+          </div>
+          <div style={{ fontSize:'10px', color:'#6B6B6B', marginTop:'2px' }}>
+            {injected
+              ? `Instructions injected into ${targetPlatform} ✓`
+              : `Open ${targetPlatform} and paste instructions`}
+          </div>
+        </div>
+      </div>
+
+      {/* Drag zone */}
+      {dropped ? (
+        <div style={{
+          background: 'rgba(0,255,136,0.08)',
+          border: '1px solid rgba(0,255,136,0.2)',
+          borderRadius: '10px',
+          padding: '20px 14px',
+          marginBottom: '12px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize:'28px', marginBottom:'8px' }}>🎉</div>
+          <div style={{ fontSize:'11px', fontWeight:900,
+            color:'#00FF88', marginBottom:'4px' }}>
+            File delivered
+          </div>
+          <div style={{ fontSize:'9px', color:'#6B6B6B' }}>
+            Upload it in the AI chat if not already done
+          </div>
+        </div>
+      ) : fetchError ? (
+        <div style={{
+          background: 'rgba(255,68,68,0.08)',
+          border: '2px dashed rgba(255,68,68,0.3)',
+          borderRadius: '10px',
+          padding: '20px 14px',
+          marginBottom: '12px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize:'28px', marginBottom:'8px' }}>⚠️</div>
+          <div style={{ fontSize:'11px', fontWeight:900,
+            color:'#FF4444', marginBottom:'4px' }}>
+            File expired
+          </div>
+          <div style={{ fontSize:'9px', color:'#6B6B6B' }}>
+            Please run migration again
+          </div>
+        </div>
+      ) : !fileReady ? (
+        <div style={{
+          background: '#111',
+          border: '2px dashed #2A2A2A',
+          borderRadius: '10px',
+          padding: '20px 14px',
+          marginBottom: '12px',
+          textAlign: 'center',
+          cursor: 'not-allowed'
+        }}>
+          <div style={{ fontSize:'28px', marginBottom:'8px' }}>⏳</div>
+          <div style={{ fontSize:'11px', fontWeight:900,
+            color:'#6B6B6B', marginBottom:'4px' }}>
+            Preparing file...
+          </div>
+          <div style={{ fontSize:'9px', color:'#4A4A4A' }}>
+            Ready to drag in a moment
+          </div>
+        </div>
+      ) : (
+        <div
+          draggable
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          style={{
+            background: dragging
+              ? 'rgba(0,255,136,0.12)'
+              : '#111',
+            border: `2px dashed ${dragging ? '#00FF88' : 'rgba(0,255,136,0.4)'}`,
+            borderRadius: '10px',
+            padding: '20px 14px',
+            marginBottom: '12px',
+            cursor: 'grab',
+            textAlign: 'center',
+            transition: 'all 0.15s ease',
+            userSelect: 'none'
+          }}
+        >
+          <div style={{ fontSize:'28px', marginBottom:'8px' }}>📁</div>
+          <div style={{ fontSize:'11px', fontWeight:900,
+            color:'#00FF88', marginBottom:'4px' }}>
+            Drag this into the AI chat
+          </div>
+          <div style={{ fontSize:'9px', color:'#6B6B6B',
+            fontFamily:'monospace', marginBottom:'6px',
+            wordBreak:'break-all' }}>
+            {migrationFile.filename}
+          </div>
+          <div style={{ fontSize:'9px', color:'#4A4A4A' }}>
+            {sizeKB}KB · ~{migrationFile.estimatedTokens.toLocaleString()} tokens
+          </div>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && (
+        <div style={{ fontSize:'10px', color:'#FF4444',
+          marginBottom:'10px', textAlign:'center' }}>
+          {error}
+        </div>
+      )}
+
+      {/* How to use */}
+      {!dropped && (
+        <div style={{ background:'#0A0A0A', border:'1px solid #2A2A2A',
+          borderRadius:'6px', padding:'12px', marginBottom:'12px' }}>
+          <div style={{ fontSize:'9px', fontWeight:900, color:'#6B6B6B',
+            textTransform:'uppercase', letterSpacing:'0.12em',
+            marginBottom:'8px' }}>
+            How to use
+          </div>
+          {[
+            `Go to your ${targetPlatform} tab`,
+            'Drag the file above into the chat',
+            'AI reads it and continues your work'
+          ].map((step, i) => (
+            <div key={i} style={{ display:'flex', gap:'8px',
+              marginBottom:'6px', fontSize:'10px', color:'#6B6B6B' }}>
+              <span style={{ color:'#00FF88', fontWeight:700,
+                flexShrink:0 }}>{i + 1}.</span>
+              <span>{step}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Fallback download link */}
+      {!dropped && (
+        <div style={{ textAlign:'center', marginBottom:'12px' }}>
+          <button
+            onClick={handleDownloadFallback}
+            disabled={!fileReady}
+            style={{ background:'none', border:'none',
+              color: fileReady ? '#3A3A3A' : '#2A2A2A',
+              fontSize:'9px',
+              cursor: fileReady ? 'pointer' : 'not-allowed',
+              textDecoration:'underline',
+              opacity: fileReady ? 1 : 0.4 }}>
+            Can't drag? Download instead
+          </button>
+        </div>
+      )}
+
+      <div style={{ fontSize:'9px', color:'#3A3A3A',
+        textAlign:'center', marginBottom:'12px' }}>
+        File auto-expires in 30 minutes · {(elapsed/1000).toFixed(1)}s
+      </div>
+
+      <button onClick={onClose} style={{
+        width:'100%', padding:'10px', background:'transparent',
+        border:'1px solid #2A2A2A', borderRadius:'4px',
+        color:'#6B6B6B', fontSize:'10px', fontWeight:700,
+        cursor:'pointer', textTransform:'uppercase',
+        letterSpacing:'0.1em'
+      }}>
+        Done
+      </button>
+    </div>
+  )
+}
+
 
 export default function MigrationModal({
   session,
@@ -126,6 +400,7 @@ export default function MigrationModal({
   const [migrateProgress, setMigrateProgress] = useState(0);
   const [migrateStage, setMigrateStage] = useState("");
   const [downgradedToast, setDowngradedToast] = useState<string | null>(null);
+  const [migrationResult, setMigrationResult] = useState<any>(null);
   const userHasManuallySelected = useRef(false);
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -400,17 +675,23 @@ export default function MigrationModal({
         },
       },
       (response) => {
-        if (response?.error === "LIMIT_REACHED" && onLimitReached) {
-          onLimitReached({
-            type:  response.type  as "simple" | "smart" | "attention",
-            used:  response.used  as number,
-            limit: response.limit as number,
+        if (response?.error === "limit_reached" && onLimitReached && response.limitData) {
+          onLimitReached(response.limitData as {
+            tier: number;
+            used: number;
+            limit: number;
+            daysUntilReset: number;
+            upgradeUrl: string;
           });
           onClose();
           return;
         }
         if (response?.error) {
           setMigrateState({ status: "error", message: response.error });
+          return;
+        }
+        if (response?.success) {
+          setMigrationResult(response);
           return;
         }
         const chars = (response?.prompt as string | undefined)?.length ?? 0;
@@ -998,20 +1279,16 @@ export default function MigrationModal({
           </div>
         )}
 
-        {/* ── Success banner ── */}
-        {migrateState.status === "success" && (
-          <div style={{ marginBottom: "6px", padding: "5px 10px", background: "#060F07", border: "1px solid rgba(0,255,136,0.25)", borderRadius: "5px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px" }}>
-              <span style={{ fontSize: "14px" }}>✓</span>
-              <span style={{ fontSize: "10px", fontWeight: 900, color: "#00FF88", textShadow: "0 0 8px rgba(0,255,136,0.4)" }}>Context migrated!</span>
-            </div>
-            <div style={{ fontSize: "9px", color: "#2A6A2A" }}>
-              <strong style={{ color: "#F5F5F5" }}>{migrateState.chars.toLocaleString()} chars</strong>
-              {migrateState.compressionRatio > 0 && <> · <strong style={{ color: "#00FF88" }}>{migrateState.compressionRatio}% of original</strong></>}
-              {" · "}Tier: <span style={{ color: "#00FF88" }}>{TIER_LABELS[migrateState.tier]}</span>
-            </div>
-            <div style={{ marginTop: "4px", fontSize: "8px", color: "#333" }}>Auto-closing in 3s…</div>
-          </div>
+        {/* ── Migration result / success ── */}
+        {migrationResult && (
+          <MigrationSuccess
+            migrationFile={migrationResult.migrationFile}
+            cacheKey={migrationResult.cacheKey}
+            injected={migrationResult.injected}
+            elapsed={migrationResult.elapsed}
+            targetPlatform={targetPlatform}
+            onClose={() => { setMigrationResult(null); onClose() }}
+          />
         )}
 
         {/* ── Action buttons ── */}
