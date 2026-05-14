@@ -62,6 +62,7 @@ const MIGRATE_BTN_LABELS: Record<1 | 2 | 3, string> = {
 interface Props {
   session: ContextSession;
   targetPlatform: Platform;
+  attentionAvailable?: boolean;
   onClose: () => void;
   onSuccess?: (
     tier: 1 | 2 | 3,
@@ -123,10 +124,11 @@ function MigrationSuccess({
 }) {
   const [dragging, setDragging] = useState(false)
   const [dropped, setDropped] = useState(false)
-  const [cachedFile, setCachedFile] = useState<File | null>(null)
   const [fileReady, setFileReady] = useState(false)
   const [fetchError, setFetchError] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fileObjectUrl, setFileObjectUrl] = useState<string | null>(null)
+  const [downloaded, setDownloaded] = useState(false)
   const sizeKB = Math.round(migrationFile.charCount / 1024)
 
   async function getFileContent(): Promise<string | null> {
@@ -148,6 +150,31 @@ function MigrationSuccess({
     )
   }
 
+  function triggerDownload(content: string): void {
+    const blob = new Blob([content], { type: 'application/xml' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = migrationFile.filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  function handleManualDownload() {
+    if (!fileObjectUrl) return
+    const a = document.createElement('a')
+    a.href = fileObjectUrl
+    a.download = migrationFile.filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setDownloaded(true)
+    setDropped(true)
+    deleteCachedFile()
+  }
+
   useEffect(() => {
     let cancelled = false
     async function prefetchFile() {
@@ -156,41 +183,23 @@ function MigrationSuccess({
         if (cancelled) return
         if (!content) { setFetchError(true); return }
         const blob = new Blob([content], { type: 'application/xml' })
-        const file = new File([blob], migrationFile.filename, { type: 'application/xml' })
-        setCachedFile(file)
+        const url = URL.createObjectURL(blob)
+        setFileObjectUrl(url)
         setFileReady(true)
+        triggerDownload(content)
+        setDownloaded(true)
       } catch { if (!cancelled) setFetchError(true) }
     }
     prefetchFile()
     return () => { cancelled = true }
   }, [])
 
-  function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
-    if (!cachedFile) { e.preventDefault(); return }
-    e.dataTransfer.items.add(cachedFile)
-    e.dataTransfer.effectAllowed = 'copy'
-    setDragging(true)
-  }
-
-  function handleDragEnd() {
-    setDragging(false)
-    setDropped(true)
-    deleteCachedFile()
-  }
-
-  function handleDownloadFallback() {
-    if (!cachedFile) return
-    const url = URL.createObjectURL(cachedFile)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = migrationFile.filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    setDropped(true)
-    deleteCachedFile()
-  }
+  // Cleanup object URL on unmount
+  useEffect(() => {
+    return () => {
+      if (fileObjectUrl) URL.revokeObjectURL(fileObjectUrl)
+    }
+  }, [fileObjectUrl])
 
   return (
     <div style={{ padding: '4px' }}>
@@ -213,7 +222,7 @@ function MigrationSuccess({
         </div>
       </div>
 
-      {/* Drag zone */}
+      {/* Drag zone — anchor with object URL */}
       {dropped ? (
         <div style={{
           background: 'rgba(0,255,136,0.08)',
@@ -270,37 +279,89 @@ function MigrationSuccess({
           </div>
         </div>
       ) : (
-        <div
-          draggable
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
+        <a
+          href={fileObjectUrl || undefined}
+          download={migrationFile.filename}
+          draggable={true}
+          onDragStart={(e) => {
+            e.dataTransfer.effectAllowed = 'copy'
+            setDragging(true)
+          }}
+          onDragEnd={() => {
+            setDragging(false)
+            setDropped(true)
+            deleteCachedFile()
+          }}
+          onClick={(e) => {
+            e.preventDefault()
+            handleManualDownload()
+          }}
           style={{
+            display: 'block',
             background: dragging
               ? 'rgba(0,255,136,0.12)'
-              : '#111',
-            border: `2px dashed ${dragging ? '#00FF88' : 'rgba(0,255,136,0.4)'}`,
+              : 'rgba(0,255,136,0.04)',
+            border: `2px dashed ${dragging
+              ? '#00FF88'
+              : 'rgba(0,255,136,0.35)'}`,
             borderRadius: '10px',
             padding: '20px 14px',
             marginBottom: '12px',
             cursor: 'grab',
             textAlign: 'center',
+            textDecoration: 'none',
             transition: 'all 0.15s ease',
             userSelect: 'none'
           }}
         >
-          <div style={{ fontSize:'28px', marginBottom:'8px' }}>📁</div>
+          <div style={{ fontSize:'28px', marginBottom:'8px',
+            pointerEvents:'none' }}>
+            📁
+          </div>
           <div style={{ fontSize:'11px', fontWeight:900,
-            color:'#00FF88', marginBottom:'4px' }}>
-            Drag this into the AI chat
+            color:'#00FF88', marginBottom:'4px',
+            pointerEvents:'none' }}>
+            {dragging ? 'Drop into AI chat!' : 'Drag into AI chat'}
           </div>
           <div style={{ fontSize:'9px', color:'#6B6B6B',
-            fontFamily:'monospace', marginBottom:'6px',
-            wordBreak:'break-all' }}>
+            fontFamily:'monospace', marginBottom:'4px',
+            wordBreak:'break-all', pointerEvents:'none' }}>
             {migrationFile.filename}
           </div>
-          <div style={{ fontSize:'9px', color:'#4A4A4A' }}>
+          <div style={{ fontSize:'9px', color:'#4A4A4A',
+            pointerEvents:'none' }}>
             {sizeKB}KB · ~{migrationFile.estimatedTokens.toLocaleString()} tokens
           </div>
+        </a>
+      )}
+
+      {/* Download button */}
+      {!dropped && (
+        <div style={{ textAlign:'center', marginBottom:'14px' }}>
+          <button
+            onClick={handleManualDownload}
+            disabled={!fileReady}
+            style={{
+              background:'transparent',
+              border:'1px solid #2A2A2A',
+              borderRadius:'4px',
+              color: fileReady ? '#6B6B6B' : '#3A3A3A',
+              fontSize:'9px',
+              fontWeight:700,
+              padding:'6px 14px',
+              cursor: fileReady ? 'pointer' : 'not-allowed',
+              textTransform:'uppercase',
+              letterSpacing:'0.08em'
+            }}
+          >
+            ⬇ Download file instead
+          </button>
+          {downloaded && (
+            <div style={{ fontSize:'9px', color:'#3A6A4A',
+              marginTop:'4px' }}>
+              ✓ Saved to Downloads folder
+            </div>
+          )}
         </div>
       )}
 
@@ -336,23 +397,6 @@ function MigrationSuccess({
         </div>
       )}
 
-      {/* Fallback download link */}
-      {!dropped && (
-        <div style={{ textAlign:'center', marginBottom:'12px' }}>
-          <button
-            onClick={handleDownloadFallback}
-            disabled={!fileReady}
-            style={{ background:'none', border:'none',
-              color: fileReady ? '#3A3A3A' : '#2A2A2A',
-              fontSize:'9px',
-              cursor: fileReady ? 'pointer' : 'not-allowed',
-              textDecoration:'underline',
-              opacity: fileReady ? 1 : 0.4 }}>
-            Can't drag? Download instead
-          </button>
-        </div>
-      )}
-
       <div style={{ fontSize:'9px', color:'#3A3A3A',
         textAlign:'center', marginBottom:'12px' }}>
         File auto-expires in 30 minutes · {(elapsed/1000).toFixed(1)}s
@@ -375,6 +419,7 @@ function MigrationSuccess({
 export default function MigrationModal({
   session,
   targetPlatform,
+  attentionAvailable = true,
   onClose,
   onSuccess,
   onLimitReached,
@@ -796,16 +841,19 @@ export default function MigrationModal({
             { t: 3 as const, dot: "#F59E0B", label: "▸ Attention", speed: "Smart"   },
           ] as const).map(({ t, dot, label, speed }) => {
             const active = tier === t;
+            const disabled = t === 3 && !attentionAvailable;
             return (
               <button
                 key={t}
-                onClick={() => setTier(t)}
+                onClick={() => { if (!disabled) setTier(t); }}
+                disabled={disabled}
+                title={disabled ? "Attention Engine unavailable — model could not load on this device" : ""}
                 style={{
-                  background: "#1A1A1A",
-                  border: `1px solid ${active ? "#00FF88" : "#2A2A2A"}`,
+                  background: disabled ? "#0A0A0A" : "#1A1A1A",
+                  border: `1px solid ${active ? "#00FF88" : disabled ? "#1A1A1A" : "#2A2A2A"}`,
                   borderRadius: "6px",
                   padding: "4px 6px",
-                  cursor: "pointer",
+                  cursor: disabled ? "not-allowed" : "pointer",
                   textAlign: "center",
                   transition: "border-color 0.15s ease",
                   boxShadow: active ? "0 0 8px rgba(0,255,136,0.18), inset 0 0 6px rgba(0,255,136,0.04)" : "none",
@@ -816,15 +864,16 @@ export default function MigrationModal({
                   alignItems: "center",
                   justifyContent: "center",
                   gap: "3px",
+                  opacity: disabled ? 0.4 : 1,
                 }}
-                onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.borderColor = "#3A3A3A"; }}
-                onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.borderColor = "#2A2A2A"; }}
+                onMouseEnter={(e) => { if (!active && !disabled) (e.currentTarget as HTMLButtonElement).style.borderColor = "#3A3A3A"; }}
+                onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.borderColor = disabled ? "#1A1A1A" : "#2A2A2A"; }}
               >
                 <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: active ? dot : "#333", flexShrink: 0 }} />
-                <div style={{ fontSize: "9px", fontWeight: 900, color: active ? "#00FF88" : "#888", textTransform: "uppercase", letterSpacing: "0.04em", lineHeight: 1.2 }}>
-                  {label}
+                <div style={{ fontSize: "9px", fontWeight: 900, color: active ? "#00FF88" : disabled ? "#555" : "#888", textTransform: "uppercase", letterSpacing: "0.04em", lineHeight: 1.2 }}>
+                  {disabled ? "Attention (off)" : label}
                 </div>
-                <div style={{ fontSize: "8px", color: active ? "#00CC6A" : "#333" }}>{speed}</div>
+                <div style={{ fontSize: "8px", color: active ? "#00CC6A" : disabled ? "#444" : "#333" }}>{disabled ? "Unavailable" : speed}</div>
                 {t === 3 && active && hw?.tier === "minimal" && (
                   <div style={{ fontSize: "8px", color: "#F59E0B", marginTop: "2px", textAlign: "center" }}>
                     ⚠ May take 2+ min

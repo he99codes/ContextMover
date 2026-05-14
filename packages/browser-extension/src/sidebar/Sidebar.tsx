@@ -178,6 +178,7 @@ export default function Sidebar() {
     daysUntilReset: number;
     upgradeUrl: string;
   } | null>(null);
+  const [attentionAvailable, setAttentionAvailable] = useState(true);
   const [vaultConnected, setVaultConnected] = useState<boolean | null>(null);
   const [vaultName, setVaultName] = useState<string | undefined>(undefined);
   // MCP bridge status — green when the local @contextmover/mcp-server is up
@@ -187,6 +188,7 @@ export default function Sidebar() {
   const [semanticResults, setSemanticResults] = useState<{ sessionId: string; score: number }[]>([]);
   const loadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const semanticTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSubFetch = useRef<number>(0);
   const [captureAlert, setCaptureAlert] = useState<CaptureAlert | null>(null);
   // Ref-stable message handler — avoids re-registering the listener on every render.
   const handleMessageRef = useRef<(msg: { type: string }) => void>();
@@ -221,7 +223,18 @@ export default function Sidebar() {
   useEffect(() => {
     loadSessions();
     void checkVault();
-    void checkMcpBridge();
+    checkMcpBridge(); // once on mount
+    const mcpInterval = window.setInterval(() => {
+      if (!document.hidden) checkMcpBridge();
+    }, 60_000);
+    void fetchSubscriptionStatus(); // once on mount
+
+    // Attention-engine availability (model may be blocked by CSP)
+    chrome.runtime.sendMessage({ type: "GET_ATTENTION_STATUS" }, (res) => {
+      if (!chrome.runtime.lastError && res?.available === false) {
+        setAttentionAvailable(false);
+      }
+    });
 
     const clockInterval = window.setInterval(() => {
       setTick((value) => value + 1);
@@ -234,6 +247,7 @@ export default function Sidebar() {
 
     return () => {
       window.clearInterval(clockInterval);
+      window.clearInterval(mcpInterval);
       chrome.runtime.onMessage.removeListener(stableListener);
       if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
       if (semanticTimerRef.current) clearTimeout(semanticTimerRef.current);
@@ -261,37 +275,38 @@ export default function Sidebar() {
   }, []);
 
   // ── Plan status (Free / Pro / Team) for the header badge ───────────────────
-  // Re-fetches whenever `tick` changes — pollSidebar bumps `tick` after every
-  // migration so the "X/50" counter updates without a manual refresh.
-  useEffect(() => {
-    let cancelled = false;
-    chrome.runtime.sendMessage({ type: "GET_SUBSCRIPTION_STATUS" })
-      .then((res: {
+  // Cached for 5 minutes to prevent repeated polling.
+  const SUBSCRIPTION_CACHE_MS = 5 * 60 * 1000;
+
+  async function fetchSubscriptionStatus() {
+    const now = Date.now();
+    if (now - lastSubFetch.current < SUBSCRIPTION_CACHE_MS) return;
+    lastSubFetch.current = now;
+    try {
+      const res = await chrome.runtime.sendMessage({ type: "GET_SUBSCRIPTION_STATUS" }) as {
         plan?:     "free" | "pro" | "team";
         isPro?:    boolean;
         usage?:    { simpleMigrations: number };
         limits?:   { simpleMigrations: number | "unlimited" };
         status?:   string;
         trialEnd?: string | null;
-      } | undefined) => {
-        if (cancelled || !res) return;
-        const used  = res.usage?.simpleMigrations;
-        const limit = res.limits?.simpleMigrations;
-        setPlanStatus({
-          plan:     res.plan ?? "free",
-          isPro:    Boolean(res.isPro),
-          used,
-          limit:    typeof limit === "number" ? limit : undefined,
-          status:   res.status,
-          trialEnd: res.trialEnd ?? null,
-          loaded:   true,
-        });
-      })
-      .catch(() => {
-        if (!cancelled) setPlanStatus((s) => ({ ...s, loaded: true }));
+      } | undefined;
+      if (!res) return;
+      const used  = res.usage?.simpleMigrations;
+      const limit = res.limits?.simpleMigrations;
+      setPlanStatus({
+        plan:     res.plan ?? "free",
+        isPro:    Boolean(res.isPro),
+        used,
+        limit:    typeof limit === "number" ? limit : undefined,
+        status:   res.status,
+        trialEnd: res.trialEnd ?? null,
+        loaded:   true,
       });
-    return () => { cancelled = true; };
-  }, [tick]);
+    } catch {
+      setPlanStatus((s) => ({ ...s, loaded: true }));
+    }
+  }
 
   // ── Usage status for sidebar meter ─────────────────────────────────────────
   useEffect(() => {
@@ -758,6 +773,7 @@ export default function Sidebar() {
           <MigrationModal
             session={selected}
             targetPlatform={targetPlatform}
+            attentionAvailable={attentionAvailable}
             onClose={() => setShowMigrationModal(false)}
             onSuccess={(tier, _compressionRatio, chars, qualityScore) => {
               setShowMigrationModal(false);
@@ -1185,15 +1201,17 @@ function MCPStatusPanel() {
 
   useEffect(() => {
     let cancelled = false;
+    const MCP_POLL_INTERVAL = 60_000;
     function probe() {
+      if (document.hidden) return;
       chrome.runtime.sendMessage({ type: "CHECK_MCP_BRIDGE" }, (res) => {
         if (cancelled) return;
         if (chrome.runtime.lastError) { setStatus({ running: false }); return; }
         setStatus(res ?? { running: false });
       });
     }
-    probe();
-    const interval = window.setInterval(probe, 10_000);
+    probe(); // once on mount
+    const interval = window.setInterval(probe, MCP_POLL_INTERVAL);
     return () => { cancelled = true; window.clearInterval(interval); };
   }, []);
 

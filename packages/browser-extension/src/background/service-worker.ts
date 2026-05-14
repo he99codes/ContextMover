@@ -22,6 +22,9 @@ import { checkUsage, incrementUsage } from "@/lib/usage-client";
 import type { MigrationFile } from "@/lib/file-builder"
 import { getMcpClient, connectToFirstAvailableMcp, type IdeContext } from "@/lib/mcp/client";
 
+// ── Attention-engine availability (set to false if model fetch blocked) ─────
+let attentionEngineAvailable = true;
+
 // ── In-memory migration file cache ────────────────────────────────────────────
 interface CachedMigrationFile {
   filename: string
@@ -451,6 +454,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
+      case "GET_ATTENTION_STATUS": {
+        sendResponse({ available: attentionEngineAvailable });
+        break;
+      }
+
       case "SYNC_FILES_TO_MCP": {
         // Sidebar fires this whenever the user toggles file selection or
         // commits a new project import. Files arrive as a plain array — we
@@ -792,7 +800,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "WARMUP_MODEL": {
-        void semanticIndex.warmup().catch((e) => console.warn('[CM:sw] warmup failed:', e));
+        if (!attentionEngineAvailable) {
+          sendResponse({ ok: false, unavailable: true });
+          break;
+        }
+        void (async () => {
+          try {
+            await semanticIndex.warmup();
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            if (msg.includes("Failed to fetch")) {
+              attentionEngineAvailable = false;
+              await chrome.storage.local.set({ attentionEngineAvailable: false });
+              console.debug("[CM:sw] Model fetch blocked — Attention tier unavailable on this session");
+              return;
+            }
+            console.warn("[CM:sw] warmup failed:", e);
+          }
+        })();
         sendResponse({ ok: true });
         break;
       }
@@ -1181,6 +1206,7 @@ async function handleCaptureSession(payload: {
  * so they never surface as extension failures.
  */
 async function backgroundIndex(session: ContextSession): Promise<void> {
+  if (!attentionEngineAvailable) return;
   try {
     const t0 = performance.now();
     await semanticIndex.indexSession(session);
@@ -1191,6 +1217,13 @@ async function backgroundIndex(session: ContextSession): Promise<void> {
     // Fire-and-forget; bridge offline is the common case and fine.
     void syncEmbeddingsToMcpBridge(session.id);
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Failed to fetch")) {
+      attentionEngineAvailable = false;
+      await chrome.storage.local.set({ attentionEngineAvailable: false });
+      console.debug("[CM:bgIdx] Model fetch blocked — Attention tier unavailable on this session");
+      return;
+    }
     console.warn('[CM:sw:bgIdx] indexing failed (non-fatal):', err);
   }
 }
@@ -1374,22 +1407,38 @@ async function handleMigrateContext(
       }
       migrationFile = buildTier2File(session, summary, payload.task)
     } else {
-      reportProgress(30, 'Running attention engine...')
-      const needsIndex = await semanticIndex.needsIndexing(session)
-      if (needsIndex) {
-        reportProgress(35, 'Indexing session...')
-        await semanticIndex.indexSession(session, (pct: number, stage: string) => {
-          reportProgress(35 + pct * 0.4, stage)
-        })
+      if (!attentionEngineAvailable) {
+        sendResponse({ success: false, error: 'Attention Engine unavailable — model could not load on this device' });
+        return;
       }
-      reportProgress(75, 'Retrieving relevant chunks...')
-      const chunks = await semanticIndex.retrieve(
-        session.id, payload.task ?? null, 15
-      )
-      migrationFile = buildTier3File(
-        session, chunks,
-        payload.task ?? 'Continue from where we left off'
-      )
+      reportProgress(30, 'Running attention engine...')
+      try {
+        const needsIndex = await semanticIndex.needsIndexing(session)
+        if (needsIndex) {
+          reportProgress(35, 'Indexing session...')
+          await semanticIndex.indexSession(session, (pct: number, stage: string) => {
+            reportProgress(35 + pct * 0.4, stage)
+          })
+        }
+        reportProgress(75, 'Retrieving relevant chunks...')
+        const chunks = await semanticIndex.retrieve(
+          session.id, payload.task ?? null, 15
+        )
+        migrationFile = buildTier3File(
+          session, chunks,
+          payload.task ?? 'Continue from where we left off'
+        )
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes("Failed to fetch")) {
+          attentionEngineAvailable = false;
+          await chrome.storage.local.set({ attentionEngineAvailable: false });
+          console.debug("[CM:sw] Model fetch blocked during migration — Attention tier unavailable");
+          sendResponse({ success: false, error: 'Attention Engine unavailable — model could not load on this device' });
+          return;
+        }
+        throw err;
+      }
     }
   } catch (err: any) {
     console.warn('[CF:sw] File build failed, falling back to tier 1:', err)
