@@ -805,3 +805,23 @@ export function findChatContainerFor(platform: string): Element | null {
 
   return null;
 }
+
+// ── Network-capture helper (used by fetch/XHR interceptors) ──────────────────
+// Sends a CAPTURE_SESSION message from an intercepted network response,
+// bypassing the DOM scraper entirely. Deduplication is handled SW-side.
+export async function sendCapture(
+  messages: Message[],
+  platform: string
+): Promise<void> {
+  if (messages.length === 0) return;
+  const sessionId = await resolveSessionId(platform as Platform, location.href);
+  chrome.runtime.sendMessage({
+    type: 'CAPTURE_SESSION',
+    payload: {
+      platform,
+      sessionId,
+      title: document.title || location.hostname,
+      messages,
+    },
+  }).catch(() => {});
+}

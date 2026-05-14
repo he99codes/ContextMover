@@ -18,7 +18,7 @@ export interface ModelConfig {
 
 export const MODEL_CONFIGS: Record<ModelTier, ModelConfig> = {
   tiny: {
-    modelId: "TaylorAI/gte-tiny",
+    modelId: "Xenova/all-MiniLM-L6-v2",
     dimensions: 384,
     device: "wasm",
     threads: 0,
@@ -70,8 +70,22 @@ class ModelRegistry {
     // actually call .initialize().
     const { pipeline, env } = await import("@xenova/transformers");
 
-    env.useBrowserCache = true;
-    env.allowLocalModels = false;
+    // When running as a Chrome extension, load the bundled model files
+    // directly from the extension package — zero network request needed.
+    const isExtension =
+      typeof chrome !== "undefined" &&
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      typeof (chrome as any).runtime?.getURL === "function";
+    if (isExtension) {
+      env.localModelPath = chrome.runtime.getURL("models/");
+      env.allowLocalModels = true;
+      env.allowRemoteModels = false;
+      env.useBrowserCache = false; // files are already local
+    } else {
+      env.useBrowserCache = true;
+      env.allowLocalModels = false;
+      env.allowRemoteModels = true;
+    }
 
     const tier = this.selectModelTier(hardware);
     const config = MODEL_CONFIGS[tier];
@@ -91,26 +105,50 @@ class ModelRegistry {
 
     const device = hardware.hasWebGPU ? "webgpu" : "wasm";
 
-    this.loadedModel = await pipeline(
-      "feature-extraction",
-      config.modelId,
-      {
+    const MAX_ATTEMPTS = 3;
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        console.debug(
+          `[CM:attention] Loading model attempt ${attempt}/${MAX_ATTEMPTS}: ${config.modelId}`
+        );
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        device,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        progress_callback: (progress: any) => {
-          if (progress?.status === "downloading") {
-            const p = typeof progress.progress === "number" ? progress.progress : 0;
-            onProgress?.(10 + p * 0.8);
-          }
-        },
-      } as Record<string, unknown>
-    );
-
-    this.loadedTier = tier;
-    this.config = { ...config, threads };
-    onProgress?.(100);
-    console.log(`[ContextMover:model] ${config.label} ready`);
+        this.loadedModel = await pipeline(
+          "feature-extraction",
+          config.modelId,
+          {
+            device,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            progress_callback: (progress: any) => {
+              if (progress?.status === "downloading") {
+                const p = typeof progress.progress === "number" ? progress.progress : 0;
+                onProgress?.(10 + p * 0.8);
+              }
+            },
+          } as Record<string, unknown>
+        );
+        this.loadedTier = tier;
+        this.config = { ...config, threads };
+        onProgress?.(100);
+        console.log(`[CM:attention] Model loaded successfully: ${config.label}`);
+        return;
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        console.warn(
+          `[CM:attention] Model load attempt ${attempt} failed:`, lastError.message
+        );
+        const isNetwork =
+          lastError.message.includes("Failed to fetch") ||
+          lastError.message.includes("NetworkError") ||
+          lastError.message.includes("net::ERR");
+        if (isNetwork && attempt < MAX_ATTEMPTS) {
+          await new Promise((r) => setTimeout(r, 1000 * attempt));
+          continue;
+        }
+        break;
+      }
+    }
+    throw lastError ?? new Error("Model failed to load");
   }
 
   async embed(text: string): Promise<number[]> {
@@ -136,6 +174,13 @@ class ModelRegistry {
   getConfig(): ModelConfig | null { return this.config; }
   isLoaded(): boolean { return this.loadedModel !== null; }
   getTier(): ModelTier | null { return this.loadedTier; }
+
+  reset(): void {
+    this.loadedModel = null;
+    this.loadedTier = null;
+    this.loadingPromise = null;
+    this.config = null;
+  }
 }
 
 export const modelRegistry = new ModelRegistry();

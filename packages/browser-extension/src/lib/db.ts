@@ -244,6 +244,35 @@ class ContextMoverDB extends Dexie {
 
 export const dexieDb = new ContextMoverDB();
 
+// ── Schema-conflict recovery ────────────────────────────────────────────────
+// Dexie cannot alter the primary key of an existing store. If a prior version
+// created `metaPrompts` with keyPath `id` and a newer version needs the compound
+// key `[sessionId+platform+tier]`, Dexie throws SchemaError on open. We catch it,
+// delete the DB, and let Dexie recreate from scratch. Local session data can be
+// re-captured from the page, so this is safe.
+export async function ensureDbReady(): Promise<void> {
+  if (dexieDb.isOpen()) return;
+  try {
+    await dexieDb.open();
+  } catch (err: any) {
+    const msg = err?.message ?? String(err);
+    if (
+      msg.includes("Schema") ||
+      msg.includes("keyPath") ||
+      msg.includes("object store") ||
+      msg.includes("Cannot upgrade") ||
+      msg.includes("not compatible")
+    ) {
+      console.warn("[CM:db] Schema conflict detected, recreating database...");
+      await Dexie.delete("contextmover");
+      await dexieDb.open();
+      console.log("[CM:db] Database recreated successfully");
+    } else {
+      throw err;
+    }
+  }
+}
+
 // Friendly aliases — direct table exports for ergonomic imports elsewhere.
 export const chunkEmbeddings: Table<ChunkEmbedding, string> = dexieDb.chunkEmbeddings;
 export const sessionHashes: Table<SessionHash, string> = dexieDb.sessionHashes;

@@ -1,5 +1,5 @@
 // packages/browser-extension/src/content/gemini.ts
-import { detectRoleFromElement, extractContent, extractMessageContent, findChatContainerFor, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { detectRoleFromElement, extractContent, extractMessageContent, findChatContainerFor, injectWithRetry, runCapturePipeline, sendCapture, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "./shared";
 
 const GEMINI_SELECTORS = {
@@ -94,6 +94,39 @@ function detectByStructure(): Message[] {
 
   return messages;
 }
+
+// ── XHR interceptor — supplement to DOM scraping for Gemini ───────────────────
+function installXHRInterceptor(): void {
+  const script = document.createElement('script');
+  script.textContent = `
+    (function() {
+      const _open = XMLHttpRequest.prototype.open;
+      const _send = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.open = function(method, url) {
+        this._cm_url = url;
+        return _open.apply(this, arguments);
+      };
+      XMLHttpRequest.prototype.send = function() {
+        this.addEventListener('load', function() {
+          try {
+            if (this._cm_url &&
+                this._cm_url.includes('batchexecute')) {
+              window.dispatchEvent(new CustomEvent(
+                '__CM_GEMINI_XHR__',
+                { detail: this.responseText }
+              ));
+            }
+          } catch {}
+        });
+        return _send.apply(this, arguments);
+      };
+    })();
+  `;
+  document.documentElement.appendChild(script);
+  script.remove();
+}
+
+installXHRInterceptor();
 
 startSessionCapture({
   platform: "gemini",

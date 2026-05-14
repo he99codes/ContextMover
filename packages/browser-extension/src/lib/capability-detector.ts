@@ -187,8 +187,20 @@ async function detectWebGpu(): Promise<boolean> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const gpu = (navigator as any).gpu;
     if (!gpu?.requestAdapter) return false;
-    const adapter = await gpu.requestAdapter();
-    return Boolean(adapter);
+    // Race against 2s timeout — M1/M2 Macs can have a slow first-request
+    const adapter = await Promise.race([
+      gpu.requestAdapter({ powerPreference: "high-performance" }) as Promise<unknown>,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
+    ]);
+    if (!adapter) return false;
+    // Log GPU renderer info when available (helps debug M1 vs. discrete GPU)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const info = await (adapter as any).requestAdapterInfo?.();
+      const renderer = info?.renderer ?? info?.description ?? "WebGPU adapter";
+      console.debug("[CM:hw] WebGPU confirmed:", renderer);
+    } catch { /* requestAdapterInfo not universally available */ }
+    return true;
   } catch {
     return false;
   }

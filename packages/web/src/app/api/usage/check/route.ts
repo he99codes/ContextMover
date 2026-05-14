@@ -14,6 +14,22 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+  try {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const body = await req.json().catch(() => ({})) as { tier?: number };
+    return NextResponse.json({
+      allowed: true,
+      plan: 'free',
+      unlimited: false,
+      tier: body.tier ?? 1,
+      used: 0,
+      limit: 50,
+      remaining: 50,
+      _warning: 'Supabase env vars not configured',
+    });
+  }
+
   const user = await getAuthUserFromRequest(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -87,4 +103,11 @@ export async function POST(req: NextRequest) {
     limit,
     remaining: limit - count,
   });
+  } catch (err: any) {
+    console.error('[CM:usage] check error:', err);
+    return NextResponse.json(
+      { allowed: true, error: err.message },
+      { status: 200 }
+    );
+  }
 }

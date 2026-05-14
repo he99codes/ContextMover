@@ -161,7 +161,7 @@ function MigrationSuccess({
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 500) // wait for download to start before revoking
     setDownloaded(true)
     setDropped(true)
     deleteCachedFile()
@@ -275,6 +275,12 @@ function MigrationSuccess({
           download={migrationFile.filename}
           draggable={true}
           onDragStart={(e) => {
+            if (fileContent) {
+              try {
+                const file = new File([fileContent], migrationFile.filename, { type: 'application/xml' })
+                e.dataTransfer.items.add(file)
+              } catch { /* dataTransfer.items may be unavailable — fallback to href drag */ }
+            }
             e.dataTransfer.effectAllowed = 'copy'
             setDragging(true)
           }}
@@ -285,7 +291,7 @@ function MigrationSuccess({
           }}
           onClick={(e) => {
             e.preventDefault()
-            handleManualDownload()
+            // Drag zone click should not auto-download — use the Download button below
           }}
           style={{
             display: 'block',
@@ -690,6 +696,12 @@ export default function MigrationModal({
       );
     }
 
+    // Resolve the active template object so the SW can attach it directly
+    // (system templates live only in-memory and are never in IndexedDB)
+    const activeTemplate = promptTemplateId
+      ? ([...allTemplates.system, ...allTemplates.user].find((t) => t.id === promptTemplateId) ?? null)
+      : null;
+
     chrome.runtime.sendMessage(
       {
         type: "MIGRATE_CONTEXT",
@@ -700,6 +712,9 @@ export default function MigrationModal({
           tier,
           caveman,
           promptTemplateId: promptTemplateId ?? undefined,
+          promptTemplate: activeTemplate
+            ? { name: activeTemplate.name, content: activeTemplate.content, icon: activeTemplate.icon }
+            : undefined,
           projectContext,
           ...(tier === 3 && {
             useAttentionEngine: true,
@@ -836,15 +851,21 @@ export default function MigrationModal({
             return (
               <button
                 key={t}
-                onClick={() => { if (!disabled) setTier(t); }}
-                disabled={disabled}
-                title={disabled ? "Attention Engine unavailable — model could not load on this device" : ""}
+                onClick={() => {
+                  if (disabled && t === 3) {
+                    chrome.runtime.sendMessage({ type: 'RETRY_MODEL_LOAD' }).catch(() => {});
+                  } else if (!disabled) {
+                    setTier(t);
+                  }
+                }}
+                disabled={false}
+                title={disabled ? "Attention Engine unavailable — click to retry loading" : ""}
                 style={{
                   background: disabled ? "#0A0A0A" : "#1A1A1A",
                   border: `1px solid ${active ? "#00FF88" : disabled ? "#1A1A1A" : "#2A2A2A"}`,
                   borderRadius: "6px",
                   padding: "4px 6px",
-                  cursor: disabled ? "not-allowed" : "pointer",
+                  cursor: "pointer",
                   textAlign: "center",
                   transition: "border-color 0.15s ease",
                   boxShadow: active ? "0 0 8px rgba(0,255,136,0.18), inset 0 0 6px rgba(0,255,136,0.04)" : "none",
@@ -862,9 +883,9 @@ export default function MigrationModal({
               >
                 <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: active ? dot : "#333", flexShrink: 0 }} />
                 <div style={{ fontSize: "9px", fontWeight: 900, color: active ? "#00FF88" : disabled ? "#555" : "#888", textTransform: "uppercase", letterSpacing: "0.04em", lineHeight: 1.2 }}>
-                  {disabled ? "Attention (off)" : label}
+                  {disabled ? "Attention" : label}
                 </div>
-                <div style={{ fontSize: "8px", color: active ? "#00CC6A" : disabled ? "#444" : "#333" }}>{disabled ? "Unavailable" : speed}</div>
+                <div style={{ fontSize: "8px", color: active ? "#00CC6A" : disabled ? "#F59E0B" : "#333" }}>{disabled ? "↺ Retry" : speed}</div>
                 {t === 3 && active && hw?.tier === "minimal" && (
                   <div style={{ fontSize: "8px", color: "#F59E0B", marginTop: "2px", textAlign: "center" }}>
                     ⚠ May take 2+ min

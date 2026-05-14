@@ -1,5 +1,5 @@
 // packages/browser-extension/src/content/claude.ts
-import { detectRoleFromElement, extractContent, extractMessageContent, findChatContainerFor, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { detectRoleFromElement, extractContent, extractMessageContent, findChatContainerFor, injectWithRetry, runCapturePipeline, sendCapture, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "./shared";
 
 console.log("[ContextMover] Claude content script loaded");
@@ -107,6 +107,67 @@ function detectByStructure(): Message[] {
 
   return messages;
 }
+
+// ── Network interceptor — captures ALL messages from the Claude API ────────────
+function installFetchInterceptor(): void {
+  const script = document.createElement('script');
+  script.textContent = `
+    (function() {
+      const _originalFetch = window.fetch;
+      window.fetch = async function(...args) {
+        const response = await _originalFetch.apply(this, args);
+        const url = typeof args[0] === 'string'
+          ? args[0]
+          : args[0]?.url ?? '';
+        if (url.includes('/chat_conversations/') &&
+            url.includes('tree=True')) {
+          try {
+            const clone = response.clone();
+            const data = await clone.json();
+            if (data?.chat_messages) {
+              window.dispatchEvent(new CustomEvent(
+                '__CM_CLAUDE_CONVERSATION__',
+                { detail: JSON.stringify(data) }
+              ));
+            }
+          } catch {}
+        }
+        return response;
+      };
+    })();
+  `;
+  document.documentElement.appendChild(script);
+  script.remove();
+}
+
+window.addEventListener('__CM_CLAUDE_CONVERSATION__', (e: Event) => {
+  try {
+    const data = JSON.parse((e as CustomEvent).detail);
+    const messages: Message[] = (data.chat_messages as any[])
+      .map((m: any) => {
+        const text = Array.isArray(m.content)
+          ? m.content
+              .filter((c: any) => c.type === 'text')
+              .map((c: any) => c.text as string)
+              .join('\n')
+          : typeof m.content === 'string'
+            ? m.content
+            : '';
+        return {
+          role: (m.sender === 'human' ? 'user' : 'assistant') as 'user' | 'assistant',
+          content: text.trim(),
+          timestamp: new Date(m.created_at).getTime(),
+        };
+      })
+      .filter((m: Message) => m.content.length > 0);
+    if (messages.length > 0) {
+      console.debug('[CM:capture] Claude network intercept:', messages.length, 'msgs');
+      void sendCapture(messages, 'claude');
+    }
+  } catch {}
+});
+
+installFetchInterceptor();
 
 startSessionCapture({
   platform: "claude",

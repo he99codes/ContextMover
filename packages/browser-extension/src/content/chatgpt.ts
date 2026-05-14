@@ -1,5 +1,5 @@
 // packages/browser-extension/src/content/chatgpt.ts
-import { detectRoleFromElement, extractContent, extractMessageContent, findChatContainerFor, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { detectRoleFromElement, extractContent, extractMessageContent, findChatContainerFor, injectWithRetry, runCapturePipeline, sendCapture, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "./shared";
 
 // ── DIAGNOSTIC STAGE 1 ────────────────────────────────────────────────────────
@@ -51,6 +51,80 @@ function detectByStructure(): Message[] {
 
   return messages;
 }
+
+// ── Network interceptor — captures ALL messages from the ChatGPT API ──────────
+function installFetchInterceptor(): void {
+  const script = document.createElement('script');
+  script.textContent = `
+    (function() {
+      const _originalFetch = window.fetch;
+      window.fetch = async function(...args) {
+        const response = await _originalFetch.apply(this, args);
+        const url = typeof args[0] === 'string'
+          ? args[0]
+          : args[0]?.url ?? '';
+        if (url.includes('/backend-api/conversation/') &&
+            !url.includes('/continue') &&
+            !url.includes('/regenerate')) {
+          try {
+            const clone = response.clone();
+            const data = await clone.json();
+            if (data?.mapping) {
+              window.dispatchEvent(new CustomEvent(
+                '__CM_CHATGPT_CONVERSATION__',
+                { detail: JSON.stringify(data) }
+              ));
+            }
+          } catch {}
+        }
+        return response;
+      };
+    })();
+  `;
+  document.documentElement.appendChild(script);
+  script.remove();
+}
+
+function parseChatGPTConversationMapping(
+  mapping: Record<string, unknown>
+): Message[] {
+  const messages: Message[] = [];
+  for (const node of Object.values(mapping)) {
+    const msg = (node as any).message;
+    if (!msg) continue;
+    if (msg.status !== 'finished_successfully') continue;
+    const role = msg.author?.role;
+    if (role !== 'user' && role !== 'assistant') continue;
+    const parts = msg.content?.parts;
+    if (!Array.isArray(parts)) continue;
+    const content = parts
+      .filter((p: unknown) => typeof p === 'string')
+      .join('\n')
+      .trim();
+    if (content.length < 2) continue;
+    messages.push({
+      role: role as 'user' | 'assistant',
+      content,
+      timestamp: msg.create_time
+        ? Math.floor(msg.create_time * 1000)
+        : Date.now(),
+    });
+  }
+  return messages.sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
+}
+
+window.addEventListener('__CM_CHATGPT_CONVERSATION__', (e: Event) => {
+  try {
+    const data = JSON.parse((e as CustomEvent).detail);
+    const messages = parseChatGPTConversationMapping(data.mapping);
+    if (messages.length > 0) {
+      console.debug('[CM:capture] ChatGPT network intercept:', messages.length, 'msgs');
+      void sendCapture(messages, 'chatgpt');
+    }
+  } catch {}
+});
+
+installFetchInterceptor();
 
 startSessionCapture({
   platform: "chatgpt",

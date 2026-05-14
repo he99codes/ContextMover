@@ -754,20 +754,30 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           break;
         }
         const tabId = sender.tab.id;
+        const hint = (msg as { shouldOpen?: boolean }).shouldOpen;
 
-        // Detect actual panel state via getContexts() — immune to SW restart state loss
-        let panelIsOpen = false;
-        try {
-          const contexts = await chrome.runtime.getContexts({
-            contextTypes: ["SIDE_PANEL" as chrome.runtime.ContextType],
-          });
-          panelIsOpen = contexts.some((ctx: { tabId?: number }) => ctx.tabId === tabId);
-        } catch {
-          panelIsOpen = false;
+        // If the content script passes the desired target state, use it directly
+        // to avoid a getContexts() await before sidePanel.open() — the await can
+        // consume the user-gesture activation token in some Chrome builds.
+        let panelShouldOpen: boolean;
+        if (hint !== undefined) {
+          panelShouldOpen = hint;
+        } else {
+          // Fallback: derive target state from live panel contexts
+          let panelIsOpen = false;
+          try {
+            const contexts = await chrome.runtime.getContexts({
+              contextTypes: ["SIDE_PANEL" as chrome.runtime.ContextType],
+            });
+            panelIsOpen = contexts.some((ctx: { tabId?: number }) => ctx.tabId === tabId);
+          } catch {
+            panelIsOpen = false;
+          }
+          panelShouldOpen = !panelIsOpen;
         }
 
-        if (panelIsOpen) {
-          // Try close — sidePanel.close() requires Chrome 123+
+        if (!panelShouldOpen) {
+          // Close the panel
           try {
             await (chrome.sidePanel as unknown as { close(d: { tabId: number }): Promise<void> }).close({ tabId });
             sendResponse({ isOpen: false });
@@ -780,6 +790,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             sendResponse({ isOpen: false });
           }
         } else {
+          // Open the panel
           try {
             await chrome.sidePanel.open({ tabId });
             sendResponse({ isOpen: true });
@@ -836,6 +847,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           }
         })();
         sendResponse({ ok: true });
+        break;
+      }
+
+      case "RETRY_MODEL_LOAD": {
+        attentionEngineAvailable = true;
+        await chrome.storage.local.set({ attentionEngineAvailable: true });
+        sendResponse({ ok: true });
+        void (async () => {
+          try {
+            await semanticIndex.warmup();
+            console.debug("[CM:sw] RETRY_MODEL_LOAD warmup succeeded");
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            if (msg.includes("Failed to fetch")) {
+              attentionEngineAvailable = false;
+              await chrome.storage.local.set({ attentionEngineAvailable: false });
+              console.debug("[CM:sw] RETRY_MODEL_LOAD still blocked:", msg);
+            } else {
+              console.warn("[CM:sw] RETRY_MODEL_LOAD warmup error:", e);
+            }
+          }
+        })();
         break;
       }
 
@@ -1409,6 +1442,7 @@ async function handleMigrateContext(
     precomputedSummary?: string;
     precomputedAttentionMap?: unknown;
     promptTemplateId?: string | null;
+    promptTemplate?: { name: string; content: string; icon: string } | null;
     projectContext?: string | null;
   },
   sendResponse: (r: unknown) => void,
@@ -1484,41 +1518,41 @@ async function handleMigrateContext(
   }
 
   // ── Attach prompt template to XML if specified ────────────────────────────────────
-  if (payload.promptTemplateId) {
+  // payload.promptTemplate is preferred (includes system templates which are never in DB).
+  // Fall back to DB lookup for legacy callers that only pass promptTemplateId.
+  const tplData = payload.promptTemplate
+    ?? (payload.promptTemplateId ? await dexieDb.prompt_templates.get(payload.promptTemplateId).catch(() => null) : null);
+  if (tplData) {
     try {
-      const template = await dexieDb.prompt_templates.get(payload.promptTemplateId);
-      if (template) {
-        const templateSection = `
+      const templateSection = `
   <prompt_template>
-    <name><![CDATA[${template.name}]]></name>
-    <content><![CDATA[${template.content}]]></content>
+    <name><![CDATA[${tplData.name}]]></name>
+    <content><![CDATA[${tplData.content}]]></content>
   </prompt_template>`;
-        migrationFile.content = migrationFile.content.replace(
-          '</meta>',
-          `</meta>\n${templateSection}`
-        );
-        migrationFile.charCount = migrationFile.content.length;
-        migrationFile.estimatedTokens = Math.ceil(migrationFile.content.length / 4);
-      }
+      migrationFile.content = migrationFile.content.replace(
+        '</meta>',
+        `</meta>\n${templateSection}`
+      );
+      migrationFile.charCount = migrationFile.content.length;
+      migrationFile.estimatedTokens = Math.ceil(migrationFile.content.length / 4);
+      console.debug('[CM:sw] Prompt template attached:', tplData.name);
     } catch (err) {
       console.warn('[CM:sw] Prompt template attach failed:', err);
     }
   }
 
   // ── Append project files if provided ──────────────────────────────────────────
+  // projectContext is already structured XML/Markdown from fileContextBuilder —
+  // insert it directly without any additional CDATA wrapping.
   if (payload.projectContext && payload.projectContext.length > 0) {
-    const projectSection = `
-  <project_files>
-    <![CDATA[${payload.projectContext.replace(/\]\]>/g, ']]]]><![CDATA[>')}]]>
-  </project_files>`;
     const closingTag = migrationFile.content.lastIndexOf('</contextmover_migration>');
     if (closingTag !== -1) {
       migrationFile.content =
         migrationFile.content.slice(0, closingTag) +
-        projectSection + '\n' +
+        '\n' + payload.projectContext + '\n' +
         migrationFile.content.slice(closingTag);
     } else {
-      migrationFile.content += projectSection;
+      migrationFile.content += '\n' + payload.projectContext;
     }
     migrationFile.charCount = migrationFile.content.length;
     migrationFile.estimatedTokens = Math.ceil(migrationFile.content.length / 4);

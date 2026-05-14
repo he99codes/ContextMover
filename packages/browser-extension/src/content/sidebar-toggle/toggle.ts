@@ -110,17 +110,18 @@ function inject(): HTMLElement {
     }, 2000);
 
     chrome.runtime.sendMessage(
-      { type: "TOGGLE_SIDEBAR" },
+      { type: "TOGGLE_SIDEBAR", shouldOpen: isOpen },
       (res) => {
         clearTimeout(safetyTimer);
         busy = false;
+        updateBtn(); // clear loading indicator immediately regardless of outcome
 
         if (chrome.runtime.lastError) {
           // SW was sleeping — wake it up and retry
           console.warn("[CM:toggle] SW sleeping, retrying...");
           setTimeout(() => {
             chrome.runtime.sendMessage(
-              { type: "TOGGLE_SIDEBAR" },
+              { type: "TOGGLE_SIDEBAR", shouldOpen: isOpen },
               (retryRes) => {
                 if (chrome.runtime.lastError) {
                   // Both failed — revert
