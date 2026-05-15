@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Database, Check, Copy, ChevronRight, Loader2, Shield,
-  Link2, Terminal, Zap, RefreshCw, Trash2, LogOut,
+  Link2, Terminal, Zap, RefreshCw, Trash2, LogOut, AlertCircle,
 } from "lucide-react";
 import {
   getUserVaultClient, setVaultConfig, clearVaultConfig,
@@ -29,6 +29,9 @@ export function VaultSetupWizard() {
   const [copied, setCopied] = useState<string | null>(null);
   const [sessionsCount, setSessionsCount] = useState<number | null>(null);
   const [deleteInput, setDeleteInput] = useState("");
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     syncVaultConfigFromUrl();
@@ -44,8 +47,32 @@ export function VaultSetupWizard() {
   async function loadSessionsCount() {
     const client = getUserVaultClient();
     if (!client) return;
-    const { count } = await client.from("cm_sessions").select("id", { count: "exact", head: true });
-    setSessionsCount(count ?? 0);
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      const { count, error } = await client
+        .from("cm_sessions")
+        .select("id", { count: "exact", head: true });
+      if (
+        error?.code === "42P01" ||
+        error?.message?.toLowerCase().includes("schema cache") ||
+        error?.message?.toLowerCase().includes("couldn't find table") ||
+        error?.message?.toLowerCase().includes("could not find")
+      ) {
+        setSyncError(
+          "Schema not found — run the Setup SQL in Supabase Dashboard → SQL Editor."
+        );
+        return;
+      }
+      if (error) {
+        setSyncError(`Sync error: ${error.message}`);
+        return;
+      }
+      setSessionsCount(count ?? 0);
+      setLastSyncedAt(Date.now());
+    } finally {
+      setSyncing(false);
+    }
   }
 
   async function handleManualConnect() {
@@ -66,7 +93,12 @@ export function VaultSetupWizard() {
       const client = createBrowserClient(url, anonKey);
       const { error: pingErr } = await client.from("cm_sessions").select("id").limit(1);
 
-      if (pingErr?.code === "42P01") {
+      if (
+        pingErr?.code === "42P01" ||
+        pingErr?.message?.toLowerCase().includes("schema cache") ||
+        pingErr?.message?.toLowerCase().includes("couldn't find table") ||
+        pingErr?.message?.toLowerCase().includes("could not find")
+      ) {
         throw new Error(
           "Vault schema not found. Please run the Setup SQL in your Supabase Dashboard → SQL Editor, then try again."
         );
@@ -181,6 +213,41 @@ alter publication supabase_realtime add table cm_sessions;`;
           ))}
         </div>
 
+        {/* Sync status */}
+        <div className="rounded-[8px] border border-[#2A2A2A] bg-[#111] px-4 py-3 flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-[#F5F5F5]">Vault sync</p>
+            <p className="text-[11px] text-[#6B6B6B] mt-0.5">
+              {lastSyncedAt
+                ? `Last checked: ${new Date(lastSyncedAt).toLocaleTimeString()} · ${sessionsCount ?? 0} sessions`
+                : "Not yet synced this session"}
+            </p>
+            {syncError && (
+              <p className="text-[11px] text-red-400 mt-1 flex items-center gap-1.5">
+                <AlertCircle size={11} className="shrink-0" /> {syncError}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => { void loadSessionsCount(); }}
+            disabled={syncing}
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-[4px] border border-[#2A2A2A] px-3 py-2 text-xs font-medium text-[#6B6B6B] hover:text-[#F5F5F5] hover:border-[#3A3A3A] transition-colors disabled:opacity-50"
+          >
+            {syncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+            Sync Now
+          </button>
+        </div>
+
+        {/* Super Memory teaser — TASK 3 */}
+        <div className="flex items-center gap-2 px-1">
+          <span className="flex h-1.5 w-1.5 rounded-full bg-[#00FF88]/40 shrink-0" />
+          <p className="text-[10px] font-mono text-[#2A4A2A]">
+            Vault sync powers{" "}
+            <span className="text-[#00FF88]/50">Super Memory</span>
+            {" "}— coming soon
+          </p>
+        </div>
+
         {/* Privacy notice */}
         <div className="flex items-start gap-3 rounded-[6px] border border-[#00FF88]/10 bg-[#00FF88]/4 px-4 py-3">
           <Shield size={13} className="mt-0.5 shrink-0 text-[#00FF88]" />
@@ -191,12 +258,6 @@ alter publication supabase_realtime add table cm_sessions;`;
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => { void loadSessionsCount(); }}
-            className="inline-flex items-center gap-1.5 rounded-[4px] border border-[#2A2A2A] px-3 py-2 text-xs font-medium text-[#6B6B6B] hover:text-[#F5F5F5] hover:border-[#3A3A3A] transition-colors"
-          >
-            <RefreshCw size={12} /> Refresh
-          </button>
           <a
             href={`https://app.supabase.com/project/${vaultMeta?.projectRef ?? "_"}`}
             target="_blank"

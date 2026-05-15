@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Zap, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,9 +72,7 @@ function AuthForm() {
         {/* Logo */}
         <div className="mb-8 text-center">
           <div className="mb-3 flex items-center justify-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[#00FF88]">
-              <Zap size={18} className="text-black" />
-            </div>
+            <Image src="/logo.png" alt="ContextMover" width={56} height={56} priority style={{ height: 36, width: "auto" }} />
             <span className="text-xl font-semibold text-[#F5F5F5]">
               ContextMover
             </span>

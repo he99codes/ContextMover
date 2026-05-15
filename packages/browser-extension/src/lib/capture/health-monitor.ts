@@ -70,6 +70,9 @@ export class CaptureHealthMonitor {
         message: `Capture quality dropped on ${platform}. Some messages may be missing.`,
       };
       await chrome.storage.local.set({ [`alert_${platform}`]: alert });
+    } else {
+      // Rate has recovered — clear any existing alert immediately.
+      await chrome.storage.local.remove(`alert_${platform}`);
     }
   }
 

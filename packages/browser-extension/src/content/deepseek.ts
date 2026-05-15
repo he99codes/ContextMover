@@ -1,5 +1,5 @@
 // packages/browser-extension/src/content/deepseek.ts
-import { detectRoleFromElement, extractContent, extractMessageContent, findChatContainerFor, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { extractMessageContent, injectWithRetry, runCapturePipeline, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
 
 console.log("[ContextMover] DeepSeek content script loaded");
@@ -116,27 +116,6 @@ function scrapeMessages(): Message[] {
     preview: messages.map(m => ({ role: m.role, len: m.content.length }))
   });
   if (a === 0 && u > 0) console.error("[ContextMover:deepseek] ASSISTANT MESSAGES MISSING");
-
-  return messages;
-}
-
-// ── Structural detection fallback ───────────────────────────────────────────
-function detectByStructure(): Message[] {
-  const container = findChatContainerFor('deepseek');
-  if (!container) return [];
-
-  const messages: Message[] = [];
-  for (const child of Array.from(container.children)) {
-    const el = child as HTMLElement;
-
-    const content = extractContent(el);
-    if (!content || content.trim().length < 5) continue;
-
-    const role = detectRoleFromElement(el, 'deepseek');
-    if (!role) continue;
-
-    messages.push({ role, content, timestamp: Date.now() });
-  }
 
   return messages;
 }

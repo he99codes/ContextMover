@@ -139,7 +139,8 @@
   function dispatchCaptured(
     platform: Platform,
     messages: CapturedMessage[],
-    meta?: RequestMetadata
+    meta?: RequestMetadata,
+    fullHistory = false
   ): void {
     if (!messages.length) return;
     // Merge accumulated metadata for this conversation
@@ -156,7 +157,7 @@
     try {
       window.dispatchEvent(
         new CustomEvent("contextmover:captured", {
-          detail: { platform, messages, metadata: mergedMeta },
+          detail: { platform, messages, metadata: mergedMeta, fullHistory },
         })
       );
     } catch (err) {
@@ -652,6 +653,77 @@
     }
   }
 
+  // ── History (conversation-load) parsers ────────────────────────────────────
+  // These parsers handle the FULL conversation JSON returned when the platform
+  // fetches an existing conversation on page load — NOT streaming deltas.
+  // Called in handleAIResponse before the SSE parsers when the body is valid JSON.
+
+  function parseChatGPTHistory(json: Record<string, unknown>): CapturedMessage[] {
+    try {
+      const mapping = json.mapping as Record<string, Record<string, unknown>> | undefined;
+      if (!mapping || typeof mapping !== "object") return [];
+      const messages: CapturedMessage[] = [];
+      for (const node of Object.values(mapping)) {
+        const msg = (node as Record<string, unknown>)?.message as Record<string, unknown> | undefined;
+        if (!msg) continue;
+        if (msg.status !== "finished_successfully") continue;
+        const author = msg.author as Record<string, unknown> | undefined;
+        const role = String(author?.role ?? "");
+        if (role !== "user" && role !== "assistant") continue;
+        const content = msg.content as Record<string, unknown> | undefined;
+        const parts = content?.parts as unknown[] | undefined;
+        if (!Array.isArray(parts)) continue;
+        const text = parts
+          .filter((p): p is string => typeof p === "string")
+          .join("\n")
+          .trim();
+        if (text.length < 2) continue;
+        const createTime = msg.create_time as number | undefined;
+        const fin = finalize(
+          role as Role,
+          text,
+          createTime ? Math.floor(createTime * 1000) : undefined
+        );
+        if (fin) messages.push(fin);
+      }
+      return messages.sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
+    } catch {
+      return [];
+    }
+  }
+
+  function parseClaudeHistory(json: Record<string, unknown>): CapturedMessage[] {
+    try {
+      const chatMessages = json.chat_messages as Array<Record<string, unknown>> | undefined;
+      if (!Array.isArray(chatMessages)) return [];
+      const messages: CapturedMessage[] = [];
+      for (const m of chatMessages) {
+        const sender = String(m?.sender ?? "");
+        if (sender !== "human" && sender !== "assistant") continue;
+        const role: Role = sender === "human" ? "user" : "assistant";
+        let text = "";
+        if (Array.isArray(m.content)) {
+          text = (m.content as Array<Record<string, unknown>>)
+            .filter((c) => c.type === "text")
+            .map((c) => String(c.text ?? ""))
+            .join("\n");
+        } else if (typeof m.content === "string") {
+          text = m.content;
+        } else if (typeof m.text === "string") {
+          text = m.text;
+        }
+        const ts = m.created_at
+          ? new Date(String(m.created_at)).getTime()
+          : Date.now();
+        const fin = finalize(role, text, ts);
+        if (fin) messages.push(fin);
+      }
+      return messages;
+    } catch {
+      return [];
+    }
+  }
+
   // ── Response handler ───────────────────────────────────────────────────────
   async function handleAIResponse(platform: Platform, response: Response, requestBody?: string | null): Promise<void> {
     try {
@@ -666,13 +738,33 @@
       }
 
       let messages: CapturedMessage[] = [];
-      switch (platform) {
-        case "chatgpt":    messages = parseChatGPT(text);                    break;
-        case "claude":     messages = parseClaude(text, requestBody);         break;
-        case "gemini":     messages = parseGemini(text);                      break;
-        case "grok":       messages = parseGrok(text, requestBody);           break;
-        case "deepseek":   messages = parseDeepSeek(text, requestBody);       break;
-        case "perplexity": messages = parsePerplexity(text, requestBody);     break;
+      let isFullHistory = false;
+
+      // Try JSON history parse first — conversation-load GETs return full JSON,
+      // not SSE. If we detect the right structure, use the history parser and
+      // signal fullHistory so the bridge replaces its accumulator rather than
+      // merging partial captures.
+      try {
+        const json = JSON.parse(text) as Record<string, unknown>;
+        if (platform === "chatgpt" && json.mapping && typeof json.mapping === "object") {
+          messages = parseChatGPTHistory(json);
+          if (messages.length > 0) isFullHistory = true;
+        } else if (platform === "claude" && Array.isArray(json.chat_messages)) {
+          messages = parseClaudeHistory(json);
+          if (messages.length > 0) isFullHistory = true;
+        }
+      } catch { /* not JSON — fall through to SSE parsers */ }
+
+      // SSE streaming fallback (or other platforms that don't have a history parser)
+      if (messages.length === 0) {
+        switch (platform) {
+          case "chatgpt":    messages = parseChatGPT(text);                    break;
+          case "claude":     messages = parseClaude(text, requestBody);         break;
+          case "gemini":     messages = parseGemini(text);                      break;
+          case "grok":       messages = parseGrok(text, requestBody);           break;
+          case "deepseek":   messages = parseDeepSeek(text, requestBody);       break;
+          case "perplexity": messages = parsePerplexity(text, requestBody);     break;
+        }
       }
 
       if (messages.length === 0) {
@@ -690,8 +782,8 @@
       // Extract metadata from request body
       const metadata = extractRequestMetadata(requestBody ?? null, response.url);
 
-      console.log(`${TAG} ${platform}: parsed ${messages.length} msg(s)`, metadata ? `model=${metadata.model}` : "");
-      dispatchCaptured(platform, messages, metadata);
+      console.log(`${TAG} ${platform}: parsed ${messages.length} msg(s) (fullHistory=${isFullHistory})`, metadata ? `model=${metadata.model}` : "");
+      dispatchCaptured(platform, messages, metadata, isFullHistory);
     } catch (err) {
       console.warn(`${TAG} handleAIResponse failed`, err);
     }

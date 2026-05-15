@@ -1,17 +1,8 @@
 // packages/browser-extension/src/content/grok.ts
-import { detectRoleFromElement, extractContent, extractMessageContent, findChatContainerFor, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { extractContent, injectWithRetry, runCapturePipeline, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "./shared";
 
 console.log("[ContextMover] Grok content script loaded");
-
-function isStreaming(el: HTMLElement): boolean {
-  return (
-    el.classList.contains("result-streaming") ||
-    el.querySelector(".result-streaming") !== null ||
-    el.closest("[data-is-streaming]") !== null ||
-    el.closest("[class*='streaming']") !== null
-  );
-}
 
 function scrapeMessages(): Message[] {
   const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
@@ -33,27 +24,6 @@ function scrapeMessages(): Message[] {
     content: extractContent(el),
     timestamp: Date.now()
   })).filter(m => m.content.trim().length > 0)
-}
-
-// ── Structural detection fallback ───────────────────────────────────────────
-function detectByStructure(): Message[] {
-  const container = findChatContainerFor('grok');
-  if (!container) return [];
-
-  const messages: Message[] = [];
-  for (const child of Array.from(container.children)) {
-    const el = child as HTMLElement;
-
-    const content = extractContent(el);
-    if (!content || content.trim().length < 5) continue;
-
-    const role = detectRoleFromElement(el, 'grok');
-    if (!role) continue;
-
-    messages.push({ role, content, timestamp: Date.now() });
-  }
-
-  return messages;
 }
 
 startSessionCapture({

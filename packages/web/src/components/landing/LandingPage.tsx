@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Check, Mail } from "lucide-react";
 import { CHROME_STORE_URL } from "@/config/urls";
 import BuildWithMe from "@/components/BuildWithMe";
+import EmailWidget from "@/components/EmailWidget";
 
 // ─── Scroll-reveal hook ───────────────────────────────────────────────────────
 
@@ -233,7 +234,7 @@ export default function LandingPage() {
               { label: "Smart Summary",    desc: "60–80% compression",   href: "#tiers" },
               { label: "Attention Engine", desc: "Semantic AI memory",   href: "#tiers" },
               { label: "Caveman Mode",     desc: "Faster AI responses",  href: "#tiers" },
-              { label: "Project Files",    desc: "Local folder context", href: "#tiers" },
+              { label: "Project Files",    desc: "Local folder context", href: "#project-files" },
               { label: "Personal Vault",   desc: "Your own Supabase",    href: "/settings/vault" },
             ]} />
             <NavDropdown label="Platforms" items={[
@@ -247,6 +248,9 @@ export default function LandingPage() {
             <a href="/pricing" className="px-3 py-1.5 text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors rounded-md hover:bg-[#111]">Pricing</a>
             <a href="/dashboard" className="px-3 py-1.5 text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors rounded-md hover:bg-[#111]">Dashboard</a>
             <a href="/docs" className="px-3 py-1.5 text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors rounded-md hover:bg-[#111]">Docs</a>
+            <a href="/feedback" className="px-3 py-1.5 text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors rounded-md hover:bg-[#111]">Feedback</a>
+            <a href="/contact" className="px-3 py-1.5 text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors rounded-md hover:bg-[#111]">Contact</a>
+            <a href="#build-with-me" className="px-3 py-1.5 text-sm text-[#00FF88]/60 hover:text-[#00FF88] transition-colors rounded-md hover:bg-[#111]">Build with me</a>
           </div>
 
           {/* Desktop right */}
@@ -266,13 +270,22 @@ export default function LandingPage() {
           <div className="md:hidden border-t border-[#1A1A1A] bg-[#0A0A0A] px-5 py-4 space-y-1">
             <div className="pb-3 mb-2 border-b border-[#1A1A1A]">
               <p className="text-[10px] font-mono uppercase tracking-widest text-[#3A3A3A] px-3 pb-1">Features</p>
-              {["Smart Summary", "Attention Engine", "Caveman Mode", "IDE Connection", "Personal Vault"].map(f => (
-                <a key={f} href="#tiers" className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-1.5 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>{f}</a>
+              {([
+                ["Smart Summary",    "#tiers"],
+                ["Attention Engine", "#tiers"],
+                ["Caveman Mode",     "#tiers"],
+                ["IDE Connection",   "#project-files"],
+                ["Personal Vault",   "/settings/vault"],
+              ] as const).map(([f, href]) => (
+                <a key={f} href={href} className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-1.5 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>{f}</a>
               ))}
             </div>
             <a href="/pricing" className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-2 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>Pricing</a>
             <a href="/dashboard" className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-2 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>Dashboard</a>
             <a href="/docs" className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-2 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>Docs</a>
+            <a href="/feedback" className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-2 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>Feedback</a>
+            <a href="/contact" className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-2 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>Contact</a>
+            <a href="#build-with-me" className="block text-sm text-[#00FF88]/60 hover:text-[#00FF88] py-2 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>Build with me</a>
             <div className="pt-3 flex flex-col gap-2">
               <a href="/auth" className="block text-center border border-[#2A2A2A] text-sm text-[#F5F5F5] py-2.5 px-4 rounded-md" onClick={() => setMenuOpen(false)}>Log in</a>
               <a href="/auth?mode=signup" className="block text-center bg-[#00FF88] text-[#0A0A0A] font-semibold text-sm px-4 py-2.5 rounded-md" onClick={() => setMenuOpen(false)}>Get for free</a>
@@ -314,18 +327,21 @@ export default function LandingPage() {
           </div>
           {/* Social proof */}
           <div className="flex flex-col items-center gap-3 mb-10 animate-fade-in" style={{ animationDelay: "340ms" }}>
-            <p className="text-sm text-[#6B6B6B]">Trusted by <strong className="text-[#F5F5F5]">1,200+ developers</strong> across</p>
+            <p className="text-sm text-[#6B6B6B]">The world&apos;s 1st and best attention-oriented migration tool —{" "}<strong className="text-[#F5F5F5]">trusted by developers who treat every token like gold.</strong></p>
             <div className="flex items-center gap-5 opacity-50">
               {["Claude", "ChatGPT", "Gemini", "Grok", "Perplexity", "DeepSeek"].map(p => (
                 <span key={p} className="text-xs font-mono text-[#6B6B6B]">{p}</span>
               ))}
             </div>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#6B6B6B] mb-14 animate-fade-in" style={{ animationDelay: "380ms" }}>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#6B6B6B] mb-4 animate-fade-in" style={{ animationDelay: "380ms" }}>
             {["■ Local-first", "▸ Works offline", "◈ 3-tier intelligence", "No account needed"].map((t, i) => (
               <span key={i}>{t}</span>
             ))}
           </div>
+          <p className="text-xs font-mono text-[#00FF88]/60 mb-10 animate-fade-in" style={{ animationDelay: "420ms" }}>
+            🔒 <strong className="text-[#00FF88]/80">Zero-knowledge</strong> — your data never leaves your machine · vault syncs only to your own Supabase · we cannot read or sell your conversations
+          </p>
           <div className="animate-slide-up" style={{ animationDelay: "480ms" }}>
             <TerminalDemo />
           </div>
@@ -336,7 +352,7 @@ export default function LandingPage() {
       <section className="bg-[#111111] py-24 px-5">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4">Every AI session starts from zero.</h2>
-          <p className="reveal text-[#6B6B6B] mb-14 max-w-lg mx-auto">You&apos;ve been there. You know how frustrating it is.</p>
+          <p className="reveal text-[#6B6B6B] mb-14">You&apos;ve been there. You know how frustrating it is.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-14">
             {[
               { emoji: "⊘", title: "Context window full", body: "You hit the limit. Start over. Re-explain everything from scratch. Hours of work, reduced to a blank chat." },
@@ -420,7 +436,7 @@ export default function LandingPage() {
                 className={`reveal reveal-d${i + 1} relative card-hover bg-[#1A1A1A] border-l-2 border border-[#2A2A2A] border-l-[#00FF88] rounded-2xl p-7 text-left flex flex-col gap-4 block ${i === 1 ? "ring-1 ring-[rgba(0,255,136,0.2)]" : ""}`}
               >
                 {card.badge && (
-                  <span className="absolute top-4 right-4 bg-[#00FF88] text-[#0A0A0A] text-[10px] font-bold px-2 py-0.5 rounded-full">{card.badge}</span>
+                  <span className="absolute top-4 right-4 bg-[#00FF88] text-[#0A0A0A] text-[11px] font-bold px-2.5 py-1 rounded-full shadow-[0_0_12px_rgba(0,255,136,0.55)]">{card.badge}</span>
                 )}
                 <div className="text-2xl">{card.icon}</div>
                 <div>
@@ -437,6 +453,38 @@ export default function LandingPage() {
           <div className="reveal mt-8 inline-flex items-center gap-2 bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.2)] rounded-full px-4 py-2 text-xs text-[#00FF88]">
             + Caveman Mode — strips AI filler words for 65% faster responses
           </div>
+          <p className="reveal mt-3 text-xs font-mono text-[#2A4A2A]">
+            🔒 Zero-knowledge · All processing runs on your device · No data ever leaves your machine
+          </p>
+        </div>
+      </section>
+
+      {/* ══════════════════════════ 5b. PROJECT FILES ════════════════════════ */}
+      <section id="project-files" className="py-24 px-5">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4">Local folder context.</h2>
+            <p className="reveal text-[#6B6B6B] max-w-xl mx-auto">
+              Connect your IDE. Include your actual project files. Every AI session grounded in your real codebase — not a description of it.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {[
+              { icon: "⊟", title: "IDE Connection + MCP Server",   body: "Bridge your editor to ContextMover via the MCP server. Your active files and workspace state flow into every migration automatically." },
+              { icon: "⬡", title: "GitHub Repo Extraction",         body: "Scan your repository and pull the relevant files into any session. Your codebase travels with your context, not just a description of it." },
+              { icon: "◈", title: "Local Folder Context",           body: "Read files directly from your machine. No upload, no cloud roundtrip. Your project stays local and private while your AI stays fully informed." },
+            ].map((card, i) => (
+              <div key={i} className={`reveal reveal-d${i + 1} card-hover bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-7 text-left`}>
+                <div className="text-2xl mb-4">{card.icon}</div>
+                <h3 className="font-semibold text-[#F5F5F5] mb-2 text-sm">{card.title}</h3>
+                <p className="text-sm text-[#6B6B6B] leading-relaxed">{card.body}</p>
+              </div>
+            ))}
+          </div>
+          <p className="reveal text-center mt-8 text-xs text-[#3A3A3A] font-mono">
+            Pro feature ·{" "}
+            <a href="#pricing" className="text-[#00FF88]/40 hover:text-[#00FF88]/60 transition-colors">see plans →</a>
+          </p>
         </div>
       </section>
 
@@ -489,11 +537,11 @@ export default function LandingPage() {
             {/* Checklist */}
             <div className="reveal reveal-d1 flex-1 space-y-4">
               {[
-                "Conversations stored locally by default",
-                "Migration never passes through our servers",
-                "Cloud sync is optional and deletable",
-                "We never read your content",
-                "Delete everything with one click",
+                "User data never touches our servers — zero-knowledge architecture",
+                "Context stays on your own machine (local IndexedDB only)",
+                "Vault syncs only to YOUR personal Supabase — not ours",
+                "We cannot read, sell, or access your conversations — ever",
+                "Delete everything with one click — no server-side backups to purge",
                 "No VC funding — we earn when you pay, not from your data",
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
@@ -539,6 +587,57 @@ export default function LandingPage() {
               Suggest a platform
             </a>
           </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════ 8b. SUPER MEMORY ════════════════════════ */}
+      <section id="super-memory" className="py-28 px-5 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl h-[500px] bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(0,255,136,0.05),transparent)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.006)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.006)_1px,transparent_1px)] bg-[size:52px_52px] opacity-50" />
+        </div>
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.15)] rounded-full px-3.5 py-1 text-xs text-[#00FF88]/60 font-mono mb-8 reveal">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00FF88]/60" />
+            Coming soon
+          </div>
+          <h2 className="reveal text-4xl sm:text-5xl lg:text-6xl font-bold text-[#F5F5F5] mb-6 leading-tight tracking-tight">
+            Super Memory.
+          </h2>
+          <p className="reveal text-xl sm:text-2xl text-[#00FF88]/50 font-mono mb-10">
+            Your AI never forgets.
+          </p>
+          <p className="reveal text-[#6B6B6B] max-w-lg mx-auto mb-12 leading-relaxed">
+            You build knowledge across hundreds of conversations. Right now, every new session
+            starts from nothing.
+            <br /><br />
+            <span className="text-[#F5F5F5]/80">What if it didn&apos;t?</span>
+          </p>
+          <div className="reveal max-w-2xl mx-auto bg-[#080808] border border-[rgba(0,255,136,0.08)] rounded-2xl p-6 sm:p-8 font-mono text-xs sm:text-sm text-left">
+            <div className="flex items-center gap-2 mb-5 pb-4 border-b border-[#151515]">
+              <span className="w-2 h-2 rounded-full bg-[#FF4444]/50" />
+              <span className="w-2 h-2 rounded-full bg-[#F59E0B]/50" />
+              <span className="w-2 h-2 rounded-full bg-[#00FF88]/50" />
+              <span className="text-[#2A2A2A] ml-2">super_memory — [access restricted]</span>
+            </div>
+            <p className="text-[#2A5A2A] mb-3"># persistent memory layer</p>
+            <p className="mb-1"><span className="text-[#6B6B6B]">sessions_indexed</span>   <span className="text-[#00FF88]/40">=  ████████████</span></p>
+            <p className="mb-1"><span className="text-[#6B6B6B]">knowledge_graph</span>    <span className="text-[#00FF88]/40">=  building...</span></p>
+            <p className="mb-1"><span className="text-[#6B6B6B]">recall_accuracy</span>    <span className="text-[#00FF88]/40">=  ██████████░░</span></p>
+            <p className="mb-1"><span className="text-[#6B6B6B]">cross_platform</span>     <span className="text-[#00FF88]/40">=  true</span></p>
+            <p className="mb-1"><span className="text-[#6B6B6B]">zero_knowledge</span>     <span className="text-[#00FF88]/40">=  always</span></p>
+            <p className="mt-4 text-[#1A3A1A]">status: not yet. but soon.</p>
+            <p className="mt-1 text-[#00FF88]/20 animate-pulse">▌</p>
+          </div>
+          <p className="reveal mt-10 text-xs text-[#2A2A2A] font-mono">
+            Be first to know:{" "}
+            <a
+              href="mailto:hey@contextmover.app?subject=Super%20Memory%20—%20notify%20me"
+              className="text-[#00FF88]/30 hover:text-[#00FF88]/60 transition-colors"
+            >
+              hey@contextmover.app
+            </a>
+          </p>
         </div>
       </section>
 
@@ -592,10 +691,10 @@ export default function LandingPage() {
               <div className="mb-6">
                 <p className="text-xs text-[#00FF88] font-medium uppercase tracking-widest mb-2">Pro</p>
                 <p className="text-4xl font-bold text-[#F5F5F5]">
-                  {indiaMode ? (annual ? "₹149" : "₹199") : (annual ? "$9" : "$15")}
+                  {indiaMode ? (annual ? "₹158" : "₹199") : (annual ? "$4" : "$5")}
                   <span className="text-sm font-normal text-[#6B6B6B]"> / month</span>
                 </p>
-                <p className="text-xs text-[#6B6B6B] mt-1">{annual ? (indiaMode ? "billed ₹1,788/yr" : "billed $108/yr") : (indiaMode ? "or ₹149/mo billed annually" : "or $9/mo billed annually")}</p>
+                <p className="text-xs text-[#6B6B6B] mt-1">{annual ? (indiaMode ? "billed ₹1,899/yr" : "billed $48/yr") : (indiaMode ? "or ₹158/mo billed annually" : "or $4/mo billed annually")}</p>
               </div>
               <ul className="space-y-3 text-sm text-[#6B6B6B] flex-1 mb-8">
                 {["Unlimited sessions", "Attention Engine (semantic AI)", "IDE connection + MCP server", "GitHub repo extraction", "Priority updates"].map((f) => (
@@ -617,9 +716,9 @@ export default function LandingPage() {
                   <li key={f} className="flex items-start gap-2"><span className="text-[#00FF88] shrink-0">✓</span>{f}</li>
                 ))}
               </ul>
-              <a href="mailto:hey@contextmover.app" className="block text-center border border-[#2A2A2A] hover:border-[rgba(0,255,136,0.4)] text-[#F5F5F5] font-semibold py-2.5 rounded-lg transition-colors text-sm">
-                Talk to sales
-              </a>
+              <div className="block text-center border border-[#2A2A2A] text-[#3A3A3A] font-semibold py-2.5 rounded-lg text-sm cursor-default select-none">
+                Team plans coming soon
+              </div>
             </div>
           </div>
           {/* Early bird */}
@@ -630,6 +729,8 @@ export default function LandingPage() {
             <span className="text-[#F59E0B] font-mono font-bold"><Countdown /></span>
             <span className="text-[#6B6B6B] text-xs">remaining</span>
           </div>
+          <p className="mt-6 text-xs text-[#3A3A3A]">7-day refund policy — no questions asked.</p>
+          <p className="mt-2 text-xs font-mono text-[#2A4A2A]">🔒 Zero-knowledge — your data never touches our servers · vault syncs only to your own Supabase.</p>
         </div>
       </section>
 
@@ -647,7 +748,8 @@ export default function LandingPage() {
       {/* ═══════════════ TRUST BAR ═══════════════ */}
       <div className="bg-[#050F05] border-t border-[rgba(0,255,136,0.06)] py-3 px-5 text-center">
         <p className="text-xs font-mono text-[#2A6A2A]">
-          🔒 Your conversations <strong className="text-[#00FF88]">never touch our servers</strong> — captured locally, migrated on your device.
+          🔒 <strong className="text-[#00FF88]">Zero-knowledge.</strong>{" "}
+          Data never touches our servers · Context stays on your machine · Vault syncs to your own Supabase · We cannot read or sell your conversations.
         </p>
       </div>
 
@@ -662,6 +764,7 @@ export default function LandingPage() {
                 <span className="font-bold text-[#F5F5F5]">ContextMover</span>
               </div>
               <p className="text-sm text-[#6B6B6B] leading-relaxed">Context Operating System for AI developers.</p>
+              <p className="text-xs font-mono text-[#1A3A1A] leading-relaxed">🔒 Zero-knowledge — your conversations never touch our servers.</p>
             </div>
             {/* Nav links */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-10 gap-y-3 text-sm text-[#6B6B6B]">
@@ -670,14 +773,14 @@ export default function LandingPage() {
               <a href="/docs" className="hover:text-[#F5F5F5] transition-colors">Docs</a>
               <a href="/privacy" className="hover:text-[#F5F5F5] transition-colors">Privacy</a>
               <a href="/terms" className="hover:text-[#F5F5F5] transition-colors">Terms</a>
-              <a href="mailto:hey@contextmover.app" className="hover:text-[#F5F5F5] transition-colors">Contact</a>
+              <a href="/contact" className="hover:text-[#F5F5F5] transition-colors">Contact</a>
+              <a href="/feedback" className="hover:text-[#F5F5F5] transition-colors">Feedback</a>
               <a href="/auth" className="hover:text-[#F5F5F5] transition-colors">Log in</a>
               <a href="#" className="hover:text-[#F5F5F5] transition-colors text-[#3A3A3A]">Status ▸</a>
             </div>
-            {/* Tagline */}
-            <div className="text-sm text-[#6B6B6B] text-right hidden md:block">
-              <p>Built by developers, for developers.</p>
-              <p className="mt-1">Pune, India</p>
+            {/* Email widget (replaces desktop tagline) */}
+            <div className="hidden md:block min-w-[180px]">
+              <EmailWidget />
             </div>
           </div>
           <div className="border-t border-[#2A2A2A] pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-[#6B6B6B]">

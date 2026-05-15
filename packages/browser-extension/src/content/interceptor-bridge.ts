@@ -30,6 +30,7 @@ type CapturedDetail = {
   platform: Platform;
   messages: CapturedMessage[];
   metadata?: RequestMetadata;
+  fullHistory?: boolean;
 };
 
 const TAG = "[ContextMover:bridge]";
@@ -93,7 +94,7 @@ function install() {
         const detail = event.detail;
         if (!detail || typeof detail !== "object") return;
 
-        const { platform, messages, metadata } = detail;
+        const { platform, messages, metadata, fullHistory } = detail;
 
         // ── Validation ──────────────────────────────────────────────────────
         if (!VALID_PLATFORMS.includes(platform)) {
@@ -129,7 +130,10 @@ function install() {
         // Merge with prior captures for this session.
         const sessionId = await ensureSessionId(platform);
         const prior = accumulator.get(sessionId) ?? [];
-        const merged = mergeMessages(prior, cleaned);
+        // fullHistory=true means we received the complete conversation from a
+        // conversation-load API response — replace the accumulator outright so
+        // stale partial DOM captures don't pollute the full set.
+        const merged = fullHistory ? [...cleaned] : mergeMessages(prior, cleaned);
         accumulator.set(sessionId, merged);
 
         // Accumulate metadata per session

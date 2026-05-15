@@ -1,57 +1,6 @@
 // packages/browser-extension/src/content/gemini.ts
-import { detectRoleFromElement, extractContent, extractMessageContent, findChatContainerFor, injectWithRetry, runCapturePipeline, sendCapture, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { extractContent, injectWithRetry, runCapturePipeline, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "./shared";
-
-const GEMINI_SELECTORS = {
-  user: [
-    'user-query .query-text',
-    'user-query',
-    '[class*="userQuery"]',
-    '[data-role="user"]',
-    '.query-content',
-    '[class*="UserMessage"]',
-  ],
-  assistant: [
-    'model-response .response-content',
-    'model-response',
-    '[class*="modelResponse"]',
-    '[data-role="model"]',
-    '[class*="AssistantMessage"]',
-    '.response-content',
-    '[class*="response-text"]',
-  ],
-  streaming: [
-    '[aria-busy="true"]',
-    '.loading-indicator',
-    '[class*="generating"]',
-    '[class*="streaming"]',
-  ],
-};
-
-function isStreaming(el: HTMLElement): boolean {
-  return (
-    el.classList.contains("result-streaming") ||
-    el.querySelector(".result-streaming") !== null ||
-    el.closest("[data-is-streaming]") !== null ||
-    el.closest(".loading") !== null ||
-    GEMINI_SELECTORS.streaming.some((sel) => {
-      try { return el.matches(sel) || el.querySelector(sel) !== null; } catch { return false; }
-    })
-  );
-}
-
-function findElements(selectors: string[]): Element[] {
-  for (const selector of selectors) {
-    try {
-      const els = document.querySelectorAll(selector);
-      if (els.length > 0) {
-        console.log(`[CM:gemini] matched: ${selector} (${els.length})`);
-        return Array.from(els);
-      }
-    } catch { /* invalid selector, continue */ }
-  }
-  return [];
-}
 
 // ── DIAGNOSTIC STAGE 1 ────────────────────────────────────────────────────────
 function scrapeMessages(): Message[] {
@@ -72,61 +21,6 @@ function scrapeMessages(): Message[] {
     timestamp: Date.now()
   })).filter(m => m.content.trim().length > 0)
 }
-
-// ── Structural detection fallback ───────────────────────────────────────────
-// When all selectors fail, use semantic role detection rather than index parity.
-function detectByStructure(): Message[] {
-  const container = findChatContainerFor('gemini');
-  if (!container) return [];
-
-  const messages: Message[] = [];
-  for (const child of Array.from(container.children)) {
-    const el = child as HTMLElement;
-
-    const content = extractContent(el);
-    if (!content || content.trim().length < 5) continue;
-
-    const role = detectRoleFromElement(el, 'gemini');
-    if (!role) continue;
-
-    messages.push({ role, content, timestamp: Date.now() });
-  }
-
-  return messages;
-}
-
-// ── XHR interceptor — supplement to DOM scraping for Gemini ───────────────────
-function installXHRInterceptor(): void {
-  const script = document.createElement('script');
-  script.textContent = `
-    (function() {
-      const _open = XMLHttpRequest.prototype.open;
-      const _send = XMLHttpRequest.prototype.send;
-      XMLHttpRequest.prototype.open = function(method, url) {
-        this._cm_url = url;
-        return _open.apply(this, arguments);
-      };
-      XMLHttpRequest.prototype.send = function() {
-        this.addEventListener('load', function() {
-          try {
-            if (this._cm_url &&
-                this._cm_url.includes('batchexecute')) {
-              window.dispatchEvent(new CustomEvent(
-                '__CM_GEMINI_XHR__',
-                { detail: this.responseText }
-              ));
-            }
-          } catch {}
-        });
-        return _send.apply(this, arguments);
-      };
-    })();
-  `;
-  document.documentElement.appendChild(script);
-  script.remove();
-}
-
-installXHRInterceptor();
 
 startSessionCapture({
   platform: "gemini",

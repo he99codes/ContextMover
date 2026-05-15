@@ -6,10 +6,20 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { usePricing } from "@/hooks/usePricing";
 import { useSubscription } from "@/hooks/useSubscription";
 import { createClient } from "@/lib/supabase/client";
 import { RazorpaySubscription } from "@/components/payments/RazorpaySubscription";
+import { INDIA_PRICING, GLOBAL_PRICING, type PricingPlan } from "@/lib/payments/geo-pricing";
+
+function detectDefaultCurrency(): "INR" | "USD" {
+  if (typeof window === "undefined") return "INR";
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const lang = navigator.language;
+    if (tz === "Asia/Calcutta" || tz === "Asia/Kolkata" || lang.startsWith("en-IN")) return "INR";
+  } catch { /* ignore */ }
+  return "USD";
+}
 
 const FREE_FEATURES = [
   "50 Full Context migrations/mo",
@@ -50,7 +60,6 @@ interface SubscriptionRazorpayCtor {
 
 export default function PricingPage() {
   const router = useRouter();
-  const { pricing, loading: pricingLoading } = usePricing();
   const { isPro } = useSubscription();
   const supabase = createClient();
   const [checkoutLoading, setCheckoutLoading] = useState<"pro" | "team" | null>(null);
@@ -58,6 +67,15 @@ export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [currency, setCurrency] = useState<"INR" | "USD">(detectDefaultCurrency);
+  const [currencySelected, setCurrencySelected] = useState(false);
+
+  const selectedPricing: PricingPlan = currency === "INR" ? INDIA_PRICING : GLOBAL_PRICING;
+
+  function handleCurrencySelect(c: "INR" | "USD") {
+    setCurrency(c);
+    setCurrencySelected(true);
+  }
 
   // Clear mock-mode notice after a few seconds.
   useEffect(() => {
@@ -226,7 +244,6 @@ export default function PricingPage() {
     }
   }
 
-  const symbol = pricing?.symbol ?? "$";
   const isDev = process.env.NODE_ENV !== "production";
 
   return (
@@ -249,12 +266,31 @@ export default function PricingPage() {
         <p style={{ fontSize: "18px", color: "#6B6B6B", margin: 0 }}>
           Start free. Upgrade when you need more.
         </p>
-        <BillingToggle billingCycle={billingCycle} onChange={setBillingCycle} />
-        {pricing && (
+      </div>
+
+      {/* Step 1: Currency selector */}
+      <div style={{ textAlign: "center", marginBottom: "40px" }}>
+        <p style={{ fontSize: "13px", color: "#6B6B6B", marginBottom: "16px" }}>
+          Select your currency
+        </p>
+        <CurrencySelector currency={currency} onSelect={handleCurrencySelect} />
+      </div>
+
+      {/* Step 2: Billing toggle + cards — revealed after currency selection */}
+      <div
+        style={{
+          opacity:       currencySelected ? 1 : 0,
+          transform:     currencySelected ? "none" : "translateY(16px)",
+          transition:    "opacity 0.4s ease, transform 0.4s ease",
+          pointerEvents: currencySelected ? "auto" : "none",
+        }}
+      >
+        <div style={{ textAlign: "center", marginBottom: "24px" }}>
+          <BillingToggle billingCycle={billingCycle} onChange={setBillingCycle} annualSavings={selectedPricing.pro.annualSavings} />
           <div style={{ marginTop: "12px", fontSize: "12px", color: "#3A3A3A" }}>
-            Showing prices for your region ({pricing.currency.toUpperCase()})
+            Showing {currency === "INR" ? "India (INR)" : "Global (USD)"} pricing
           </div>
-        )}
+        </div>
         {mockNotice && (
           <div
             style={{
@@ -281,23 +317,22 @@ export default function PricingPage() {
             ✅ Subscription active!
           </div>
         )}
-      </div>
 
-      {/* Pricing cards */}
-      <div
-        style={{
-          display:             "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap:                 "24px",
-          maxWidth:            "900px",
-          margin:              "0 auto 60px",
-        }}
-      >
+        {/* Pricing cards */}
+        <div
+          style={{
+            display:             "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap:                 "24px",
+            maxWidth:            "900px",
+            margin:              "0 auto 60px",
+          }}
+        >
         {/* Free */}
         <PlanCard
           tag="Free"
           tagColor="#6B6B6B"
-          price={`${symbol}0`}
+          price={`${currency === "INR" ? "₹" : "$"}0`}
           subtitle="forever"
           features={FREE_FEATURES}
           featureColor="#6B6B6B"
@@ -310,13 +345,11 @@ export default function PricingPage() {
           tag="Pro"
           tagColor="#00FF88"
           price={
-            pricingLoading
-              ? "..."
-              : billingCycle === "annual"
-              ? "₹1,499"
-              : (pricing?.pro.display ?? "₹199")
+            billingCycle === "annual"
+              ? selectedPricing.pro.annualDisplay
+              : selectedPricing.pro.display
           }
-          subtitle={billingCycle === "annual" ? "per year · save ₹889" : "per month"}
+          subtitle={billingCycle === "annual" ? `per year · ${selectedPricing.pro.annualSavings}` : "per month"}
           features={PRO_FEATURES}
           featureColor="#F5F5F5"
           featured
@@ -347,19 +380,34 @@ export default function PricingPage() {
         <PlanCard
           tag="Team"
           tagColor="#6B6B6B"
-          price={pricingLoading ? "..." : pricing?.team.display ?? "$25"}
+          price={selectedPricing.team.display}
           subtitle="per user/month"
           features={TEAM_FEATURES}
           featureColor="#F5F5F5"
-          cta={checkoutLoading === "team" ? "Loading…" : "Upgrade to Team"}
-          ctaVariant="outline"
-          ctaDisabled={checkoutLoading !== null}
-          onCta={() => handleUpgrade("team")}
-        />
-      </div>
+        >
+          <div
+            style={{
+              marginTop:     "24px",
+              padding:       "14px",
+              border:        "1px solid #2A2A2A",
+              borderRadius:  "6px",
+              color:         "#3A3A3A",
+              fontSize:      "12px",
+              fontWeight:    700,
+              textAlign:     "center",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+              cursor:        "default",
+              userSelect:    "none",
+            }}
+          >
+            Team plans coming soon
+          </div>
+        </PlanCard>
+        </div>
 
-      {/* Dev-only mock upgrade — never shipped to production builds */}
-      {isDev && !isPro && (
+        {/* Dev-only mock upgrade — never shipped to production builds */}
+        {isDev && !isPro && (
         <div style={{ textAlign: "center", marginBottom: "24px" }}>
           <button
             onClick={activateMockPro}
@@ -384,9 +432,10 @@ export default function PricingPage() {
         </div>
       )}
 
-      {/* Trust signals */}
-      <div style={{ textAlign: "center", color: "#3A3A3A", fontSize: "12px" }}>
-        🔒 Local-first · Your data never touches our servers · Cancel anytime · No questions asked
+        {/* Trust signals */}
+        <div style={{ textAlign: "center", color: "#3A3A3A", fontSize: "12px" }}>
+          🔒 Zero-knowledge · Local-first · Your data never touches our servers · Cancel anytime · No questions asked
+        </div>
       </div>
     </div>
   );
@@ -399,9 +448,11 @@ export default function PricingPage() {
 function BillingToggle({
   billingCycle,
   onChange,
+  annualSavings,
 }: {
-  billingCycle: "monthly" | "annual";
-  onChange:     (c: "monthly" | "annual") => void;
+  billingCycle:  "monthly" | "annual";
+  onChange:      (c: "monthly" | "annual") => void;
+  annualSavings: string;
 }) {
   return (
     <div style={{ marginTop: "24px", display: "flex", justifyContent: "center", gap: "8px" }}>
@@ -428,9 +479,49 @@ function BillingToggle({
             {cycle}
             {cycle === "annual" && (
               <span style={{ marginLeft: "6px", fontSize: "10px", color: "#F59E0B" }}>
-                Save 37%
+                {annualSavings}
               </span>
             )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────
+// CurrencySelector
+// ─────────────────────────────────────────────────────────────────────────────────
+
+function CurrencySelector({
+  currency,
+  onSelect,
+}: {
+  currency: "INR" | "USD";
+  onSelect: (c: "INR" | "USD") => void;
+}) {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", gap: "12px" }}>
+      {(["INR", "USD"] as const).map((c) => {
+        const active = currency === c;
+        return (
+          <button
+            key={c}
+            onClick={() => onSelect(c)}
+            style={{
+              padding:      "12px 32px",
+              borderRadius: "8px",
+              fontSize:     "14px",
+              fontWeight:   700,
+              cursor:       "pointer",
+              border:       `1px solid ${active ? "#00FF88" : "#2A2A2A"}`,
+              background:   active ? "rgba(0,255,136,0.12)" : "transparent",
+              color:        active ? "#00FF88" : "#6B6B6B",
+              transition:   "all 0.15s",
+              outline:      "none",
+            }}
+          >
+            {c === "INR" ? "₹ INR — India" : "$ USD — Global"}
           </button>
         );
       })}

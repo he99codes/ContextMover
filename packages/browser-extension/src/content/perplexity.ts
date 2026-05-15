@@ -1,5 +1,5 @@
 // packages/browser-extension/src/content/perplexity.ts
-import { detectRoleFromElement, extractContent, extractMessageContent, findChatContainerFor, injectWithRetry, runCapturePipeline, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { extractMessageContent, injectWithRetry, runCapturePipeline, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
 
 console.log("[ContextMover] Perplexity content script loaded");
@@ -119,27 +119,6 @@ function scrapeMessages(): Message[] {
     preview: messages.map(m => ({ role: m.role, len: m.content.length }))
   });
   if (a === 0 && u > 0) console.error("[ContextMover:perplexity] ASSISTANT MESSAGES MISSING");
-
-  return messages;
-}
-
-// ── Structural detection fallback ───────────────────────────────────────────
-function detectByStructure(): Message[] {
-  const container = findChatContainerFor('perplexity');
-  if (!container) return [];
-
-  const messages: Message[] = [];
-  for (const child of Array.from(container.children)) {
-    const el = child as HTMLElement;
-
-    const content = extractContent(el);
-    if (!content || content.trim().length < 5) continue;
-
-    const role = detectRoleFromElement(el, 'perplexity');
-    if (!role) continue;
-
-    messages.push({ role, content, timestamp: Date.now() });
-  }
 
   return messages;
 }

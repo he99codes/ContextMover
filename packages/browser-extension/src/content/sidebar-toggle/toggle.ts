@@ -113,18 +113,18 @@ function inject(): HTMLElement {
       { type: "TOGGLE_SIDEBAR", shouldOpen: isOpen },
       (res) => {
         clearTimeout(safetyTimer);
-        busy = false;
-        updateBtn(); // clear loading indicator immediately regardless of outcome
 
         if (chrome.runtime.lastError) {
-          // SW was sleeping — wake it up and retry
+          // SW was sleeping — keep busy=true so the button stays locked during retry.
+          // A second click here would race the retry with an opposite shouldOpen value.
           console.warn("[CM:toggle] SW sleeping, retrying...");
           setTimeout(() => {
             chrome.runtime.sendMessage(
               { type: "TOGGLE_SIDEBAR", shouldOpen: isOpen },
               (retryRes) => {
+                busy = false;
                 if (chrome.runtime.lastError) {
-                  // Both failed — revert
+                  // Both failed — revert optimistic update
                   isOpen = !isOpen;
                   updateBtn();
                   return;
@@ -137,7 +137,8 @@ function inject(): HTMLElement {
           return;
         }
 
-        // Confirm actual state from SW
+        // Success — confirm actual state from SW and release the lock
+        busy = false;
         isOpen = res?.isOpen ?? isOpen;
         updateBtn();
       }

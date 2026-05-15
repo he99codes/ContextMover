@@ -1,55 +1,8 @@
 // packages/browser-extension/src/content/claude.ts
-import { detectRoleFromElement, extractContent, extractMessageContent, findChatContainerFor, injectWithRetry, runCapturePipeline, sendCapture, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { extractContent, injectWithRetry, runCapturePipeline, sendCapture, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "./shared";
 
 console.log("[ContextMover] Claude content script loaded");
-
-// Selector cascade — try each selector in order, return first that yields results
-function findElements(selectors: string[]): Element[] {
-  for (const selector of selectors) {
-    try {
-      const els = document.querySelectorAll(selector);
-      if (els.length > 0) {
-        console.log(`[CM:claude] matched: ${selector} (${els.length})`);
-        return Array.from(els);
-      }
-    } catch { /* invalid selector, continue */ }
-  }
-  return [];
-}
-
-const CLAUDE_SELECTORS = {
-  user: [
-    '[data-testid="user-message"]',
-    '[data-testid="human-turn"]',
-    '.human-turn',
-    '[data-role="user"]',
-    '[data-message-author-role="user"]',
-  ],
-  assistant: [
-    '[data-testid="ai-turn"]',
-    '[data-testid="assistant-message"]',
-    '.font-claude-message',
-    '[data-role="assistant"]',
-    '[data-message-author-role="assistant"]',
-    '.claude-message',
-    '[data-is-streaming="false"] .prose',
-  ],
-  streaming: [
-    '[data-is-streaming="true"]',
-    '.streaming-indicator',
-    '[data-loading="true"]',
-  ],
-};
-
-function isStreaming(el: HTMLElement): boolean {
-  return (
-    el.hasAttribute("data-is-streaming") ||
-    el.closest("[data-is-streaming]") !== null ||
-    el.classList.contains("result-streaming") ||
-    el.querySelector(".result-streaming") !== null
-  );
-}
 
 function scrapeMessages(): Message[] {
   const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
@@ -83,29 +36,6 @@ function scrapeMessages(): Message[] {
       timestamp: Date.now()
     }))
     .filter(m => m.content.trim().length > 0)
-}
-
-// ── Structural detection fallback ───────────────────────────────────────────
-// When all selectors fail, use semantic role detection rather than index parity.
-function detectByStructure(): Message[] {
-  const container = findChatContainerFor('claude');
-  if (!container) return [];
-
-  const messages: Message[] = [];
-  for (const child of Array.from(container.children)) {
-    const el = child as HTMLElement;
-    if (isStreaming(el)) continue;
-
-    const content = extractMessageContent(el);
-    if (!content || content.trim().length < 5) continue;
-
-    const role = detectRoleFromElement(el, 'claude');
-    if (!role) continue;
-
-    messages.push({ role, content, timestamp: Date.now() });
-  }
-
-  return messages;
 }
 
 // ── Network interceptor — captures ALL messages from the Claude API ────────────

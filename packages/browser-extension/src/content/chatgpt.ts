@@ -1,5 +1,5 @@
 // packages/browser-extension/src/content/chatgpt.ts
-import { detectRoleFromElement, extractContent, extractMessageContent, findChatContainerFor, injectWithRetry, runCapturePipeline, sendCapture, setPromptInputValue, startSessionCapture, waitForAnyElement } from "./shared";
+import { extractContent, injectWithRetry, runCapturePipeline, sendCapture, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "./shared";
 
 // ── DIAGNOSTIC STAGE 1 ────────────────────────────────────────────────────────
@@ -24,32 +24,6 @@ function scrapeMessages(): Message[] {
     ),
     timestamp: Date.now()
   })).filter(m => m.content.trim().length > 0)
-}
-
-// ── Structural detection fallback ───────────────────────────────────────────
-function detectByStructure(): Message[] {
-  const container = findChatContainerFor('chatgpt');
-  if (!container) return [];
-
-  const messages: Message[] = [];
-  for (const child of Array.from(container.querySelectorAll(
-    '[data-message-author-role], article, [class*="group"]'
-  ))) {
-    const el = child as HTMLElement;
-    if (el.getAttribute('data-is-streaming') === 'true') continue;
-
-    const content = extractContent(
-      el.querySelector('.markdown, .whitespace-pre-wrap') ?? el
-    );
-    if (!content || content.trim().length < 5) continue;
-
-    const role = detectRoleFromElement(el, 'chatgpt');
-    if (!role) continue;
-
-    messages.push({ role, content, timestamp: Date.now() });
-  }
-
-  return messages;
 }
 
 // ── Network interceptor — captures ALL messages from the ChatGPT API ──────────

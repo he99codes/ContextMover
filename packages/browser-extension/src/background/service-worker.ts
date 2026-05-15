@@ -1,16 +1,12 @@
 // packages/browser-extension/src/background/service-worker.ts
 import { db, dexieDb, sessionCache } from "@/lib/db";
 import { migrateFromContextForge } from "@/lib/db-migration";
-import summarize, { summarizeIntelligent, summarizeWithAttention, type IntelligentSummary } from "@/lib/summarizer";
+import summarize, { summarizeIntelligent, type IntelligentSummary } from "@/lib/summarizer";
 import buildMigrationPrompt from "@/lib/translator";
-import { promptEngine } from "@/lib/prompt-engine/engine";
-import { capabilityDetector, type Tier } from "@/lib/capability-detector";
-import type { ContextSession, ExtractedContext, Message } from "@/lib/types";
+import type { ContextSession, Message } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { syncPromptTemplates, syncPromptAssignments, queueVaultSync } from "@/lib/cloud-sync";
-import { getHardwareProfile } from "@/lib/attention-engine";
 import { semanticIndex } from "@/lib/semantic-index/index";
-import { perf } from "@/lib/perf/metrics";
 import { scoreMigration, formatScoreReport, type QualityScore } from "@/lib/quality/migration-scorer";
 import { generateQualityReport } from "@/lib/quality/report-generator";
 import { userVault } from "@/lib/user-vault/connector";
@@ -20,7 +16,6 @@ import { buildTier1File, buildTier2File, buildTier3File } from "@/lib/file-build
 import { buildInstructionPrompt } from "@/lib/instruction-builder"
 import { checkUsage, incrementUsage } from "@/lib/usage-client";
 import type { MigrationFile } from "@/lib/file-builder"
-import { getMcpClient, connectToFirstAvailableMcp, type IdeContext } from "@/lib/mcp/client";
 
 // ── Attention-engine availability (set to false if model fetch blocked) ─────
 let attentionEngineAvailable = true;
@@ -156,21 +151,6 @@ async function syncEmbeddingsToMcpBridge(sessionId: string): Promise<void> {
   }
 }
 
-// Push a tier-1 / tier-2 summary to the MCP bridge so it can be used by
-// `migrate_context` and the `contextmover://summary` resource.
-async function syncSummaryToMcpBridge(sessionId: string, tier: number, content: string): Promise<void> {
-  try {
-    await fetch(`${MCP_BRIDGE_URL}/summaries`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ sessionId, tier, content }),
-      signal:  AbortSignal.timeout(2_000),
-    });
-  } catch {
-    /* bridge offline — ignore */
-  }
-}
-
 // Push user-selected project files to the MCP bridge so `get_file_context`
 // and `migrate_context` can include them in IDE prompts.
 interface FileSyncEntry {
@@ -210,23 +190,16 @@ const GET_SESSIONS_CACHE_MS = 500;
 
 // Injection guard — tracks tabs already scripted this SW lifetime to prevent
 // the same tab being injected 3× on rapid onInstalled/onStartup events.
+// keyed per-tab for cleanup; injectedScripts is per-(tab,script) for dedup.
 const injectedTabs = new Set<number>();
+const injectedScripts = new Set<string>(); // "tabId:scriptFiles" composite key
 
-// Precomputed summary cache — populated by PRECOMPUTE_SUMMARY, consumed by MIGRATE_CONTEXT.
-// Avoids repeating expensive tier-1/tier-2 summarization on the critical migration path.
-interface PrecomputeEntry {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tier1: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tier2: any;
-  cachedAt: number;
-}
-const precomputeCache = new Map<string, PrecomputeEntry>();
-const PRECOMPUTE_TTL = 5 * 60_000; // 5 minutes
-
-// Clean up injectedTabs when a tab closes so reloaded tabs can be re-injected.
+// Clean up both sets when a tab closes so reloaded tabs can be re-injected.
 chrome.tabs.onRemoved.addListener((tabId) => {
   injectedTabs.delete(tabId);
+  for (const k of injectedScripts) {
+    if (k.startsWith(`${tabId}:`)) injectedScripts.delete(k);
+  }
 });
 
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
@@ -352,11 +325,28 @@ chrome.runtime.onInstalled.addListener(async () => {
         console.log(`[ContextMover] Tab ${tab.id} already has content script — skipping`);
         continue;
       }
-      if (injectedTabs.has(tab.id)) {
+      const scriptKey = `${tab.id}:${(cs.js ?? []).join(',')}`;
+      if (injectedScripts.has(scriptKey)) {
         console.log(`[ContextMover] Tab ${tab.id} already injected this session — skipping`);
         continue;
       }
-      injectedTabs.add(tab.id);
+      // First new script for this tab: clear stale window flags left behind by
+      // the old (now-dead) extension context so new scripts can self-initialize.
+      if (!injectedTabs.has(tab.id)) {
+        injectedTabs.add(tab.id);
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => {
+            (['__contextForge_claude_loaded', '__contextForge_chatgpt_loaded',
+              '__contextForge_gemini_loaded', '__contextForge_grok_loaded',
+              '__contextForge_perplexity_loaded', '__contextForge_deepseek_loaded',
+              '__cm_toggle_v2'] as const).forEach((k) => {
+              try { delete (window as unknown as Record<string, unknown>)[k]; } catch { /* non-configurable */ }
+            });
+          },
+        }).catch(() => {});
+      }
+      injectedScripts.add(scriptKey);
       chrome.scripting
         .executeScript({ target: { tabId: tab.id }, files: cs.js as string[] })
         .then(() => console.log(`[ContextMover] Injected content script into tab ${tab.id} (${tab.url})`))
@@ -424,26 +414,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
-      case "CAPTURE_MESSAGE": {
-        // [SECURITY] Must come from a known platform tab.
-        if (!isFromPlatformTab(sender)) {
-          sendResponse({ error: 'Sender is not a known platform tab' });
-          break;
-        }
-        console.log(`[ContextMover ServiceWorker] CAPTURE_MESSAGE: ${msg.payload.platform} ${msg.payload.sessionId}`);
-        await handleCaptureMessage(msg.payload);
-        sendResponse({ ok: true });
-        break;
-      }
-
       case "PRECOMPUTE_SUMMARY": {
         const session = await db.getSession(msg.payload?.sessionId);
         if (!session) { sendResponse(null); break; }
         try {
-          const tier1 = await summarize(session.messages);
-          const tier2 = summarizeIntelligent(session.messages);
-          precomputeCache.set(session.id, { tier1, tier2, cachedAt: Date.now() });
-          console.log(`[CM:sw] PRECOMPUTE_SUMMARY cached tier1+tier2 for session ${session.id}`);
+          await summarize(session.messages);
+          summarizeIntelligent(session.messages);
+          console.log(`[CM:sw] PRECOMPUTE_SUMMARY warmed summaries for session ${session.id}`);
           sendResponse({ cached: true });
         } catch (err) {
           console.warn("[CM:sw] PRECOMPUTE_SUMMARY failed:", err);
@@ -499,11 +476,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
         break;
       }
-
-      case "SYNC_OPEN_TABS":
-        await syncOpenTabs();
-        sendResponse({ ok: true });
-        break;
 
       case "GET_SESSION":
         sendResponse(await db.getSession(msg.sessionId));
@@ -932,42 +904,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
-      case "CAPTURE_HEALTH": {
-        const { platform: hPlatform, success, userCount: hUser, assistantCount: hAsst, total: hTotal } = msg.payload ?? {};
-        if (!hPlatform) {
-          sendResponse({ error: "payload.platform required" });
-          break;
-        }
-
-        // Store last 10 success flags per platform
-        const key = `health_${hPlatform}`;
-        const stored = await chrome.storage.local.get(key);
-        const history: boolean[] = stored[key] ?? [];
-        history.push(Boolean(success));
-        if (history.length > 10) history.shift();
-        await chrome.storage.local.set({ [key]: history });
-
-        const successRate = history.filter(Boolean).length / history.length;
-        if (successRate < 0.8 && history.length >= 3) {
-          console.warn(
-            `[CM:health] ${hPlatform} capture rate: ${(successRate * 100).toFixed(0)}% — selectors may be broken`
-          );
-          await chrome.storage.local.set({
-            [`alert_${hPlatform}`]: {
-              platform: hPlatform,
-              successRate,
-              timestamp: Date.now(),
-              message: `Capture quality dropped on ${hPlatform}. Assistant messages may be missing.`,
-            },
-          });
-        } else {
-          await chrome.storage.local.remove(`alert_${hPlatform}`);
-        }
-
-        sendResponse({ ok: true, rate: successRate });
-        break;
-      }
-
       case "GET_CACHED_FILE": {
         const entry = migrationFileCache.get(msg.cacheKey)
         if (!entry) {
@@ -1018,41 +954,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return true; // keep channel open for async
 });
 
-// ── Quality scoring ─────────────────────────────────────────────────────────
-// Synchronous, fast (regex counts on a 100k string take a few ms even on
-// minimal hardware). Persisting to IDB is fire-and-forget so we never block
-// the migration response on a write. NEVER throws — the inner scoreMigration
-// already catches its own errors and returns a Failed score on any glitch.
-function scoreAndPersist(
-  session: ContextSession,
-  outputPrompt: string,
-  tier: 1 | 2 | 3,
-  platform: string,
-  topK?: number,
-  captureStats?: { userCount: number; assistantCount: number; total: number }
-): QualityScore {
-  const score = scoreMigration({ session, outputPrompt, tier, platform, topK, captureStats });
-  console.log("[CM:quality]\n" + formatScoreReport(score));
-
-  // Fire-and-forget persistence
-  void db.migrationQuality
-    .put({
-      id: score.meta.migrationId,
-      sessionId: session.id,
-      sessionTitle: session.title ?? session.id,
-      platform,
-      tier,
-      score: score.total,
-      grade: score.grade,
-      breakdown: score.breakdown,
-      meta: score.meta,
-      createdAt: Date.now(),
-    })
-    .catch((err) => console.warn("[CM:quality] persist failed (non-fatal):", err));
-
-  return score;
-}
-
 // ── Usage enforcement (freemium gate) ───────────────────────────────────────
 // Two paths:
 //   1. Logged-in users → server-side increment_usage RPC via /api/payments/usage
@@ -1083,101 +984,7 @@ async function checkMigrationAllowed(
   return checkUsage(tier, accessToken);
 }
 
-function currentMonthKey(): string {
-  const now = new Date();
-  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-async function checkLocalUsage(tier: 1 | 2 | 3): Promise<UsageCheckResult> {
-  const tierNames = { 1: "simple", 2: "smart", 3: "attention" } as const;
-  const type  = tierNames[tier];
-  const month = currentMonthKey();
-  const key   = `cm_usage_${month}`;
-
-  const stored = await chrome.storage.local.get(key);
-  const usage: Record<string, number> = stored[key] ?? { simple: 0, smart: 0, attention: 0 };
-
-  const limits = { simple: 50, smart: 50, attention: 10 } as const;
-  const current = usage[type] ?? 0;
-  const limit   = limits[type];
-
-  if (current >= limit) {
-    const now = new Date();
-    const resetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const daysUntilReset = Math.ceil(
-      (resetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return {
-      allowed: false,
-      plan: "free",
-      unlimited: false,
-      tier,
-      used: current,
-      limit,
-      remaining: 0,
-      reason: "limit_reached",
-      daysUntilReset,
-      resetDate: resetDate.toISOString(),
-      upgradeUrl: "https://contextmover.com/pricing",
-    };
-  }
-
-  usage[type] = current + 1;
-  await chrome.storage.local.set({ [key]: usage });
-
-  return {
-    allowed: true,
-    plan: "free",
-    unlimited: false,
-    tier,
-    used: current + 1,
-    limit,
-    remaining: limit - current - 1,
-  };
-}
-
 // ── Handlers ───────────────────────────────────────────────────────────────────
-async function handleCaptureMessage(payload: {
-  platform: string;
-  sessionId: string;
-  message: Message;
-}) {
-  const { platform, sessionId, message } = payload;
-  let session: ContextSession | undefined = await db.getSession(sessionId);
-
-  if (!session) {
-    session = {
-      id: sessionId,
-      platform: platform as ContextSession["platform"],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      messages: [],
-      title: message.content.slice(0, 60) + "…",
-    };
-  }
-
-  session.messages.push(message);
-  session.updatedAt = Date.now();
-  await db.saveSession(session);
-
-  // Sync to user's personal vault if connected. Never blocks local capture.
-  void (async () => {
-    try {
-      const vaultClient = await userVault.getClient();
-      if (!vaultClient) return;
-      await vaultClient.from('cm_sessions').upsert({
-        id: session.id, platform: session.platform, title: session.title,
-        messages: session.messages,
-        message_count: session.messages.length,
-        user_message_count: session.messages.filter((m) => m.role === 'user').length,
-        assistant_message_count: session.messages.filter((m) => m.role === 'assistant').length,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
-    } catch (err) { console.warn('[ContextMover:vault] CAPTURE_MESSAGE sync failed:', err); }
-  })();
-
-}
-
 async function handleCaptureSession(payload: {
   platform: string;
   sessionId: string;
@@ -1401,29 +1208,6 @@ function isPathAnnotatedCodeBlock(block: unknown): boolean {
 }
 
 // ── Migration helpers ──────────────────────────────────────────────────────
-
-async function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  fallback: () => Promise<T>
-): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout>;
-  const timeout = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error("TIMEOUT")), ms);
-  });
-  try {
-    const result = await Promise.race([promise, timeout]);
-    clearTimeout(timeoutId!);
-    return result;
-  } catch (err: unknown) {
-    clearTimeout(timeoutId!);
-    if (err instanceof Error && err.message === "TIMEOUT") {
-      console.warn("[CM:sw] Attention Engine timeout — falling back to Tier 2");
-      return fallback();
-    }
-    throw err;
-  }
-}
 
 function reportProgress(progress: number, stage: string): void {
   void broadcastToViews({ type: "MIGRATION_PROGRESS", progress, stage });

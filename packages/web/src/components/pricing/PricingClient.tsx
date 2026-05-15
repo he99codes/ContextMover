@@ -154,12 +154,13 @@ export function PricingClient() {
         </div>
 
         {/* Privacy badge */}
-        <div className="mb-8 flex items-center justify-center gap-2 rounded-[8px] border border-[#00FF88]/15 bg-[#00FF88]/5 px-5 py-3">
-          <Shield size={14} className="text-[#00FF88]" />
-          <p className="text-xs font-mono text-[#2A6A2A]">
-            Zero-knowledge — your conversations{" "}
-            <strong className="text-[#00FF88]">never touch our servers</strong>, on any plan.
-          </p>
+        <div className="mb-8 flex items-start justify-center gap-2 rounded-[8px] border border-[#00FF88]/15 bg-[#00FF88]/5 px-5 py-4">
+          <Shield size={14} className="text-[#00FF88] shrink-0 mt-0.5" />
+          <div className="text-xs font-mono text-[#2A6A2A] space-y-1">
+            <p><strong className="text-[#00FF88]">Zero-knowledge architecture</strong> — on every plan.</p>
+            <p>User data never touches our servers · Context stays on your machine</p>
+            <p>Vault syncs only to your own Supabase · We cannot read or sell your conversations</p>
+          </div>
         </div>
 
         {/* Billing toggle */}
@@ -269,7 +270,10 @@ export function PricingClient() {
           </div>
         </div>
 
-        <p className="mt-10 text-center text-xs text-[#3A3A3A]">
+        <p className="mt-8 text-center text-xs text-[#3A3A3A]">
+          7-day refund policy — no questions asked.
+        </p>
+        <p className="mt-3 text-center text-xs text-[#3A3A3A]">
           Questions?{" "}
           <a href="mailto:hey@contextmover.app" className="text-[#00FF88] hover:underline">
             hey@contextmover.app

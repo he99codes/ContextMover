@@ -34,10 +34,10 @@ export const INDIA_PRICING: PricingPlan = {
   gateway:  "razorpay",
   pro: {
     monthly:       199,
-    annual:        1499,
+    annual:        1899,
     display:       "₹199",
-    annualDisplay: "₹1,499",
-    annualSavings: "Save ₹889/year",
+    annualDisplay: "₹1,899",
+    annualSavings: "Save ₹489/year",
   },
   team: {
     monthly:       999,
@@ -53,10 +53,10 @@ export const GLOBAL_PRICING: PricingPlan = {
   gateway:  "stripe",
   pro: {
     monthly:       5,
-    annual:        39,
+    annual:        48,
     display:       "$5",
-    annualDisplay: "$39",
-    annualSavings: "Save $21/year",
+    annualDisplay: "$48",
+    annualSavings: "Save $12/year",
   },
   team: {
     monthly:       15,
