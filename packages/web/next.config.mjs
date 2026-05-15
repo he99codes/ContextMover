@@ -33,11 +33,11 @@ const securityHeaders = [
       // unsafe-eval removed — Next.js App Router does not require it.
       // To fully eliminate unsafe-inline, implement nonce-based CSP with
       // next.config nonce generation and middleware header injection.
-      "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com",
+      "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://cdn.razorpay.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://contextmover.com https://checkout.razorpay.com",
       "font-src 'self'",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://checkout.razorpay.com https://lumberjack.razorpay.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://checkout.razorpay.com https://cdn.razorpay.com https://lumberjack.razorpay.com",
       "frame-src https://api.razorpay.com https://checkout.razorpay.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
