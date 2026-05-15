@@ -143,6 +143,7 @@ export function startSessionCapture(config: {
 
   let sessionId: string | null = null;
   let lastMessageHash = "";
+  let lastSentMessageCount = 0;
   let lastHref = window.location.href;
   let lastUnchangedAt = 0;
   const UNCHANGED_COOLDOWN_MS = 5_000; // don't re-scrape if last result was unchanged < 5s ago
@@ -183,6 +184,7 @@ export function startSessionCapture(config: {
       );
       sessionId = null;
       lastMessageHash = "";
+      lastSentMessageCount = 0;
     }
   });
 
@@ -195,6 +197,7 @@ export function startSessionCapture(config: {
       lastHref = currentHref;
       sessionId = null;
       lastMessageHash = "";
+      lastSentMessageCount = 0;
       console.log(`[ContextMover] URL changed — re-resolving sessionId`);
     }
 
@@ -289,6 +292,19 @@ export function startSessionCapture(config: {
     // If we bail on the time-gate below, the next MutationObserver fire
     // will re-check and retry since lastMessageHash is still the old value.
 
+    // Guard against virtual scroll shrinkage: if the current DOM scrape found
+    // fewer messages than we last successfully sent, the difference is almost
+    // certainly virtual scroll evicting old messages from the DOM, not real
+    // deletion. Suppress the send and keep the existing stored snapshot intact.
+    if (messages.length < lastSentMessageCount) {
+      console.log(
+        `[ContextMover] ${config.platform}: suppressed shrinking scrape ` +
+        `(${lastSentMessageCount}\u2192${messages.length}) — likely virtual scroll eviction`
+      );
+      lastUnchangedAt = Date.now();
+      return;
+    }
+
     const resolvedId = await ensureSessionId();
 
     // Minimum 2s between sends for the same session.
@@ -304,6 +320,7 @@ export function startSessionCapture(config: {
     // Commit hash + timestamp only after deciding to send.
     lastMessageHash = newHash;
     lastSentAt = now;
+    lastSentMessageCount = messages.length;
 
     console.log(`[ContextMover] Sending CAPTURE_SESSION for session: ${resolvedId}`);
     chrome.runtime.sendMessage({

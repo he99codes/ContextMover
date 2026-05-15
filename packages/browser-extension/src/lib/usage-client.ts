@@ -47,6 +47,10 @@ export async function checkUsage(
       body: JSON.stringify({ tier }),
     });
 
+    const ct = res.headers.get("content-type") ?? "";
+    if (!res.ok || !ct.includes("application/json")) {
+      throw new Error(`Usage API: HTTP ${res.status}, content-type: ${ct || "none"}`);
+    }
     const data = (await res.json()) as UsageCheckResult;
     return data;
   } catch (err) {

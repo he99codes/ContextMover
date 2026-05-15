@@ -124,6 +124,7 @@ function MigrationSuccess({
 }) {
   const [dragging, setDragging] = useState(false)
   const [dropped, setDropped] = useState(false)
+  const [dragFailed, setDragFailed] = useState(false)
   const [fileReady, setFileReady] = useState(false)
   const [fetchError, setFetchError] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -223,13 +224,17 @@ function MigrationSuccess({
           marginBottom: '12px',
           textAlign: 'center'
         }}>
-          <div style={{ fontSize:'28px', marginBottom:'8px' }}>🎉</div>
+          <div style={{ fontSize:'28px', marginBottom:'8px' }}>
+            {dragFailed ? '⬇️' : '🎉'}
+          </div>
           <div style={{ fontSize:'11px', fontWeight:900,
             color:'#00FF88', marginBottom:'4px' }}>
-            File delivered
+            {dragFailed ? 'File downloaded' : 'File delivered'}
           </div>
           <div style={{ fontSize:'9px', color:'#6B6B6B' }}>
-            Upload it in the AI chat if not already done
+            {dragFailed
+              ? 'Drag from sidebar cannot deliver files — attach it using the 📎 button in the chat'
+              : 'Upload it in the AI chat if not already done'}
           </div>
         </div>
       ) : fetchError ? (
@@ -275,11 +280,22 @@ function MigrationSuccess({
           download={migrationFile.filename}
           draggable={true}
           onDragStart={(e) => {
+            let fileAdded = false
             if (fileContent) {
               try {
                 const file = new File([fileContent], migrationFile.filename, { type: 'application/xml' })
                 e.dataTransfer.items.add(file)
-              } catch { /* dataTransfer.items may be unavailable — fallback to href drag */ }
+                fileAdded = e.dataTransfer.items.length > 0
+              } catch { /* items API unavailable */ }
+            }
+            if (!fileAdded) {
+              // Extension-origin blob URLs are private — web pages cannot read
+              // them as file attachments. Trigger download so the user can
+              // attach via the 📎 button instead.
+              e.preventDefault()
+              setDragFailed(true)
+              handleManualDownload()
+              return
             }
             e.dataTransfer.effectAllowed = 'copy'
             setDragging(true)

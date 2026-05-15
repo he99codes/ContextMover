@@ -991,6 +991,7 @@ async function handleCaptureSession(payload: {
   title: string;
   messages: Message[];
   metadata?: import("@/lib/types").RequestMetadata;
+  source?: string;
 }) {
   // In-flight deduplication: skip if the same session is already being processed.
   // Prevents double DB writes when content script + syncOpenTabs fire simultaneously.
@@ -1011,6 +1012,19 @@ async function handleCaptureSession(payload: {
   }
 
   const existing = await db.getSession(payload.sessionId);
+
+  // Protect the most complete capture for this session.
+  // DOM scrapes shrink when virtual scroll evicts old messages from the DOM.
+  // Network captures (source: 'fetch-intercept') carry authoritative full
+  // history from the API and are always allowed to overwrite.
+  const isNetworkCapture = payload.source === 'fetch-intercept';
+  if (existing && payload.messages.length < existing.messages.length && !isNetworkCapture) {
+    console.log(
+      `[CM:sw] CAPTURE_SESSION: incoming count (${payload.messages.length}) < stored (${existing.messages.length}) from DOM scrape — keeping existing`
+    );
+    return;
+  }
+
   const createdAt = existing?.createdAt ?? Date.now();
   const updatedAt =
     payload.messages[payload.messages.length - 1]?.timestamp ?? Date.now();
