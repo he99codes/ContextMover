@@ -10,8 +10,8 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#F5F5F5]">
       <div
-        className="mx-auto px-6"
-        style={{ maxWidth: "760px", paddingTop: "80px", paddingBottom: "80px" }}
+        className="mx-auto px-5 sm:px-6 pt-10 sm:pt-20 pb-12 sm:pb-20 w-full"
+        style={{ maxWidth: "760px" }}
       >
         <Link
           href="/"
@@ -21,8 +21,8 @@ export default function PrivacyPage() {
         </Link>
 
         <h1
-          className="mt-8 font-bold text-[#F5F5F5]"
-          style={{ fontSize: "28px", lineHeight: "1.2" }}
+          className="mt-6 sm:mt-8 font-bold text-[#F5F5F5]"
+          style={{ fontSize: "clamp(22px, 5vw, 28px)", lineHeight: "1.2" }}
         >
           PRIVACY POLICY
         </h1>
@@ -31,8 +31,8 @@ export default function PrivacyPage() {
         </p>
 
         <div
-          className="mt-12 space-y-10 text-[#F5F5F5]"
-          style={{ fontSize: "15px", lineHeight: "1.8" }}
+          className="mt-8 sm:mt-12 space-y-8 sm:space-y-10 text-[#F5F5F5]"
+          style={{ fontSize: "15px", lineHeight: "1.7" }}
         >
           {/* 1 */}
           <section>
@@ -341,13 +341,13 @@ export default function PrivacyPage() {
 
         {/* Footer nav */}
         <div
-          className="mt-16 pt-6 border-t border-[#1A1A1A] flex gap-6 text-[#6B6B6B]"
-          style={{ fontSize: "13px" }}
+          className="mt-12 sm:mt-16 pt-6 border-t border-[#1A1A1A] flex flex-wrap gap-1 sm:gap-6 text-[#6B6B6B]"
+          style={{ fontSize: "14px" }}
         >
-          <Link href="/" className="hover:text-[#F5F5F5] transition-colors">
+          <Link href="/" className="hover:text-[#F5F5F5] transition-colors flex items-center min-h-[44px] pr-4">
             Home
           </Link>
-          <Link href="/terms" className="hover:text-[#F5F5F5] transition-colors">
+          <Link href="/terms" className="hover:text-[#F5F5F5] transition-colors flex items-center min-h-[44px] pr-4">
             Terms of Service
           </Link>
         </div>

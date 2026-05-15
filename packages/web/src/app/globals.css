@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Mobile baseline ── */
+*, *::before, *::after { box-sizing: border-box; }
+html { overflow-x: hidden; }
+body { overflow-x: hidden; }
+
 @layer base {
   :root {
     /* ── ContextMover design tokens ── */
@@ -240,6 +245,13 @@
   animation: flow-shimmer 2s linear infinite;
 }
 .flow-line-delay { animation-delay: 1s; }
+
+/* ── Mobile utilities ── */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .touch-target { min-height: 44px; min-width: 44px; }
+}
 
 /* ── prefers-reduced-motion ── */
 @media (prefers-reduced-motion: reduce) {

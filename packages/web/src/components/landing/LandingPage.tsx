@@ -260,16 +260,34 @@ export default function LandingPage() {
           </div>
 
           {/* Mobile hamburger */}
-          <button className="md:hidden text-[#6B6B6B] hover:text-[#F5F5F5] p-1 text-xl" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
-            {menuOpen ? "✕" : "☰"}
+          <button
+            className="md:hidden flex items-center justify-center w-11 h-11 text-[#6B6B6B] hover:text-[#F5F5F5] active:opacity-80"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+          >
+            <span className="text-2xl leading-none select-none">{menuOpen ? "✕" : "☰"}</span>
           </button>
         </div>
 
-        {/* Mobile menu */}
+        {/* Mobile full-screen overlay menu */}
         {menuOpen && (
-          <div className="md:hidden border-t border-[#1A1A1A] bg-[#0A0A0A] px-5 py-4 space-y-1">
-            <div className="pb-3 mb-2 border-b border-[#1A1A1A]">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-[#3A3A3A] px-3 pb-1">Features</p>
+          <div className="md:hidden fixed inset-0 z-[200] bg-[#0A0A0A] flex flex-col" style={{ top: 0 }}>
+            {/* Overlay header */}
+            <div className="flex items-center justify-between px-5 h-14 border-b border-[#1A1A1A] shrink-0">
+              <a href="/" className="flex items-center gap-2.5">
+                <span className="font-bold text-[#F5F5F5] tracking-tight">ContextMover</span>
+              </a>
+              <button
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center justify-center w-11 h-11 text-[#6B6B6B] hover:text-[#F5F5F5] active:opacity-80"
+                aria-label="Close menu"
+              >
+                <span className="text-2xl leading-none">✕</span>
+              </button>
+            </div>
+            {/* Overlay links */}
+            <nav className="flex-1 overflow-y-auto px-5 py-4">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-[#3A3A3A] px-3 pb-2">Features</p>
               {([
                 ["Smart Summary",    "#tiers"],
                 ["Attention Engine", "#tiers"],
@@ -277,25 +295,31 @@ export default function LandingPage() {
                 ["IDE Connection",   "#project-files"],
                 ["Personal Vault",   "/settings/vault"],
               ] as const).map(([f, href]) => (
-                <a key={f} href={href} className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-1.5 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>{f}</a>
+                <a key={f} href={href} className="flex items-center text-[18px] text-[#6B6B6B] min-h-[56px] px-3 border-b border-[#111] active:opacity-70" onClick={() => setMenuOpen(false)}>{f}</a>
               ))}
-            </div>
-            <a href="/pricing" className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-2 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>Pricing</a>
-            <a href="/dashboard" className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-2 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>Dashboard</a>
-            <a href="/docs" className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-2 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>Docs</a>
-            <a href="/feedback" className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-2 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>Feedback</a>
-            <a href="/contact" className="block text-sm text-[#6B6B6B] hover:text-[#F5F5F5] py-2 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>Contact</a>
-            <a href="#build-with-me" className="block text-sm text-[#00FF88]/60 hover:text-[#00FF88] py-2 px-3 rounded-md hover:bg-[#111]" onClick={() => setMenuOpen(false)}>Build with me</a>
-            <div className="pt-3 flex flex-col gap-2">
-              <a href="/auth" className="block text-center border border-[#2A2A2A] text-sm text-[#F5F5F5] py-2.5 px-4 rounded-md" onClick={() => setMenuOpen(false)}>Log in</a>
-              <a href="/auth?mode=signup" className="block text-center bg-[#00FF88] text-[#0A0A0A] font-semibold text-sm px-4 py-2.5 rounded-md" onClick={() => setMenuOpen(false)}>Get for free</a>
+              <div className="mt-2" />
+              {([
+                ["Pricing",      "/pricing"],
+                ["Dashboard",    "/dashboard"],
+                ["Docs",         "/docs"],
+                ["Feedback",     "/feedback"],
+                ["Contact",      "/contact"],
+              ] as const).map(([label, href]) => (
+                <a key={label} href={href} className="flex items-center text-[18px] text-[#6B6B6B] min-h-[56px] px-3 border-b border-[#111] active:opacity-70" onClick={() => setMenuOpen(false)}>{label}</a>
+              ))}
+              <a href="#build-with-me" className="flex items-center text-[18px] text-[#00FF88]/60 min-h-[56px] px-3 active:opacity-70" onClick={() => setMenuOpen(false)}>Build with me</a>
+            </nav>
+            {/* Overlay CTAs */}
+            <div className="shrink-0 px-5 pb-8 pt-4 flex flex-col gap-3 border-t border-[#1A1A1A]">
+              <a href="/auth" className="flex items-center justify-center border border-[#2A2A2A] text-[#F5F5F5] font-semibold text-base h-[52px] rounded-lg active:opacity-80" onClick={() => setMenuOpen(false)}>Log in</a>
+              <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center bg-[#00FF88] text-[#0A0A0A] font-bold text-base h-[52px] rounded-lg active:scale-95 transition-transform shadow-[0_0_16px_rgba(0,255,136,0.25)]" onClick={() => setMenuOpen(false)}>Add to Chrome — free</a>
             </div>
           </div>
         )}
       </nav>
 
       {/* ══════════════════════════ 2. HERO ══════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center pt-14 px-5 pb-16 overflow-hidden">
+      <section className="relative min-h-screen flex flex-col items-center justify-center pt-14 sm:pt-14 px-5 pb-16 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-[500px] bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(0,255,136,0.08),transparent)]" />
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:52px_52px]" />
@@ -305,11 +329,11 @@ export default function LandingPage() {
           <div className="inline-flex items-center gap-2 bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.25)] rounded-full px-3.5 py-1 text-xs text-[#00FF88] font-medium mb-8 animate-fade-in">
             ✦ &nbsp;Context Operating System for AI
           </div>
-          <h1 className="text-5xl sm:text-6xl lg:text-[4.5rem] font-bold text-[#F5F5F5] leading-[1.07] tracking-tight mb-6 animate-slide-up" style={{ animationDelay: "80ms" }}>
+          <h1 className="text-[2rem] sm:text-5xl lg:text-6xl xl:text-[4.5rem] font-bold text-[#F5F5F5] leading-[1.1] sm:leading-[1.07] tracking-tight mb-6 animate-slide-up" style={{ animationDelay: "80ms" }}>
             Stop re-explaining<br />
             <span className="text-[#00FF88]">yourself</span> to every AI.
           </h1>
-          <p className="text-base sm:text-lg text-[#6B6B6B] max-w-xl mx-auto mb-10 leading-relaxed animate-slide-up" style={{ animationDelay: "180ms" }}>
+          <p className="text-[15px] sm:text-base lg:text-lg text-[#6B6B6B] max-w-xl mx-auto mb-10 leading-relaxed animate-slide-up" style={{ animationDelay: "180ms" }}>
             ContextMover captures your AI conversations, intelligently compresses them, and migrates your full context to any AI platform&nbsp;— instantly.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6 animate-slide-up" style={{ animationDelay: "280ms" }}>
@@ -317,11 +341,11 @@ export default function LandingPage() {
               href={CHROME_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-[#00FF88] text-[#0A0A0A] font-bold px-8 py-3.5 rounded-lg text-base w-full sm:w-auto text-center btn-primary shadow-[0_0_24px_rgba(0,255,136,0.25)]"
+              className="bg-[#00FF88] text-[#0A0A0A] font-bold px-8 py-3.5 rounded-lg text-base w-full sm:w-auto text-center btn-primary shadow-[0_0_24px_rgba(0,255,136,0.25)] min-h-[52px] flex items-center justify-center active:scale-95 transition-transform"
             >
               Add to Chrome — it&apos;s free
             </a>
-            <a href="#how" className="border border-[#2A2A2A] text-[#F5F5F5] px-8 py-3.5 rounded-lg text-base hover:border-[rgba(0,255,136,0.4)] transition-colors w-full sm:w-auto text-center">
+            <a href="#how" className="border border-[#2A2A2A] text-[#F5F5F5] px-8 py-3.5 rounded-lg text-base hover:border-[rgba(0,255,136,0.4)] transition-colors w-full sm:w-auto text-center min-h-[52px] flex items-center justify-center">
               See how it works →
             </a>
           </div>
@@ -334,7 +358,7 @@ export default function LandingPage() {
               ))}
             </div>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#6B6B6B] mb-4 animate-fade-in" style={{ animationDelay: "380ms" }}>
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#6B6B6B] mb-4 animate-fade-in" style={{ animationDelay: "380ms" }}>
             {["■ Local-first", "▸ Works offline", "◈ 3-tier intelligence", "No account needed"].map((t, i) => (
               <span key={i}>{t}</span>
             ))}
@@ -349,17 +373,17 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════ 3. PROBLEM ══════════════════════════ */}
-      <section className="bg-[#111111] py-24 px-5">
+      <section className="bg-[#111111] py-14 sm:py-24 px-5">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4">Every AI session starts from zero.</h2>
           <p className="reveal text-[#6B6B6B] mb-14">You&apos;ve been there. You know how frustrating it is.</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-14">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 mb-14">
             {[
               { emoji: "⊘", title: "Context window full", body: "You hit the limit. Start over. Re-explain everything from scratch. Hours of work, reduced to a blank chat." },
               { emoji: "⇄", title: "Wrong model for the job", body: "Started in ChatGPT but Claude is better for this. No way to bring your context along. Pick a model and commit forever." },
               { emoji: "◷", title: "Hours of context lost", body: "Long debugging sessions. Complex architectural decisions. All gone the moment you switch tabs or close the browser." },
             ].map((card, i) => (
-              <div key={i} className={`reveal reveal-d${i + 1} card-hover bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-7 text-left`}>
+              <div key={i} className={`reveal reveal-d${i + 1} card-hover bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-5 sm:p-7 text-left`}>
                 <div className="text-3xl mb-4">{card.emoji}</div>
                 <h3 className="font-semibold text-[#F5F5F5] mb-2">{card.title}</h3>
                 <p className="text-sm text-[#6B6B6B] leading-relaxed">{card.body}</p>
@@ -373,7 +397,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════ 4. SOLUTION ══════════════════════════ */}
-      <section className="py-24 px-5">
+      <section className="py-14 sm:py-24 px-5">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4">One click. Full context. Any AI.</h2>
           <p className="reveal text-[#6B6B6B] max-w-xl mx-auto mb-14 leading-relaxed">
@@ -420,11 +444,11 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════ 5. 3-TIER FEATURES ══════════════════════════ */}
-      <section id="tiers" className="bg-[#111111] py-24 px-5">
+      <section id="tiers" className="bg-[#111111] py-14 sm:py-24 px-5">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4">Intelligence that matches your needs.</h2>
           <p className="reveal text-[#6B6B6B] mb-14">Three tiers. Every situation covered.</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 gap-5">
             {[
               { icon: "□", tier: "Full Context",    badge: null,          speed: "▸▸▸ Instant", desc: "Send the complete conversation verbatim. Every word, every code block, zero compression. When you need absolutely everything." },
               { icon: "◆", tier: "Smart Summary",   badge: "Recommended", speed: "▸▸▸ Fast",    desc: "Automatically extracts goals, key decisions, bugs fixed, and all code blocks. The smart default for most sessions — 60–80% compression." },
@@ -460,7 +484,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════ 5b. PROJECT FILES ════════════════════════ */}
-      <section id="project-files" className="py-24 px-5">
+      <section id="project-files" className="py-14 sm:py-24 px-5">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4">Local folder context.</h2>
@@ -489,11 +513,11 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════ 6. HOW IT WORKS ══════════════════════════ */}
-      <section id="how" className="py-24 px-5">
+      <section id="how" className="py-14 sm:py-24 px-5">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4">Three steps. Ten seconds.</h2>
           <p className="reveal text-[#6B6B6B] mb-16">No configuration. No API keys. No learning curve.</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 relative">
             <div className="hidden md:block absolute top-10 left-[25%] right-[25%] h-px bg-gradient-to-r from-[#2A2A2A] via-[#00FF88]/30 to-[#2A2A2A]" />
             {STEPS.map((step, i) => (
               <div key={i} className={`reveal reveal-d${i + 1} relative flex flex-col items-center text-center gap-4`}>
@@ -512,15 +536,15 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════ 7. PRIVACY / TRUST ══════════════════════════ */}
-      <section className="py-24 px-5 bg-[#0A0F0A] border-y border-[rgba(0,255,136,0.08)]">
+      <section className="py-14 sm:py-24 px-5 bg-[#0A0F0A] border-y border-[rgba(0,255,136,0.08)]">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4">Your context. Your device. Your control.</h2>
             <p className="reveal text-[#6B6B6B] max-w-md mx-auto">We designed ContextMover so our servers are never in the loop. Because they shouldn&apos;t be.</p>
           </div>
-          <div className="flex flex-col md:flex-row gap-10 items-start">
+          <div className="flex flex-col gap-10 items-start">
             {/* Flow chart */}
-            <div className="reveal flex-1 bg-[#111111] border border-[rgba(0,255,136,0.12)] rounded-2xl p-7 font-mono text-sm">
+            <div className="reveal w-full bg-[#111111] border border-[rgba(0,255,136,0.12)] rounded-2xl p-5 sm:p-7 font-mono text-xs sm:text-sm overflow-x-auto">
               <p className="text-[#F5F5F5] mb-1">Your Browser</p>
               <p className="text-[#00FF88]">│</p>
               <p><span className="text-[#00FF88]">├──</span> <span className="text-[#F5F5F5]">Captures session</span> <span className="text-[#6B6B6B]">→ IndexedDB (local)</span></p>
@@ -555,11 +579,11 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════ 8. PLATFORM SUPPORT ══════════════════════════ */}
-      <section id="platforms" className="py-24 px-5 bg-[#111111]">
+      <section id="platforms" className="py-14 sm:py-24 px-5 bg-[#111111]">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4">Works where you work.</h2>
           <p className="reveal text-[#6B6B6B] mb-14">Every major AI platform. One extension.</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-8">
             {PLATFORMS.map((p, i) => (
               <div
                 key={i}
@@ -642,7 +666,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════ 9. PRICING ══════════════════════════ */}
-      <section id="pricing" className="py-24 px-5">
+      <section id="pricing" className="py-14 sm:py-24 px-5">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4">Start free. Upgrade when you need more.</h2>
           <p className="reveal text-[#6B6B6B] mb-8">No credit card required. Cancel anytime.</p>
@@ -669,7 +693,7 @@ export default function LandingPage() {
               >🇮🇳 India (₹)</button>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
+          <div className="grid grid-cols-1 gap-5 mb-10">
             {/* FREE */}
             <div className="reveal card-hover bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-7 text-left flex flex-col">
               <div className="mb-6">
@@ -722,7 +746,7 @@ export default function LandingPage() {
             </div>
           </div>
           {/* Early bird */}
-          <div className="reveal inline-flex flex-col sm:flex-row items-center gap-3 bg-[#1A1A1A] border border-[#F59E0B]/30 rounded-2xl px-6 py-4 text-sm">
+          <div className="reveal flex flex-col sm:flex-row items-center gap-3 bg-[#1A1A1A] border border-[#F59E0B]/30 rounded-2xl px-6 py-4 text-sm w-full sm:w-auto sm:inline-flex">
             <span className="text-lg">★</span>
             <span className="text-[#F59E0B] font-semibold">Early Bird: Lifetime Pro for $149</span>
             <span className="text-[#6B6B6B]">— first 500 only</span>
@@ -756,7 +780,7 @@ export default function LandingPage() {
       {/* ══════════════════════════ 11. FOOTER ══════════════════════════ */}
       <footer className="bg-[#0A0A0A] border-t border-[#2A2A2A] py-14 px-5">
         <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start gap-10 mb-10">
+          <div className="flex flex-col gap-8 mb-10">
             {/* Brand */}
             <div className="flex flex-col gap-3 max-w-xs">
               <div className="flex items-center gap-2.5">
@@ -767,7 +791,7 @@ export default function LandingPage() {
               <p className="text-xs font-mono text-[#1A3A1A] leading-relaxed">🔒 Zero-knowledge — your conversations never touch our servers.</p>
             </div>
             {/* Nav links */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-10 gap-y-3 text-sm text-[#6B6B6B]">
+            <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 gap-x-10 gap-y-3 text-sm text-[#6B6B6B]">
               <a href="/dashboard" className="hover:text-[#F5F5F5] transition-colors">Dashboard</a>
               <a href="/pricing" className="hover:text-[#F5F5F5] transition-colors">Pricing</a>
               <a href="/docs" className="hover:text-[#F5F5F5] transition-colors">Docs</a>

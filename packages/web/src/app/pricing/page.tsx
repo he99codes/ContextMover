@@ -253,18 +253,18 @@ export default function PricingPage() {
         minHeight:  "100vh",
         background: "#0A0A0A",
         color:      "#F5F5F5",
-        padding:    "80px 24px",
         fontFamily: "Inter, sans-serif",
       }}
+      className="px-4 sm:px-6 pt-10 sm:pt-20 pb-16"
     >
       {/* Razorpay SDK is loaded globally in app/layout.tsx */}
 
       {/* Header */}
       <div style={{ textAlign: "center", marginBottom: "40px" }}>
-        <h1 style={{ fontSize: "48px", fontWeight: 900, margin: "0 0 16px" }}>
+        <h1 style={{ fontWeight: 900, margin: "0 0 16px" }} className="text-3xl sm:text-5xl">
           Simple pricing.
         </h1>
-        <p style={{ fontSize: "18px", color: "#6B6B6B", margin: 0 }}>
+        <p style={{ color: "#6B6B6B", margin: 0 }} className="text-base sm:text-lg">
           Start free. Upgrade when you need more.
         </p>
       </div>
@@ -321,12 +321,10 @@ export default function PricingPage() {
 
         {/* Pricing cards */}
         <div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6"
           style={{
-            display:             "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap:                 "24px",
-            maxWidth:            "900px",
-            margin:              "0 auto 60px",
+            maxWidth: "900px",
+            margin:   "0 auto 60px",
           }}
         >
         {/* Free */}
@@ -502,7 +500,7 @@ function CurrencySelector({
   onSelect: (c: "INR" | "USD") => void;
 }) {
   return (
-    <div style={{ display: "flex", justifyContent: "center", gap: "12px" }}>
+    <div className="flex flex-col xs:flex-row justify-center gap-3 sm:gap-3">
       {(["INR", "USD"] as const).map((c) => {
         const active = currency === c;
         return (
@@ -510,16 +508,17 @@ function CurrencySelector({
             key={c}
             onClick={() => onSelect(c)}
             style={{
-              padding:      "12px 32px",
+              padding: "12px 24px",
               borderRadius: "8px",
-              fontSize:     "14px",
-              fontWeight:   700,
-              cursor:       "pointer",
-              border:       `1px solid ${active ? "#00FF88" : "#2A2A2A"}`,
-              background:   active ? "rgba(0,255,136,0.12)" : "transparent",
-              color:        active ? "#00FF88" : "#6B6B6B",
-              transition:   "all 0.15s",
-              outline:      "none",
+              fontSize: "14px",
+              fontWeight: 700,
+              cursor: "pointer",
+              border: `1px solid ${active ? "#00FF88" : "#2A2A2A"}`,
+              background: active ? "rgba(0,255,136,0.12)" : "transparent",
+              color: active ? "#00FF88" : "#6B6B6B",
+              transition: "all 0.15s",
+              outline: "none",
+              minHeight: "52px",
             }}
           >
             {c === "INR" ? "₹ INR — India" : "$ USD — Global"}
@@ -571,7 +570,7 @@ function PlanCard({
         background:   "#111111",
         border,
         borderRadius: "12px",
-        padding:      "32px",
+        padding:      "24px",
         position:     "relative",
         boxShadow:    shadow,
       }}
@@ -633,7 +632,8 @@ function PlanCard({
           style={{
             width:          "100%",
             marginTop:      children ? "16px" : "24px",
-            padding:        "14px",
+            padding:        "14px 16px",
+            minHeight:      "52px",
             background:
               ctaVariant === "outline"
                 ? "transparent"

@@ -133,7 +133,7 @@ export function Sidebar({ user }: SidebarProps) {
               key={item.name}
               href={item.href}
               className={cn(
-                "group relative flex h-10 items-center gap-2.5 overflow-hidden rounded-[8px] px-3 text-sm font-medium transition-all duration-150",
+                "group relative flex h-11 min-h-[44px] items-center gap-2.5 overflow-hidden rounded-[8px] px-3 text-sm font-medium transition-all duration-150",
                 isActive
                   ? "bg-[#1A1A1A] text-[#00FF88]"
                   : "text-[#6B6B6B] hover:bg-[#111111] hover:text-[#F5F5F5]"

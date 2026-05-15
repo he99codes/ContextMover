@@ -13,6 +13,12 @@ const inter = Inter({
   display: "swap",
 });
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata: Metadata = {
   title: {
     default: "ContextMover",
@@ -27,15 +33,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} scroll-smooth`}>
       <body className="min-h-screen bg-[#0A0A0A] font-sans antialiased">
         {children}
         <footer className="border-t border-[#1A1A1A] py-5 px-6">
-          <div className="flex justify-center gap-6" style={{ fontSize: "13px" }}>
-            <Link href="/privacy" className="text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-6" style={{ fontSize: "14px" }}>
+            <Link href="/privacy" className="text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors flex items-center justify-center min-h-[44px] px-2">
               Privacy Policy
             </Link>
-            <Link href="/terms" className="text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors">
+            <Link href="/terms" className="text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors flex items-center justify-center min-h-[44px] px-2">
               Terms
             </Link>
           </div>
