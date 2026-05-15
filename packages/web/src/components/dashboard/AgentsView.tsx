@@ -8,6 +8,7 @@ interface Props {
   userId: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function AgentsView(_props: Props) {
   return (
     <div className="max-w-4xl mx-auto p-8">

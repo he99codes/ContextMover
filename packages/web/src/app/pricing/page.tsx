@@ -62,7 +62,7 @@ export default function PricingPage() {
   const router = useRouter();
   const { isPro } = useSubscription();
   const supabase = createClient();
-  const [checkoutLoading, setCheckoutLoading] = useState<"pro" | "team" | null>(null);
+  const [, setCheckoutLoading] = useState<"pro" | "team" | null>(null);
   const [mockNotice, setMockNotice] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [error, setError] = useState<string | null>(null);
@@ -84,6 +84,7 @@ export default function PricingPage() {
     return () => clearTimeout(t);
   }, [mockNotice]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function handleUpgrade(planType: "pro" | "team") {
     setCheckoutLoading(planType);
     try {

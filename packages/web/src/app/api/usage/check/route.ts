@@ -103,10 +103,10 @@ export async function POST(req: NextRequest) {
     limit,
     remaining: limit - count,
   });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[CM:usage] check error:', err);
     return NextResponse.json(
-      { allowed: true, error: err.message },
+      { allowed: true, error: err instanceof Error ? err.message : String(err) },
       { status: 200 }
     );
   }
