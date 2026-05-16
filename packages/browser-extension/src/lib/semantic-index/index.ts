@@ -293,19 +293,52 @@ export class SemanticIndex {
     }));
     scored.sort((a, b) => b.score - a.score);
 
+    // Discard near-zero similarity chunks — they're semantic noise and would
+    // dilute the retrieval if there's room to fill from better candidates.
+    const MIN_SIMILARITY = 0.1;
+    const usable = scored.filter((s) => s.score >= MIN_SIMILARITY);
+    // If everything is below threshold (rare — e.g. very generic query),
+    // fall back to the full scored list so we don't return empty.
+    const pool = usable.length > 0 ? usable : scored;
+
     // Boost code chunks — always include up to 5 top code blocks
-    const topCode = scored.filter((s) => s.chunk.hasCode).slice(0, 5);
-    const topProse = scored
+    const topCode = pool.filter((s) => s.chunk.hasCode).slice(0, 5);
+    const topProse = pool
       .filter((s) => !s.chunk.hasCode)
       .slice(0, Math.max(0, topK - topCode.length));
 
-    const retrieved = [...topCode, ...topProse]
+    // CRITICAL: always include chunks from the last 6 messages regardless of
+    // cosine score. Recent context anchors the conversation continuity —
+    // without it, the AI receives topically-relevant snippets with no idea
+    // where the conversation actually ended.
+    const maxMessageIndex = Math.max(
+      ...allChunks.map((c) => c.messageIndex),
+      0
+    );
+    const RECENT_WINDOW = 6;
+    const recentCutoff = Math.max(0, maxMessageIndex - RECENT_WINDOW + 1);
+    const recentChunks = scored.filter(
+      (s) => s.chunk.messageIndex >= recentCutoff
+    );
+
+    // Union of: top-scored code + top-scored prose + all recent chunks.
+    // De-dup by chunk id so a chunk that's both recent AND top-scored isn't
+    // counted twice.
+    const seen = new Set<string>();
+    const retrieved = [...topCode, ...topProse, ...recentChunks]
+      .filter((s) => {
+        if (seen.has(s.chunk.id)) return false;
+        seen.add(s.chunk.id);
+        return true;
+      })
       .sort((a, b) => a.chunk.messageIndex - b.chunk.messageIndex)
       .map((s) => s.chunk);
 
     _retrieveCache.set(cacheKey, { results: retrieved, ts: Date.now() });
     console.log(
-      `[CM:index] Retrieved ${retrieved.length}/${allChunks.length} chunks in ${(performance.now() - t0).toFixed(1)}ms`
+      `[CM:index] Retrieved ${retrieved.length}/${allChunks.length} chunks ` +
+      `(top-code=${topCode.length} top-prose=${topProse.length} recent=${recentChunks.length}) ` +
+      `in ${(performance.now() - t0).toFixed(1)}ms`
     );
     return retrieved;
   }

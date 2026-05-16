@@ -242,7 +242,16 @@ export default function Sidebar() {
 
     // Instant refresh on SW broadcast — handler stored in ref so the listener
     // is registered exactly once (empty deps) and always calls the latest closure.
-    const stableListener = (msg: { type: string }) => handleMessageRef.current?.(msg);
+    const stableListener = (msg: { type: string }) => {
+      // Force-close on tab/window switch (broadcast from SW). window.close()
+      // is the only reliable cross-Chrome-version path; sidePanel.close()
+      // silently no-ops in many cases.
+      if (msg?.type === "SIDEBAR_FORCE_CLOSE") {
+        try { window.close(); } catch { /* fallback to listener */ }
+        return;
+      }
+      handleMessageRef.current?.(msg);
+    };
     chrome.runtime.onMessage.addListener(stableListener);
 
     return () => {
@@ -431,6 +440,13 @@ export default function Sidebar() {
     setShowFullTranscript(false);
     setView('detail');
     warmupSession(session).catch(() => {});
+    // GET_SESSIONS caps message content at 2000 chars to prevent UI freeze.
+    // Fetch full session content now so the detail view and migration have
+    // complete message data.
+    chrome.runtime.sendMessage({ type: "GET_SESSION", sessionId: session.id }, (full) => {
+      if (chrome.runtime.lastError || !full) return;
+      setSelected((prev) => prev?.id === session.id ? full : prev);
+    });
   }, [warmupSession]);
 
   function loadIndexStats() {
@@ -722,7 +738,10 @@ export default function Sidebar() {
               </div>
             </div>
 
-            {selected && selected.messages.length < 15 && (
+            {selected
+              && selected.messages.length < 15
+              && !selected.metadata?.authoritative
+              && (
               <div style={{
                 background: 'rgba(245,158,11,0.08)',
                 border: '1px solid rgba(245,158,11,0.25)',

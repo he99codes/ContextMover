@@ -741,7 +741,10 @@ export function summarizeIntelligent(messages: Message[], task?: string): Intell
     }
   }
 
-  // ── Dedupe + cap code blocks — path-annotated first, max 10, each ≤800 chars
+  // ── Dedupe + cap code blocks — path-annotated first, max 15.
+  // Code is NEVER truncated — losing partial code makes it unusable. The
+  // count cap (15) is enough to keep total file size bounded while keeping
+  // each block 100% verbatim, per the migration-quality spec.
   {
     const seen = new Set<string>();
     const pathBlocks = codeBlocks.filter(b => b.path);
@@ -752,10 +755,7 @@ export function summarizeIntelligent(messages: Message[], task?: string): Intell
       seen.add(key);
       return true;
     });
-    codeBlocks = deduped.slice(0, 10).map(b => ({
-      ...b,
-      code: b.code.length > 800 ? b.code.slice(0, 800) + "\n... [truncated]" : b.code,
-    }));
+    codeBlocks = deduped.slice(0, 15);
   }
 
   // ── Task-aware boosting — re-rank decisions and code blocks by task relevance
@@ -779,8 +779,20 @@ export function summarizeIntelligent(messages: Message[], task?: string): Intell
     }
   }
 
-  // ── 6. Tail — last MAX_VERBATIM_MESSAGES verbatim, both roles ───────────────────────
-  const tail = messages.slice(-MAX_VERBATIM_MESSAGES);
+  // ── 6. Tail — verbatim recent messages. Size scales with conversation
+  // length so short sessions don't get over-compressed:
+  //   • ≤30 msgs  → include ALL messages verbatim (nothing to compress)
+  //   • 31–80 msgs → keep last 12 (~60-70% compression on typical content)
+  //   • >80 msgs   → keep last MAX_VERBATIM_MESSAGES (6, per long-session spec)
+  // This guarantees the spec rule "last 6 messages always in output" while
+  // including more of the conversation for shorter sessions.
+  const tailSize =
+    messages.length <= 30
+      ? messages.length
+      : messages.length <= 80
+        ? 12
+        : MAX_VERBATIM_MESSAGES;
+  const tail = messages.slice(-tailSize);
 
   // ── 7. Completed tasks — same COMPLETED_RE used by extractContext() ───────
   const rawCompleted: string[] = [];

@@ -256,14 +256,30 @@ export async function ensureDbReady(): Promise<void> {
     await dexieDb.open();
   } catch (err: any) {
     const msg = err?.message ?? String(err);
-    if (
+    const name = err?.name ?? "";
+    // Dexie throws several distinct error types when an upgrade can't run.
+    // The most common in practice (and the one currently breaking users) is:
+    //   UpgradeError: "Not yet support for changing primary key"
+    // — fired when the metaPrompts store's keyPath changed from `id` to
+    // `[sessionId+platform+tier]` (v5 → v6). Match on both message substrings
+    // and Dexie's error names so any schema-impossible-to-migrate case is
+    // recovered by deleting and recreating the DB.
+    const isSchemaProblem =
+      name === "UpgradeError" ||
+      name === "SchemaError" ||
+      name === "VersionError" ||
       msg.includes("Schema") ||
       msg.includes("keyPath") ||
+      msg.includes("primary key") ||
       msg.includes("object store") ||
       msg.includes("Cannot upgrade") ||
-      msg.includes("not compatible")
-    ) {
-      console.warn("[CM:db] Schema conflict detected, recreating database...");
+      msg.includes("not compatible") ||
+      msg.includes("UpgradeError");
+    if (isSchemaProblem) {
+      console.warn(
+        `[CM:db] Schema conflict detected (${name}: ${msg}) — recreating database...`
+      );
+      try { dexieDb.close(); } catch { /* already closed */ }
       await Dexie.delete("contextmover");
       await dexieDb.open();
       console.log("[CM:db] Database recreated successfully");

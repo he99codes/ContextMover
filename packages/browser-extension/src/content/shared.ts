@@ -119,6 +119,12 @@ export function startSessionCapture(config: {
   selectorOrElement: string | Element;
   scrapeMessages: () => Message[];
   getTitle?: (messages: Message[]) => string;
+  // Optional additional capture delays (ms after script load) layered on top
+  // of the default schedule (immediate, 100, 500, 1000, 1500). Used by
+  // platforms whose SPAs render messages later than the default window —
+  // e.g. Claude's lazy virtual-scroll mount. The shrink-guard below prevents
+  // a late partial scrape from clobbering an earlier complete capture.
+  extraCaptureDelays?: number[];
 }) {
   // Guard against the content script being loaded twice in the same page.
   // This happens when the service worker re-injects on install/reload while
@@ -188,7 +194,12 @@ export function startSessionCapture(config: {
     }
   });
 
-  const FETCH_FALLBACK_WINDOW_MS = 60_000;
+  // Reduced from 60s → 30s. The previous window was too aggressive: a single
+  // benign Claude API call (e.g. /sentry, /telemetry) that produced 0 captured
+  // messages would still suppress all DOM scrapes for a full minute, leaving
+  // sessions undetected. The new gate also requires count>0 — a fetch capture
+  // with zero messages no longer blocks the DOM fallback.
+  const FETCH_FALLBACK_WINDOW_MS = 30_000;
   const capture = async () => {
     // Re-resolve session ID on SPA navigation (e.g. Claude pushState from
     // /new → /chat/abc123 when a conversation starts).
@@ -201,14 +212,17 @@ export function startSessionCapture(config: {
       console.log(`[ContextMover] URL changed — re-resolving sessionId`);
     }
 
-    // ── Fetch-intercept fallback gate ──────────────────────────────────────
-    // If the MAIN-world fetch interceptor produced a valid capture recently,
-    // skip the DOM scrape — fetch data is bulletproof, DOM data is fragile.
+    // ── Fetch-intercept fallback gate ──────────────────────────────────
+    // Skip the DOM scrape ONLY when the MAIN-world fetch interceptor produced
+    // a non-empty capture within the last FETCH_FALLBACK_WINDOW_MS. A capture
+    // with count==0 (or no flag at all) does NOT suppress the DOM fallback —
+    // empty fetch captures previously caused Claude sessions to vanish.
     const fc = (window as unknown as { __contextForgeFetchCaptured?: { at: number; count: number } })
       .__contextForgeFetchCaptured;
-    if (fc && Date.now() - fc.at < FETCH_FALLBACK_WINDOW_MS) {
+    const hasFreshCapture = fc && fc.count > 0 && (Date.now() - fc.at) < FETCH_FALLBACK_WINDOW_MS;
+    if (hasFreshCapture) {
       console.log(
-        `[ContextMover] ${config.platform}: fetch-intercept active (count=${fc.count}, age=${Date.now() - fc.at}ms), skipping DOM scrape`
+        `[ContextMover] ${config.platform}: fetch-intercept active (count=${fc!.count}, age=${Date.now() - fc!.at}ms), skipping DOM scrape`
       );
       return;
     }
@@ -339,14 +353,21 @@ export function startSessionCapture(config: {
 
   createObserver(config.selectorOrElement, capture);
 
-  // Staggered initial captures — catches lazy-rendered messages at each stage
+  // Staggered initial captures — catches lazy-rendered messages at each stage.
+  // Capped at 1500ms: anything later fires AFTER the SW captureInFlight lock
+  // (2.2s) has cleared, by which time virtual-scroll eviction may have removed
+  // older messages from the DOM. Late captures would then overwrite a complete
+  // earlier capture with a partial one. The MutationObserver + scroll listener
+  // + visibilitychange already cover later lazy-render cases.
   void capture();
   setTimeout(capture, 100);
   setTimeout(capture, 500);
   setTimeout(capture, 1000);
   setTimeout(capture, 1500);
-  setTimeout(capture, 3000);
-  setTimeout(capture, 6000);
+  // Platform-specific late captures (e.g. Claude SPA renders at 2–6s).
+  if (config.extraCaptureDelays?.length) {
+    for (const d of config.extraCaptureDelays) setTimeout(capture, d);
+  }
   window.addEventListener("load", capture, { once: true });
 
   // Re-scrape when tab becomes active (covers switching back to an AI tab)
@@ -367,13 +388,14 @@ export function startSessionCapture(config: {
   }, { passive: true });
 
   // SPA pushState navigation detection (history.pushState doesn't fire popstate)
+  // Two captures only (800ms + 1500ms) — late captures (>2s) clobber authoritative
+  // captures with virtual-scroll snapshots once the SW captureInFlight lock clears.
   let lastNavUrl = location.href;
   new MutationObserver(() => {
     if (location.href === lastNavUrl) return;
     lastNavUrl = location.href;
     setTimeout(capture, 800);
-    setTimeout(capture, 2000);
-    setTimeout(capture, 4000);
+    setTimeout(capture, 1500);
   }).observe(document, { subtree: true, childList: true });
 }
 
@@ -414,10 +436,33 @@ export function extractMessageContent(el: HTMLElement): string {
 
   // Convert <pre><code> blocks to fenced markdown text nodes FIRST so language
   // tags are preserved after we strip the element tree.
+  //
+  // Language detection — try in priority order, since different platforms
+  // store the lang in different places:
+  //   1. <code class="language-xxx">                — ChatGPT, Gemini, generic
+  //   2. <pre data-language="xxx"> / <code data-…>  — Claude
+  //   3. Header sibling text (e.g. "typescript")    — ChatGPT renders the
+  //      language in a small UI chrome bar above the <pre>; the chrome is
+  //      stripped before we reach this code, but on the original clone we
+  //      can still look at the parent for a preceding header element.
   clone.querySelectorAll<HTMLElement>("pre").forEach((pre) => {
     const codeEl = pre.querySelector("code");
-    const lang =
-      (codeEl?.className ?? "").match(/language-([\w-]+)/)?.[1] ?? "";
+    let lang = (codeEl?.className ?? "").match(/language-([\w-]+)/)?.[1] ?? "";
+    if (!lang) {
+      lang =
+        pre.getAttribute("data-language") ??
+        codeEl?.getAttribute("data-language") ??
+        "";
+    }
+    if (!lang) {
+      // Look at a previous-sibling header (ChatGPT shows lang in a div above).
+      // Only accept short alphanumeric tokens — avoid swallowing prose.
+      const prev = pre.previousElementSibling as HTMLElement | null;
+      const headerText = prev?.textContent?.trim() ?? "";
+      if (/^[a-z][\w-]{0,15}$/i.test(headerText)) {
+        lang = headerText.toLowerCase();
+      }
+    }
     const code = (codeEl ?? pre).textContent?.trim() ?? "";
     const textNode = document.createTextNode(`\n\`\`\`${lang}\n${code}\n\`\`\`\n`);
     pre.replaceWith(textNode);
@@ -641,12 +686,28 @@ export function setPromptInputValue(
 // ── Network-capture helper (used by fetch/XHR interceptors) ──────────────────
 // Sends a CAPTURE_SESSION message from an intercepted network response,
 // bypassing the DOM scraper entirely. Deduplication is handled SW-side.
+//
+// Marks the payload with `source: 'fetch-intercept'` so the service worker
+// shrink guard recognizes this as an authoritative full-history capture and
+// will not reject it for being smaller than an existing snapshot (e.g. when
+// the user has scrolled and the local copy contains a different message count).
+//
+// Also sets window.__contextForgeFetchCaptured so the DOM-fallback gate in
+// startSessionCapture/capture() suppresses late DOM scrapes for 30s — this
+// prevents virtual-scroll snapshots from racing the network capture and
+// clobbering the authoritative count in pendingWrites. The gate now also
+// requires count>0, so an empty sendCapture call (filtered out below) does
+// NOT block DOM fallback.
 export async function sendCapture(
   messages: Message[],
   platform: string
 ): Promise<void> {
   if (messages.length === 0) return;
   const sessionId = await resolveSessionId(platform as Platform, location.href);
+  try {
+    (window as unknown as { __contextForgeFetchCaptured?: { at: number; count: number } })
+      .__contextForgeFetchCaptured = { at: Date.now(), count: messages.length };
+  } catch { /* ignore — window flag is a hint, not required */ }
   chrome.runtime.sendMessage({
     type: 'CAPTURE_SESSION',
     payload: {
@@ -654,6 +715,7 @@ export async function sendCapture(
       sessionId,
       title: document.title || location.hostname,
       messages,
+      source: 'fetch-intercept',
     },
   }).catch(() => {});
 }

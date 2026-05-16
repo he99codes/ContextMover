@@ -1,5 +1,5 @@
 // packages/browser-extension/src/background/service-worker.ts
-import { db, dexieDb, sessionCache } from "@/lib/db";
+import { db, dexieDb, ensureDbReady, sessionCache } from "@/lib/db";
 import { migrateFromContextForge } from "@/lib/db-migration";
 import summarize, { summarizeIntelligent, type IntelligentSummary } from "@/lib/summarizer";
 import buildMigrationPrompt from "@/lib/translator";
@@ -202,23 +202,56 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   }
 });
 
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
+// ── Auto-close sidebar on tab/window switch ───────────────────────────────
+// Why this is broadcast-based rather than chrome.sidePanel.close({tabId}):
+//   • getContexts() returns ctx.tabId as undefined when the panel was opened
+//     in default mode, so iterating and matching by tabId silently skips it.
+//   • chrome.sidePanel.close throws on Chrome < 123, and even on 123+ may
+//     no-op silently when the panel is in default behavior.
+//   • Broadcasting SIDEBAR_FORCE_CLOSE lets the sidebar window.close() itself,
+//     which is the reliable cross-version path.
+async function closeAllSidebarsAndNotify(): Promise<void> {
+  // 1. Tell every sidebar instance (any tab/window) to self-close.
+  try {
+    await chrome.runtime.sendMessage({ type: "SIDEBAR_FORCE_CLOSE" });
+  } catch { /* no sidebar receivers */ }
+  // 2. Reset all toggle-button icons via existing SIDEBAR_CLOSED listener.
+  try {
+    const tabs = await chrome.tabs.query({ url: ALL_PLATFORM_URL_GLOBS });
+    for (const tab of tabs) {
+      if (!tab.id) continue;
+      try {
+        chrome.tabs.sendMessage(tab.id, { type: "SIDEBAR_CLOSED" }, () => {
+          void chrome.runtime.lastError;
+        });
+      } catch { /* tab gone */ }
+    }
+  } catch { /* query failed */ }
+  // 3. Best-effort native close (Chrome 123+); ignored if unsupported.
   try {
     const contexts = await chrome.runtime.getContexts({
       contextTypes: ["SIDE_PANEL" as chrome.runtime.ContextType],
     });
     for (const ctx of contexts as { tabId?: number }[]) {
-      if (ctx.tabId !== undefined && ctx.tabId !== activeInfo.tabId) {
-        try {
-          await (chrome.sidePanel as unknown as { close(d: { tabId: number }): Promise<void> }).close({ tabId: ctx.tabId });
-        } catch {
-          // Tab may have navigated or panel already closed — ignore
-        }
-      }
+      if (ctx.tabId === undefined) continue;
+      try {
+        await (chrome.sidePanel as unknown as { close(d: { tabId: number }): Promise<void> })
+          .close({ tabId: ctx.tabId });
+      } catch { /* unsupported on this Chrome */ }
     }
-  } catch {
-    // getContexts may fail on SW restart — ignore silently
-  }
+  } catch { /* getContexts unavailable */ }
+}
+
+chrome.tabs.onActivated.addListener(() => {
+  void closeAllSidebarsAndNotify();
+});
+
+// Window focus change — close on switching to a different Chrome window.
+// Skip WINDOW_ID_NONE: that fires when user opens DevTools or switches to
+// another app. We don't want to close on those (would be annoying).
+chrome.windows.onFocusChanged.addListener((windowId) => {
+  if (windowId === chrome.windows.WINDOW_ID_NONE) return;
+  void closeAllSidebarsAndNotify();
 });
 
 const PLATFORM_URLS = {
@@ -289,7 +322,22 @@ async function broadcastForgetToTabs(sessionId: string): Promise<void> {
 // The function is idempotent: it no-ops if the legacy "contextforge" IndexedDB
 // is not present. Errors are swallowed internally so migration failure can
 // never brick capture.
-void migrateFromContextForge();
+//
+// CRITICAL: ensureDbReady() must run BEFORE the legacy migration (and before
+// any handler touches the DB). Dexie auto-opens lazily on first access, and
+// if the open fails (e.g. UpgradeError when a primary key changed across
+// versions) there is no automatic recovery — the DB stays closed and every
+// subsequent operation throws DatabaseClosedError. Awaiting ensureDbReady
+// first lets the recovery path delete-and-recreate when the upgrade is
+// impossible.
+void (async () => {
+  try {
+    await ensureDbReady();
+  } catch (err) {
+    console.error("[CM:sw] ensureDbReady failed at startup:", err);
+  }
+  void migrateFromContextForge();
+})();
 
 chrome.runtime.onInstalled.addListener(async () => {
   console.log("[ContextMover] Extension installed.");
@@ -469,10 +517,27 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (getSessionsCache !== null && now - getSessionsCacheAt < GET_SESSIONS_CACHE_MS) {
           sendResponse(getSessionsCache);
         } else {
+          // Defensive: heal a wedged DB on first request after a schema-impossible
+          // upgrade (e.g. metaPrompts primary-key change). Cheap when DB is open.
+          await ensureDbReady();
           const sessions = await db.getAllSessions();
-          getSessionsCache = sessions;
+          // Cap message content at 2000 chars per message in the list response.
+          // Sending 858K of raw content through sendMessage blocks the popup main
+          // thread. Full content is fetched on-demand via GET_SESSION when the user
+          // opens a session detail view or initiates migration.
+          const MSG_PREVIEW_CAP = 2_000;
+          const listItems = sessions.map(s => ({
+            ...s,
+            messageCount: s.messages.length,
+            messages: s.messages.map(m =>
+              m.content.length > MSG_PREVIEW_CAP
+                ? { ...m, content: m.content.slice(0, MSG_PREVIEW_CAP), _truncated: true }
+                : m
+            ),
+          }));
+          getSessionsCache = listItems;
           getSessionsCacheAt = now;
-          sendResponse(sessions);
+          sendResponse(listItems);
         }
         break;
       }
@@ -1012,15 +1077,24 @@ async function handleCaptureSession(payload: {
   }
 
   const existing = await db.getSession(payload.sessionId);
+  // CRITICAL: also consult pendingWrites — a 200ms debounce window means an
+  // authoritative network capture may be queued but not yet committed to IDB
+  // when a late DOM scrape arrives. Without this check, the DOM scrape would
+  // silently clobber the queued 26-msg capture with a 10-msg snapshot.
+  const pending = pendingWrites.get(payload.sessionId);
+  const bestKnown =
+    pending && existing
+      ? (pending.messages.length >= existing.messages.length ? pending : existing)
+      : (pending ?? existing);
 
   // Protect the most complete capture for this session.
   // DOM scrapes shrink when virtual scroll evicts old messages from the DOM.
   // Network captures (source: 'fetch-intercept') carry authoritative full
   // history from the API and are always allowed to overwrite.
   const isNetworkCapture = payload.source === 'fetch-intercept';
-  if (existing && payload.messages.length < existing.messages.length && !isNetworkCapture) {
+  if (bestKnown && payload.messages.length < bestKnown.messages.length && !isNetworkCapture) {
     console.log(
-      `[CM:sw] CAPTURE_SESSION: incoming count (${payload.messages.length}) < stored (${existing.messages.length}) from DOM scrape — keeping existing`
+      `[CM:sw] CAPTURE_SESSION: incoming count (${payload.messages.length}) < best known (${bestKnown.messages.length}, pending=${!!pending}) from DOM scrape — keeping existing`
     );
     return;
   }
@@ -1029,6 +1103,18 @@ async function handleCaptureSession(payload: {
   const updatedAt =
     payload.messages[payload.messages.length - 1]?.timestamp ?? Date.now();
 
+  // Propagate `authoritative` flag: once a network/fetch-intercept capture has
+  // saved this session, mark it so the sidebar's "scroll to top" warning knows
+  // the capture is complete even when message count is small.
+  const wasAuthoritative = existing?.metadata?.authoritative === true;
+  const nextMeta: import("@/lib/types").RequestMetadata | undefined =
+    (payload.metadata || wasAuthoritative || isNetworkCapture)
+      ? {
+          ...(payload.metadata ?? {}),
+          ...(wasAuthoritative || isNetworkCapture ? { authoritative: true } : {}),
+        }
+      : undefined;
+
   const session: ContextSession = {
     id: payload.sessionId,
     platform: payload.platform as ContextSession["platform"],
@@ -1036,7 +1122,7 @@ async function handleCaptureSession(payload: {
     updatedAt,
     title: payload.title,
     messages: payload.messages,
-    metadata: payload.metadata,
+    metadata: nextMeta,
   };
 
   // Debounced IDB write — coalesces rapid-fire captures for the same session.
@@ -1129,7 +1215,17 @@ async function backgroundIndex(session: ContextSession): Promise<void> {
  * Stores them in IndexedDB (metaPrompts table). Invalidated when new messages
  * arrive (replaced on next build).
  */
+// Sessions above this total-chars threshold are too large for background
+// pre-building — doing so saturates the SW for 1s+ and starves message handling.
+// Migration prompts for these sessions are computed on-demand instead.
+const METAPROMPT_MAX_CHARS = 300_000;
+
 async function buildMetaPromptAsync(session: ContextSession): Promise<void> {
+  const totalChars = session.messages.reduce((s, m) => s + m.content.length, 0);
+  if (totalChars > METAPROMPT_MAX_CHARS) {
+    console.log(`[CM:sw:metaPrompt] skipped (${totalChars} chars > ${METAPROMPT_MAX_CHARS} limit): ${session.id}`);
+    return;
+  }
   const t0 = performance.now();
 
   // Quick tier-1 summary (fast, < 100ms)
@@ -1294,10 +1390,21 @@ async function handleMigrateContext(
         const chunks = await semanticIndex.retrieve(
           session.id, payload.task ?? null, 15
         )
-        migrationFile = buildTier3File(
-          session, chunks,
-          payload.task ?? 'Continue from where we left off'
-        )
+        if (chunks.length === 0) {
+          // Indexing produced no chunks (or session not yet indexed despite
+          // the needsIndexing check). Building a Tier 3 file with no chunks
+          // yields useless empty context. Fall back to Tier 2 (Smart Summary)
+          // which is pure-logic and always produces meaningful output.
+          console.warn('[CM:sw] Attention engine returned 0 chunks — falling back to tier 2')
+          reportProgress(78, 'Falling back to Smart Summary...')
+          const summary = summarizeIntelligent(session.messages, payload.task)
+          migrationFile = buildTier2File(session, summary, payload.task)
+        } else {
+          migrationFile = buildTier3File(
+            session, chunks,
+            payload.task ?? 'Continue from where we left off'
+          )
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes("Failed to fetch")) {

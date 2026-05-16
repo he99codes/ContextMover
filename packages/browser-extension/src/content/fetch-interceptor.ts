@@ -49,7 +49,11 @@
 
   // [SECURITY] Hard cap on response body size processed by the interceptor.
   // Anything larger is dropped silently to prevent memory exhaustion.
-  const MAX_PAYLOAD_BYTES = 512_000; // 500 KB
+  // SSE streams are capped at 500KB (a single turn is never larger).
+  // JSON full-history responses (conversation-load GETs) are capped at 4MB —
+  // a 300+ message Claude session JSON is routinely 1-3MB and must not be dropped.
+  const MAX_PAYLOAD_BYTES      = 512_000;   // 500 KB — SSE / unknown
+  const MAX_JSON_HISTORY_BYTES = 4_000_000; // 4 MB  — full history GETs
 
   // [SECURITY] Patterns that look like credentials or secrets.
   // Strip them from captured message content before storage.
@@ -732,11 +736,8 @@
       if (!text) return;
 
       // [SECURITY] Drop payloads exceeding size limit to prevent memory exhaustion.
-      if (text.length > MAX_PAYLOAD_BYTES) {
-        console.warn(`${TAG} ${platform}: payload exceeds ${MAX_PAYLOAD_BYTES} bytes — dropped`);
-        return;
-      }
-
+      // JSON history responses get a larger budget — full conversation-load GETs
+      // for long sessions are routinely 1-3MB; capping at 500KB silently drops them.
       let messages: CapturedMessage[] = [];
       let isFullHistory = false;
 
@@ -745,15 +746,23 @@
       // signal fullHistory so the bridge replaces its accumulator rather than
       // merging partial captures.
       try {
-        const json = JSON.parse(text) as Record<string, unknown>;
-        if (platform === "chatgpt" && json.mapping && typeof json.mapping === "object") {
-          messages = parseChatGPTHistory(json);
-          if (messages.length > 0) isFullHistory = true;
-        } else if (platform === "claude" && Array.isArray(json.chat_messages)) {
-          messages = parseClaudeHistory(json);
-          if (messages.length > 0) isFullHistory = true;
+        if (text.length <= MAX_JSON_HISTORY_BYTES) {
+          const json = JSON.parse(text) as Record<string, unknown>;
+          if (platform === "chatgpt" && json.mapping && typeof json.mapping === "object") {
+            messages = parseChatGPTHistory(json);
+            if (messages.length > 0) isFullHistory = true;
+          } else if (platform === "claude" && Array.isArray(json.chat_messages)) {
+            messages = parseClaudeHistory(json);
+            if (messages.length > 0) isFullHistory = true;
+          }
         }
       } catch { /* not JSON — fall through to SSE parsers */ }
+
+      // For SSE / non-history paths, enforce the smaller cap.
+      if (!isFullHistory && text.length > MAX_PAYLOAD_BYTES) {
+        console.warn(`${TAG} ${platform}: SSE payload exceeds ${MAX_PAYLOAD_BYTES} bytes — dropped`);
+        return;
+      }
 
       // SSE streaming fallback (or other platforms that don't have a history parser)
       if (messages.length === 0) {

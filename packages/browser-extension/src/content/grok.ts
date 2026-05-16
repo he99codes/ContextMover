@@ -4,15 +4,37 @@ import type { Message } from "./shared";
 
 console.log("[ContextMover] Grok content script loaded");
 
+// Per-element streaming guard — skips messages still being generated so we
+// don't persist half-complete assistant output.
+function isStreaming(el: Element): boolean {
+  return (
+    el.getAttribute('data-streaming') === 'true' ||
+    el.closest('[data-streaming="true"]') !== null ||
+    el.closest('[class*="streaming"]') !== null ||
+    el.closest('[class*="loading"]') !== null
+  )
+}
+
 function scrapeMessages(): Message[] {
+  const userSel =
+    '[class*="usermessage"], [class*="user-message"], [class*="UserMessage"]'
+  const asstSel =
+    '[class*="assistantmessage"], [class*="assistant-message"], [class*="AssistantMessage"], [class*="response-content-markdown"]'
+
   const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
 
-  document.querySelectorAll('*').forEach(el => {
-    const cls = (el.getAttribute('class') ?? '').toLowerCase()
-    if (cls.includes('usermessage') || cls.includes('user-message'))
-      found.push({ el, role: 'user' })
-    else if (cls.includes('assistantmessage') || cls.includes('assistant-message'))
-      found.push({ el, role: 'assistant' })
+  // Targeted query + outermost-only filter: if a node's parent also matches
+  // the same selector, skip it — that would be a nested child being
+  // double-captured (e.g. .user-message-bubble inside .user-message).
+  document.querySelectorAll<HTMLElement>(userSel).forEach((el) => {
+    if (el.parentElement?.closest(userSel)) return
+    if (isStreaming(el)) return
+    found.push({ el, role: 'user' })
+  })
+  document.querySelectorAll<HTMLElement>(asstSel).forEach((el) => {
+    if (el.parentElement?.closest(asstSel)) return
+    if (isStreaming(el)) return
+    found.push({ el, role: 'assistant' })
   })
 
   found.sort((a, b) =>

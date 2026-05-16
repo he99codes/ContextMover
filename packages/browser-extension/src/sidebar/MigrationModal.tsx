@@ -100,6 +100,16 @@ type MigrateState =
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
+
+const PLATFORM_UPLOAD_HINTS: Partial<Record<Platform, string>> = {
+  claude:     "Click the 📎 button in Claude's chat box, select the downloaded file, then send",
+  chatgpt:    "Click the 📎 button in ChatGPT's message box, select the downloaded file, then send",
+  gemini:     "Click the + button in Gemini's prompt box, choose the file, then send",
+  grok:       "Click the attachment icon in Grok's chat box, select the downloaded file, then send",
+  perplexity: "Click the 📎 icon in Perplexity's search box, select the downloaded file, then send",
+  deepseek:   "Click the 📎 icon in DeepSeek's chat box, select the downloaded file, then send",
+}
+
 function MigrationSuccess({
   migrationFile,
   cacheKey,
@@ -122,16 +132,34 @@ function MigrationSuccess({
   targetPlatform: string
   onClose: () => void
 }) {
-  const [dragging, setDragging] = useState(false)
-  const [dropped, setDropped] = useState(false)
-  const [dragFailed, setDragFailed] = useState(false)
+  // ── Download status ──────────────────────────────────────────────────────
+  type Status = 'idle' | 'downloading' | 'downloaded'
+  const [status, setStatus] = useState<Status>('idle')
+
+  // ── Drag state machine ───────────────────────────────────────────────────
+  //   idle     → file ready, waiting for the user to drag
+  //   dragging → dragstart fired, File added to dataTransfer
+  //   success  → dragend fired with a valid items payload
+  //   failed   → items.add returned length 0 (extension→page boundary
+  //              blocked the File); download was triggered automatically
+  type DragState = 'idle' | 'dragging' | 'success' | 'failed'
+  const [dragState, setDragState] = useState<DragState>('idle')
+
+  // The File object is built from the raw XML string and stored in a ref
+  // so it is never reconstructed on every render. It is only rebuilt when
+  // fileContent itself changes (see the useEffect below).
+  const fileRef = useRef<File | null>(null)
+
   const [fileReady, setFileReady] = useState(false)
   const [fetchError, setFetchError] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [fileObjectUrl, setFileObjectUrl] = useState<string | null>(null)
   const [fileContent, setFileContent] = useState<string | null>(null)
-  const [downloaded, setDownloaded] = useState(false)
   const sizeKB = Math.round(migrationFile.charCount / 1024)
+
+  const platformKey = targetPlatform.toLowerCase() as Platform
+  const uploadHint =
+    PLATFORM_UPLOAD_HINTS[platformKey] ??
+    `Use the file-attachment button in ${targetPlatform} to attach the downloaded file`
 
   async function getFileContent(): Promise<string | null> {
     return new Promise((resolve) => {
@@ -152,46 +180,86 @@ function MigrationSuccess({
     )
   }
 
-  function handleManualDownload() {
-    if (!fileContent) return
+  function handleDownload(): void {
+    if (!fileContent || status === 'downloading') return
+    setError(null)
+    setStatus('downloading')
+
     const blob = new Blob([fileContent], { type: 'application/xml' })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = migrationFile.filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    setTimeout(() => URL.revokeObjectURL(url), 500) // wait for download to start before revoking
-    setDownloaded(true)
-    setDropped(true)
-    deleteCachedFile()
+
+    const finish = () => {
+      setStatus('downloaded')
+      setTimeout(() => URL.revokeObjectURL(url), 1500)
+    }
+    const fail = (msg: string) => {
+      console.warn('[CM:migration] download failed:', msg)
+      setError('Download failed — please try again')
+      setStatus('idle')
+      URL.revokeObjectURL(url)
+    }
+
+    try {
+      if (typeof chrome !== 'undefined' && chrome.downloads?.download) {
+        chrome.downloads.download(
+          { url, filename: migrationFile.filename, saveAs: false },
+          (downloadId) => {
+            const lastError = chrome.runtime.lastError
+            if (lastError || downloadId === undefined) {
+              fail(lastError?.message ?? 'unknown error')
+            } else {
+              finish()
+            }
+          }
+        )
+      } else {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = migrationFile.filename
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        finish()
+      }
+    } catch (err) {
+      fail(err instanceof Error ? err.message : String(err))
+    }
   }
 
   useEffect(() => {
     let cancelled = false
-    async function prefetchFile() {
+    async function prefetch() {
       try {
         const content = await getFileContent()
         if (cancelled) return
         if (!content) { setFetchError(true); return }
-        const blob = new Blob([content], { type: 'application/xml' })
-        const url = URL.createObjectURL(blob)
-        setFileObjectUrl(url)
         setFileContent(content)
         setFileReady(true)
       } catch { if (!cancelled) setFetchError(true) }
     }
-    prefetchFile()
+    prefetch()
     return () => { cancelled = true }
   }, [])
 
-  // Cleanup object URL on unmount
+  // Build (or rebuild) the File object whenever fileContent becomes available.
+  // Kept in a ref so onDragStart always reads the current value without
+  // triggering extra renders.
   useEffect(() => {
-    return () => {
-      if (fileObjectUrl) URL.revokeObjectURL(fileObjectUrl)
-    }
-  }, [fileObjectUrl])
+    if (!fileContent) { fileRef.current = null; return }
+    fileRef.current = new File(
+      [fileContent],
+      migrationFile.filename,
+      { type: 'text/xml' }
+    )
+  }, [fileContent, migrationFile.filename])
+
+  // Free the cache slot when the user closes the modal after a successful
+  // download — the file is now on disk so the in-memory cache is no longer
+  // needed. (The 30-min TTL would catch this anyway.)
+  function handleClose(): void {
+    if (status === 'downloaded' || dragState === 'success') deleteCachedFile()
+    onClose()
+  }
 
   return (
     <div style={{ padding: '4px' }}>
@@ -214,30 +282,7 @@ function MigrationSuccess({
         </div>
       </div>
 
-      {/* Drag zone — anchor with object URL */}
-      {dropped ? (
-        <div style={{
-          background: 'rgba(0,255,136,0.08)',
-          border: '1px solid rgba(0,255,136,0.2)',
-          borderRadius: '10px',
-          padding: '20px 14px',
-          marginBottom: '12px',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize:'28px', marginBottom:'8px' }}>
-            {dragFailed ? '⬇️' : '🎉'}
-          </div>
-          <div style={{ fontSize:'11px', fontWeight:900,
-            color:'#00FF88', marginBottom:'4px' }}>
-            {dragFailed ? 'File downloaded' : 'File delivered'}
-          </div>
-          <div style={{ fontSize:'9px', color:'#6B6B6B' }}>
-            {dragFailed
-              ? 'Drag from sidebar cannot deliver files — attach it using the 📎 button in the chat'
-              : 'Upload it in the AI chat if not already done'}
-          </div>
-        </div>
-      ) : fetchError ? (
+      {fetchError ? (
         <div style={{
           background: 'rgba(255,68,68,0.08)',
           border: '2px dashed rgba(255,68,68,0.3)',
@@ -262,8 +307,7 @@ function MigrationSuccess({
           borderRadius: '10px',
           padding: '20px 14px',
           marginBottom: '12px',
-          textAlign: 'center',
-          cursor: 'not-allowed'
+          textAlign: 'center'
         }}>
           <div style={{ fontSize:'28px', marginBottom:'8px' }}>⏳</div>
           <div style={{ fontSize:'11px', fontWeight:900,
@@ -271,143 +315,181 @@ function MigrationSuccess({
             Preparing file...
           </div>
           <div style={{ fontSize:'9px', color:'#4A4A4A' }}>
-            Ready to drag in a moment
+            One moment
           </div>
         </div>
       ) : (
-        <a
-          href={fileObjectUrl || undefined}
-          download={migrationFile.filename}
-          draggable={true}
-          onDragStart={(e) => {
-            let fileAdded = false
-            if (fileContent) {
-              try {
-                const file = new File([fileContent], migrationFile.filename, { type: 'application/xml' })
+        <>
+          {/* ── Drag zone (primary option) ─────────────────────────────── */}
+          {dragState === 'success' ? (
+            <div style={{
+              background: 'rgba(0,255,136,0.08)',
+              border: '1px solid rgba(0,255,136,0.2)',
+              borderRadius: '10px',
+              padding: '20px 14px',
+              marginBottom: '12px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '28px', marginBottom: '8px' }}>🎉</div>
+              <div style={{ fontSize: '11px', fontWeight: 900,
+                color: '#00FF88', marginBottom: '4px' }}>
+                Dropped successfully
+              </div>
+              <div style={{ fontSize: '9px', color: '#6B6B6B' }}>
+                The AI chat received the file — send the message to continue
+              </div>
+            </div>
+          ) : dragState === 'failed' ? (
+            <div style={{
+              background: 'rgba(0,255,136,0.06)',
+              border: '1px solid rgba(0,255,136,0.15)',
+              borderRadius: '10px',
+              padding: '20px 14px',
+              marginBottom: '12px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '28px', marginBottom: '8px' }}>⬇️</div>
+              <div style={{ fontSize: '11px', fontWeight: 900,
+                color: '#00FF88', marginBottom: '4px' }}>
+                Drag blocked — file downloaded instead
+              </div>
+              <div style={{ fontSize: '9px', color: '#6B6B6B', lineHeight: 1.5 }}>
+                Chrome prevents file drops from extensions into web pages.
+                The file was saved to your Downloads folder — attach it
+                via the 📎 button in the chat.
+              </div>
+            </div>
+          ) : (
+            <div
+              role="button"
+              tabIndex={0}
+              draggable={true}
+              onDragStart={(e) => {
+                const file = fileRef.current
+                if (!file) {
+                  e.preventDefault()
+                  setDragState('failed')
+                  handleDownload()
+                  return
+                }
+                try { e.dataTransfer.clearData() } catch { /* ok */ }
                 e.dataTransfer.items.add(file)
-                fileAdded = e.dataTransfer.items.length > 0
-              } catch { /* items API unavailable */ }
-            }
-            if (!fileAdded) {
-              // Extension-origin blob URLs are private — web pages cannot read
-              // them as file attachments. Trigger download so the user can
-              // attach via the 📎 button instead.
-              e.preventDefault()
-              setDragFailed(true)
-              handleManualDownload()
-              return
-            }
-            e.dataTransfer.effectAllowed = 'copy'
-            setDragging(true)
-          }}
-          onDragEnd={() => {
-            setDragging(false)
-            setDropped(true)
-            deleteCachedFile()
-          }}
-          onClick={(e) => {
-            e.preventDefault()
-            // Drag zone click should not auto-download — use the Download button below
-          }}
-          style={{
-            display: 'block',
-            background: dragging
-              ? 'rgba(0,255,136,0.12)'
-              : 'rgba(0,255,136,0.04)',
-            border: `2px dashed ${dragging
-              ? '#00FF88'
-              : 'rgba(0,255,136,0.35)'}`,
-            borderRadius: '10px',
-            padding: '20px 14px',
-            marginBottom: '12px',
-            cursor: 'grab',
-            textAlign: 'center',
-            textDecoration: 'none',
-            transition: 'all 0.15s ease',
-            userSelect: 'none'
-          }}
-        >
-          <div style={{ fontSize:'28px', marginBottom:'8px',
-            pointerEvents:'none' }}>
-            📁
-          </div>
-          <div style={{ fontSize:'11px', fontWeight:900,
-            color:'#00FF88', marginBottom:'4px',
-            pointerEvents:'none' }}>
-            {dragging ? 'Drop into AI chat!' : 'Drag into AI chat'}
-          </div>
-          <div style={{ fontSize:'9px', color:'#6B6B6B',
-            fontFamily:'monospace', marginBottom:'4px',
-            wordBreak:'break-all', pointerEvents:'none' }}>
-            {migrationFile.filename}
-          </div>
-          <div style={{ fontSize:'9px', color:'#4A4A4A',
-            pointerEvents:'none' }}>
-            {sizeKB}KB · ~{migrationFile.estimatedTokens.toLocaleString()} tokens
-          </div>
-        </a>
-      )}
-
-      {/* Download button */}
-      {!dropped && (
-        <div style={{ textAlign:'center', marginBottom:'14px' }}>
-          <button
-            onClick={handleManualDownload}
-            disabled={!fileReady}
-            style={{
-              background:'transparent',
-              border:'1px solid #2A2A2A',
-              borderRadius:'4px',
-              color: fileReady ? '#6B6B6B' : '#3A3A3A',
-              fontSize:'9px',
-              fontWeight:700,
-              padding:'6px 14px',
-              cursor: fileReady ? 'pointer' : 'not-allowed',
-              textTransform:'uppercase',
-              letterSpacing:'0.08em'
-            }}
-          >
-            ⬇ Download file instead
-          </button>
-          {downloaded && (
-            <div style={{ fontSize:'9px', color:'#3A6A4A',
-              marginTop:'4px' }}>
-              ✓ Saved to Downloads folder
+                // Immediately check whether the File was actually accepted.
+                // items.add() silently no-ops when Chromium's extension→page
+                // security boundary blocks the transfer; items.length === 0
+                // is the only reliable signal of that failure.
+                if (e.dataTransfer.items.length === 0) {
+                  e.preventDefault()
+                  setDragState('failed')
+                  handleDownload()
+                  return
+                }
+                e.dataTransfer.effectAllowed = 'copy'
+                setDragState('dragging')
+              }}
+              onDragEnd={() => {
+                if (dragState === 'dragging') {
+                  setDragState('success')
+                  deleteCachedFile()
+                }
+              }}
+              style={{
+                display: 'block',
+                background: dragState === 'dragging'
+                  ? 'rgba(0,255,136,0.12)'
+                  : 'rgba(0,255,136,0.04)',
+                border: `2px dashed ${dragState === 'dragging'
+                  ? '#00FF88'
+                  : 'rgba(0,255,136,0.35)'}`,
+                borderRadius: '10px',
+                padding: '20px 14px',
+                marginBottom: '12px',
+                cursor: 'grab',
+                textAlign: 'center',
+                transition: 'all 0.15s ease',
+                userSelect: 'none'
+              }}
+            >
+              <div style={{ fontSize: '28px', marginBottom: '8px',
+                pointerEvents: 'none' }}>
+                📁
+              </div>
+              <div style={{ fontSize: '11px', fontWeight: 900,
+                color: '#00FF88', marginBottom: '4px',
+                pointerEvents: 'none' }}>
+                {dragState === 'dragging' ? 'Drop into AI chat!' : 'Drag into AI chat'}
+              </div>
+              <div style={{ fontSize: '9px', color: '#6B6B6B',
+                fontFamily: 'monospace', marginBottom: '4px',
+                wordBreak: 'break-all', pointerEvents: 'none' }}>
+                {migrationFile.filename}
+              </div>
+              <div style={{ fontSize: '9px', color: '#4A4A4A',
+                pointerEvents: 'none' }}>
+                {sizeKB}KB · ~{migrationFile.estimatedTokens.toLocaleString()} tokens
+              </div>
             </div>
           )}
-        </div>
-      )}
 
-      {/* Error state */}
-      {error && (
-        <div style={{ fontSize:'10px', color:'#FF4444',
-          marginBottom:'10px', textAlign:'center' }}>
-          {error}
-        </div>
-      )}
-
-      {/* How to use */}
-      {!dropped && (
-        <div style={{ background:'#0A0A0A', border:'1px solid #2A2A2A',
-          borderRadius:'6px', padding:'12px', marginBottom:'12px' }}>
-          <div style={{ fontSize:'9px', fontWeight:900, color:'#6B6B6B',
-            textTransform:'uppercase', letterSpacing:'0.12em',
-            marginBottom:'8px' }}>
-            How to use
-          </div>
-          {[
-            `Go to your ${targetPlatform} tab`,
-            'Drag the file above into the chat',
-            'AI reads it and continues your work'
-          ].map((step, i) => (
-            <div key={i} style={{ display:'flex', gap:'8px',
-              marginBottom:'6px', fontSize:'10px', color:'#6B6B6B' }}>
-              <span style={{ color:'#00FF88', fontWeight:700,
-                flexShrink:0 }}>{i + 1}.</span>
-              <span>{step}</span>
+          {/* ── Download button (secondary / fallback) ─────────────────── */}
+          {dragState !== 'success' && (
+            <div style={{ textAlign: 'center', marginBottom: '14px' }}>
+              <button
+                onClick={handleDownload}
+                disabled={status === 'downloading'}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #2A2A2A',
+                  borderRadius: '4px',
+                  color: status === 'downloading' ? '#3A3A3A' : '#6B6B6B',
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  padding: '6px 14px',
+                  cursor: status === 'downloading' ? 'wait' : 'pointer',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em'
+                }}
+              >
+                {status === 'downloading' ? '⏳ Downloading...'
+                  : status === 'downloaded' ? '✓ Downloaded'
+                  : '⬇ Or download instead'}
+              </button>
             </div>
-          ))}
-        </div>
+          )}
+
+          {/* ── Upload hint (shown after manual download) ───────────────── */}
+          {status === 'downloaded' && dragState !== 'success' && (
+            <div style={{
+              background: '#0A0A0A',
+              border: '1px solid rgba(0,255,136,0.25)',
+              borderRadius: '8px',
+              padding: '12px 14px',
+              marginBottom: '14px'
+            }}>
+              <div style={{
+                fontSize: '9px', fontWeight: 900, color: '#00FF88',
+                textTransform: 'uppercase', letterSpacing: '0.12em',
+                marginBottom: '8px'
+              }}>
+                Now upload to {PLATFORM_LABELS[platformKey] ?? targetPlatform}
+              </div>
+              <div style={{ fontSize: '11px', color: '#C8C8C8',
+                lineHeight: 1.5 }}>
+                {uploadHint}
+              </div>
+            </div>
+          )}
+
+          {/* ── Error state ─────────────────────────────────────────────── */}
+          {error && (
+            <div style={{
+              fontSize: '10px', color: '#FF4444',
+              marginBottom: '10px', textAlign: 'center'
+            }}>
+              {error}
+            </div>
+          )}
+        </>
       )}
 
       <div style={{ fontSize:'9px', color:'#3A3A3A',
@@ -415,7 +497,7 @@ function MigrationSuccess({
         File auto-expires in 30 minutes · {(elapsed/1000).toFixed(1)}s
       </div>
 
-      <button onClick={onClose} style={{
+      <button onClick={handleClose} style={{
         width:'100%', padding:'10px', background:'transparent',
         border:'1px solid #2A2A2A', borderRadius:'4px',
         color:'#6B6B6B', fontSize:'10px', fontWeight:700,
@@ -427,7 +509,6 @@ function MigrationSuccess({
     </div>
   )
 }
-
 
 export default function MigrationModal({
   session,

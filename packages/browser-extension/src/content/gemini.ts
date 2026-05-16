@@ -3,13 +3,31 @@ import { extractContent, injectWithRetry, runCapturePipeline, startSessionCaptur
 import type { Message } from "./shared";
 
 // ── DIAGNOSTIC STAGE 1 ────────────────────────────────────────────────────────
+// Per-element streaming guard — skip messages still being generated.
+function isStreaming(el: Element): boolean {
+  return (
+    el.querySelector('.loading-indicator, [aria-label="Gemini is responding"]') !== null ||
+    el.closest('[class*="loading"]') !== null
+  )
+}
+
 function scrapeMessages(): Message[] {
+  const userSel = 'user-query, .user-query, [class*="user-query"]'
+  const asstSel = 'model-response, .model-response, [class*="model-response"]'
+
   const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
 
-  document.querySelectorAll('user-query, .user-query, [class*="user-query"]')
-    .forEach(el => found.push({ el, role: 'user' }))
-  document.querySelectorAll('model-response, .model-response, [class*="model-response"]')
-    .forEach(el => found.push({ el, role: 'assistant' }))
+  // Outermost-only filter avoids double-capturing nested children with same class.
+  document.querySelectorAll<HTMLElement>(userSel).forEach(el => {
+    if (el.parentElement?.closest(userSel)) return
+    if (isStreaming(el)) return
+    found.push({ el, role: 'user' })
+  })
+  document.querySelectorAll<HTMLElement>(asstSel).forEach(el => {
+    if (el.parentElement?.closest(asstSel)) return
+    if (isStreaming(el)) return
+    found.push({ el, role: 'assistant' })
+  })
 
   found.sort((a, b) =>
     a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1

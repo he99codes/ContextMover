@@ -24,6 +24,10 @@ export interface RequestMetadata {
   tools?: Array<{ name: string; description?: string }>;
   conversationId?: string;
   messageId?: string;
+  // True once a network/fetch-intercept capture has saved this session.
+  // Tells the sidebar that the capture is complete even when message count
+  // is small (a real short conversation, not a virtual-scroll snapshot).
+  authoritative?: boolean;
 }
 
 export interface Message {

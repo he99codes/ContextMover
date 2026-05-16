@@ -88,7 +88,20 @@ function install() {
   });
 
   window.addEventListener("contextmover:captured", (rawEvent: Event) => {
-    void (async () => {
+    // Bug fix: Claude SPA navigates from /new \u2192 /chat/{id} after the first
+    // user message. If the fetch fires while location is still /new, we'd
+    // resolve a sessionId bound to "claude::claude.ai/new" \u2014 a different id
+    // from what the DOM-scrape path resolves moments later at /chat/{id},
+    // producing two orphaned half-sessions. Defer the entire pipeline by
+    // 1500ms when /new is detected so ensureSessionId() runs at the final
+    // URL. Other platforms / non-/new URLs run synchronously as before.
+    const detailPlatform = (rawEvent as CustomEvent<CapturedDetail>).detail?.platform;
+    const href = location.href;
+    const isClaudeNew =
+      detailPlatform === "claude" &&
+      (href.endsWith("/new") || /\/new(?:[?#]|$)/.test(href));
+
+    const run = () => void (async () => {
       try {
         const event = rawEvent as CustomEvent<CapturedDetail>;
         const detail = event.detail;
@@ -189,9 +202,34 @@ function install() {
         console.warn(`${TAG} handler failed`, err);
       }
     })();
+
+    if (isClaudeNew) {
+      console.log(`${TAG} claude /new detected \u2014 deferring 1500ms for SPA nav before resolving sessionId`);
+      setTimeout(run, 1500);
+    } else {
+      run();
+    }
   });
 
   console.log(`${TAG} installed`);
+}
+
+// Hard caps to prevent large sessions from freezing the extension popup UI.
+// Messages exceeding PER_MSG_MAX_CHARS are truncated (content is preserved up
+// to the cap with a truncation notice appended).
+// Sessions whose total content exceeds ACCUMULATOR_MAX_CHARS are sent as-is
+// but no further merges are performed — the service worker shrink-guard then
+// protects IDB from a smaller DOM-scrape overwriting the stored full history.
+const PER_MSG_MAX_CHARS     =  80_000;
+const ACCUMULATOR_MAX_CHARS = 500_000;
+
+function capMessage(m: CapturedMessage): CapturedMessage {
+  if (m.content.length <= PER_MSG_MAX_CHARS) return m;
+  return {
+    ...m,
+    content: m.content.slice(0, PER_MSG_MAX_CHARS) +
+      `\n\n[ContextMover: content truncated at ${PER_MSG_MAX_CHARS} chars to prevent UI freeze]`,
+  };
 }
 
 // Merge a freshly-captured batch with previously-known messages.  Strategy:
@@ -200,15 +238,23 @@ function install() {
 //     copy is more complete — assistant streams grow over time).
 //   • Otherwise APPEND.
 function mergeMessages(prior: CapturedMessage[], fresh: CapturedMessage[]): CapturedMessage[] {
+  // If accumulator is already at the size cap, stop merging — forward as-is.
+  const priorChars = prior.reduce((s, m) => s + m.content.length, 0);
+  if (priorChars >= ACCUMULATOR_MAX_CHARS) {
+    console.warn(`${TAG} accumulator at cap (${priorChars} chars) — skipping merge`);
+    return prior;
+  }
+
   const out = [...prior];
   for (const m of fresh) {
-    const fp = fingerprint(m);
+    const capped = capMessage(m);
+    const fp = fingerprint(capped);
     const idx = out.findIndex((p) => fingerprint(p) === fp);
     if (idx >= 0) {
       const existing = out[idx];
-      out[idx] = m.content.length >= existing.content.length ? m : existing;
+      out[idx] = capped.content.length >= existing.content.length ? capped : existing;
     } else {
-      out.push(m);
+      out.push(capped);
     }
   }
   return out;

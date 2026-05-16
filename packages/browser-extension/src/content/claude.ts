@@ -1,26 +1,56 @@
 // packages/browser-extension/src/content/claude.ts
-import { extractContent, injectWithRetry, runCapturePipeline, sendCapture, startSessionCapture, waitForAnyElement } from "./shared";
+//
+// Why this file does NOT install its own window.fetch interceptor:
+//   fetch-interceptor.ts (MAIN world, document_start, manifest-declared) already
+//   intercepts every Claude API endpoint matching the regex
+//     /completion|append_message|chat_conversations/
+//   that is, conversation-load (tree=True), assistant-streaming (/completion),
+//   and message-append calls. The previous claude.ts wrapper only matched
+//   chat_conversations+tree=True \u2014 a strict subset \u2014 and ran on TOP of the
+//   already-installed fetch-interceptor.ts override, creating a double-process
+//   chain. Removing the redundant wrapper eliminates the conflict and lets the
+//   single MAIN-world interceptor route Claude through interceptor-bridge.ts.
+//   This file now does only DOM scraping + injection.
+import { extractContent, injectWithRetry, runCapturePipeline, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "./shared";
 
 console.log("[ContextMover] Claude content script loaded");
 
+// Per-element streaming guard — skip turns where Claude is still generating
+// so we don't persist half-complete assistant output. Claude marks streaming
+// turns with [data-is-streaming="true"] or `.result-streaming`.
+function isStreaming(el: Element): boolean {
+  if (el.getAttribute('data-is-streaming') === 'true') return true
+  if (el.querySelector('.result-streaming, [data-is-streaming="true"], .streaming-indicator')) return true
+  if (el.closest('[data-is-streaming="true"]')) return true
+  return false
+}
+
 function scrapeMessages(): Message[] {
   const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
 
-  // Primary selectors
-  document.querySelectorAll('[data-testid="human-turn"]')
-    .forEach(el => found.push({ el, role: 'user' }))
-  document.querySelectorAll('[data-testid="ai-turn"]')
-    .forEach(el => found.push({ el, role: 'assistant' }))
+  // Primary selectors — role assigned from the selector itself, never from
+  // DOM position or class-substring guessing.
+  document.querySelectorAll<HTMLElement>('[data-testid="human-turn"]')
+    .forEach(el => { if (!isStreaming(el)) found.push({ el, role: 'user' }) })
+  document.querySelectorAll<HTMLElement>('[data-testid="ai-turn"]')
+    .forEach(el => { if (!isStreaming(el)) found.push({ el, role: 'assistant' }) })
 
-  // Fallback if primary returns nothing
+  // Fallback if primary returns nothing. Use DISTINCT selectors per role
+  // rather than a generic selector + class-string match — the latter would
+  // mis-classify e.g. an element with class "humanize-button" as a user turn.
   if (found.length === 0) {
-    document.querySelectorAll(
-      '.font-claude-message, [class*="human-turn"], ' +
-      '[class*="ai-turn"], [class*="HumanTurn"], [class*="AssistantTurn"]'
-    ).forEach(el => {
-      const cls = el.className + (el.getAttribute('class') ?? '')
-      found.push({ el, role: cls.toLowerCase().includes('human') ? 'user' : 'assistant' })
+    const userSel = '[class*="human-turn"], [class*="HumanTurn"], [class*="user-message"]'
+    const asstSel = '.font-claude-message, [class*="ai-turn"], [class*="AssistantTurn"], [class*="assistant-message"]'
+    document.querySelectorAll<HTMLElement>(userSel).forEach(el => {
+      if (el.parentElement?.closest(userSel)) return
+      if (isStreaming(el)) return
+      found.push({ el, role: 'user' })
+    })
+    document.querySelectorAll<HTMLElement>(asstSel).forEach(el => {
+      if (el.parentElement?.closest(asstSel)) return
+      if (isStreaming(el)) return
+      found.push({ el, role: 'assistant' })
     })
   }
 
@@ -38,71 +68,16 @@ function scrapeMessages(): Message[] {
     .filter(m => m.content.trim().length > 0)
 }
 
-// ── Network interceptor — captures ALL messages from the Claude API ────────────
-function installFetchInterceptor(): void {
-  const script = document.createElement('script');
-  script.textContent = `
-    (function() {
-      const _originalFetch = window.fetch;
-      window.fetch = async function(...args) {
-        const response = await _originalFetch.apply(this, args);
-        const url = typeof args[0] === 'string'
-          ? args[0]
-          : args[0]?.url ?? '';
-        if (url.includes('/chat_conversations/') &&
-            url.includes('tree=True')) {
-          try {
-            const clone = response.clone();
-            const data = await clone.json();
-            if (data?.chat_messages) {
-              window.dispatchEvent(new CustomEvent(
-                '__CM_CLAUDE_CONVERSATION__',
-                { detail: JSON.stringify(data) }
-              ));
-            }
-          } catch {}
-        }
-        return response;
-      };
-    })();
-  `;
-  document.documentElement.appendChild(script);
-  script.remove();
-}
-
-window.addEventListener('__CM_CLAUDE_CONVERSATION__', (e: Event) => {
-  try {
-    const data = JSON.parse((e as CustomEvent).detail);
-    const messages: Message[] = (data.chat_messages as any[])
-      .map((m: any) => {
-        const text = Array.isArray(m.content)
-          ? m.content
-              .filter((c: any) => c.type === 'text')
-              .map((c: any) => c.text as string)
-              .join('\n')
-          : typeof m.content === 'string'
-            ? m.content
-            : '';
-        return {
-          role: (m.sender === 'human' ? 'user' : 'assistant') as 'user' | 'assistant',
-          content: text.trim(),
-          timestamp: new Date(m.created_at).getTime(),
-        };
-      })
-      .filter((m: Message) => m.content.length > 0);
-    if (messages.length > 0) {
-      console.debug('[CM:capture] Claude network intercept:', messages.length, 'msgs');
-      void sendCapture(messages, 'claude');
-    }
-  } catch {}
-});
-
-installFetchInterceptor();
-
 startSessionCapture({
   platform: "claude",
   selectorOrElement: "main",
   scrapeMessages: () => runCapturePipeline("claude", scrapeMessages),
+  // Claude's SPA can take 2\u20136s to render messages after route changes (lazy
+  // virtual-scroll mount). The default capture schedule (immediate, 100,
+  // 500, 1000, 1500ms) misses these late renders. Add 3s and 6s as a safety
+  // net \u2014 the SW's shrink-guard prevents these late captures from clobbering
+  // a complete earlier capture with a partial one.
+  extraCaptureDelays: [3000, 6000],
 });
 
 // Listen for injection requests from the service worker
