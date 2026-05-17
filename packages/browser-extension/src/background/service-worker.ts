@@ -16,6 +16,9 @@ import { buildTier1File, buildTier2File, buildTier3File } from "@/lib/file-build
 import { buildInstructionPrompt } from "@/lib/instruction-builder"
 import { checkUsage, incrementUsage } from "@/lib/usage-client";
 import type { MigrationFile } from "@/lib/file-builder"
+// Drive sync — additive layer over IndexedDB. Independent of Supabase vault.
+import { driveClient } from "@/lib/drive/drive-client";
+import { driveSyncManager } from "@/lib/drive/sync-manager";
 
 // ── Attention-engine availability (set to false if model fetch blocked) ─────
 let attentionEngineAvailable = true;
@@ -353,52 +356,106 @@ chrome.runtime.onInstalled.addListener(async () => {
     .catch((e) => console.warn("[CM:sw] setPanelBehavior failed:", e));
 
   // MV3 does NOT auto-inject content scripts into already-open tabs after a
-  // reload. Re-inject only into tabs that DON'T already have a live listener —
-  // otherwise we end up with two listeners per tab, both returning true on
-  // INJECT_CONTEXT, and Chrome logs "message channel closed".
+  // reload. Re-inject only into tabs that DON'T already have a live listener.
+  //
+  // CRITICAL — why the old per-cs-entry loop caused 4 injections per tab:
+  //   The manifest has 4 entries that match claude.ai (fetch-interceptor,
+  //   interceptor-bridge, claude, toggle). The old loop PINGed the same tab
+  //   once per entry, all before any freshly-injected script had time to
+  //   register its onMessage listener. Every PING therefore returned "no
+  //   listener" → 4 independent injections → duplicate MutationObservers,
+  //   duplicate capture listeners, and a double-wrapped window.fetch chain.
+  //
+  // Fix: collect every content_script entry that matches each open tab,
+  // PING each unique tab EXACTLY ONCE, then inject ALL matching scripts for
+  // that tab in a single sequential pass under the same alive/dedup guards.
   const manifest = chrome.runtime.getManifest();
+
+  // Build a map: tabId → { tab, scripts: string[][] }
+  // where scripts is an ordered list of cs.js arrays to inject.
+  const tabScriptMap = new Map<number, { tab: chrome.tabs.Tab; scripts: string[][] }>();
   for (const cs of manifest.content_scripts ?? []) {
     const tabs = await chrome.tabs.query({ url: cs.matches });
     for (const tab of tabs) {
       if (!tab.id) continue;
-      const alive = await new Promise<boolean>((resolve) => {
-        try {
-          chrome.tabs.sendMessage(tab.id!, { type: "PING" }, () => {
-            // lastError means no listener → script not loaded
-            resolve(!chrome.runtime.lastError);
-          });
-        } catch { resolve(false); }
-      });
-      if (alive) {
-        console.log(`[ContextMover] Tab ${tab.id} already has content script — skipping`);
-        continue;
+      const entry = tabScriptMap.get(tab.id);
+      if (entry) {
+        entry.scripts.push(cs.js as string[]);
+      } else {
+        tabScriptMap.set(tab.id, { tab, scripts: [cs.js as string[]] });
       }
-      const scriptKey = `${tab.id}:${(cs.js ?? []).join(',')}`;
-      if (injectedScripts.has(scriptKey)) {
-        console.log(`[ContextMover] Tab ${tab.id} already injected this session — skipping`);
-        continue;
-      }
-      // First new script for this tab: clear stale window flags left behind by
-      // the old (now-dead) extension context so new scripts can self-initialize.
-      if (!injectedTabs.has(tab.id)) {
-        injectedTabs.add(tab.id);
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: () => {
-            (['__contextForge_claude_loaded', '__contextForge_chatgpt_loaded',
-              '__contextForge_gemini_loaded', '__contextForge_grok_loaded',
-              '__contextForge_perplexity_loaded', '__contextForge_deepseek_loaded',
-              '__cm_toggle_v2'] as const).forEach((k) => {
-              try { delete (window as unknown as Record<string, unknown>)[k]; } catch { /* non-configurable */ }
-            });
-          },
-        }).catch(() => {});
-      }
+    }
+  }
+
+  // One PING per unique tab — no more per-script-entry races.
+  for (const [tabId, { tab, scripts }] of tabScriptMap) {
+    // Skip tabs already handled this SW lifetime.
+    if (injectedTabs.has(tabId)) {
+      console.log(`[ContextMover] Tab ${tabId} already injected this session — skipping`);
+      continue;
+    }
+
+    const alive = await new Promise<boolean>((resolve) => {
+      try {
+        chrome.tabs.sendMessage(tabId, { type: "PING" }, () => {
+          resolve(!chrome.runtime.lastError);
+        });
+      } catch { resolve(false); }
+    });
+
+    if (alive) {
+      console.log(`[ContextMover] Tab ${tabId} already has content script — skipping`);
+      injectedTabs.add(tabId); // prevent future redundant checks this session
+      continue;
+    }
+
+    injectedTabs.add(tabId);
+
+    // Clear stale window flags left by the old (now-dead) extension context
+    // so freshly-injected scripts can self-initialize their idempotency guards.
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        (['__contextForge_claude_loaded', '__contextForge_chatgpt_loaded',
+          '__contextForge_gemini_loaded', '__contextForge_grok_loaded',
+          '__contextForge_perplexity_loaded', '__contextForge_deepseek_loaded',
+          '__contextForgeFetchInstalled', '__contextForgeBridgeInstalled',
+          '__cm_toggle_v2'] as const).forEach((k) => {
+          try { delete (window as unknown as Record<string, unknown>)[k]; } catch { /* non-configurable */ }
+        });
+      },
+    }).catch(() => {});
+
+    // Inject each matching script set sequentially and await completion so
+    // each script's onMessage/PING listener is registered before we move on.
+    const injected: string[] = [];
+    for (const jsFiles of scripts) {
+      const scriptKey = `${tabId}:${jsFiles.join(',')}`;
+      if (injectedScripts.has(scriptKey)) continue;
       injectedScripts.add(scriptKey);
-      chrome.scripting
-        .executeScript({ target: { tabId: tab.id }, files: cs.js as string[] })
-        .then(() => console.log(`[ContextMover] Injected content script into tab ${tab.id} (${tab.url})`))
-        .catch(() => { /* non-scriptable tab */ });
+      try {
+        await chrome.scripting.executeScript({ target: { tabId }, files: jsFiles });
+        injected.push(jsFiles.join(','));
+      } catch { /* non-scriptable tab — e.g. chrome:// URL */ }
+    }
+    const injectedAny = injected.length > 0;
+    if (injectedAny) {
+      // One summary line per tab — confirms a tab is injected exactly once.
+      console.log(
+        `[ContextMover] Injected content script into tab ${tabId} (${tab.url}) — ` +
+        `${injected.length} script(s): ${injected.join(' | ')}`
+      );
+    }
+
+    // After a successful injection, give the newly-loaded scripts a moment to
+    // initialise, then trigger an immediate capture so an already-rendered
+    // conversation is captured without requiring user interaction.
+    if (injectedAny) {
+      setTimeout(() => {
+        chrome.tabs.sendMessage(tabId, { type: "TRIGGER_CAPTURE" }, () => {
+          void chrome.runtime.lastError; // swallow if script not ready yet
+        });
+      }, 1500);
     }
   }
 });
@@ -429,6 +486,41 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return;
     }
     switch (msg.type) {
+      case "CM_DIAG": {
+        // Content-script diagnostic mirrored to SW console so developers can
+        // see capture decisions without opening every page console.
+        const platform = typeof msg.platform === 'string' ? msg.platform : '?';
+        const reason = typeof msg.reason === 'string' ? msg.reason : '?';
+        console.log(`[CM:diag:${platform}] ${reason}  (tab=${sender.tab?.id ?? '?'})`);
+        sendResponse({ ok: true });
+        break;
+      }
+
+      // ── Google Drive sync (additive layer over IndexedDB) ──────────────
+      case "DRIVE_CONNECT": {
+        const connected = await driveClient.connect();
+        if (connected) {
+          // Pull existing Drive sessions in background; never block UI.
+          void driveSyncManager.initialSync();
+        }
+        sendResponse({ connected });
+        break;
+      }
+      case "DRIVE_DISCONNECT": {
+        await driveClient.disconnect();
+        sendResponse({ ok: true });
+        break;
+      }
+      case "DRIVE_STATUS": {
+        const status = await driveSyncManager.getStatus();
+        sendResponse(status);
+        break;
+      }
+      case "DRIVE_SYNC_NOW": {
+        const result = await driveSyncManager.pullFromDrive();
+        sendResponse({ ok: true, ...result });
+        break;
+      }
       case "CAPTURE_SESSION": {
         // [SECURITY] Must come from a known platform tab.
         if (!isFromPlatformTab(sender)) {
@@ -539,6 +631,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           getSessionsCacheAt = now;
           sendResponse(listItems);
         }
+        // Fire-and-forget Drive pull. Local list already returned above;
+        // any newly-discovered Drive sessions broadcast SESSIONS_UPDATED.
+        void driveSyncManager.initialSync().catch(() => {});
         break;
       }
 
@@ -1141,6 +1236,9 @@ async function handleCaptureSession(payload: {
     void broadcastToViews({ type: "SESSIONS_UPDATED" });
     // Kick off background semantic indexing — fire & forget, never blocks capture
     void backgroundIndex(toWrite).catch(() => {});
+    // Queue Drive upload (debounced ~30s). Fire-and-forget; silent no-op when
+    // the user has not connected Google Drive. Independent of Supabase vault.
+    void driveSyncManager.syncAfterCapture(toWrite.id).catch(() => {});
     // Mirror to local MCP bridge so IDEs (Cursor/Windsurf/Continue/Claude
     // Desktop) can read the session. Fire-and-forget — never blocks capture
     // and silently no-ops if the bridge isn't running.

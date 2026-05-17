@@ -11,8 +11,15 @@
         "tabs",
         "sidePanel",
         "downloads",
-        "offscreen"
+        "offscreen",
+        "identity"
     ],
+    "oauth2": {
+        "client_id": "REPLACE_WITH_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+        "scopes": [
+            "https://www.googleapis.com/auth/drive.appdata"
+        ]
+    },
     "host_permissions": [
         "https://claude.ai/*",
         "https://chatgpt.com/*",
@@ -181,7 +188,7 @@
         }
     ],
     "content_security_policy": {
-        "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; base-uri 'none'; connect-src 'self' https://*.supabase.co wss://*.supabase.co http://localhost:49152 http://localhost:54321 http://127.0.0.1:49001 https://contextmover.com https://*.contextmover.com https://huggingface.co https://*.huggingface.co https://cdn-lfs.huggingface.co https://cdn-lfs-us-1.huggingface.co https://*.hf.space https://cdn.jsdelivr.net https://*.jsdelivr.net; form-action 'none'; frame-src 'none'"
+        "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; base-uri 'none'; connect-src 'self' https://*.supabase.co wss://*.supabase.co http://localhost:49152 http://localhost:54321 http://127.0.0.1:49001 https://contextmover.com https://*.contextmover.com https://huggingface.co https://*.huggingface.co https://cdn-lfs.huggingface.co https://cdn-lfs-us-1.huggingface.co https://*.hf.space https://cdn.jsdelivr.net https://*.jsdelivr.net https://www.googleapis.com; form-action 'none'; frame-src 'none'"
     },
     "icons": {
         "16":  "icons/icon16.png",

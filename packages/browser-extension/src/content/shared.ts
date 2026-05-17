@@ -162,6 +162,19 @@ export function startSessionCapture(config: {
   let lastSentAt = 0;
   const MIN_SEND_INTERVAL_MS = 2_000;
 
+  // Diagnostic bridge — content-script console.log lines go to the PAGE console,
+  // which is invisible from the SW console. diag() mirrors a short status line
+  // to the SW so a developer can see capture decisions in one place.
+  const diag = (reason: string) => {
+    try {
+      chrome.runtime.sendMessage(
+        { type: "CM_DIAG", platform: config.platform, reason, href: location.href },
+        () => { void chrome.runtime.lastError; }
+      );
+    } catch { /* SW asleep — page console still has the log */ }
+  };
+  diag("script-loaded");
+
   let pendingCaptureAfterStream = false;
   let streamPollId: ReturnType<typeof setInterval> | null = null;
 
@@ -224,6 +237,7 @@ export function startSessionCapture(config: {
       console.log(
         `[ContextMover] ${config.platform}: fetch-intercept active (count=${fc!.count}, age=${Date.now() - fc!.at}ms), skipping DOM scrape`
       );
+      diag(`bail: fetch-intercept active (count=${fc!.count})`);
       return;
     }
 
@@ -235,6 +249,7 @@ export function startSessionCapture(config: {
     // Skip capture while the assistant is actively streaming — schedule a
     // deferred capture for when streaming finishes instead.
     if (isAssistantStreaming(config.platform)) {
+      diag("bail: assistant streaming");
       pendingCaptureAfterStream = true;
       if (!streamPollId) {
         const pollStart = Date.now();
@@ -265,6 +280,7 @@ export function startSessionCapture(config: {
     // awaiting from a previous call, skip rather than sending a duplicate.
     if (captureInFlight) {
       console.log(`[ContextMover] ${config.platform}: capture already in flight, skipping`);
+      diag("bail: capture in flight");
       return;
     }
     captureInFlight = true;
@@ -272,8 +288,10 @@ export function startSessionCapture(config: {
 
     console.log(`[ContextMover] Capture triggered for ${config.platform} (DOM fallback)`);
     const messages = config.scrapeMessages();
+    diag(`scraped: total=${messages.length} user=${messages.filter(m=>m.role==='user').length} asst=${messages.filter(m=>m.role==='assistant').length}`);
     if (!messages.length) {
       console.log(`[ContextMover] No messages found, skipping capture`);
+      diag("bail: 0 messages from scrape");
       return;
     }
 
@@ -286,6 +304,7 @@ export function startSessionCapture(config: {
       console.log(
         `[ContextMover] Skipping capture — ${messages.length} user-only messages (awaiting assistant response)`
       );
+      diag(`bail: 0 assistant messages (${messages.length} user-only)`);
       return;
     }
 
@@ -337,19 +356,34 @@ export function startSessionCapture(config: {
     lastSentMessageCount = messages.length;
 
     console.log(`[ContextMover] Sending CAPTURE_SESSION for session: ${resolvedId}`);
-    chrome.runtime.sendMessage({
-      type: "CAPTURE_SESSION",
-      payload: {
-        platform: config.platform,
-        sessionId: resolvedId,
-        title,
-        messages,
+    diag(`sending CAPTURE_SESSION sessionId=${resolvedId} count=${messages.length}`);
+    chrome.runtime.sendMessage(
+      {
+        type: "CAPTURE_SESSION",
+        payload: {
+          platform: config.platform,
+          sessionId: resolvedId,
+          title,
+          messages,
+        },
       },
-    });
+      () => { void chrome.runtime.lastError; }
+    );
     } finally {
       captureInFlight = false;
     }
   };
+
+  // Handle explicit capture trigger from the service worker.
+  // Sent ~1.5s after onInstalled re-injects scripts into already-open tabs
+  // so that an already-rendered conversation is captured without user interaction.
+  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg?.type === "TRIGGER_CAPTURE") {
+      void capture();
+      sendResponse({ ok: true });
+      return;
+    }
+  });
 
   createObserver(config.selectorOrElement, capture);
 

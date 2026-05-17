@@ -33,6 +33,7 @@ interface SessionCardProps {
   session: ContextSession;
   vaultConnected: boolean | null;
   migrationTier?: 1 | 2 | 3;
+  driveSourced?: boolean;
   onSelect: () => void;
   onExportSuccess: (fmt: string) => void;
   onExportError: (text: string) => void;
@@ -42,6 +43,7 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
   session,
   vaultConnected,
   migrationTier,
+  driveSourced,
   onSelect,
   onExportSuccess,
   onExportError,
@@ -60,7 +62,21 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
       <span className="absolute inset-y-0 left-0 w-[3px] rounded-l-[6px]" style={{ background: pColor }} />
       <div className="flex items-start gap-2.5 pl-1">
         <div className="min-w-0 flex-1">
-          <PlatformBadge platform={session.platform} logoSize={11} />
+          <div className="flex items-center gap-1.5">
+            <PlatformBadge platform={session.platform} logoSize={11} />
+            {driveSourced && (
+              <span
+                title="Synced from Google Drive (captured on another profile)"
+                style={{
+                  fontSize: 9,
+                  color: '#5AA9FF',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                ☁
+              </span>
+            )}
+          </div>
           <p className="mt-2 truncate text-sm font-semibold text-[#F5F5F5] transition-all duration-200 group-hover:text-[#00FF88] typing-glow">
             {session.title}
           </p>
@@ -199,6 +215,62 @@ export default function Sidebar() {
   const [indexStats, setIndexStats] = useState<IndexStats | null>(null);
   const [indexStatsLoading, setIndexStatsLoading] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
+
+  // ── Drive sync state — fetched on mount + when settings panel opens ────────
+  const [driveStatus, setDriveStatus] = useState<{
+    connected: boolean;
+    lastSyncAt: number | null;
+    lastSyncCount: number | null;
+    sourcedIds: string[];
+  }>({ connected: false, lastSyncAt: null, lastSyncCount: null, sourcedIds: [] });
+  const [driveBusy, setDriveBusy] = useState(false);
+  const driveSourcedSet = useMemo(() => new Set(driveStatus.sourcedIds), [driveStatus.sourcedIds]);
+
+  const refreshDriveStatus = useCallback(() => {
+    chrome.runtime.sendMessage({ type: "DRIVE_STATUS" }, (res) => {
+      if (chrome.runtime.lastError || !res) return;
+      setDriveStatus({
+        connected: !!res.connected,
+        lastSyncAt: typeof res.lastSyncAt === "number" ? res.lastSyncAt : null,
+        lastSyncCount: typeof res.lastSyncCount === "number" ? res.lastSyncCount : null,
+        sourcedIds: Array.isArray(res.sourcedIds) ? res.sourcedIds : [],
+      });
+    });
+  }, []);
+
+  const connectDrive = useCallback(() => {
+    setDriveBusy(true);
+    chrome.runtime.sendMessage({ type: "DRIVE_CONNECT" }, (res) => {
+      setDriveBusy(false);
+      if (chrome.runtime.lastError) return;
+      if (res?.connected) refreshDriveStatus();
+    });
+  }, [refreshDriveStatus]);
+
+  const disconnectDrive = useCallback(() => {
+    setDriveBusy(true);
+    chrome.runtime.sendMessage({ type: "DRIVE_DISCONNECT" }, () => {
+      setDriveBusy(false);
+      if (chrome.runtime.lastError) return;
+      refreshDriveStatus();
+    });
+  }, [refreshDriveStatus]);
+
+  const syncDriveNow = useCallback(() => {
+    setDriveBusy(true);
+    chrome.runtime.sendMessage({ type: "DRIVE_SYNC_NOW" }, () => {
+      setDriveBusy(false);
+      if (chrome.runtime.lastError) return;
+      refreshDriveStatus();
+    });
+  }, [refreshDriveStatus]);
+
+  useEffect(() => {
+    refreshDriveStatus();
+  }, [refreshDriveStatus]);
+  useEffect(() => {
+    if (showSettings) refreshDriveStatus();
+  }, [showSettings, refreshDriveStatus]);
 
   // ── Update check — compare manifest version vs hosted extension-version.json ──
   useEffect(() => {
@@ -1075,6 +1147,13 @@ export default function Sidebar() {
               onDownload={downloadQualityReport}
               onClear={clearQualityHistory}
             />
+            <DriveSyncPanel
+              status={driveStatus}
+              busy={driveBusy}
+              onConnect={connectDrive}
+              onDisconnect={disconnectDrive}
+              onSyncNow={syncDriveNow}
+            />
           </div>
         )}
         <div className={showSettings ? 'hidden' : 'flex-1 overflow-y-auto px-4 py-3'}>
@@ -1145,6 +1224,7 @@ export default function Sidebar() {
                   session={session}
                   vaultConnected={vaultConnected}
                   migrationTier={migrationTiers[session.id]}
+                  driveSourced={driveSourcedSet.has(session.id)}
                   onSelect={() => handleSessionSelect(session)}
                   onExportSuccess={(fmt) =>
                     setStatusMessage({ tone: "success", text: `Exported as ${fmt.toUpperCase()} — check downloads.` })
@@ -1414,6 +1494,117 @@ function SemanticIndexPanel({
       </div>
       <p className="text-[9px] leading-relaxed" style={{ color: "#2A3A2A" }}>
         Clearing removes embeddings, summaries and prompt cache — not your sessions. Re-indexing happens automatically on next capture.
+      </p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DriveSyncPanel — Google Drive cross-profile sync (settings panel)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function DriveSyncPanel({
+  status,
+  busy,
+  onConnect,
+  onDisconnect,
+  onSyncNow,
+}: {
+  status: {
+    connected: boolean;
+    lastSyncAt: number | null;
+    lastSyncCount: number | null;
+    sourcedIds: string[];
+  };
+  busy: boolean;
+  onConnect: () => void;
+  onDisconnect: () => void;
+  onSyncNow: () => void;
+}) {
+  const relative = (ts: number | null): string => {
+    if (!ts) return 'never';
+    const d = Date.now() - ts;
+    if (d < 60_000) return 'just now';
+    if (d < 3_600_000) return `${Math.floor(d / 60_000)} min ago`;
+    if (d < 86_400_000) return `${Math.floor(d / 3_600_000)} hr ago`;
+    return `${Math.floor(d / 86_400_000)} d ago`;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">☁ Drive Sync</div>
+      <div
+        className="rounded-[6px] border border-[#1A2A1A] bg-[#080808] p-4 space-y-3"
+        style={{ boxShadow: "0 0 20px rgba(90,169,255,0.04)" }}
+      >
+        {!status.connected ? (
+          // STATE A — Not connected
+          <>
+            <div className="flex items-center gap-2 border-b border-[#0D2A0D] pb-2">
+              <span className="text-base">📱</span>
+              <span className="text-[11px] font-bold text-[#F5F5F5]">Sessions on this device only</span>
+            </div>
+            <p className="text-[10px] leading-relaxed" style={{ color: "#9A9A9A" }}>
+              Connect Google Drive to sync sessions across all your Chrome profiles.
+              Your data is stored in a private folder in your own Drive — only this
+              extension can access it. Your data never passes through our servers.
+            </p>
+            <button
+              onClick={onConnect}
+              disabled={busy}
+              className="mt-1 w-full rounded-[4px] border border-[rgba(90,169,255,0.35)] bg-[rgba(90,169,255,0.08)] py-2 text-[9px] font-black uppercase tracking-widest text-[#5AA9FF] transition-all hover:border-[rgba(90,169,255,0.6)] hover:bg-[rgba(90,169,255,0.15)] disabled:opacity-50"
+            >
+              {busy ? 'Connecting…' : 'Connect Google Drive'}
+            </button>
+          </>
+        ) : busy ? (
+          // STATE B — Connected, syncing
+          <>
+            <div className="flex items-center gap-2 border-b border-[#0D2A0D] pb-2">
+              <span className="text-base">☁</span>
+              <span className="text-[11px] font-bold text-[#F5F5F5]">Google Drive connected</span>
+            </div>
+            <div className="py-2 text-[10px] text-[#5AA9FF] animate-pulse">Syncing…</div>
+          </>
+        ) : (
+          // STATE C — Connected, synced
+          <>
+            <div className="flex items-center gap-2 border-b border-[#0D2A0D] pb-2">
+              <span className="text-base">☁</span>
+              <span className="text-[11px] font-bold text-[#F5F5F5]">Google Drive connected</span>
+            </div>
+            <div className="space-y-0.5">
+              <StatRow label="Last sync" value={relative(status.lastSyncAt)} />
+              <StatRow
+                label="Sessions synced"
+                value={status.lastSyncCount != null ? String(status.lastSyncCount) : '—'}
+              />
+              <StatRow label="From other profiles" value={String(status.sourcedIds.length)} />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={onSyncNow}
+                disabled={busy}
+                className="flex-1 rounded-[4px] border border-[rgba(90,169,255,0.35)] bg-[rgba(90,169,255,0.08)] py-2 text-[9px] font-black uppercase tracking-widest text-[#5AA9FF] transition-all hover:border-[rgba(90,169,255,0.6)] hover:bg-[rgba(90,169,255,0.15)] disabled:opacity-50"
+              >
+                Sync now
+              </button>
+              <button
+                onClick={onDisconnect}
+                disabled={busy}
+                className="flex-1 rounded-[4px] border border-red-500/20 bg-red-500/5 py-2 text-[9px] font-black uppercase tracking-widest text-red-400 transition-all hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
+              >
+                Disconnect
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+      <p className="text-[9px] leading-relaxed" style={{ color: "#2A3A2A" }}>
+        Sessions captured on this profile sync to your private appdata folder.
+        Sessions from other Chrome profiles signed into the same Google account
+        appear here with a ☁ badge. Disconnecting clears Drive state — your
+        local sessions stay on this device.
       </p>
     </div>
   );
