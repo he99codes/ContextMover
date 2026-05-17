@@ -1,7 +1,7 @@
 "use client";
 // packages/web/src/app/pricing/page.tsx
 // Geo-aware pricing page driven by the v2 payment infrastructure.
-// Handles both Stripe (redirect) and Razorpay (modal) checkout flows,
+// Handles Razorpay (modal) checkout flows,
 // plus a mock-mode pathway when API keys are placeholders.
 
 import { useEffect, useState } from "react";
@@ -113,7 +113,6 @@ export default function PricingPage() {
       }
 
       if (data.url) {
-        // Stripe → redirect to hosted checkout.
         window.location.href = data.url;
       } else if (data.subscriptionId) {
         // Razorpay subscription modal.

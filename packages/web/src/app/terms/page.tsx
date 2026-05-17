@@ -138,7 +138,7 @@ export default function TermsPage() {
                   <br />
                   India: ₹199/month via Razorpay
                   <br />
-                  Global: $5/month via Stripe
+                  Global: $5/month via Razorpay
                 </p>
               </div>
               <div>
@@ -151,13 +151,13 @@ export default function TermsPage() {
               <div>
                 <p className="font-semibold text-[#F5F5F5] mb-2">5.4 Refunds</p>
                 <p>
-                  We offer a 14-day free trial on Pro. After the trial, refunds are at our
-                  discretion. Contact{" "}
+                  All payments are charged immediately upon subscription.
+                  Refunds are at our discretion. Contact{" "}
                   <a
-                    href="mailto:priyanshu@contextmover.com"
+                    href="mailto:hey@contextmover.com"
                     className="text-[#00D26A] hover:underline"
                   >
-                    priyanshu@contextmover.com
+                    hey@contextmover.com
                   </a>{" "}
                   for refund requests within 7 days of charge.
                 </p>
@@ -223,7 +223,23 @@ export default function TermsPage() {
           {/* 8 */}
           <section>
             <h2 className="font-bold text-[#F5F5F5] mb-3" style={{ fontSize: "17px" }}>
-              8. DISCLAIMER OF WARRANTIES
+              8. THIRD-PARTY AI PLATFORM USAGE
+            </h2>
+            <p className="text-[#6B6B6B]">
+              ContextMover acts as a user-agent extension of the user&apos;s browser. It performs no
+              automated access to third-party services, makes no server-side requests to AI
+              providers, and reads only the data the user has loaded in their own active browser
+              session. Users are responsible for ensuring their use of ContextMover complies with
+              the terms of service of the AI providers they choose to use it with. By installing
+              ContextMover, you represent that you have the right to access and export the
+              conversational data on your own user account.
+            </p>
+          </section>
+
+          {/* 9 */}
+          <section>
+            <h2 className="font-bold text-[#F5F5F5] mb-3" style={{ fontSize: "17px" }}>
+              9. DISCLAIMER OF WARRANTIES
             </h2>
             <p className="text-[#6B6B6B] mb-3">
               ContextMover is provided &ldquo;as is&rdquo; without warranty of any kind.
@@ -236,17 +252,17 @@ export default function TermsPage() {
               <li>All AI platforms will remain compatible</li>
             </ul>
             <p className="text-[#6B6B6B]">
-              <span className="text-[#F5F5F5] font-semibold">8.1 AI Platform Compatibility</span>
+              <span className="text-[#F5F5F5] font-semibold">9.1 AI Platform Compatibility</span>
               <br />
               AI platforms may update their interfaces at any time. We work to maintain
               compatibility but cannot guarantee it at all times.
             </p>
           </section>
 
-          {/* 9 */}
+          {/* 10 */}
           <section>
             <h2 className="font-bold text-[#F5F5F5] mb-3" style={{ fontSize: "17px" }}>
-              9. LIMITATION OF LIABILITY
+              10. LIMITATION OF LIABILITY
             </h2>
             <p className="text-[#6B6B6B] mb-3">
               To the maximum extent permitted by law, ContextMover&apos;s liability is limited to the
@@ -261,31 +277,31 @@ export default function TermsPage() {
             </ul>
           </section>
 
-          {/* 10 */}
+          {/* 11 */}
           <section>
             <h2 className="font-bold text-[#F5F5F5] mb-4" style={{ fontSize: "17px" }}>
-              10. TERMINATION
+              11. TERMINATION
             </h2>
             <div className="space-y-3 text-[#6B6B6B]">
               <p>
-                <span className="text-[#F5F5F5] font-semibold">10.1</span> You may stop using
+                <span className="text-[#F5F5F5] font-semibold">11.1</span> You may stop using
                 ContextMover and delete your account at any time.
               </p>
               <p>
-                <span className="text-[#F5F5F5] font-semibold">10.2</span> We may suspend accounts
+                <span className="text-[#F5F5F5] font-semibold">11.2</span> We may suspend accounts
                 that violate these terms with reasonable notice.
               </p>
               <p>
-                <span className="text-[#F5F5F5] font-semibold">10.3</span> On termination, your
+                <span className="text-[#F5F5F5] font-semibold">11.3</span> On termination, your
                 local data remains on your device. We delete your account data within 30 days.
               </p>
             </div>
           </section>
 
-          {/* 11 */}
+          {/* 12 */}
           <section>
             <h2 className="font-bold text-[#F5F5F5] mb-3" style={{ fontSize: "17px" }}>
-              11. CHANGES TO TERMS
+              12. CHANGES TO TERMS
             </h2>
             <p className="text-[#6B6B6B]">
               We will notify you of material changes via email 14 days before they take effect.
@@ -293,10 +309,10 @@ export default function TermsPage() {
             </p>
           </section>
 
-          {/* 12 */}
+          {/* 13 */}
           <section>
             <h2 className="font-bold text-[#F5F5F5] mb-3" style={{ fontSize: "17px" }}>
-              12. GOVERNING LAW
+              13. GOVERNING LAW
             </h2>
             <p className="text-[#6B6B6B]">
               These terms are governed by Indian law. Disputes subject to courts in Pune,
@@ -304,10 +320,10 @@ export default function TermsPage() {
             </p>
           </section>
 
-          {/* 13 */}
+          {/* 14 */}
           <section>
             <h2 className="font-bold text-[#F5F5F5] mb-3" style={{ fontSize: "17px" }}>
-              13. CONTACT
+              14. CONTACT
             </h2>
             <p className="text-[#6B6B6B]">
               Priyanshu Sharma
@@ -316,8 +332,8 @@ export default function TermsPage() {
               <br />
               Pune, Maharashtra, India
               <br />
-              <a href="mailto:priyanshu@contextmover.com" className="text-[#00D26A] hover:underline">
-                priyanshu@contextmover.com
+              <a href="mailto:hey@contextmover.com" className="text-[#00D26A] hover:underline">
+                hey@contextmover.com
               </a>
               <br />
               <a href="https://contextmover.com" className="text-[#00D26A] hover:underline">

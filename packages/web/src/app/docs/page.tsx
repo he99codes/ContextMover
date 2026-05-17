@@ -52,7 +52,7 @@ export default function DocsPage() {
 
         <div className="mt-12 flex flex-col sm:flex-row gap-4">
           <a
-            href="mailto:hey@contextmover.app"
+            href="mailto:hey@contextmover.com"
             className="flex items-center justify-center gap-2 rounded-[8px] border border-[#2A2A2A] px-5 py-3 text-sm text-[#6B6B6B] hover:border-[#3A3A3A] hover:text-[#F5F5F5] transition-all"
           >
             <Mail size={15} />

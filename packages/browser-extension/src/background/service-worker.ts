@@ -20,6 +20,8 @@ import type { MigrationFile } from "@/lib/file-builder"
 import { driveClient } from "@/lib/drive/drive-client";
 import { driveSyncManager } from "@/lib/drive/sync-manager";
 
+const DEBUG = process.env.NODE_ENV === "development";
+
 // ── Attention-engine availability (set to false if model fetch blocked) ─────
 let attentionEngineAvailable = true;
 
@@ -1197,7 +1199,7 @@ async function handleCaptureSession(payload: {
   // ── [CM:sw] received ────────────────────────────────────────────────────────
   const rxUser = payload.messages.filter(m => m.role === "user").length;
   const rxAsst = payload.messages.filter(m => m.role === "assistant").length;
-  console.log('[CM:sw] received', { platform: payload.platform, session: payload.sessionId, total: payload.messages.length, user: rxUser, assistant: rxAsst });
+  if (DEBUG) console.log('[CM:sw] received', { platform: payload.platform, session: payload.sessionId, total: payload.messages.length, user: rxUser, assistant: rxAsst });
   if (rxAsst === 0 && rxUser > 0) {
     console.error('[CM:sw] received — ASSISTANT MESSAGES MISSING in payload (Stage1 content script bug)');
   }
@@ -1270,10 +1272,8 @@ async function handleCaptureSession(payload: {
     // Queue Drive upload (debounced ~30s). Fire-and-forget; silent no-op when
     // the user has not connected Google Drive. Independent of Supabase vault.
     void driveSyncManager.syncAfterCapture(toWrite.id).catch(() => {});
-    // Mirror to local MCP bridge so IDEs (Cursor/Windsurf/Continue/Claude
-    // Desktop) can read the session. Fire-and-forget — never blocks capture
-    // and silently no-ops if the bridge isn't running.
-    void syncToMcpBridge(toWrite).catch(() => {});
+    // MCP bridge sync disabled — IDE bridge deferred to Phase 2.
+    // void syncToMcpBridge(toWrite).catch(() => {});
     // ── Pre-build MetaPrompt in background ──────────────────────────────
     // As each turn arrives, immediately re-run the summarizer + translator
     // and store the full translated prompt in IndexedDB. On migrate, this
@@ -1320,9 +1320,8 @@ async function backgroundIndex(session: ContextSession): Promise<void> {
     const dt = (performance.now() - t0).toFixed(0);
     console.log(`[CM:sw:bgIdx] indexed session ${session.id} in ${dt}ms`);
 
-    // Mirror chunk embeddings to the MCP bridge for IDE-side semantic_search.
-    // Fire-and-forget; bridge offline is the common case and fine.
-    void syncEmbeddingsToMcpBridge(session.id);
+    // MCP embeddings sync disabled — IDE bridge deferred to Phase 2.
+    // void syncEmbeddingsToMcpBridge(session.id);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes("Failed to fetch")) {

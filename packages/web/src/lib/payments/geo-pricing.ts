@@ -50,7 +50,7 @@ export const INDIA_PRICING: PricingPlan = {
 export const GLOBAL_PRICING: PricingPlan = {
   region:   "global",
   currency: "USD",
-  gateway:  "stripe",
+  gateway:  "razorpay",
   pro: {
     monthly:       5,
     annual:        48,

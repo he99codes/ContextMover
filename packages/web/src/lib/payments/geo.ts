@@ -1,5 +1,6 @@
 // packages/web/src/lib/payments/geo.ts
 // Geo-detection + pricing config for the v2 payment system.
+// All payments routed through Razorpay (INR for South Asia, USD for global).
 // SAFE for both server (Next API routes) and client usage:
 //   - On server: reads x-vercel-ip-country header (user's real country, set by
 //     Vercel edge). Falls back to ipapi.co only when header is absent.
@@ -101,19 +102,19 @@ export async function getPricingConfig(req?: NextRequest): Promise<PricingConfig
   }
 
   return {
-    gateway:  "stripe",
+    gateway:  "razorpay",
     currency: "usd",
     symbol:   "$",
     pro: {
       amount:   500, // $5 in cents
       display:  "$5",
-      planId:   process.env.STRIPE_PRO_PRICE_ID ?? "price_placeholder_pro",
+      planId:   process.env.RAZORPAY_PRO_PLAN_ID ?? "plan_placeholder_pro",
       interval: "month",
     },
     team: {
       amount:   2_500, // $25 in cents
       display:  "$25",
-      planId:   process.env.STRIPE_TEAM_PRICE_ID ?? "price_placeholder_team",
+      planId:   process.env.RAZORPAY_TEAM_PLAN_ID ?? "plan_placeholder_team",
       interval: "month",
     },
   };

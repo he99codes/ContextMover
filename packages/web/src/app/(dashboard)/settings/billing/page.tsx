@@ -139,9 +139,6 @@ export default function BillingPage() {
       <section className="rounded-md border border-[#2A2A2A] bg-[#111] p-5 mb-4">
         <Row label="Current plan" value={planLabel(subscription.plan)} />
         <Row label="Status"        value={statusLabel(subscription)} />
-        {subscription.trialEnd && subscription.status === "trialing" && (
-          <Row label="Trial ends" value={formatDate(subscription.trialEnd)} />
-        )}
         {subscription.currentPeriodEnd && (
           <Row
             label={subscription.status === "cancelled" ? "Access until" : "Next billing"}
@@ -209,10 +206,7 @@ function planLabel(plan: Plan): string {
 }
 
 function statusLabel(sub: Subscription): string {
-  if (sub.status === "trialing" && sub.trialEnd) {
-    const days = Math.max(0, Math.ceil((sub.trialEnd.getTime() - Date.now()) / 86_400_000));
-    return `Active (Trial · ${days} days left)`;
-  }
+  if (sub.status === "trialing") return "Active";
   if (sub.status === "cancelled") return "Cancelled";
   if (sub.status === "past_due")  return "Past due";
   return "Active";

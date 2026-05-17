@@ -3,7 +3,7 @@
 // Used by API routes, hooks, and the pricing page.
 
 export type Plan = "free" | "pro" | "team";
-export type Gateway = "stripe" | "razorpay";
+export type Gateway = "razorpay";
 export type Currency = "usd" | "inr";
 export type SubscriptionStatus =
   | "active"

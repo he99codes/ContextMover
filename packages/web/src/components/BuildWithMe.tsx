@@ -25,7 +25,7 @@ const SKILLS = [
   "Full-stack: Next.js, React, Node.js, Supabase",
   "Chrome extensions & browser automation",
   "AI integration (Claude, OpenAI, local LLMs)",
-  "Payment systems (Stripe, Razorpay)",
+  "Payment systems (Razorpay, PayPal)",
   "Fast turnaround — days not weeks",
   "Transparent pricing, no surprises",
   "Direct communication — no middlemen",
@@ -180,8 +180,8 @@ export default function BuildWithMe() {
               {status === "error" && (
                 <p className="text-xs text-[#EF4444]">
                   Something went wrong. Email me directly at{" "}
-                  <a href="mailto:priyanshu@contextmover.com" className="underline">
-                    priyanshu@contextmover.com
+                  <a href="mailto:hey@contextmover.com" className="underline">
+                    hey@contextmover.com
                   </a>
                 </p>
               )}

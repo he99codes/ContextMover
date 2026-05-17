@@ -111,22 +111,6 @@ export function proActivatedEmail(email: string, gateway: "razorpay" | "stripe")
   };
 }
 
-export function proTrialStartedEmail(email: string, trialEndDate: string): { subject: string; html: string } {
-  return {
-    subject: "Your 14-day ContextMover Pro trial has started",
-    html: layout(`
-      ${badge("TRIAL STARTED", "#F59E0B")}
-      <div style="margin-top:16px"></div>
-      ${h1("Your free trial is active")}
-      ${p(`Hi ${email},`)}
-      ${p(`Your 14-day Pro trial started today. You won't be charged until <strong style="color:#F5F5F5">${trialEndDate}</strong>.`)}
-      ${p("During the trial you have full access to all Pro features — unlimited migrations, unlimited sessions, Attention Engine.")}
-      ${divider()}
-      ${btn("Explore Pro Features", "https://contextmover.com/dashboard")}
-      ${p(`<span style="font-size:13px;color:#6B6B6B">Cancel anytime before the trial ends — no charge. Settings → Billing.</span>`)}
-    `),
-  };
-}
 
 export function proCancelledEmail(email: string): { subject: string; html: string } {
   return {

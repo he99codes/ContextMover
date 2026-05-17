@@ -55,10 +55,12 @@ export interface RateLimitViolation {
  *
  * Optionally pass a `userId` to key the window by user rather than IP
  * (preferred when the user is authenticated, prevents IP-sharing false positives).
+ * Optionally pass `maxRequests` to override the default 60/min limit.
  */
 export async function checkRateLimit(
   req: NextRequest,
-  userId?: string
+  userId?: string,
+  maxRequests: number = MAX_REQUESTS
 ): Promise<RateLimitResult | RateLimitViolation> {
   // If no userId provided, try to resolve it from the Supabase session.
   let key = userId ?? "";
@@ -78,10 +80,10 @@ export async function checkRateLimit(
   if (!entry || now - entry.windowStart >= WINDOW_MS) {
     // Start a new window.
     store.set(key, { count: 1, windowStart: now });
-    return { ok: true, remaining: MAX_REQUESTS - 1, reset: now + WINDOW_MS };
+    return { ok: true, remaining: maxRequests - 1, reset: now + WINDOW_MS };
   }
 
-  if (entry.count >= MAX_REQUESTS) {
+  if (entry.count >= maxRequests) {
     const retryAfter = Math.ceil((entry.windowStart + WINDOW_MS - now) / 1000);
     return {
       ok: false,
@@ -91,7 +93,7 @@ export async function checkRateLimit(
           status: 429,
           headers: {
             "Retry-After": String(retryAfter),
-            "X-RateLimit-Limit": String(MAX_REQUESTS),
+            "X-RateLimit-Limit": String(maxRequests),
             "X-RateLimit-Remaining": "0",
             "X-RateLimit-Reset": String(Math.ceil((entry.windowStart + WINDOW_MS) / 1000)),
           },
@@ -105,7 +107,7 @@ export async function checkRateLimit(
 
   return {
     ok: true,
-    remaining: MAX_REQUESTS - entry.count,
+    remaining: maxRequests - entry.count,
     reset: entry.windowStart + WINDOW_MS,
   };
 }

@@ -1,6 +1,5 @@
 // packages/web/src/app/api/payments/cancel/route.ts
 // Cancel an active subscription:
-//   - Stripe: stripe.subscriptions.cancel()
 //   - Razorpay: subscriptions.cancel({ cancel_at_cycle_end: 1 })
 //   - Mock/unconfigured gateway: skip remote call, only flip Supabase
 // Always upserts Supabase to status='cancelled' so the UI reflects the change.
@@ -51,26 +50,7 @@ export async function POST(req: NextRequest) {
   const gateway: string = row?.gateway ?? subscription.gateway ?? "mock";
   const gatewaySubscriptionId: string | null = row?.gateway_subscription_id ?? null;
 
-  let remoteResult: "stripe" | "razorpay" | "mock" | "skipped" = "skipped";
-
-  // ── Stripe ────────────────────────────────────────────────────────────────
-  if (
-    gateway === "stripe" &&
-    gatewaySubscriptionId &&
-    process.env.STRIPE_SECRET_KEY &&
-    process.env.STRIPE_SECRET_KEY !== "sk_test_placeholder"
-  ) {
-    try {
-      const Stripe = (await import("stripe")).default;
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-      await stripe.subscriptions.cancel(gatewaySubscriptionId);
-      remoteResult = "stripe";
-    } catch (err) {
-      console.error("[CM:api:cancel:stripe] error:", err);
-      // Continue to local cancellation — better to be cancelled locally
-      // even if the gateway call failed (webhook will reconcile later).
-    }
-  }
+  let remoteResult: "razorpay" | "mock" | "skipped" = "skipped";
 
   // ── Razorpay ──────────────────────────────────────────────────────────────
   if (

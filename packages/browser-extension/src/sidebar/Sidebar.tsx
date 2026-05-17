@@ -295,10 +295,8 @@ export default function Sidebar() {
   useEffect(() => {
     loadSessions();
     void checkVault();
-    checkMcpBridge(); // once on mount
-    const mcpInterval = window.setInterval(() => {
-      if (!document.hidden) checkMcpBridge();
-    }, 60_000);
+    // MCP polling disabled — IDE bridge deferred to Phase 2.
+    const mcpInterval = 0;
     void fetchSubscriptionStatus(); // once on mount
 
     // Attention-engine availability (model may be blocked by CSP)
@@ -938,10 +936,7 @@ export default function Sidebar() {
                       className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-left"
                       style={{ color: "#00FF88", letterSpacing: "0.18em" }}
                     >
-                      {planStatus.plan === "team" ? "Team" : "Pro"} ✦{" "}
-                      {planStatus.status === "trialing" && planStatus.trialEnd
-                        ? `Trial · ${Math.max(0, Math.ceil((new Date(planStatus.trialEnd).getTime() - Date.now()) / 86_400_000))}d left`
-                        : "Unlimited"}
+                      {planStatus.plan === "team" ? "Team" : "Pro"} ✦ Unlimited
                     </button>
                   ) : (
                     <button
@@ -1285,21 +1280,7 @@ function MCPStatusPanel() {
   const [expanded, setExpanded] = useState(false);
   const [toast, setToast]       = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    const MCP_POLL_INTERVAL = 60_000;
-    function probe() {
-      if (document.hidden) return;
-      chrome.runtime.sendMessage({ type: "CHECK_MCP_BRIDGE" }, (res) => {
-        if (cancelled) return;
-        if (chrome.runtime.lastError) { setStatus({ running: false }); return; }
-        setStatus(res ?? { running: false });
-      });
-    }
-    probe(); // once on mount
-    const interval = window.setInterval(probe, MCP_POLL_INTERVAL);
-    return () => { cancelled = true; window.clearInterval(interval); };
-  }, []);
+  // MCP polling disabled — IDE bridge deferred to Phase 2.
 
   function copyConfig() {
     navigator.clipboard.writeText(MCP_IDE_CONFIG).then(() => {

@@ -106,7 +106,7 @@ export default function ContactPage() {
               {status === "error" && (
                 <p className="text-xs text-[#EF4444]">
                   Something went wrong. Email us at{" "}
-                  <a href="mailto:hey@contextmover.app" className="underline">hey@contextmover.app</a>
+                  <a href="mailto:hey@contextmover.com" className="underline">hey@contextmover.com</a>
                 </p>
               )}
 
@@ -124,8 +124,8 @@ export default function ContactPage() {
 
       <p className="mt-6 text-xs text-[#3A3A3A]">
         Or email us directly at{" "}
-        <a href="mailto:hey@contextmover.app" className="text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors">
-          hey@contextmover.app
+        <a href="mailto:hey@contextmover.com" className="text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors">
+          hey@contextmover.com
         </a>
       </p>
     </div>

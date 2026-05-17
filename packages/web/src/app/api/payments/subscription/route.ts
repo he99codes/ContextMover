@@ -1,6 +1,6 @@
 // packages/web/src/app/api/payments/subscription/route.ts
 // GET: returns current user subscription + usage.
-// POST: creates a checkout session (Stripe) or Razorpay subscription.
+// POST: creates a Razorpay checkout session.
 
 import { NextRequest, NextResponse } from "next/server";
 
@@ -66,72 +66,7 @@ export async function POST(req: NextRequest) {
   const plan = body?.plan === "team" ? "team" : "pro"; // default to pro
 
   const pricing = await getPricingConfig(req);
-
-  if (pricing.gateway === "stripe") {
-    return createStripeCheckout(user.id, user.email ?? "", plan, pricing);
-  }
   return createRazorpaySubscription(user.id, plan, pricing);
-}
-
-// ── Stripe checkout (mock-aware) ────────────────────────────────────────────
-async function createStripeCheckout(
-  userId:  string,
-  email:   string,
-  plan:    "pro" | "team",
-  pricing: PricingConfig
-) {
-  const planConfig = plan === "team" ? pricing.team : pricing.pro;
-
-  // Mock mode — return a deterministic mock response so the client UI flow is
-  // indistinguishable from a real checkout (just no actual redirect).
-  if (
-    !process.env.STRIPE_SECRET_KEY ||
-    process.env.STRIPE_SECRET_KEY === "sk_test_placeholder"
-  ) {
-    console.log("[CM:payments] MOCK MODE — no real charge");
-    return NextResponse.json({
-      mock:            true,
-      gateway:         "stripe",
-      message:         "Stripe not configured yet — mock checkout.",
-      wouldRedirectTo: "https://checkout.stripe.com/c/mock",
-      plan,
-      amount:          planConfig.display,
-      trialDays:       14,
-    });
-  }
-
-  try {
-    const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-    const priceId =
-      plan === "team"
-        ? process.env.STRIPE_TEAM_PRICE_ID!
-        : process.env.STRIPE_PRO_PRICE_ID!;
-
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
-    const session = await stripe.checkout.sessions.create({
-      mode:                 "subscription",
-      payment_method_types: ["card"],
-      customer_email:       email || undefined,
-      line_items:           [{ price: priceId, quantity: 1 }],
-      metadata:             { userId, plan },
-      // 14-day trial — billed only on day 15.
-      subscription_data:    {
-        trial_period_days: 14,
-        metadata:          { userId, plan },
-      },
-      success_url:          `${appUrl}/settings?payment=success`,
-      cancel_url:           `${appUrl}/pricing?payment=cancelled`,
-    });
-
-    return NextResponse.json({ url: session.url, gateway: "stripe" });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[CM:api:subscription:stripe] error:", msg);
-    return NextResponse.json({ error: msg }, { status: 500 });
-  }
 }
 
 // ── Razorpay subscription (mock-aware) ──────────────────────────────────────
@@ -158,7 +93,6 @@ async function createRazorpaySubscription(
       currency:       "INR",
       amount_paise:   planConfig.amount,
       keyId:          process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? "rzp_test_placeholder",
-      trialDays:      14,
     });
   }
 
@@ -221,16 +155,12 @@ async function createRazorpaySubscription(
     }
 
     // ── Subscription plan configured → recurring subscription checkout
-    // Razorpay has no native trial — emulate 14 days free by deferring the
-    // first charge. start_at is unix seconds.
-    const startAt = Math.floor((Date.now() + 14 * 24 * 60 * 60 * 1000) / 1000);
-
+    // Billing starts immediately — no trial period.
     const subscription = await razorpay.subscriptions.create({
       plan_id:         planId,
       customer_notify: 1,
       quantity:        1,
       total_count:     12,
-      start_at:        startAt,
       notes:           { userId, plan },
     });
 

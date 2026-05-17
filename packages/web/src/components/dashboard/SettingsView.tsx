@@ -124,7 +124,7 @@ export function SettingsView({ email, userId }: Props) {
           </Link>
         </div>
         <p className="text-[10px] text-[#3A3A3A]">
-          Questions about billing? <a href="mailto:hey@contextmover.app" className="text-[#00FF88]/60 hover:text-[#00FF88]">hey@contextmover.app</a>
+          Questions about billing? <a href="mailto:hey@contextmover.com" className="text-[#00FF88]/60 hover:text-[#00FF88]">hey@contextmover.com</a>
         </p>
       </section>
 
@@ -152,7 +152,7 @@ export function SettingsView({ email, userId }: Props) {
           <div className="space-y-3">
             <p className="text-sm text-[#F5F5F5]">Are you sure? <strong>This cannot be undone.</strong></p>
             <p className="text-xs text-[#6B6B6B]">
-              Your account will be signed out immediately. Email <a href="mailto:hey@contextmover.app" className="text-red-400 hover:underline">hey@contextmover.app</a> to complete deletion — we&apos;ll purge all data within 48 hours.
+              Your account will be signed out immediately. Email <a href="mailto:hey@contextmover.com" className="text-red-400 hover:underline">hey@contextmover.com</a> to complete deletion — we&apos;ll purge all data within 48 hours.
             </p>
             <div className="flex gap-2">
               <button

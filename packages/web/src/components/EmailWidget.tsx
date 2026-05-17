@@ -59,7 +59,7 @@ export default function EmailWidget() {
         {status === "error" && (
           <p className="text-[10px] text-[#EF4444]">
             Failed —{" "}
-            <a href="mailto:hey@contextmover.app" className="underline">email us directly</a>
+            <a href="mailto:hey@contextmover.com" className="underline">email us directly</a>
           </p>
         )}
         <button

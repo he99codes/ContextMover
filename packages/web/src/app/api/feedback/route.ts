@@ -3,8 +3,14 @@
 // Required: rating (1–5), feedback. Optional: email.
 import { NextRequest, NextResponse } from "next/server";
 import { sendEmail, SENDERS } from "@/lib/mailer";
+import { checkRateLimit } from "@/lib/rate-limiter";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
+  // [SECURITY] 5 requests per minute per IP — public unauthenticated route.
+  const rl = await checkRateLimit(req, undefined, 5);
+  if (!rl.ok) return rl.response;
+
   try {
     const body = (await req.json()) as {
       rating?:   number;
@@ -33,6 +39,18 @@ export async function POST(req: NextRequest) {
         <p style="white-space:pre-wrap">${feedback.trim()}</p>
       `,
     });
+
+    // Fire-and-forget backup insert — never blocks the response.
+    createAdminClient()
+      .from("contact_submissions")
+      .insert({
+        type:    "feedback",
+        email:   email?.trim() || null,
+        message: feedback.trim(),
+        rating:  rating ?? null,
+      })
+      .then(({ error }) => { if (error) console.error("[feedback] DB backup failed:", error); })
+      .catch((err) => console.error("[feedback] DB backup error:", err));
 
     return NextResponse.json({ ok: true });
   } catch (err) {

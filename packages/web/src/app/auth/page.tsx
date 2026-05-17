@@ -186,11 +186,11 @@ function AuthForm() {
           </CardContent>
         </Card>
 
-        <p className="mt-6 text-center text-xs text-[#6B6B6B]/60">
+        <p className="mt-6 text-center text-[#9B9B9B]" style={{ fontSize: "13px" }}>
           By signing in you agree to our{" "}
-          <a href="/terms" className="hover:text-[#00FF88] transition-colors">Terms of Service</a>{" "}
+          <a href="/terms" className="text-[#00FF88] hover:underline transition-colors">Terms of Service</a>{" "}
           and{" "}
-          <a href="/privacy" className="hover:text-[#00FF88] transition-colors">Privacy Policy</a>.
+          <a href="/privacy" className="text-[#00FF88] hover:underline transition-colors">Privacy Policy</a>.
         </p>
       </div>
     </div>

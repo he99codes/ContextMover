@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Zap, Shield, ChevronRight, Globe } from "lucide-react";
+import { Check, Zap, Shield, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
@@ -107,23 +107,13 @@ export function PricingClient() {
       </Link>
     );
 
-    if (pricing?.gateway === "razorpay") return (
+    return (
       <RazorpayCheckout
         plan="pro"
         billing={billing}
         onSuccess={handleSuccess}
         onFailure={handleFailure}
       />
-    );
-
-    // Stripe — placeholder
-    return (
-      <button
-        disabled
-        className="flex w-full items-center justify-center gap-2 rounded-[6px] border border-[#2A2A2A] px-4 py-3 text-sm text-[#6B6B6B] cursor-not-allowed"
-      >
-        <Globe size={14} /> Global payments — coming soon
-      </button>
     );
   }
 
@@ -275,8 +265,8 @@ export function PricingClient() {
         </p>
         <p className="mt-3 text-center text-xs text-[#3A3A3A]">
           Questions?{" "}
-          <a href="mailto:hey@contextmover.app" className="text-[#00FF88] hover:underline">
-            hey@contextmover.app
+          <a href="mailto:hey@contextmover.com" className="text-[#00FF88] hover:underline">
+            hey@contextmover.com
           </a>
         </p>
       </div>

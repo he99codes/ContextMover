@@ -612,7 +612,7 @@ export default function LandingPage() {
           <div className="reveal flex flex-col sm:flex-row items-center justify-center gap-3 text-sm text-[#6B6B6B]">
             <span>More platforms coming soon.</span>
             <a
-              href="mailto:hey@contextmover.app?subject=Platform%20suggestion"
+              href="mailto:hey@contextmover.com?subject=Platform%20suggestion"
               className="inline-flex items-center gap-1.5 text-[#00FF88]/70 hover:text-[#00FF88] transition-colors text-xs font-medium"
             >
               <Mail size={12} />
@@ -664,10 +664,10 @@ export default function LandingPage() {
           <p className="reveal mt-10 text-xs text-[#2A2A2A] font-mono">
             Be first to know:{" "}
             <a
-              href="mailto:hey@contextmover.app?subject=Super%20Memory%20—%20notify%20me"
+              href="mailto:hey@contextmover.com?subject=Super%20Memory%20—%20notify%20me"
               className="text-[#00FF88]/30 hover:text-[#00FF88]/60 transition-colors"
             >
-              hey@contextmover.app
+              hey@contextmover.com
             </a>
           </p>
         </div>
@@ -740,7 +740,7 @@ export default function LandingPage() {
                 ))}
               </ul>
               <a href="/auth?mode=signup" className="block text-center bg-[#00FF88] text-[#0A0A0A] font-bold py-2.5 rounded-lg btn-primary text-sm">
-                Start 14-day free trial
+                Start free — no credit card required
               </a>
             </div>
             {/* TEAM */}

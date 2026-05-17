@@ -47,20 +47,14 @@ export async function sendEmail(opts: SendEmailOptions): Promise<void> {
   const from = opts.from ?? SENDERS.noreply;
 
   if (!process.env.ZEPTO_SMTP_PASSWORD) {
-    console.warn("[mailer] ZEPTO_SMTP_PASSWORD not set — email suppressed:", opts.subject, "→", opts.to);
-    return;
+    throw new Error("[mailer] ZEPTO_SMTP_PASSWORD is not set — cannot send email.");
   }
 
-  try {
-    const info = await getTransporter().sendMail({
-      from,
-      to: opts.to,
-      subject: opts.subject,
-      html: opts.html,
-    });
-    console.log("[mailer] Sent:", opts.subject, "→", opts.to, "| id:", info.messageId);
-  } catch (err) {
-    console.error("[mailer] Failed to send email:", opts.subject, "→", opts.to, err);
-    // Do not throw — email failure must not break payment/webhook flows.
-  }
+  const info = await getTransporter().sendMail({
+    from,
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html,
+  });
+  console.log("[mailer] Sent:", opts.subject, "→", opts.to, "| id:", info.messageId);
 }

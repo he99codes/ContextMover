@@ -3,8 +3,14 @@
 // Required: email, message. Optional: name, subject.
 import { NextRequest, NextResponse } from "next/server";
 import { sendEmail, SENDERS } from "@/lib/mailer";
+import { checkRateLimit } from "@/lib/rate-limiter";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
+  // [SECURITY] 5 requests per minute per IP — public unauthenticated route.
+  const rl = await checkRateLimit(req, undefined, 5);
+  if (!rl.ok) return rl.response;
+
   try {
     const body = (await req.json()) as {
       name?:    string;
@@ -36,6 +42,19 @@ export async function POST(req: NextRequest) {
         <p style="white-space:pre-wrap">${message.trim()}</p>
       `,
     });
+
+    // Fire-and-forget backup insert — never blocks the response.
+    createAdminClient()
+      .from("contact_submissions")
+      .insert({
+        type:    "contact",
+        name:    name?.trim() || null,
+        email:   email.trim(),
+        subject: subject?.trim() || null,
+        message: message.trim(),
+      })
+      .then(({ error }) => { if (error) console.error("[contact] DB backup failed:", error); })
+      .catch((err) => console.error("[contact] DB backup error:", err));
 
     return NextResponse.json({ ok: true });
   } catch (err) {

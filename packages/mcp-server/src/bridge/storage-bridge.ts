@@ -113,6 +113,13 @@ export class StorageBridge {
               ?? ".";
     this.dbPath = customPath ?? path.join(home, ".contextmover", "sessions.db");
     this.ensureDirectory();
+    // [SECURITY NOTE] sessions.db is stored as plaintext SQLite at
+    // ~/.contextmover/sessions.db. It is protected by OS user permissions
+    // only — no application-level encryption. This matches the trust model
+    // of the browser's own local storage. Users on shared machines should
+    // be aware their captured sessions are readable by any process running
+    // as the same OS user. At-rest encryption (better-sqlite3-multiple-ciphers)
+    // can be added in a future release if enterprise requirements demand it.
     this.db = new Database(this.dbPath);
     this.db.pragma("journal_mode = WAL");   // concurrent extension-write + MCP-read
     this.db.pragma("synchronous = NORMAL"); // safe with WAL, faster

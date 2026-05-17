@@ -36,9 +36,12 @@ export async function POST(req: NextRequest) {
   const secret    = process.env.RAZORPAY_WEBHOOK_SECRET ?? "";
 
   if (!secret) {
-    console.error("[CM:webhook:razorpay] RAZORPAY_WEBHOOK_SECRET not configured");
-    // Return 200 so Razorpay does not retry; ops will alert on logs.
-    return NextResponse.json({ received: true, error: "Misconfigured" });
+    if (process.env.NODE_ENV === "production") {
+      console.error("[CM:webhook:razorpay] FATAL: RAZORPAY_WEBHOOK_SECRET not set in production");
+      return NextResponse.json({ error: "Misconfigured" }, { status: 503 });
+    }
+    // dev/test: log and skip verification only
+    console.warn("[CM:webhook:razorpay] RAZORPAY_WEBHOOK_SECRET not set — skipping verify (dev only)");
   }
 
   const expected = crypto
@@ -70,7 +73,8 @@ export async function POST(req: NextRequest) {
     subEntity?.notes?.userId ??
     paymentEntity?.notes?.userId ??
     null;
-  const eventId = paymentEntity?.id ?? subEntity?.id ?? event?.event ?? "razorpay-unknown";
+  const eventId = paymentEntity?.id ?? subEntity?.id ?? event?.event
+    ?? `razorpay-unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   // [SECURITY] Idempotency — Razorpay retries failed webhooks up to 24h.
   // Short-circuit if this (gateway,event_id) tuple was already processed.

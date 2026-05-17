@@ -45,8 +45,8 @@ export default function PrivacyPage() {
             </p>
             <p className="text-[#6B6B6B] mt-3">
               Contact:{" "}
-              <a href="mailto:priyanshu@contextmover.com" className="text-[#00D26A] hover:underline">
-                priyanshu@contextmover.com
+              <a href="mailto:hey@contextmover.com" className="text-[#00D26A] hover:underline">
+                hey@contextmover.com
               </a>
               <br />
               Website:{" "}
@@ -80,7 +80,7 @@ export default function PrivacyPage() {
                 <br />
                 <span className="text-[#6B6B6B]">&mdash; no content, just numbers</span>
               </li>
-              <li>Payment records (via Razorpay or Stripe)</li>
+              <li>Payment records (via Razorpay)</li>
               <li>
                 Anonymous analytics (page views, feature usage)
                 <br />
@@ -109,6 +109,19 @@ export default function PrivacyPage() {
               <li>
                 All AI sessions captured by the extension are stored in your browser&apos;s local
                 storage (IndexedDB) on your device only.
+              </li>
+              <li>
+                If you use the MCP desktop bridge, sessions are also stored in a plaintext SQLite
+                database at <code>~/.contextmover/sessions.db</code>. This file is protected by
+                your operating system&apos;s user permissions. ContextMover servers never receive
+                your conversation content.
+              </li>
+              <li>
+                Optional: if you connect Google Drive, your captured sessions are stored in a
+                private app-data folder in your own Google Drive account. ContextMover servers do
+                not receive this data — it travels directly from your browser to Google. You can
+                disconnect Google Drive at any time from the Sync panel, which stops all future
+                uploads. Disconnecting does not delete data already in your Drive.
               </li>
               <li>
                 When you click Migrate, your context is processed entirely on your device and
@@ -194,16 +207,9 @@ export default function PrivacyPage() {
                   ],
                 },
                 {
-                  name: "Stripe (stripe.com)",
-                  lines: [
-                    "Processes payments for users outside India",
-                    "Privacy policy: stripe.com/privacy",
-                  ],
-                },
-                {
                   name: "Razorpay (razorpay.com)",
                   lines: [
-                    "Processes payments for users in India",
+                    "Processes all payments globally",
                     "Privacy policy: razorpay.com/privacy",
                   ],
                 },
@@ -244,8 +250,8 @@ export default function PrivacyPage() {
               To exercise these rights:
               <br />
               Email{" "}
-              <a href="mailto:priyanshu@contextmover.com" className="text-[#00D26A] hover:underline">
-                priyanshu@contextmover.com
+              <a href="mailto:hey@contextmover.com" className="text-[#00D26A] hover:underline">
+                hey@contextmover.com
               </a>
               <br />
               We respond within 7 business days.
@@ -283,8 +289,8 @@ export default function PrivacyPage() {
             <p className="text-[#6B6B6B]">
               ContextMover is not directed at children under 13. We do not knowingly collect data
               from children. If you believe a child has provided us data, contact{" "}
-              <a href="mailto:priyanshu@contextmover.com" className="text-[#00D26A] hover:underline">
-                priyanshu@contextmover.com
+              <a href="mailto:hey@contextmover.com" className="text-[#00D26A] hover:underline">
+                hey@contextmover.com
               </a>{" "}
               immediately.
             </p>
@@ -328,8 +334,8 @@ export default function PrivacyPage() {
               <br />
               Pune, Maharashtra, India
               <br />
-              <a href="mailto:priyanshu@contextmover.com" className="text-[#00D26A] hover:underline">
-                priyanshu@contextmover.com
+              <a href="mailto:hey@contextmover.com" className="text-[#00D26A] hover:underline">
+                hey@contextmover.com
               </a>
               <br />
               <a href="https://contextmover.com" className="text-[#00D26A] hover:underline">
