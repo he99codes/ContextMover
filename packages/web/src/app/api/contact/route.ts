@@ -44,15 +44,17 @@ export async function POST(req: NextRequest) {
     });
 
     // Fire-and-forget backup insert — never blocks the response.
-    createAdminClient()
-      .from("contact_submissions")
-      .insert({
-        type:    "contact",
-        name:    name?.trim() || null,
-        email:   email.trim(),
-        subject: subject?.trim() || null,
-        message: message.trim(),
-      })
+    Promise.resolve(
+      createAdminClient()
+        .from("contact_submissions")
+        .insert({
+          type:    "contact",
+          name:    name?.trim() || null,
+          email:   email.trim(),
+          subject: subject?.trim() || null,
+          message: message.trim(),
+        })
+    )
       .then(({ error }) => { if (error) console.error("[contact] DB backup failed:", error); })
       .catch((err) => console.error("[contact] DB backup error:", err));
 
