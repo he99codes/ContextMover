@@ -40,7 +40,7 @@ export default function DocsPage() {
             },
             {
               title: "Project File Context",
-              body: "Open any local project folder in the extension sidebar, select files, and they are included in your migration prompt. Works with the MCP server for AI agent access too.",
+              body: "Open any local project folder in the extension sidebar, select files, and they are included in your migration prompt. MCP server integration for AI agent access is coming in Phase 2.",
             },
           ].map((section) => (
             <div key={section.title} className="rounded-[8px] border border-[#2A2A2A] bg-[#111] p-6">

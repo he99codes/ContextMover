@@ -487,6 +487,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     switch (msg.type) {
       case "CM_DIAG": {
+        if (!isFromOwnExtension(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         // Content-script diagnostic mirrored to SW console so developers can
         // see capture decisions without opening every page console.
         const platform = typeof msg.platform === 'string' ? msg.platform : '?';
@@ -498,6 +499,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       // ── Google Drive sync (additive layer over IndexedDB) ──────────────
       case "DRIVE_CONNECT": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const connected = await driveClient.connect();
         if (connected) {
           // Pull existing Drive sessions in background; never block UI.
@@ -507,16 +509,19 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
       case "DRIVE_DISCONNECT": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         await driveClient.disconnect();
         sendResponse({ ok: true });
         break;
       }
       case "DRIVE_STATUS": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const status = await driveSyncManager.getStatus();
         sendResponse(status);
         break;
       }
       case "DRIVE_SYNC_NOW": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const result = await driveSyncManager.pullFromDrive();
         sendResponse({ ok: true, ...result });
         break;
@@ -555,6 +560,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "PRECOMPUTE_SUMMARY": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const session = await db.getSession(msg.payload?.sessionId);
         if (!session) { sendResponse(null); break; }
         try {
@@ -570,6 +576,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "CHECK_MCP_BRIDGE": {
+        if (!isFromOwnExtension(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         // Cheap health probe used by the sidebar status indicator.
         // Returns { running: boolean, version?, totalSessions?, ... }.
         try {
@@ -589,11 +596,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "GET_ATTENTION_STATUS": {
+        if (!isFromOwnExtension(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         sendResponse({ available: attentionEngineAvailable });
         break;
       }
 
       case "SYNC_FILES_TO_MCP": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         // Sidebar fires this whenever the user toggles file selection or
         // commits a new project import. Files arrive as a plain array — we
         // forward as-is to the bridge, which performs final validation.
@@ -605,6 +614,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "GET_SESSIONS": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const now = Date.now();
         if (getSessionsCache !== null && now - getSessionsCacheAt < GET_SESSIONS_CACHE_MS) {
           sendResponse(getSessionsCache);
@@ -638,6 +648,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "GET_SESSION":
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         sendResponse(await db.getSession(msg.sessionId));
         break;
 
@@ -708,12 +719,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "AUTH_GET_USER": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const { data } = await supabase.auth.getUser();
         sendResponse({ user: data.user ?? null });
         break;
       }
 
       case "GET_SUBSCRIPTION_STATUS": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         // Returns { plan, isPro, usage, limits } for the sidebar header.
         // Falls back to { plan: 'free', local: true } if not logged in or
         // the API is unreachable — never throws.
@@ -748,6 +761,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "AUTH_SIGN_IN": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const { email, password } = msg.payload;
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
@@ -780,6 +794,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "AUTH_SIGN_UP": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const { email, password } = msg.payload;
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) {
@@ -791,6 +806,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "AUTH_SIGN_OUT": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         await supabase.auth.signOut();
         await chrome.storage.local.remove(["accessToken", "userId"]);
         sendResponse({ ok: true });
@@ -799,6 +815,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "CLOUD_RESYNC_ALL": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const { data: { user: authUser } } = await supabase.auth.getUser();
         const uid = authUser?.id;
         if (uid) { void syncPromptTemplates(uid); void syncPromptAssignments(uid); }
@@ -875,12 +892,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "VAULT_GET_CONFIG": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const cfg = await userVault.getConfig();
         sendResponse({ config: cfg });
         break;
       }
 
       case "TOGGLE_SIDEBAR": {
+        if (!isFromOwnExtension(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         if (sender.tab?.id == null) {
           sendResponse({ isOpen: false, error: "no tab" });
           break;
@@ -934,6 +953,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "CLOSE_SIDEBAR": {
+        if (!isFromOwnExtension(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         if (sender.tab?.id == null) {
           sendResponse({ ok: true });
           break;
@@ -950,6 +970,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "BACKGROUND_INDEX": {
+        if (!isFromOwnExtension(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const { sessionId: bgSessionId } = msg as { sessionId?: string };
         if (!bgSessionId) { sendResponse({ error: 'sessionId required' }); break; }
         const bgSession = await db.getSession(bgSessionId);
@@ -960,6 +981,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "WARMUP_MODEL": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         if (!attentionEngineAvailable) {
           sendResponse({ ok: false, unavailable: true });
           break;
@@ -983,6 +1005,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "RETRY_MODEL_LOAD": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         attentionEngineAvailable = true;
         await chrome.storage.local.set({ attentionEngineAvailable: true });
         sendResponse({ ok: true });
@@ -1005,6 +1028,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "GET_INDEX_STATS": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         try {
           const stats = await semanticIndex.getStats();
           sendResponse({ ok: true, stats });
@@ -1015,6 +1039,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "CLEAR_SEMANTIC_INDEX": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         try {
           await semanticIndex.clearAll();
           console.log('[CM:sw] Semantic index cleared by user');
@@ -1026,6 +1051,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "GET_QUALITY_REPORT": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         try {
           const sid = (msg.payload as { sessionId?: string } | undefined)?.sessionId;
           const report = await generateQualityReport(sid);
@@ -1037,6 +1063,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "GET_QUALITY_STATS": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         try {
           const rows = await db.migrationQuality.toArray();
           const count = rows.length;
@@ -1054,6 +1081,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "CLEAR_QUALITY_HISTORY": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         try {
           await db.migrationQuality.clear();
           console.log("[CM:sw] Migration quality history cleared by user");
@@ -1065,6 +1093,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "GET_CACHED_FILE": {
+        if (!isFromOwnExtension(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const entry = migrationFileCache.get(msg.cacheKey)
         if (!entry) {
           sendResponse({ success: false, error: 'File not in cache or expired' })
@@ -1075,6 +1104,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "DELETE_CACHED_FILE": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         migrationFileCache.delete(msg.cacheKey)
         console.debug(`[CM:cache] Deleted on user action: ${msg.cacheKey}`)
         sendResponse({ success: true })
@@ -1082,6 +1112,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       case "GET_SIDEBAR_STATE": {
+        if (!isFromOwnExtension(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         let isOpen = false;
         try {
           const contexts = await chrome.runtime.getContexts({

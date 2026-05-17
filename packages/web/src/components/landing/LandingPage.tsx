@@ -295,7 +295,12 @@ export default function LandingPage() {
                 ["IDE Connection",   "#project-files"],
                 ["Personal Vault",   "/settings/vault"],
               ] as const).map(([f, href]) => (
-                <a key={f} href={href} className="flex items-center text-[18px] text-[#6B6B6B] min-h-[56px] px-3 border-b border-[#111] active:opacity-70" onClick={() => setMenuOpen(false)}>{f}</a>
+                <a key={f} href={href} className="flex items-center gap-2 text-[18px] text-[#6B6B6B] min-h-[56px] px-3 border-b border-[#111] active:opacity-70" onClick={() => setMenuOpen(false)}>
+                  {f}
+                  {f === "IDE Connection" && (
+                    <span className="text-[9px] font-black uppercase tracking-widest text-[#3A3A3A] border border-[#2A2A2A] rounded px-1.5 py-0.5">Soon</span>
+                  )}
+                </a>
               ))}
               <div className="mt-2" />
               {([
@@ -494,11 +499,14 @@ export default function LandingPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {[
-              { icon: "⊟", title: "IDE Connection + MCP Server",   body: "Bridge your editor to ContextMover via the MCP server. Your active files and workspace state flow into every migration automatically." },
-              { icon: "⬡", title: "GitHub Repo Extraction",         body: "Scan your repository and pull the relevant files into any session. Your codebase travels with your context, not just a description of it." },
-              { icon: "◈", title: "Local Folder Context",           body: "Read files directly from your machine. No upload, no cloud roundtrip. Your project stays local and private while your AI stays fully informed." },
+              { icon: "⊟", title: "IDE Connection + MCP Server", soon: true,  body: "Bridge your editor to ContextMover via the MCP server. Your active files and workspace state flow into every migration automatically." },
+              { icon: "⬡", title: "GitHub Repo Extraction",        soon: false, body: "Scan your repository and pull the relevant files into any session. Your codebase travels with your context, not just a description of it." },
+              { icon: "◈", title: "Local Folder Context",          soon: false, body: "Read files directly from your machine. No upload, no cloud roundtrip. Your project stays local and private while your AI stays fully informed." },
             ].map((card, i) => (
-              <div key={i} className={`reveal reveal-d${i + 1} card-hover bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-7 text-left`}>
+              <div key={i} className={`reveal reveal-d${i + 1} card-hover bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-7 text-left relative`}>
+                {card.soon && (
+                  <span className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-widest text-[#3A3A3A] border border-[#2A2A2A] rounded px-1.5 py-0.5">Coming Soon</span>
+                )}
                 <div className="text-2xl mb-4">{card.icon}</div>
                 <h3 className="font-semibold text-[#F5F5F5] mb-2 text-sm">{card.title}</h3>
                 <p className="text-sm text-[#6B6B6B] leading-relaxed">{card.body}</p>
@@ -722,7 +730,13 @@ export default function LandingPage() {
               </div>
               <ul className="space-y-3 text-sm text-[#6B6B6B] flex-1 mb-8">
                 {["Unlimited sessions", "Attention Engine (semantic AI)", "IDE connection + MCP server", "GitHub repo extraction", "Priority updates"].map((f) => (
-                  <li key={f} className="flex items-start gap-2"><span className="text-[#00FF88] shrink-0">✓</span>{f}</li>
+                  <li key={f} className="flex items-center gap-2">
+                    <span className="text-[#00FF88] shrink-0">✓</span>
+                    {f}
+                    {f === "IDE connection + MCP server" && (
+                      <span className="text-[9px] font-black uppercase tracking-widest text-[#3A3A3A] border border-[#2A2A2A] rounded px-1 py-0.5 shrink-0">Soon</span>
+                    )}
+                  </li>
                 ))}
               </ul>
               <a href="/auth?mode=signup" className="block text-center bg-[#00FF88] text-[#0A0A0A] font-bold py-2.5 rounded-lg btn-primary text-sm">

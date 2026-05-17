@@ -619,9 +619,15 @@ function PlanCard({
       {features.map((f) => (
         <div
           key={f}
-          style={{ fontSize: "13px", color: featureColor, marginBottom: "8px" }}
+          style={{ fontSize: "13px", color: featureColor, marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}
         >
           ✓ {f}
+          {f === "MCP server access" && (
+            <span style={{
+              fontSize: "9px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.14em",
+              color: "#3A3A3A", border: "1px solid #2A2A2A", borderRadius: "3px", padding: "1px 5px", flexShrink: 0,
+            }}>Soon</span>
+          )}
         </div>
       ))}
 
