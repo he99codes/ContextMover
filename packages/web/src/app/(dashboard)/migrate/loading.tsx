@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 export default function MigrateLoading() {
   return (
     <div className="p-8 animate-pulse">

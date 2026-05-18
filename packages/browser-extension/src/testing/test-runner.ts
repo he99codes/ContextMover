@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/browser-extension/src/testing/test-runner.ts
 // Runs all GOLDEN_SESSIONS through all 3 tiers, scores each output,
 // and returns a TestReport. READ-ONLY — never mutates production data.

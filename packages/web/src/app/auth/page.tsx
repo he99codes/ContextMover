@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 import { useState, Suspense } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";

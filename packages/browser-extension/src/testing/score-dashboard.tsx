@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/browser-extension/src/testing/score-dashboard.tsx
 // Migration Quality Dashboard — renders inside the ContextMover sidebar.
 // READ-ONLY relative to production code. Triggers test runs and shows results.

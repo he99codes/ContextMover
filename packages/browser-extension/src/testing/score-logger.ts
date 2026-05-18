@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/browser-extension/src/testing/score-logger.ts
 // Persists TestReport objects to a dedicated IndexedDB database.
 // Uses its own DB ("contextmover-tests") to avoid version conflicts

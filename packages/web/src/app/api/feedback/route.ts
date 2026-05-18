@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/web/src/app/api/feedback/route.ts
 // Receives feedback form submissions and forwards them via ZeptoMail.
 // Required: rating (1–5), feedback. Optional: email.

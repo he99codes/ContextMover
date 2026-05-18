@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/web/src/app/api/webhooks/razorpay/route.ts
 // Razorpay webhook handler — updates subscription on payment events.
 // Always returns 200 (even on internal errors) to prevent gateway retry storms,

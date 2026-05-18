@@ -1,4 +1,11 @@
 "use client";
+
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
 // packages/web/src/components/payments/RazorpayCheckout.tsx
 import { useState } from "react";
 import { Zap, Loader2 } from "lucide-react";

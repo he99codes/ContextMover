@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, Loader2, Copy, Check, User as UserIcon, Database, ExternalLink, Shield, CreditCard, Trash2, AlertTriangle } from "lucide-react";

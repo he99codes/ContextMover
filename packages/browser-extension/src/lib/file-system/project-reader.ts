@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/browser-extension/src/lib/file-system/project-reader.ts
 //
 // Reads the user's local project folder via the Chrome File System Access API.

@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 import Link from "next/link";
 import { Zap, FileCode, Bot, Database, CreditCard, ArrowRight, Brain, Lock } from "lucide-react";
 import { CHROME_STORE_URL } from "@/config/urls";

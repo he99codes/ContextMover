@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/web/src/app/api/payments/razorpay/webhook/route.ts
 // [SECURITY] Verifies Razorpay webhook signature before processing any event.
 // Uses RAZORPAY_WEBHOOK_SECRET (configured separately in Razorpay Dashboard).

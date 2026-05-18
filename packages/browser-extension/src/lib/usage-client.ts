@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/browser-extension/src/lib/usage-client.ts
 // Extension-side client for ContextMover usage-limit API.
 // FAILS OPEN on network errors — never blocks the user when the API is down.
@@ -48,14 +55,50 @@ export async function checkUsage(
     });
 
     const ct = res.headers.get("content-type") ?? "";
-    if (!res.ok || !ct.includes("application/json")) {
-      throw new Error(`Usage API: HTTP ${res.status}, content-type: ${ct || "none"}`);
+
+    // Route-level failure (404, 405, redirect-to-HTML) is fundamentally
+    // different from a network failure: the API is reachable but is not
+    // serving this endpoint. We surface it loudly and flag the sidebar to
+    // recheck — never silently treat it as "user is on free plan, allow
+    // them through" forever.
+    const isRouteFailure =
+      res.status === 404 || res.status === 405 || !ct.includes("application/json");
+
+    if (!res.ok || isRouteFailure) {
+      const bodyPreview = await res.text().then((t) => t.slice(0, 200)).catch(() => "");
+      console.error(
+        `[usage-client] checkUsage SKIPPED — Usage API: HTTP ${res.status}, ` +
+        `content-type: ${ct || "none"}. Body: ${bodyPreview}`
+      );
+      try {
+        await chrome.storage.local.set({
+          usageCheckSkipped: true,
+          usageCheckSkippedAt: Date.now(),
+          usageCheckLastStatus: res.status,
+        });
+      } catch { /* storage may be unavailable in some contexts */ }
+      return {
+        allowed: true,
+        plan: "unknown",
+        unlimited: false,
+        tier,
+        used: 0,
+        limit: 0,
+        remaining: 0,
+        fallback: true,
+        reason: `usage_api_unavailable_${res.status}`,
+      };
     }
+
     const data = (await res.json()) as UsageCheckResult;
+    // Successful response — clear any stale "skipped" flag so the sidebar
+    // stops nagging.
+    try { await chrome.storage.local.remove(["usageCheckSkipped", "usageCheckSkippedAt", "usageCheckLastStatus"]); } catch { /* noop */ }
     return data;
   } catch (err) {
-    console.warn("[usage-client] checkUsage failed, failing open:", err);
-    // Fail open — never block the user when API is unreachable
+    console.warn("[usage-client] checkUsage network failure, failing open:", err);
+    // Network failure (offline, DNS, CORS) — fail open so the user is
+    // never blocked when the API is unreachable.
     return {
       allowed: true,
       plan: "unknown",
@@ -65,6 +108,7 @@ export async function checkUsage(
       limit: -1,
       remaining: -1,
       fallback: true,
+      reason: "network_error",
     };
   }
 }

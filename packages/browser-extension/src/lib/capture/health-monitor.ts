@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // src/lib/capture/health-monitor.ts
 // Tracks capture success rate per platform over a sliding window.
 // Stores alerts in chrome.storage.local so the sidebar can display them.

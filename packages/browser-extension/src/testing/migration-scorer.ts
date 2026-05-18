@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/browser-extension/src/testing/migration-scorer.ts
 // Standalone scoring engine — READ-ONLY relative to production code.
 // Zero side effects. Accepts a ContextSession + migrated string, returns MigrationScore.

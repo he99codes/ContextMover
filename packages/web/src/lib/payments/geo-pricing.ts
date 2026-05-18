@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/web/src/lib/payments/geo-pricing.ts
 // Detects user region and returns localised pricing config.
 // Result is cached in sessionStorage so ipapi.co is called at most once per tab session.

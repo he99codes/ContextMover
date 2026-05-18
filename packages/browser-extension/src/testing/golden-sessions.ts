@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/browser-extension/src/testing/golden-sessions.ts
 // Hardcoded golden test conversations for migration quality testing.
 // These sessions are READ-ONLY and never written to production storage.

@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -65,6 +72,12 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Exclude /api/* — API routes authenticate via Bearer token in
+    // getAuthUserFromRequest(), not via Supabase session cookies. Running
+    // them through this middleware caused unauthenticated POST requests
+    // (e.g. from the browser extension) to be 307-redirected to /auth,
+    // which is a page route → returned HTTP 405 + HTML, breaking
+    // checkUsage / incrementUsage / status fetches.
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

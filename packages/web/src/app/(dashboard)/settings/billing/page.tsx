@@ -1,4 +1,11 @@
 "use client";
+
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
 // packages/web/src/app/(dashboard)/settings/billing/page.tsx
 // Billing & subscription dashboard. Reads /api/payments/subscription and
 // renders plan / status / next-bill / usage. Cancel flow hits /api/payments/cancel.

@@ -1,4 +1,11 @@
 "use client";
+
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
 // packages/web/src/hooks/useSubscription.ts
 // Loads the authenticated user's subscription + usage + limits from
 // /api/payments/subscription. Refresh manually with the returned `refresh()`.

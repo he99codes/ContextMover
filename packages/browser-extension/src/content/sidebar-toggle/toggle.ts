@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 import css from "./toggle.css?inline";
 import logoUrl from "../../assets/logo.png?url";
 
@@ -47,7 +54,7 @@ function inject(): HTMLElement {
 
   (document.documentElement ?? document.body).appendChild(host);
 
-  const shadow = host.attachShadow({ mode: "open" });
+  const shadow = host.attachShadow({ mode: "closed" });
 
   const styleEl = document.createElement("style");
   styleEl.textContent = css;

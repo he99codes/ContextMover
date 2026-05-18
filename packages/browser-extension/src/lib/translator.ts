@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/browser-extension/src/lib/translator.ts
 // Context Translation Adapter — formats extracted context per target model.
 // Each builder uses payload.extracted (structured) when present and falls

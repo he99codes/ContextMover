@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/browser-extension/src/background/service-worker.ts
 import { db, dexieDb, ensureDbReady, sessionCache } from "@/lib/db";
 import { migrateFromContextForge } from "@/lib/db-migration";
@@ -12,10 +19,11 @@ import { generateQualityReport } from "@/lib/quality/report-generator";
 import { userVault } from "@/lib/user-vault/connector";
 import { forgetSession, resolveSessionId } from "@/lib/session-id";
 import { WEBAPP_URL } from "@/config/urls";
-import { buildTier1File, buildTier2File, buildTier3File } from "@/lib/file-builder"
+import { buildTier1File, buildTier2File, buildTier3File, getMessagesFromChunks } from "@/lib/file-builder"
 import { buildInstructionPrompt } from "@/lib/instruction-builder"
-import { checkUsage, incrementUsage } from "@/lib/usage-client";
+import { checkUsage, incrementUsage } from "@/lib/usage-client"
 import type { MigrationFile } from "@/lib/file-builder"
+import { fetchSummary, fetchMigrationBuild } from "@/lib/server-intelligence-client"
 // Drive sync — additive layer over IndexedDB. Independent of Supabase vault.
 import { driveClient } from "@/lib/drive/drive-client";
 import { driveSyncManager } from "@/lib/drive/sync-manager";
@@ -1496,7 +1504,13 @@ async function handleMigrateContext(
   reportProgress(20, 'Building context file...')
   try {
     if (tier === 1) {
-      migrationFile = buildTier1File(session)
+      const localFile = buildTier1File(session)
+      migrationFile = accessToken
+        ? await fetchMigrationBuild(
+            { tier: 1, platform: session.platform, sessionTitle: session.title, messages: session.messages },
+            accessToken, localFile
+          )
+        : localFile
     } else if (tier === 2) {
       reportProgress(30, 'Extracting smart summary...')
       const stored = await semanticIndex.getSummary(
@@ -1506,14 +1520,25 @@ async function handleMigrateContext(
       if (stored) {
         summary = JSON.parse(stored.content)
       } else {
-        summary = summarizeIntelligent(session.messages, payload.task)
+        const localSummary = summarizeIntelligent(session.messages, payload.task)
+        summary = accessToken
+          ? await fetchSummary(session.messages, payload.task, accessToken, localSummary)
+          : localSummary
         await semanticIndex.saveSummary(
           session.id, 2, payload.task ?? null,
           JSON.stringify(summary), summary.compressionRatio,
           session.messages.length
         )
       }
-      migrationFile = buildTier2File(session, summary, payload.task)
+      const localFile = buildTier2File(session, summary, payload.task)
+      migrationFile = accessToken
+        ? await fetchMigrationBuild(
+            { tier: 2, platform: session.platform, sessionTitle: session.title,
+              messages: session.messages, originalCount: session.messages.length,
+              summary, task: payload.task },
+            accessToken, localFile
+          )
+        : localFile
     } else {
       if (!attentionEngineAvailable) {
         sendResponse({ success: false, error: 'Attention Engine unavailable — model could not load on this device' });
@@ -1539,13 +1564,31 @@ async function handleMigrateContext(
           // which is pure-logic and always produces meaningful output.
           console.warn('[CM:sw] Attention engine returned 0 chunks — falling back to tier 2')
           reportProgress(78, 'Falling back to Smart Summary...')
-          const summary = summarizeIntelligent(session.messages, payload.task)
-          migrationFile = buildTier2File(session, summary, payload.task)
+          const localSummary = summarizeIntelligent(session.messages, payload.task)
+          const summary = accessToken
+            ? await fetchSummary(session.messages, payload.task, accessToken, localSummary)
+            : localSummary
+          const localFile = buildTier2File(session, summary, payload.task)
+          migrationFile = accessToken
+            ? await fetchMigrationBuild(
+                { tier: 2, platform: session.platform, sessionTitle: session.title,
+                  messages: session.messages, originalCount: session.messages.length,
+                  summary, task: payload.task },
+                accessToken, localFile
+              )
+            : localFile
         } else {
-          migrationFile = buildTier3File(
-            session, chunks,
-            payload.task ?? 'Continue from where we left off'
-          )
+          const selectedMessages = getMessagesFromChunks(chunks, session)
+          const task3 = payload.task ?? 'Continue from where we left off'
+          const localFile = buildTier3File(session, chunks, task3)
+          migrationFile = accessToken
+            ? await fetchMigrationBuild(
+                { tier: 3, platform: session.platform, sessionTitle: session.title,
+                  messages: session.messages, originalCount: session.messages.length,
+                  chunks: selectedMessages, task: task3 },
+                accessToken, localFile
+              )
+            : localFile
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

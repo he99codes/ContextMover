@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/browser-extension/src/sidebar/MigrationModal.tsx
 // Unified 3-tier migration modal.
 // Tier 1: Full Context — fast verbatim, Tier 2: Smart Summary — auto-extracted,

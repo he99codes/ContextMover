@@ -3,7 +3,35 @@ dist/
 .DS_Store
 *.local
 .env
+.env.local
+.env.production
+.env.development
+.env.staging
+.env*.local
+
+# Certificates / secrets
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+secrets/
+.secrets/
 
 # Next.js build output
 .next/
 out/
+.turbo/
+.vercel/
+
+# Chrome extension build output
+packages/browser-extension/dist/
+packages/browser-extension/*.zip
+packages/browser-extension/*.crx
+
+# Source maps (never commit — contain unobfuscated source)
+*.map
+
+# OS
+.DS_Store
+Thumbs.db

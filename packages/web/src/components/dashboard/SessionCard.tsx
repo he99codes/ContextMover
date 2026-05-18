@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 import { useState, useRef, useEffect, type KeyboardEvent, type MouseEvent } from "react";
 import Link from "next/link";
 import { MessageSquare, Clock, ArrowRight, Pencil, Trash2, Check, X, Loader2 } from "lucide-react";

@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // src/lib/capture/structural-detector.ts
 // Last-resort structural detection when ALL named selectors fail.
 // Never relies on class names or testids — only DOM structure, position,

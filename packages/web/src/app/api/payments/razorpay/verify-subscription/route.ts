@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/web/src/app/api/payments/razorpay/verify-subscription/route.ts
 // Called client-side after Razorpay subscription checkout completes.
 // [SECURITY] Signature is verified server-side before updating Supabase.

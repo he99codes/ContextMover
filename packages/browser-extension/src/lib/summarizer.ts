@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/browser-extension/src/lib/summarizer.ts
 // Structured context extractor.
 // Two outputs per call:
@@ -229,25 +236,54 @@ export default async function summarize(
       .join("\n\n");
   } else {
     // Tier 1c aggressive (>100 msgs): target 80%+ compression.
-    // • First 3 messages:  verbatim (keep)
-    // • Last 6 messages:   verbatim (keep)
+    // • First 5 messages:  verbatim (keep)         — establishes goal + setup
+    // • Last 10 messages:  verbatim (keep)         — what the user is doing now
     // • All code blocks:   100% full content (keep)
     // • User messages:     verbatim (keep — they are short)
     // • Middle assistant messages:
-    //     → Extract only the DECISION or KEY OUTPUT (1 sentence max)
-    //     → If message contains ONLY explanation with no decision/code → DROP
+    //     → Score by signal density (errors, decisions, code, length, recency)
+    //     → Keep the top tier verbatim; compress the rest to a key decision;
+    //       drop pure-fluff messages with no signal at all.
     mode = "summarized";
-    const tailCount = 6;
-    const tailStart = Math.max(3, messages.length - tailCount);
-    const head   = messages.slice(0, 3);
-    const middle = messages.slice(3, tailStart);
+    const HEAD_COUNT = 5;
+    const TAIL_COUNT = 10;
+    const tailStart = Math.max(HEAD_COUNT, messages.length - TAIL_COUNT);
+    const head   = messages.slice(0, HEAD_COUNT);
+    const middle = messages.slice(HEAD_COUNT, tailStart);
     const tail   = messages.slice(tailStart);
 
+    // Compute a 0..1 importance score for each middle message. Pure-logic —
+    // no embedding round-trip in the summarizer hot path. Top quartile is
+    // kept verbatim; the rest goes through the existing decision-extractor.
+    const scoreMessage = (m: Message, idxInMiddle: number): number => {
+      let score = 0;
+      if (hasErrorOrStackTrace(m.content)) score += 0.45;
+      if (/```[\s\S]*?```/.test(m.content)) score += 0.25;
+      if (KEY_DECISION_PATTERNS.some((re) => re.test(m.content))) score += 0.20;
+      // Length: very short messages rarely carry signal; cap the boost.
+      score += Math.min(0.10, m.content.length / 8000);
+      // Recency bias inside the middle window — later middle messages slightly
+      // outrank earlier ones at equal signal density.
+      score += 0.05 * (idxInMiddle / Math.max(1, middle.length - 1));
+      return Math.min(1, score);
+    };
+
+    const scored = middle.map((m, i) => ({ m, i, s: scoreMessage(m, i) }));
+    const sortedScores = [...scored].map((x) => x.s).sort((a, b) => b - a);
+    // Top-quartile cutoff. Falls back to a sane minimum on tiny middles.
+    const cutoffIndex = Math.max(0, Math.floor(sortedScores.length * 0.25) - 1);
+    const KEEP_VERBATIM_THRESHOLD = sortedScores[cutoffIndex] ?? 0.5;
+
     const processedMiddle: Message[] = [];
-    for (const msg of middle) {
+    for (const { m: msg, s: score } of scored) {
       if (msg.role === "user") { processedMiddle.push(msg); continue; }
       // Error / stack trace — always keep verbatim.
       if (hasErrorOrStackTrace(msg.content)) { processedMiddle.push(msg); continue; }
+      // High-signal assistant message — keep verbatim.
+      if (score >= KEEP_VERBATIM_THRESHOLD && score >= 0.30) {
+        processedMiddle.push(msg);
+        continue;
+      }
 
       // Extract code blocks first; they are ALWAYS kept verbatim.
       const codeBlocks: string[] = [];
@@ -278,8 +314,8 @@ export default async function summarize(
   // one by one until we fit. Head (3) and tail (6) are always preserved.
   const MAX_OUTPUT_CHARS = 48_000;
   if (content.length > MAX_OUTPUT_CHARS && msgCount >= 30) {
-    const headCount = 3;
-    const tailCount = msgCount > 100 ? 6 : 10;
+    const headCount = msgCount > 100 ? 5 : 3;
+    const tailCount = msgCount > 100 ? 10 : 10;
     const tailStart = Math.max(headCount, messages.length - tailCount);
     const head = messages.slice(0, headCount);
     const tail = messages.slice(tailStart);
@@ -646,11 +682,29 @@ const TIER2_DECISION_RE = [
 ];
 
 const TIER2_BUG_RE = [
+  // Direct cause / resolution
   /\bthe issue was\b/i,
   /\bbug was caused\b/i,
   /\bfixed by\b/i,
   /\berror occurs because\b/i,
   /\broot cause\b/i,
+  /\bcaused by\b/i,
+  /\bturned out (?:to be|that)\b/i,
+  /\bthe problem (?:was|is)\b/i,
+  /\bthe (?:real )?(?:bug|issue|error) (?:was|is)\b/i,
+  /\bbecause of (?:the|a) (?:missing|stale|bad|wrong|incorrect|broken)\b/i,
+  /\bregression\b/i,
+  // Symptom phrasing — captures bug reports the assistant echoes back
+  /\b(?:failing|fails|failed) (?:with|because|when|to)\b/i,
+  /\bthrows? (?:a |an )?\w+(?:Error|Exception)\b/,
+  /\bnot working\b/i,
+  /\b(?:doesn['’]t|wasn['’]t|isn['’]t) (?:work|render|load|fire|trigger|update|fetch|save|persist)\b/i,
+  /\b(?:race condition|deadlock|null pointer|memory leak|off[- ]by[- ]one|infinite loop)\b/i,
+  // Resolution phrasing
+  /\bresolved by\b/i,
+  /\bworkaround\b/i,
+  /\bpatched\b/i,
+  /\bhotfix\b/i,
 ];
 
 export interface IntelligentSummary {

@@ -1,3 +1,10 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 // packages/browser-extension/src/lib/semantic-index/index.ts
 //
 // Core retrieval-first engine. Embed once, persist forever, retrieve fast.
@@ -122,6 +129,46 @@ async function offscreenEmbedQuery(
 }
 
 // ──────────────────────────────────────────────────────────────────────────
+// Indexing queue — at most ONE concurrent indexing job at a time, regardless
+// of caller. On low-end hardware (minimal tier, 4 cores, no WebGPU) running
+// 3 sessions concurrently saturated the offscreen doc and froze the UI for
+// minutes. Serializing the queue keeps WASM embeddings on (quality matters
+// for the attention engine) while letting the browser breathe.
+// ──────────────────────────────────────────────────────────────────────
+type IndexJob = {
+  session: ContextSession;
+  onProgress?: (pct: number, stage: string) => void;
+  resolve: () => void;
+  reject: (err: unknown) => void;
+};
+const _indexQueue: IndexJob[] = [];
+let _indexQueueRunning = false;
+
+function broadcastIndexStatus(status: {
+  active: boolean;
+  queued: number;
+  sessionId?: string;
+  progress?: number;
+  stage?: string;
+}): void {
+  // Fire-and-forget broadcast to sidebar / popup. No-op if no listeners.
+  try {
+    chrome.runtime.sendMessage({ type: "INDEXING_STATUS", ...status }).catch(() => {});
+  } catch { /* runtime may be torn down during reload */ }
+}
+
+async function maybeCloseOffscreen(): Promise<void> {
+  // Release offscreen-doc memory (and the embedding worker it hosts) once
+  // the queue drains. The next indexSession call will re-create it. Cheap:
+  // doc creation is ~30ms; model warm-up is amortized by modelRegistry's
+  // own cache on the next createDocument.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const offscreen = (chrome as any).offscreen;
+  if (!offscreen?.closeDocument) return;
+  try { await offscreen.closeDocument(); } catch { /* already closed */ }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
 // In-memory retrieval cache (30 s TTL, keyed by sessionId + query prefix)
 // ──────────────────────────────────────────────────────────────────────
 const _retrieveCache = new Map<string, { results: ChunkEmbedding[]; ts: number }>();
@@ -154,9 +201,14 @@ export class SemanticIndex {
   }
 
   /**
-   * Indexes a session via the offscreen document.
+   * Indexes a session via the offscreen document. Serialized — at most ONE
+   * indexing job runs at a time across the entire extension. Subsequent
+   * callers wait their turn. On minimal-tier hardware (no WebGPU, ≤ 4
+   * cores) we insert a 2 s breathing delay between jobs so the UI thread
+   * doesn't starve when the user just captured 3 conversations in a row.
+   *
    * If offscreen is unavailable (e.g. we're already in offscreen), falls
-   * back to direct in-process indexing.
+   * back to direct in-process indexing — but still serializes.
    */
   async indexSession(
     session: ContextSession,
@@ -167,23 +219,86 @@ export class SemanticIndex {
       return;
     }
 
+    return new Promise<void>((resolve, reject) => {
+      _indexQueue.push({ session, onProgress, resolve, reject });
+      broadcastIndexStatus({
+        active: _indexQueueRunning,
+        queued: _indexQueue.length,
+        sessionId: session.id,
+        stage: _indexQueueRunning ? "Queued" : "Starting",
+      });
+      void this._drainIndexQueue();
+    });
+  }
+
+  private async _drainIndexQueue(): Promise<void> {
+    if (_indexQueueRunning) return;
+    _indexQueueRunning = true;
+
+    try {
+      while (_indexQueue.length > 0) {
+        const job = _indexQueue.shift()!;
+        try {
+          broadcastIndexStatus({
+            active: true,
+            queued: _indexQueue.length,
+            sessionId: job.session.id,
+            progress: 0,
+            stage: "Indexing in background...",
+          });
+          await this._runIndexJob(job);
+          job.resolve();
+        } catch (err) {
+          job.reject(err);
+        }
+
+        // Throttle on minimal-tier hardware so the UI thread can recover
+        // between back-to-back jobs. Skip the delay if we just drained.
+        if (_indexQueue.length > 0) {
+          const hw = await getHardwareProfile().catch(() => null);
+          if (hw?.tier === "minimal") {
+            await new Promise((r) => setTimeout(r, 2_000));
+          }
+        }
+      }
+    } finally {
+      _indexQueueRunning = false;
+      broadcastIndexStatus({ active: false, queued: 0 });
+      // Release offscreen-doc memory when nothing else is queued.
+      void maybeCloseOffscreen();
+    }
+  }
+
+  private async _runIndexJob(job: IndexJob): Promise<void> {
+    const { session, onProgress } = job;
     const hw = await getHardwareProfile();
+
+    const wrappedProgress = (pct: number, stage: string) => {
+      onProgress?.(pct, stage);
+      broadcastIndexStatus({
+        active: true,
+        queued: _indexQueue.length,
+        sessionId: session.id,
+        progress: pct,
+        stage,
+      });
+    };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hasOffscreen = !!(chrome as any).offscreen;
     if (hasOffscreen) {
       const t0 = performance.now();
-      onProgress?.(5, "Spawning indexing worker...");
-      const chunkCount = await offscreenIndex(session, hw, onProgress);
+      wrappedProgress(5, "Spawning indexing worker...");
+      const chunkCount = await offscreenIndex(session, hw, wrappedProgress);
       console.log(
         `[CM:index] ${session.id}: ${chunkCount} chunks indexed in ${(performance.now() - t0).toFixed(0)}ms`
       );
-      onProgress?.(100, "Indexed");
+      wrappedProgress(100, "Indexed");
       return;
     }
 
     // Direct fallback (e.g. when running inside the offscreen doc itself)
-    await this._indexInProcess(session, hw, onProgress);
+    await this._indexInProcess(session, hw, wrappedProgress);
   }
 
   private async _indexInProcess(
@@ -287,18 +402,45 @@ export class SemanticIndex {
       queryEmbedding = await modelRegistry.embed(query);
     }
 
-    const scored = allChunks.map((chunk) => ({
-      chunk,
-      score: cosineSimilarity(queryEmbedding, chunk.embedding),
-    }));
+    // Multi-signal attention score:
+    //   • cosine similarity to the query embedding (the dominant signal)
+    //   • recency boost  → recent messages slightly outrank old ones at
+    //                     equal semantic relevance (linear decay over the
+    //                     session length, capped at +0.15)
+    //   • signal boost   → chunks containing decisions, errors / stack
+    //                     traces, or code get a small additive bump that
+    //                     can lift them past the MIN_SIMILARITY threshold
+    //                     when the query is generic but the chunk is
+    //                     clearly load-bearing
+    //   • length boost   → very long chunks get a slight bump up to a cap
+    //                     because they tend to carry more signal
+    const maxMessageIndex = Math.max(
+      ...allChunks.map((c) => c.messageIndex),
+      0
+    );
+    const SIGNAL_RE = /\b(?:we decided|the fix is|root cause|the issue was|bug was|the goal|next step|TypeError|ReferenceError|Traceback|throws? \w+Error|fails? with|caused by)\b/i;
+
+    const scored = allChunks.map((chunk) => {
+      const cos = cosineSimilarity(queryEmbedding, chunk.embedding);
+      const recency = maxMessageIndex > 0
+        ? 0.15 * (chunk.messageIndex / maxMessageIndex)
+        : 0;
+      let signal = 0;
+      if (SIGNAL_RE.test(chunk.text)) signal += 0.10;
+      if (chunk.hasCode) signal += 0.05;
+      // Length boost is small and capped — guards against rambling chunks
+      // dominating purely on size.
+      const length = Math.min(0.05, chunk.text.length / 6000);
+      return { chunk, score: cos + recency + signal + length, cos };
+    });
     scored.sort((a, b) => b.score - a.score);
 
     // Discard near-zero similarity chunks — they're semantic noise and would
     // dilute the retrieval if there's room to fill from better candidates.
+    // We threshold on the raw cosine, not the boosted score, so the recency
+    // bump never single-handedly admits an off-topic chunk.
     const MIN_SIMILARITY = 0.1;
-    const usable = scored.filter((s) => s.score >= MIN_SIMILARITY);
-    // If everything is below threshold (rare — e.g. very generic query),
-    // fall back to the full scored list so we don't return empty.
+    const usable = scored.filter((s) => s.cos >= MIN_SIMILARITY);
     const pool = usable.length > 0 ? usable : scored;
 
     // Boost code chunks — always include up to 5 top code blocks
@@ -307,15 +449,14 @@ export class SemanticIndex {
       .filter((s) => !s.chunk.hasCode)
       .slice(0, Math.max(0, topK - topCode.length));
 
-    // CRITICAL: always include chunks from the last 6 messages regardless of
-    // cosine score. Recent context anchors the conversation continuity —
-    // without it, the AI receives topically-relevant snippets with no idea
-    // where the conversation actually ended.
-    const maxMessageIndex = Math.max(
-      ...allChunks.map((c) => c.messageIndex),
-      0
-    );
-    const RECENT_WINDOW = 6;
+    // CRITICAL: always include chunks from the recent tail regardless of
+    // cosine score. The window scales with session length so a 300-msg
+    // session doesn't lose continuity to a fixed 6-msg window.
+    //   • <  60 msgs  → 6 messages
+    //   • 60–200 msgs → 10 messages
+    //   • > 200 msgs  → 15 messages
+    const RECENT_WINDOW =
+      maxMessageIndex < 60 ? 6 : maxMessageIndex < 200 ? 10 : 15;
     const recentCutoff = Math.max(0, maxMessageIndex - RECENT_WINDOW + 1);
     const recentChunks = scored.filter(
       (s) => s.chunk.messageIndex >= recentCutoff

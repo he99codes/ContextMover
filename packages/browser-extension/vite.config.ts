@@ -1,41 +1,128 @@
-import { defineConfig } from "vite";
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { crx } from "@crxjs/vite-plugin";
 import manifest from "./manifest.json";
 import path from "path";
 
-export default defineConfig({
-  plugins: [
-    react(),
-    crx({ manifest }),
-  ],
-  server: {
-    host: "localhost",
-    port: 5173,
-    strictPort: true,
-    cors: true,
-    origin: "http://localhost:5173",
-  },
-  build: {
-    rollupOptions: {
-      input: {
-        sidebar: "src/sidebar/index.html",
-        offscreen: "src/offscreen/offscreen.html",
-        "src/content/claude": "src/content/claude.ts",
-        "src/content/chatgpt": "src/content/chatgpt.ts",
-        "src/content/gemini": "src/content/gemini.ts",
-        "src/content/grok": "src/content/grok.ts",
-        "src/content/perplexity": "src/content/perplexity.ts",
-        "src/content/deepseek": "src/content/deepseek.ts",
-        "src/content/fetch-interceptor": "src/content/fetch-interceptor.ts",
-        "src/content/interceptor-bridge": "src/content/interceptor-bridge.ts",
-        "src/content/sidebar-toggle/toggle": "src/content/sidebar-toggle/toggle.ts",
-      },
+// ── Production-only: strip console.log/warn/debug that lack [CM:]/[ContextMover] tags.
+// Works at renderChunk level so it catches tree-shaken compiled output.
+// Multi-line calls and template-literal calls are left as-is (safe default).
+function stripNonCmLogs(): Plugin {
+  return {
+    name: "strip-non-cm-logs",
+    enforce: "post",
+    renderChunk(code) {
+      const result = code.replace(
+        /console\.(log|warn|debug)\(\s*(["'`][^"'`\n]*["'`])[^;]*\);?/g,
+        (match) => (/\[(?:CM:|ContextMover)/.test(match) ? match : "")
+      );
+      return result === code ? null : { code: result, map: null };
     },
-    target: "esnext",
-    minify: false,
-  },
-  resolve: {
-    alias: { "@": path.resolve(__dirname, "src") },
-  },
+  };
+}
+
+// ── Production-only: javascript-obfuscator via rollup-plugin-obfuscator.
+// Excluded chunks: embedding worker (WASM-heavy, perf-critical), vendor
+// bundles, and offscreen doc (stability boundary with WASM modules).
+async function obfuscatorPlugin(): Promise<Plugin> {
+  const { default: obfuscatorRollup } = await import("rollup-plugin-obfuscator");
+  return obfuscatorRollup({
+    fileOptions: {
+      compact: true,
+      controlFlowFlattening: true,
+      controlFlowFlatteningThreshold: 0.75,
+      deadCodeInjection: true,
+      deadCodeInjectionThreshold: 0.4,
+      debugProtection: false,
+      disableConsoleOutput: false,
+      identifierNamesGenerator: "hexadecimal",
+      renameGlobals: false,
+      rotateStringArray: true,
+      selfDefending: false,
+      shuffleStringArray: true,
+      splitStrings: true,
+      splitStringsChunkLength: 10,
+      stringArray: true,
+      stringArrayCallsTransform: true,
+      stringArrayEncoding: ["base64"],
+      stringArrayThreshold: 0.75,
+      transformObjectKeys: true,
+      unicodeEscapeSequence: false,
+    },
+    // Exclude chunks that are either WASM-adjacent (embedding worker, offscreen)
+    // or vendor-bundled. CF-flattening these causes > 2× size bloat for zero
+    // readability gain since they are not application IP.
+    include: [/src\/(sidebar|content|lib|background)\//],
+    exclude: [
+      /node_modules/,
+      /embedding\.worker/,
+      /offscreen/,
+      /vendor/,
+      /chunk-/,
+    ],
+  }) as Plugin;
+}
+
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
+export default defineConfig(async ({ mode }) => {
+  const isProd = mode === "production";
+  const productionPlugins: Plugin[] = isProd
+    ? [stripNonCmLogs(), await obfuscatorPlugin()]
+    : [];
+
+  return {
+    plugins: [
+      react(),
+      crx({ manifest }),
+      ...productionPlugins,
+    ],
+    server: {
+      host: "localhost",
+      port: 5173,
+      strictPort: true,
+      cors: true,
+      origin: "http://localhost:5173",
+    },
+    build: {
+      rollupOptions: {
+        input: {
+          sidebar: "src/sidebar/index.html",
+          offscreen: "src/offscreen/offscreen.html",
+          "src/content/claude": "src/content/claude.ts",
+          "src/content/chatgpt": "src/content/chatgpt.ts",
+          "src/content/gemini": "src/content/gemini.ts",
+          "src/content/grok": "src/content/grok.ts",
+          "src/content/perplexity": "src/content/perplexity.ts",
+          "src/content/deepseek": "src/content/deepseek.ts",
+          "src/content/fetch-interceptor": "src/content/fetch-interceptor.ts",
+          "src/content/interceptor-bridge": "src/content/interceptor-bridge.ts",
+          "src/content/sidebar-toggle/toggle": "src/content/sidebar-toggle/toggle.ts",
+        },
+      },
+      target: "esnext",
+      // Task 5: minify in production, unminified in dev (faster rebuilds)
+      minify: isProd ? "terser" : false,
+      terserOptions: isProd ? {
+        compress: {
+          drop_debugger: true,
+          passes: 2,
+        },
+        mangle: { toplevel: false },
+        format: { comments: false },
+      } : undefined,
+      // Task 5: never emit source maps in production
+      sourcemap: false,
+    },
+    resolve: {
+      alias: { "@": path.resolve(__dirname, "src") },
+    },
+  };
 });

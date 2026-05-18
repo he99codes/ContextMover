@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
 import { useState, useEffect } from "react";
 import { notFound } from "next/navigation";
 import { getUserVaultClient, isVaultConnected, syncVaultConfigFromUrl } from "@/lib/user-vault/web-client";

@@ -1,4 +1,11 @@
 "use client";
+
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
 // packages/web/src/app/pricing/page.tsx
 // Geo-aware pricing page driven by the v2 payment infrastructure.
 // Handles Razorpay (modal) checkout flows,
