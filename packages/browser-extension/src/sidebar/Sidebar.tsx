@@ -200,6 +200,8 @@ export default function Sidebar() {
   // MCP bridge status — green when the local @contextmover/mcp-server is up
   // and listening on 127.0.0.1:49001. Independent from the VS Code IDE bridge.
   const [mcpStatus, setMcpStatus] = useState<{ running: boolean; totalSessions?: number }>({ running: false });
+  const [driveConnected, setDriveConnected] = useState<boolean | null>(null);
+  const [driveSyncing, setDriveSyncing] = useState(false);
   const [semanticQuery, setSemanticQuery] = useState("");
   const [semanticResults, setSemanticResults] = useState<{ sessionId: string; score: number }[]>([]);
   const loadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -295,6 +297,7 @@ export default function Sidebar() {
   useEffect(() => {
     loadSessions();
     void checkVault();
+    void checkDriveStatus();
     // MCP polling disabled — IDE bridge deferred to Phase 2.
     const mcpInterval = 0;
     void fetchSubscriptionStatus(); // once on mount
@@ -397,7 +400,20 @@ export default function Sidebar() {
       if (!cancelled) setUsageStatus(status);
     }
     load();
-    return () => { cancelled = true; };
+    // Retry when accessToken appears or refreshes — covers the case where
+    // the sidebar mounts before sign-in completes (otherwise the call fires
+    // with no token and the route returns 401).
+    const onStorageChange = (
+      changes: { [key: string]: chrome.storage.StorageChange },
+      area: string
+    ) => {
+      if (area === "local" && changes.accessToken && !cancelled) void load();
+    };
+    chrome.storage.onChanged.addListener(onStorageChange);
+    return () => {
+      cancelled = true;
+      chrome.storage.onChanged.removeListener(onStorageChange);
+    };
   }, [tick]);
 
   // ── Silent background preload of Attention Engine ───────────────────────────
@@ -458,6 +474,40 @@ export default function Sidebar() {
       setVaultConnected(res?.connected === true);
       if (res?.projectName) setVaultName(res.projectName as string);
     });
+  }
+
+  function checkDriveStatus() {
+    chrome.runtime.sendMessage({ type: 'DRIVE_STATUS' }, (res) => {
+      if (chrome.runtime.lastError) return;
+      setDriveConnected(res?.connected === true);
+    });
+  }
+
+  // Synchronous re-entry guard — setDriveSyncing is async (React batches state
+  // updates), so two click events within the same tick can both pass an
+  // `if (driveSyncing) return` check. The ref is updated synchronously and
+  // closes that window completely.
+  const driveOpInFlightRef = useRef(false);
+  function handleDriveButton() {
+    if (driveOpInFlightRef.current) return;
+    driveOpInFlightRef.current = true;
+    setDriveSyncing(true);
+    const done = () => {
+      driveOpInFlightRef.current = false;
+      setDriveSyncing(false);
+    };
+    if (!driveConnected) {
+      chrome.runtime.sendMessage({ type: 'DRIVE_CONNECT' }, (res) => {
+        if (chrome.runtime.lastError) { done(); return; }
+        setDriveConnected(res?.connected === true);
+        done();
+      });
+    } else {
+      chrome.runtime.sendMessage({ type: 'DRIVE_SYNC_NOW' }, () => {
+        if (chrome.runtime.lastError) { done(); return; }
+        done();
+      });
+    }
   }
 
   // Probe the local ContextMover MCP server health endpoint via the service
@@ -974,6 +1024,21 @@ export default function Sidebar() {
               >
                 <span className={vaultConnected === true ? 'animate-pulse-green inline-block h-1.5 w-1.5 rounded-full bg-[#00FF88]' : 'inline-block h-1.5 w-1.5 rounded-full bg-[#3A3A3A]'} />
                 Vault
+              </button>
+              <button
+                onClick={handleDriveButton}
+                disabled={driveSyncing}
+                title={driveConnected ? 'Drive connected — click to sync now' : 'Connect Google Drive for cross-device sync'}
+                className={`flex items-center gap-1 rounded-[4px] border px-2 py-1 text-[9px] font-black uppercase tracking-widest transition-all duration-200 ${
+                  driveSyncing
+                    ? 'border-[#1A3A1A] bg-[#060606] text-[#1A3A1A] opacity-60 cursor-not-allowed'
+                    : driveConnected === true
+                      ? 'border-[#00FF88]/30 bg-[#00FF88]/8 text-[#00FF88] shadow-[0_0_12px_rgba(0,255,136,0.25)]'
+                      : 'border-[#1A3A1A] bg-[#060606] text-[#1A3A1A] hover:border-[#00FF88]/20 hover:text-[#2A6A2A]'
+                }`}
+              >
+                <span className={driveConnected === true && !driveSyncing ? 'animate-pulse-green inline-block h-1.5 w-1.5 rounded-full bg-[#00FF88]' : 'inline-block h-1.5 w-1.5 rounded-full bg-[#3A3A3A]'} />
+                {driveSyncing ? 'Syncing…' : driveConnected === true ? 'Drive ✓' : 'Drive'}
               </button>
               <button
                 type="button"

@@ -12,12 +12,20 @@
 //   - It never throws to the caller. Every public method is wrapped in
 //     try/catch and returns a sentinel (false / null / [] / void).
 //
-// Auth model:
-//   - chrome.identity.getAuthToken({ interactive: false }) is used for
-//     EVERY routine call. It silently returns a cached token if the user
-//     is signed into Chrome AND has previously granted consent.
-//   - { interactive: true } is ONLY invoked from connect() — i.e. the
-//     explicit "Connect Google Drive" button. Never automatic.
+// Auth model (two parallel paths, transparent to callers):
+//   1. chrome.identity.getAuthToken — the primary path. Requires the
+//      OAuth client in Google Cloud Console to be of type
+//      "Chrome Extension" with the matching extension ID. Caches the
+//      token internally; we don't manage caching for this path.
+//   2. chrome.identity.launchWebAuthFlow — fallback used when (1) fails
+//      interactively. Works with any OAuth client type but requires
+//      `https://<extension-id>.chromiumapp.org/` to be added as an
+//      authorized redirect URI in the Google Cloud OAuth client.
+//      We cache the resulting token ourselves in chrome.storage.local
+//      since launchWebAuthFlow does not.
+//
+// Routine calls use { interactive: false } and never prompt.
+// connect() is the ONLY caller that requests interactive auth.
 
 import type { ContextSession } from "@/lib/types";
 
@@ -43,33 +51,157 @@ export interface DriveIndex {
 const INDEX_FILE_NAME = "cm-index.json";
 const SESSION_FILE_PREFIX = "session-";
 
+// launchWebAuthFlow does not cache tokens — we do it ourselves here.
+// Google access tokens are valid for ~3600s; we refresh slightly early.
+const FLOW_TOKEN_KEY = "drive.flowToken";
+const FLOW_TOKEN_AT_KEY = "drive.flowTokenAt";
+const FLOW_TOKEN_TTL_MS = 55 * 60 * 1000;
+
 class DriveClient {
   /**
-   * Resolve an OAuth token via chrome.identity.
-   * `interactive=false` is the default — never shows a popup.
-   * Returns null on any error (including "user has not granted consent").
+   * Resolve an OAuth token. Tries the primary chrome.identity.getAuthToken
+   * path first; on interactive failure, falls back to launchWebAuthFlow.
+   * Never throws — returns null on any failure.
    */
   private async getToken(interactive = false): Promise<string | null> {
-    if (typeof chrome === "undefined" || !chrome.identity?.getAuthToken) {
-      return null;
-    }
+    if (typeof chrome === "undefined" || !chrome.identity) return null;
+
+    // 1. Our own launchWebAuthFlow cache (only populated if we previously
+    //    fell back). Cheap check; avoids hitting chrome.identity at all.
+    const cached = await this.readFlowToken();
+    if (cached) return cached;
+
+    // 2. Primary path: chrome.identity.getAuthToken.
+    const silent = await this.callGetAuthToken(false);
+    if (silent) return silent;
+    if (!interactive) return null;
+    const fresh = await this.callGetAuthToken(true);
+    if (fresh) return fresh;
+
+    // 3. Fallback path: launchWebAuthFlow. Only reached when interactive.
+    const flowToken = await this.callLaunchWebAuthFlow();
+    if (flowToken) await this.writeFlowToken(flowToken);
+    return flowToken;
+  }
+
+  /** Single getAuthToken invocation, normalized to a string|null Promise. */
+  private callGetAuthToken(interactive: boolean): Promise<string | null> {
     return new Promise((resolve) => {
       try {
         chrome.identity.getAuthToken({ interactive }, (token) => {
-          // chrome.runtime.lastError fires when consent missing /
-          // user cancelled / network failed. Always treat as "not connected".
           if (chrome.runtime.lastError || !token) {
-            // touch lastError to silence Chrome's "Unchecked" warning
-            void chrome.runtime.lastError;
+            if (interactive) {
+              console.error("[CM:drive] getAuthToken failed:",
+                chrome.runtime.lastError?.message ?? "no token returned");
+            }
+            void chrome.runtime.lastError; // silence "Unchecked" warning
             resolve(null);
             return;
           }
-          resolve(typeof token === "string" ? token : (token as { token?: string }).token ?? null);
+          resolve(typeof token === "string"
+            ? token
+            : (token as { token?: string }).token ?? null);
         });
       } catch {
         resolve(null);
       }
     });
+  }
+
+  /**
+   * Fallback OAuth via chrome.identity.launchWebAuthFlow. Used when
+   * getAuthToken fails interactively — typically because the OAuth client
+   * in Google Cloud Console is not of type "Chrome Extension".
+   * Requires `https://<extension-id>.chromiumapp.org/` to be registered
+   * as an authorized redirect URI on the OAuth client.
+   */
+  private callLaunchWebAuthFlow(): Promise<string | null> {
+    const manifest = chrome.runtime.getManifest() as chrome.runtime.Manifest & {
+      oauth2?: { client_id?: string; scopes?: string[] };
+    };
+    const clientId = manifest.oauth2?.client_id;
+    const scopes = manifest.oauth2?.scopes ?? [];
+    if (!clientId) {
+      console.error("[CM:drive] launchWebAuthFlow: missing oauth2.client_id in manifest");
+      return Promise.resolve(null);
+    }
+    if (!chrome.identity?.launchWebAuthFlow) {
+      console.error("[CM:drive] launchWebAuthFlow: chrome.identity.launchWebAuthFlow unavailable");
+      return Promise.resolve(null);
+    }
+
+    const redirectUri = chrome.identity.getRedirectURL();
+    // One-time hint so the user can correct Google Cloud config if needed.
+    console.warn(
+      "[CM:drive] Falling back to launchWebAuthFlow. " +
+      "If this fails, ensure this redirect URL is registered on the OAuth client in Google Cloud Console:\n  " +
+      redirectUri
+    );
+
+    const authUrl =
+      "https://accounts.google.com/o/oauth2/v2/auth" +
+      "?client_id=" + encodeURIComponent(clientId) +
+      "&response_type=token" +
+      "&redirect_uri=" + encodeURIComponent(redirectUri) +
+      "&scope=" + encodeURIComponent(scopes.join(" ")) +
+      "&prompt=consent";
+
+    console.log("[CM:drive] using client_id:", clientId);
+    console.log("[CM:drive] full auth URL:", authUrl);
+
+    return new Promise((resolve) => {
+      try {
+        chrome.identity.launchWebAuthFlow(
+          { url: authUrl, interactive: true },
+          (responseUrl) => {
+            if (chrome.runtime.lastError || !responseUrl) {
+              console.error("[CM:drive] launchWebAuthFlow failed:",
+                chrome.runtime.lastError?.message ?? "no response");
+              void chrome.runtime.lastError;
+              resolve(null);
+              return;
+            }
+            const match = responseUrl.match(/[#&]access_token=([^&]+)/);
+            const token = match?.[1] ? decodeURIComponent(match[1]) : null;
+            if (!token) {
+              console.error("[CM:drive] launchWebAuthFlow: no access_token in response");
+              resolve(null);
+              return;
+            }
+            resolve(token);
+          }
+        );
+      } catch (e) {
+        console.error("[CM:drive] launchWebAuthFlow threw:", e);
+        resolve(null);
+      }
+    });
+  }
+
+  /** Read our launchWebAuthFlow token cache; returns null if absent or expired. */
+  private async readFlowToken(): Promise<string | null> {
+    try {
+      const stored = await chrome.storage.local.get([FLOW_TOKEN_KEY, FLOW_TOKEN_AT_KEY]);
+      const tok = stored[FLOW_TOKEN_KEY] as string | undefined;
+      const at = stored[FLOW_TOKEN_AT_KEY] as number | undefined;
+      if (tok && typeof at === "number" && Date.now() - at < FLOW_TOKEN_TTL_MS) return tok;
+    } catch { /* swallow */ }
+    return null;
+  }
+
+  private async writeFlowToken(token: string): Promise<void> {
+    try {
+      await chrome.storage.local.set({
+        [FLOW_TOKEN_KEY]: token,
+        [FLOW_TOKEN_AT_KEY]: Date.now(),
+      });
+    } catch { /* swallow */ }
+  }
+
+  private async clearFlowToken(): Promise<void> {
+    try {
+      await chrome.storage.local.remove([FLOW_TOKEN_KEY, FLOW_TOKEN_AT_KEY]);
+    } catch { /* swallow */ }
   }
 
   /** Pure connection check — never prompts the user. */
@@ -84,17 +216,20 @@ class DriveClient {
     return t !== null;
   }
 
-  /** Revoke the cached token + clear local drive state. */
+  /** Revoke cached tokens (both auth paths) + clear local drive state. */
   async disconnect(): Promise<void> {
+    // 1. Revoke chrome.identity.getAuthToken cache, if any.
     try {
-      const t = await this.getToken(false);
+      const t = await this.callGetAuthToken(false);
       if (t && chrome.identity?.removeCachedAuthToken) {
         await new Promise<void>((resolve) =>
           chrome.identity.removeCachedAuthToken({ token: t }, () => resolve())
         );
       }
     } catch { /* swallow */ }
-    // Clear any local-only drive sync metadata (last-sync ts, sourced-ids, etc.).
+    // 2. Clear our launchWebAuthFlow token cache.
+    await this.clearFlowToken();
+    // 3. Clear local-only drive sync metadata.
     try {
       await chrome.storage.local.remove([
         "drive.lastSyncAt",
@@ -125,12 +260,13 @@ class DriveClient {
 
     let res = await doFetch(token);
     if (res.status === 401) {
-      // Token expired or revoked — drop it and try once more.
+      // Token expired or revoked — drop both caches and try once more.
       try {
         await new Promise<void>((resolve) =>
           chrome.identity.removeCachedAuthToken({ token: token! }, () => resolve())
         );
       } catch { /* ignore */ }
+      await this.clearFlowToken();
       const fresh = await this.getToken(false);
       if (!fresh) return res; // give up; caller handles
       res = await doFetch(fresh);

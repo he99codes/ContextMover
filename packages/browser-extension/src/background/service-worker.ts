@@ -193,6 +193,12 @@ let getSessionsCache: unknown = null;
 let getSessionsCacheAt = 0;
 const GET_SESSIONS_CACHE_MS = 500;
 
+// Throttle the background Drive pull triggered by GET_SESSIONS.
+// Without this, rapid sidebar polls reset the upload debounce timer
+// continuously, so queued uploads never fire.
+let lastDrivePullFromListAt = 0;
+const DRIVE_PULL_FROM_LIST_COOLDOWN_MS = 60_000;
+
 // Injection guard — tracks tabs already scripted this SW lifetime to prevent
 // the same tab being injected 3× on rapid onInstalled/onStartup events.
 // keyed per-tab for cleanup; injectedScripts is per-(tab,script) for dedup.
@@ -502,12 +508,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       // ── Google Drive sync (additive layer over IndexedDB) ──────────────
       case "DRIVE_CONNECT": {
         if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
-        const connected = await driveClient.connect();
-        if (connected) {
-          // Pull existing Drive sessions in background; never block UI.
-          void driveSyncManager.initialSync();
+        try {
+          const connected = await driveClient.connect();
+          if (connected) {
+            // Pull existing Drive sessions in background; never block UI.
+            void driveSyncManager.initialSync();
+          }
+          sendResponse({ connected });
+        } catch (err) {
+          console.error("[CM:drive] connect error:", err);
+          sendResponse({ connected: false, error: String(err) });
         }
-        sendResponse({ connected });
         break;
       }
       case "DRIVE_DISCONNECT": {
@@ -643,9 +654,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           getSessionsCacheAt = now;
           sendResponse(listItems);
         }
-        // Fire-and-forget Drive pull. Local list already returned above;
-        // any newly-discovered Drive sessions broadcast SESSIONS_UPDATED.
-        void driveSyncManager.initialSync().catch(() => {});
+        // Fire-and-forget Drive pull — throttled to once per 60s so that
+        // rapid GET_SESSIONS polls never reset the upload debounce timer.
+        if (Date.now() - lastDrivePullFromListAt > DRIVE_PULL_FROM_LIST_COOLDOWN_MS) {
+          lastDrivePullFromListAt = Date.now();
+          void driveSyncManager.initialSync().catch(() => {});
+        }
         break;
       }
 

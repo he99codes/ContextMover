@@ -143,6 +143,33 @@ function install() {
         // Merge with prior captures for this session.
         const sessionId = await ensureSessionId(platform);
         const prior = accumulator.get(sessionId) ?? [];
+
+        // ── Defense-in-depth against malicious CustomEvent dispatches ────
+        // Any page-level XSS on a supported platform can dispatch a fake
+        // `contextmover:captured` event with `fullHistory: true` and a
+        // short messages array — which would otherwise replace the
+        // accumulator outright and clobber the legitimate session.
+        // We can't prove the source, but we CAN reject obvious shrink
+        // attacks. An attacker cannot make a session smaller.
+        if (fullHistory) {
+          console.warn(
+            `${TAG} fullHistory event received, count=${cleaned.length} vs existing=${prior.length}`
+          );
+          if (cleaned.length < 3) {
+            console.warn(
+              `${TAG} fullHistory rejected: too few messages (${cleaned.length} < 3)`
+            );
+            return;
+          }
+          if (prior.length > 0 && cleaned.length < Math.floor(prior.length * 0.8)) {
+            console.warn(
+              `${TAG} fullHistory rejected: shrinks session by >20% ` +
+              `(${cleaned.length} < ${prior.length} * 0.8)`
+            );
+            return;
+          }
+        }
+
         // fullHistory=true means we received the complete conversation from a
         // conversation-load API response — replace the accumulator outright so
         // stale partial DOM captures don't pollute the full set.

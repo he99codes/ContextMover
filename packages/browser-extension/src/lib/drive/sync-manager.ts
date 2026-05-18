@@ -74,6 +74,11 @@ class DriveSyncManager {
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private isPulling = false;
   private isFlushing = false;
+  // Per-session record of (sessionId → local.updatedAt) at the moment each
+  // session was successfully uploaded to Drive. Used in pullFromDrive to
+  // suppress re-queuing the same version when the remote index is stale
+  // (e.g. rebuildIndex failed or has not yet run).
+  private lastUploadedAt: Map<string, number> = new Map();
 
   /**
    * Queue a session id for upload to Drive.  Debounced by DEBOUNCE_MS so a
@@ -122,6 +127,9 @@ class DriveSyncManager {
           const session = await db.getSession(id);
           if (!session) continue;
           await driveClient.uploadSession(session);
+          // Record the local.updatedAt we just uploaded so subsequent
+          // pulls against a stale remote index don't re-queue this version.
+          this.lastUploadedAt.set(id, session.updatedAt ?? 0);
         } catch (e) {
           console.warn("[drive-sync] uploadSession failed", id, e);
         }
@@ -246,12 +254,16 @@ class DriveSyncManager {
             continue;
           }
           // Both sides exist.  Compare to decide.
+          // effectiveRemoteAt accounts for uploads we know completed in this
+          // SW lifetime even if the remote index hasn't been rebuilt yet.
+          const lastUploadedAt = this.lastUploadedAt.get(local.id) ?? 0;
+          const effectiveRemoteAt = Math.max(remote.updatedAt, lastUploadedAt);
           const remoteIsNewer =
             remote.messageCount > local.messages.length ||
             (remote.messageCount === local.messages.length && remote.updatedAt > (local.updatedAt ?? 0));
           const localIsNewer =
             local.messages.length > remote.messageCount ||
-            (local.messages.length === remote.messageCount && (local.updatedAt ?? 0) > remote.updatedAt);
+            (local.messages.length === remote.messageCount && (local.updatedAt ?? 0) > effectiveRemoteAt);
 
           if (remoteIsNewer) {
             const full = await driveClient.downloadSession(remote.driveFileId);
@@ -268,7 +280,7 @@ class DriveSyncManager {
                 );
               }
             }
-          } else if (localIsNewer) {
+          } else if (localIsNewer && !this.uploadQueue.has(local.id)) {
             localUploads.push(local.id);
             console.log(
               `[drive-sync] local newer for ${remote.id}, queuing upload: ` +
