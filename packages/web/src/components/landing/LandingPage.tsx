@@ -740,7 +740,7 @@ export default function LandingPage() {
                 ))}
               </ul>
               <a href="/auth?mode=signup" className="block text-center bg-[#00FF88] text-[#0A0A0A] font-bold py-2.5 rounded-lg btn-primary text-sm">
-                Start free — no credit card required
+                Upgrade to Pro
               </a>
             </div>
             {/* TEAM */}

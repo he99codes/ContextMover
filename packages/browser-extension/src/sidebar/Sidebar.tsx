@@ -2406,7 +2406,7 @@ function PaywallModal({
             textAlign: "center", textDecoration: "none", textTransform: "uppercase",
             letterSpacing: "0.1em", boxShadow: "0 0 20px rgba(0,255,136,0.3)",
             marginBottom: "10px", cursor: "pointer" }}>
-          Upgrade to Pro — ₹199/month
+          Upgrade to Pro
         </a>
         <button onClick={onClose}
           style={{ width: "100%", padding: "10px", background: "transparent",
