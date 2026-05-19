@@ -18,7 +18,13 @@ function stripNonCmLogs(): Plugin {
   return {
     name: "strip-non-cm-logs",
     enforce: "post",
-    renderChunk(code) {
+    renderChunk(code, chunk) {
+      // Skip shared / vendor chunks (facadeModuleId is null for those).
+      // Third-party code like Dexie uses console.warn with long comma
+      // expressions; the greedy [^;]* regex consumes them and corrupts
+      // the output (e.g. the Dexie PR1398 recovery ternary becomes
+      // `PR1398_maxLoop?(` with the rest stripped → SyntaxError).
+      if (!chunk.facadeModuleId) return null;
       const result = code.replace(
         /console\.(log|warn|debug)\(\s*(["'`][^"'`\n]*["'`])[^;]*\);?/g,
         (match) => (/\[(?:CM:|ContextMover)/.test(match) ? match : "")
