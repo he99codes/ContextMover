@@ -198,7 +198,7 @@ function MigrationSuccess({
     setError(null)
     setStatus('downloading')
 
-    const blob = new Blob([fileContent], { type: 'application/xml' })
+    const blob = new Blob([fileContent], { type: 'text/xml' })
     const url = URL.createObjectURL(blob)
 
     const finish = () => {
@@ -404,22 +404,23 @@ function MigrationSuccess({
                   return
                 }
                 try { e.dataTransfer.clearData() } catch { /* ok */ }
-                // Primary: DownloadURL — Chrome resolves this at the OS drag
-                // layer, bypassing the extension→page security boundary that
-                // silently drops dataTransfer.items.add(File).
-                const blob = new Blob([fileContent], { type: 'application/xml' })
+                const blob = new Blob([fileContent], { type: 'text/xml' })
                 const url = URL.createObjectURL(blob)
                 dragUrlRef.current = url
+                // Primary: File object — web apps (Claude, ChatGPT, etc.) receive
+                // the actual file content via the DataTransfer items list.
+                try {
+                  e.dataTransfer.items.add(
+                    new File([blob], migrationFile.filename, { type: blob.type })
+                  )
+                } catch { /* blocked at extension→page boundary; DownloadURL fallback used */ }
+                // Fallback: DownloadURL — resolved at the OS drag layer for
+                // cross-origin / extension→page drops where items.add is blocked.
                 e.dataTransfer.setData(
                   'DownloadURL',
-                  `application/xml:${migrationFile.filename}:${url}`
+                  `text/xml:${migrationFile.filename}:${url}`
                 )
                 e.dataTransfer.setData('text/plain', migrationFile.filename)
-                // Secondary: items.add — works in same-origin contexts but
-                // silently no-ops across the extension→page boundary; we
-                // don't abort if it fails since DownloadURL is the primary.
-                const file = fileRef.current
-                if (file) { try { e.dataTransfer.items.add(file) } catch { /* blocked, ok */ } }
                 e.dataTransfer.effectAllowed = 'copy'
                 setDragState('dragging')
               }}
@@ -445,7 +446,7 @@ function MigrationSuccess({
                 padding: '20px 14px',
                 marginBottom: '12px',
                 cursor: 'grab',
-                textAlign: 'center',
+                opacity: dragState === 'dragging' ? 0.6 : 1,
                 transition: 'all 0.15s ease',
                 userSelect: 'none'
               }}
@@ -471,31 +472,29 @@ function MigrationSuccess({
             </div>
           )}
 
-          {/* ── Download button (secondary / fallback) ─────────────────── */}
-          {dragState !== 'success' && (
-            <div style={{ textAlign: 'center', marginBottom: '14px' }}>
-              <button
-                onClick={handleDownload}
-                disabled={status === 'downloading'}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #2A2A2A',
-                  borderRadius: '4px',
-                  color: status === 'downloading' ? '#3A3A3A' : '#6B6B6B',
-                  fontSize: '9px',
-                  fontWeight: 700,
-                  padding: '6px 14px',
-                  cursor: status === 'downloading' ? 'wait' : 'pointer',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em'
-                }}
-              >
-                {status === 'downloading' ? '⏳ Downloading...'
-                  : status === 'downloaded' ? '✓ Downloaded'
-                  : '⬇ Or download instead'}
-              </button>
-            </div>
-          )}
+          {/* ── Download button (always visible as fallback) ──────────── */}
+          <div style={{ textAlign: 'center', marginBottom: '14px' }}>
+            <button
+              onClick={handleDownload}
+              disabled={status === 'downloading'}
+              style={{
+                background: 'transparent',
+                border: '1px solid #2A2A2A',
+                borderRadius: '4px',
+                color: status === 'downloading' ? '#3A3A3A' : '#6B6B6B',
+                fontSize: '9px',
+                fontWeight: 700,
+                padding: '6px 14px',
+                cursor: status === 'downloading' ? 'wait' : 'pointer',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em'
+              }}
+            >
+              {status === 'downloading' ? '⏳ Downloading...'
+                : status === 'downloaded' ? '✓ Downloaded'
+                : '⬇ Download file'}
+            </button>
+          </div>
 
           {/* ── Upload hint (shown after manual download) ───────────────── */}
           {status === 'downloaded' && dragState !== 'success' && (

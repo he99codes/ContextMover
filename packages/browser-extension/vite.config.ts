@@ -10,6 +10,55 @@ import react from "@vitejs/plugin-react";
 import { crx } from "@crxjs/vite-plugin";
 import manifest from "./manifest.json";
 import path from "path";
+import fs from "fs";
+import { createRequire } from "module";
+
+// Resolve @xenova/transformers' pre-built ESM bundle path. The package's
+// `main` field points at `./src/transformers.js`, which transitively imports
+// `onnxruntime-web`. Under pnpm's hoisted layout that import isn't reachable
+// from packages/browser-extension/node_modules, so Rollup silently bails on
+// bundling and leaves `import("@xenova/transformers")` as a bare specifier,
+// which Chrome's offscreen document then cannot resolve at runtime.
+// The pre-built `dist/transformers.min.js` is a self-contained ESM webpack
+// bundle with onnxruntime-web inlined — aliasing to it sidesteps the source
+// resolution chain entirely.
+const _require = createRequire(import.meta.url);
+const XENOVA_PKG_JSON = _require.resolve("@xenova/transformers/package.json");
+const XENOVA_DIST_DIR = path.resolve(path.dirname(XENOVA_PKG_JSON), "dist");
+const XENOVA_DIST_BUNDLE = path.resolve(XENOVA_DIST_DIR, "transformers.min.js");
+
+// Copies the ONNX runtime WASM files shipped with @xenova/transformers/dist
+// into dist/wasm/ so onnxruntime-web (loaded transitively by transformers)
+// can find them via env.backends.onnx.wasm.wasmPaths set in model-registry.
+function copyOnnxWasmPlugin(): Plugin {
+  return {
+    name: "copy-onnx-wasm",
+    apply: "build",
+    closeBundle() {
+      const outDir = path.resolve(__dirname, "dist/wasm");
+      fs.mkdirSync(outDir, { recursive: true });
+      const wasms = fs.readdirSync(XENOVA_DIST_DIR).filter((f) => f.endsWith(".wasm"));
+      for (const f of wasms) {
+        fs.copyFileSync(path.join(XENOVA_DIST_DIR, f), path.join(outDir, f));
+      }
+      // ort-wasm-threaded.worker.js is needed for multi-threaded WASM inference
+      const workerJs = "ort-wasm-threaded.worker.js";
+      const workerSrc = path.join(XENOVA_DIST_DIR, workerJs);
+      if (fs.existsSync(workerSrc)) {
+        fs.copyFileSync(workerSrc, path.join(outDir, workerJs));
+      }
+      console.log(`[vite:copy-onnx-wasm] copied ${wasms.length} wasm file(s) to dist/wasm/`);
+      // ── transformers bundle → dist/transformers/ ─────────────────────────
+      // Loaded at runtime via chrome.runtime.getURL("transformers/transformers.min.js")
+      // using /* @vite-ignore */ dynamic import so Rollup never sees the bare
+      // specifier and Chrome resolves the extension-local file directly.
+      const tfDir = path.resolve(__dirname, "dist/transformers");
+      fs.mkdirSync(tfDir, { recursive: true });
+      fs.copyFileSync(XENOVA_DIST_BUNDLE, path.join(tfDir, "transformers.min.js"));
+      console.log("[vite:copy-onnx-wasm] copied transformers.min.js to dist/transformers/");
+    },
+  };
+}
 
 // ── Production-only: strip console.log/warn/debug that lack [CM:]/[ContextMover] tags.
 // Works at renderChunk level so it catches tree-shaken compiled output.
@@ -92,6 +141,7 @@ export default defineConfig(async ({ mode }) => {
     plugins: [
       react(),
       crx({ manifest }),
+      copyOnnxWasmPlugin(),
       ...productionPlugins,
     ],
     server: {

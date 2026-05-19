@@ -23,7 +23,11 @@
 //   { type: 'PROGRESS',         id, progress: number }
 //   { type: 'ERROR',            id, error: string }
 
-import { pipeline, env } from "@xenova/transformers";
+// Import the pre-built ESM bundle directly. The package's `main` source
+// entry transitively imports `onnxruntime-web` which isn't reachable under
+// pnpm's hoisted layout; the dist bundle has it inlined.
+// @ts-expect-error — no .d.ts ships alongside the dist bundle
+import { pipeline, env } from "@xenova/transformers/dist/transformers.min.js";
 
 env.allowLocalModels = false;
 env.useBrowserCache  = true;

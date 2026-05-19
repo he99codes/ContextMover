@@ -603,7 +603,15 @@ export class AttentionEngine {
     const modelId = cfg.modelId || DEFAULT_MODEL_ID;
 
     try {
-      const transformers = await import("@xenova/transformers");
+      // Load @xenova/transformers via the extension-local pre-built bundle.
+      // See model-registry.ts _doInit for the full root-cause explanation.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const isExt = typeof chrome !== "undefined" && typeof (chrome as any).runtime?.getURL === "function";
+      const tfUrl = isExt
+        ? chrome.runtime.getURL("transformers/transformers.min.js")
+        : "@xenova/transformers";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transformers = (await import(/* @vite-ignore */ tfUrl)) as any;
 
       // ── ONNX runtime tuning ───────────────────────────────────────────────
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -611,6 +619,13 @@ export class AttentionEngine {
       if (envObj?.backends?.onnx?.wasm) {
         // Disable blob: proxy worker — blocked in the Chrome extension sandbox.
         envObj.backends.onnx.wasm.proxy = false;
+        // Point ONNX runtime at the local WASM copies emitted into dist/wasm/
+        // by the copy-onnx-wasm Vite plugin. Without this, onnxruntime-web
+        // tries to fetch from a CDN and is blocked by the extension CSP.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (typeof chrome !== "undefined" && (chrome as any).runtime?.getURL) {
+          envObj.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL("wasm/");
+        }
         // Thread count comes from the active tier config, capped by the
         // hardware concurrency reported by the browser.
         const hasSharedBuffer = typeof SharedArrayBuffer !== "undefined";

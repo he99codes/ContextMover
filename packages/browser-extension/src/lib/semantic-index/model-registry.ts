@@ -49,17 +49,28 @@ class ModelRegistry {
     hardware: HardwareProfile,
     onProgress?: (pct: number) => void
   ): Promise<void> {
-    // Dynamic import keeps the heavy transformers bundle out of the SW chunk
-    // when this module is statically imported by SW code paths that never
-    // actually call .initialize().
-    const { pipeline, env } = await import("@xenova/transformers");
-
     // When running as a Chrome extension, load the bundled model files
     // directly from the extension package — zero network request needed.
     const isExtension =
       typeof chrome !== "undefined" &&
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       typeof (chrome as any).runtime?.getURL === "function";
+
+    // Load @xenova/transformers via the extension-local pre-built bundle.
+    // Importing the bare specifier "@xenova/transformers" leaves it unresolved
+    // in the output because the package's src/transformers.js imports
+    // onnxruntime-web which is not reachable under pnpm's hoisted layout —
+    // Rollup silently bails and Chrome throws
+    // "Failed to resolve module specifier '@xenova/transformers'".
+    // The dist/transformers.min.js bundle inlines onnxruntime-web and is
+    // copied to dist/transformers/ by the copy-onnx-wasm Vite plugin.
+    // Using /* @vite-ignore */ tells Rollup to leave this import as-is;
+    // Chrome loads the extension-local chrome-extension:// URL at runtime.
+    const transformersUrl = isExtension
+      ? chrome.runtime.getURL("transformers/transformers.min.js")
+      : "@xenova/transformers"; // dev / test fallback
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { pipeline, env } = (await import(/* @vite-ignore */ transformersUrl)) as any;
     if (isExtension) {
       env.localModelPath = chrome.runtime.getURL("models/");
       env.allowLocalModels = true;
@@ -79,6 +90,16 @@ class ModelRegistry {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (env as any).backends.onnx.wasm.numThreads = threads;
+      // ONNX runtime fetches its WASM from a CDN by default; in the extension
+      // sandbox CSP blocks that. Point it at the local copy emitted by the
+      // copy-onnx-wasm Vite plugin into dist/wasm/.
+      if (isExtension) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (env as any).backends.onnx.wasm.wasmPaths = chrome.runtime.getURL("wasm/");
+        // Disable proxy worker — blob: workers are blocked in the extension sandbox.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (env as any).backends.onnx.wasm.proxy = false;
+      }
     } catch { /* ignore — onnx backend may not be initialised yet */ }
 
     console.log(
