@@ -101,7 +101,7 @@ const PENDING_SIGNALS = [
 ];
 
 const CODE_FENCE_RE = /```(\w*)\n?([\s\S]*?)```/g;
-const FILE_PATH_IN_FENCE = /^(?:\/|\.\.?\/|(?:[a-zA-Z]:[\\/])?)[\w/\\.\-]+\.\w{1,8}$/m;
+const FILE_PATH_IN_FENCE = /^(?:\/|\.\.?\/|(?:[a-zA-Z]:[\\/])?)[\w/\\.-]+\.\w{1,8}$/m;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
