@@ -8,8 +8,13 @@
 // packages/browser-extension/src/content/deepseek.ts
 import { extractMessageContent, injectWithRetry, runCapturePipeline, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
+import { getPlatformSelectors, type PlatformSelectors } from "@/lib/remote-config";
 
 console.log("[ContextMover] DeepSeek content script loaded");
+
+// Pre-warm remote selector config at load time.
+let _remoteSelectors: PlatformSelectors | null = null;
+getPlatformSelectors("deepseek").then((s) => { _remoteSelectors = s; }).catch(() => {});
 
 function isStreaming(el: HTMLElement): boolean {
   return (
@@ -26,10 +31,11 @@ function scrapeMessages(): Message[] {
   const collected: Entry[] = [];
   const hasAsst = () => collected.some((e) => e.role === "assistant");
 
-  // ── Strategy A: data-message-author-role (ChatGPT-compatible) ───────────────
+  // ── Strategy A: data-message-author-role (remote messageSelector overrides) ──
   {
-    const els = [...document.querySelectorAll<HTMLElement>("[data-message-author-role]")]
-      .filter((el) => !el.parentElement?.closest("[data-message-author-role]") && !isStreaming(el));
+    const msgSel = _remoteSelectors?.messageSelector ?? "[data-message-author-role]";
+    const els = [...document.querySelectorAll<HTMLElement>(msgSel)]
+      .filter((el) => !el.parentElement?.closest(msgSel) && !isStreaming(el));
     for (const el of els) {
       const role = el.dataset.messageAuthorRole;
       if (role === "user" || role === "assistant") collected.push({ el, role });
@@ -39,8 +45,8 @@ function scrapeMessages(): Message[] {
 
   // ── Strategy B: DeepSeek class patterns ─────────────────────────────────────
   if (!hasAsst()) {
-    const userSel = '[class*="userMessage"], [class*="user-message"], [class*="human-message"], [class*="UserMessage"]';
-    const asstSel = '[class*="ds-markdown"], [class*="markdown-content"], [class*="assistantMessage"], [class*="assistant-message"], [class*="AssistantMessage"], [class*="model-response"]';
+    const userSel = _remoteSelectors?.userSelector ?? '[class*="userMessage"], [class*="user-message"], [class*="human-message"], [class*="UserMessage"]';
+    const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="ds-markdown"], [class*="markdown-content"], [class*="assistantMessage"], [class*="assistant-message"], [class*="AssistantMessage"], [class*="model-response"]';
 
     const userEls = [...document.querySelectorAll<HTMLElement>(userSel)]
       .filter((el) => !el.parentElement?.closest(userSel) && !isStreaming(el));

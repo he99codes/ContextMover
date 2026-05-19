@@ -8,10 +8,36 @@
 // packages/browser-extension/src/content/chatgpt.ts
 import { extractContent, injectWithRetry, runCapturePipeline, sendCapture, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "./shared";
+import { getPlatformSelectors, type PlatformSelectors } from "@/lib/remote-config";
+
+// Pre-warm remote selector config at load time.
+let _remoteSelectors: PlatformSelectors | null = null;
+getPlatformSelectors("chatgpt").then((s) => { _remoteSelectors = s; }).catch(() => {});
 
 // ── DIAGNOSTIC STAGE 1 ────────────────────────────────────────────────────────
 function scrapeMessages(): Message[] {
   const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
+
+  // Strategy 0 (remote override): messageSelector replaces the attribute query;
+  // contentSelector replaces the inner content element selector.
+  // Falls through to hardcoded strategy if 0 results.
+  if (_remoteSelectors?.messageSelector) {
+    document.querySelectorAll(_remoteSelectors.messageSelector).forEach(el => {
+      const role = el.getAttribute('data-message-author-role')
+      if (role !== 'user' && role !== 'assistant') return
+      if (el.getAttribute('data-is-streaming') === 'true') return
+      found.push({ el, role })
+    })
+    if (found.length > 0) {
+      const contentSel = _remoteSelectors.contentSelector ?? '.markdown, .whitespace-pre-wrap'
+      return found.map(({ el, role }) => ({
+        role,
+        content: extractContent(el.querySelector<HTMLElement>(contentSel) ?? el as HTMLElement),
+        timestamp: Date.now()
+      })).filter(m => m.content.trim().length > 0)
+    }
+    console.debug('[CM:chatgpt] remote selectors returned 0 — falling through to hardcoded')
+  }
 
   document.querySelectorAll('[data-message-author-role]').forEach(el => {
     const role = el.getAttribute('data-message-author-role')

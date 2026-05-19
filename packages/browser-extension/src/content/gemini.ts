@@ -8,6 +8,11 @@
 // packages/browser-extension/src/content/gemini.ts
 import { extractContent, injectWithRetry, runCapturePipeline, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "./shared";
+import { getPlatformSelectors, type PlatformSelectors } from "@/lib/remote-config";
+
+// Pre-warm remote selector config at load time.
+let _remoteSelectors: PlatformSelectors | null = null;
+getPlatformSelectors("gemini").then((s) => { _remoteSelectors = s; }).catch(() => {});
 
 // ── DIAGNOSTIC STAGE 1 ────────────────────────────────────────────────────────
 // Per-element streaming guard — skip messages still being generated.
@@ -19,8 +24,9 @@ function isStreaming(el: Element): boolean {
 }
 
 function scrapeMessages(): Message[] {
-  const userSel = 'user-query, .user-query, [class*="user-query"]'
-  const asstSel = 'model-response, .model-response, [class*="model-response"]'
+  // Remote selectors override hardcoded defaults when present.
+  const userSel = _remoteSelectors?.userSelector ?? 'user-query, .user-query, [class*="user-query"]'
+  const asstSel = _remoteSelectors?.assistantSelector ?? 'model-response, .model-response, [class*="model-response"]'
 
   const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
 

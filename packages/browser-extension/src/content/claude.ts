@@ -20,8 +20,14 @@
 //   This file now does only DOM scraping + injection.
 import { extractContent, injectWithRetry, runCapturePipeline, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "./shared";
+import { getPlatformSelectors, type PlatformSelectors } from "@/lib/remote-config";
 
 console.log("[ContextMover] Claude content script loaded");
+
+// Pre-warm remote selector config at load time so scrapeMessages() can use it
+// synchronously. Failures are silently swallowed — hardcoded defaults take over.
+let _remoteSelectors: PlatformSelectors | null = null;
+getPlatformSelectors("claude").then((s) => { _remoteSelectors = s; }).catch(() => {});
 
 // Per-element streaming guard — skip turns where Claude is still generating
 // so we don't persist half-complete assistant output. Claude marks streaming
@@ -66,7 +72,31 @@ function scrapeMessages(): Message[] {
   // Scope queries to the actual chat area. Claude renders the sidebar
   // conversation list and other UI chrome in the document too — querying the
   // whole document caught 167 elements that weren't real conversation turns.
-  const scope: ParentNode = document.querySelector('main') ?? document
+  const scopeSel = _remoteSelectors?.messageScope ?? 'main'
+  const scope: ParentNode = document.querySelector(scopeSel) ?? document
+
+  // Strategy 0 (remote override): use server-pushed selectors when available.
+  // If they return 0 results, fall through to hardcoded strategies unchanged.
+  if (_remoteSelectors?.userSelector || _remoteSelectors?.assistantSelector) {
+    if (_remoteSelectors.userSelector) {
+      scope.querySelectorAll<HTMLElement>(_remoteSelectors.userSelector)
+        .forEach(el => { if (!isStreaming(el)) found.push({ el, role: 'user' }) })
+    }
+    if (_remoteSelectors.assistantSelector) {
+      scope.querySelectorAll<HTMLElement>(_remoteSelectors.assistantSelector)
+        .forEach(el => { if (!isStreaming(el)) found.push({ el, role: 'assistant' }) })
+    }
+    if (found.length > 0) {
+      console.log(`[CM:claude] remote selectors matched: ${found.length} turns`)
+      found.sort((a, b) =>
+        a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+      )
+      return found
+        .map(({ el, role }) => ({ role, content: extractContent(el), timestamp: Date.now() }))
+        .filter(m => m.content.trim().length > 0)
+    }
+    console.debug('[CM:claude] remote selectors returned 0 — falling through to hardcoded')
+  }
 
   // Primary selectors — role assigned from the selector itself, never from
   // DOM position or class-substring guessing.

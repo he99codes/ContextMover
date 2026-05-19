@@ -8,8 +8,13 @@
 // packages/browser-extension/src/content/perplexity.ts
 import { extractMessageContent, injectWithRetry, runCapturePipeline, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "@/lib/types";
+import { getPlatformSelectors, type PlatformSelectors } from "@/lib/remote-config";
 
 console.log("[ContextMover] Perplexity content script loaded");
+
+// Pre-warm remote selector config at load time.
+let _remoteSelectors: PlatformSelectors | null = null;
+getPlatformSelectors("perplexity").then((s) => { _remoteSelectors = s; }).catch(() => {});
 
 function isStreaming(el: HTMLElement): boolean {
   return (
@@ -26,10 +31,11 @@ function scrapeMessages(): Message[] {
   const collected: Entry[] = [];
   const hasAsst = () => collected.some((e) => e.role === "assistant");
 
-  // ── Strategy A: data-message-role attribute ─────────────────────────────────
+  // ── Strategy A: data-message-role attribute (remote messageSelector overrides) ──
   {
-    const els = [...document.querySelectorAll<HTMLElement>("[data-message-role]")]
-      .filter((el) => !el.parentElement?.closest("[data-message-role]") && !isStreaming(el));
+    const msgSel = _remoteSelectors?.messageSelector ?? "[data-message-role]";
+    const els = [...document.querySelectorAll<HTMLElement>(msgSel)]
+      .filter((el) => !el.parentElement?.closest(msgSel) && !isStreaming(el));
     for (const el of els) {
       const role = el.dataset.messageRole;
       if (role === "user" || role === "assistant") collected.push({ el, role });
@@ -39,8 +45,8 @@ function scrapeMessages(): Message[] {
 
   // ── Strategy B: class substrings — UserMessage / AnswerText / answer-block ─
   if (!hasAsst()) {
-    const userSel = '[class*="UserMessage"], [class*="user-query"], [class*="query-bubble"], [class*="user-message"]';
-    const asstSel = '[class*="AnswerText"], [class*="answer-text"], [class*="model-answer"], [class*="assistant-message"], [class*="prose"][class*="answer"], .answer-block, [class*="answer-block"]';
+    const userSel = _remoteSelectors?.userSelector ?? '[class*="UserMessage"], [class*="user-query"], [class*="query-bubble"], [class*="user-message"]';
+    const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="AnswerText"], [class*="answer-text"], [class*="model-answer"], [class*="assistant-message"], [class*="prose"][class*="answer"], .answer-block, [class*="answer-block"]';
 
     const userEls = [...document.querySelectorAll<HTMLElement>(userSel)]
       .filter((el) => !el.parentElement?.closest(userSel) && !isStreaming(el));

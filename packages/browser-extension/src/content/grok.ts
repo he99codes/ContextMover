@@ -8,8 +8,13 @@
 // packages/browser-extension/src/content/grok.ts
 import { extractContent, injectWithRetry, runCapturePipeline, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "./shared";
+import { getPlatformSelectors, type PlatformSelectors } from "@/lib/remote-config";
 
 console.log("[ContextMover] Grok content script loaded");
+
+// Pre-warm remote selector config at load time.
+let _remoteSelectors: PlatformSelectors | null = null;
+getPlatformSelectors("grok").then((s) => { _remoteSelectors = s; }).catch(() => {});
 
 // Per-element streaming guard — skips messages still being generated so we
 // don't persist half-complete assistant output.
@@ -23,9 +28,10 @@ function isStreaming(el: Element): boolean {
 }
 
 function scrapeMessages(): Message[] {
-  const userSel =
+  // Remote selectors override hardcoded defaults when present.
+  const userSel = _remoteSelectors?.userSelector ??
     '[class*="usermessage"], [class*="user-message"], [class*="UserMessage"]'
-  const asstSel =
+  const asstSel = _remoteSelectors?.assistantSelector ??
     '[class*="assistantmessage"], [class*="assistant-message"], [class*="AssistantMessage"], [class*="response-content-markdown"]'
 
   const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []

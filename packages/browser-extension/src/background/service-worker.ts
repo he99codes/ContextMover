@@ -24,6 +24,7 @@ import { buildInstructionPrompt } from "@/lib/instruction-builder"
 import { checkUsage, incrementUsage } from "@/lib/usage-client"
 import type { MigrationFile } from "@/lib/file-builder"
 import { fetchSummary, fetchMigrationBuild } from "@/lib/server-intelligence-client"
+import { getRemoteConfig } from "@/lib/remote-config"
 // Drive sync — additive layer over IndexedDB. Independent of Supabase vault.
 import { driveClient } from "@/lib/drive/drive-client";
 import { driveSyncManager } from "@/lib/drive/sync-manager";
@@ -358,11 +359,38 @@ void (async () => {
   void migrateFromContextForge();
 })();
 
+// ── Remote config: warm cache hourly so content scripts always have fresh selectors ──
+const RC_ALARM = "CM_CONFIG_REFRESH";
+
+async function refreshRemoteConfig(): Promise<void> {
+  try {
+    // Force-expire the cache by clearing the timestamp, then call getRemoteConfig
+    // which will fetch fresh and re-cache.
+    await chrome.storage.local.remove("remoteConfigTs");
+    const cfg = await getRemoteConfig();
+    if (cfg) {
+      console.log(`[CM:config] Remote config refreshed, version ${cfg.version}`);
+    } else {
+      console.log("[CM:config] Remote config fetch failed, using defaults");
+    }
+  } catch (err) {
+    console.log("[CM:config] Remote config fetch failed, using defaults:", err);
+  }
+}
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === RC_ALARM) void refreshRemoteConfig();
+});
+
 chrome.runtime.onInstalled.addListener(async () => {
   console.log("[ContextMover] Extension installed.");
   // Belt-and-braces: also trigger on install/update so a fresh-install path
   // during the legacy database upgrade to ContextMover is always covered.
   await migrateFromContextForge().catch(() => { /* non-fatal */ });
+
+  // Warm remote selector config immediately, then refresh hourly.
+  void refreshRemoteConfig();
+  chrome.alarms.create(RC_ALARM, { delayInMinutes: 60, periodInMinutes: 60 });
 
   const existing = await chrome.storage.local.get(["sessions"]);
   if (!existing.sessions) await chrome.storage.local.set({ sessions: [] });
