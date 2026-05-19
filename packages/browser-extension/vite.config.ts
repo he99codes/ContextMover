@@ -34,7 +34,7 @@ function stripNonCmLogs(): Plugin {
 async function obfuscatorPlugin(): Promise<Plugin> {
   const { default: obfuscatorRollup } = await import("rollup-plugin-obfuscator");
   return obfuscatorRollup({
-    fileOptions: {
+    options: {
       compact: true,
       controlFlowFlattening: true,
       controlFlowFlatteningThreshold: 0.75,
@@ -56,16 +56,20 @@ async function obfuscatorPlugin(): Promise<Plugin> {
       transformObjectKeys: true,
       unicodeEscapeSequence: false,
     },
-    // Exclude chunks that are either WASM-adjacent (embedding worker, offscreen)
-    // or vendor-bundled. CF-flattening these causes > 2× size bloat for zero
-    // readability gain since they are not application IP.
-    include: [/src\/(sidebar|content|lib|background)\//],
+    // Only obfuscate JS/TS source — never HTML/CSS/JSON/WASM (the obfuscator
+    // crashes on non-JS input with "Unexpected token (1:0)"). The extension
+    // entries are .html files; Vite passes them through transform() too.
+    include: [/src\/(sidebar|content|lib|background)\/.*\.(ts|tsx|js|mjs)$/],
     exclude: [
       /node_modules/,
       /embedding\.worker/,
       /offscreen/,
       /vendor/,
       /chunk-/,
+      /\.html$/,
+      /\.css$/,
+      /\.json$/,
+      /\.wasm$/,
     ],
   }) as Plugin;
 }
@@ -108,16 +112,11 @@ export default defineConfig(async ({ mode }) => {
         },
       },
       target: "esnext",
-      // Task 5: minify in production, unminified in dev (faster rebuilds)
-      minify: isProd ? "terser" : false,
-      terserOptions: isProd ? {
-        compress: {
-          drop_debugger: true,
-          passes: 2,
-        },
-        mangle: { toplevel: false },
-        format: { comments: false },
-      } : undefined,
+      // Task 5: obfuscator (compact:true) handles minification + comment
+      // stripping in production. Running Vite's built-in terser AFTER the
+      // obfuscator double-parses the string-array IIFE and fails with
+      // "Unexpected token". Disable Vite minify in prod — obfuscator owns it.
+      minify: false,
       // Task 5: never emit source maps in production
       sourcemap: false,
     },
