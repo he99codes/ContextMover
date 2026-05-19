@@ -17,6 +17,13 @@ dist/
 *.pfx
 secrets/
 .secrets/
+.secret
+**/*.env
+extension-builds/
+
+# Extension build artefacts (zips, crx, pem) — never commit
+*.crx
+*.zip
 
 # Next.js build output
 .next/
