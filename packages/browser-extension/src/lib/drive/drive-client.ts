@@ -66,26 +66,30 @@ const FLOW_TOKEN_TTL_MS = 55 * 60 * 1000;
 
 class DriveClient {
   /**
-   * Resolve an OAuth token. Tries the primary chrome.identity.getAuthToken
-   * path first; on interactive failure, falls back to launchWebAuthFlow.
+   * Resolve an OAuth token via launchWebAuthFlow exclusively.
+   *
+   * chrome.identity.getAuthToken is intentionally skipped. It requires
+   * the extension ID to be registered under "Chrome Apps" in Google Cloud
+   * Console, which is only possible AFTER Chrome Web Store publish.
+   * Pre-publish and sideloaded installs always receive "bad client id".
+   *
+   * TODO (post-publish): add the production extension ID to the OAuth
+   * client in Google Cloud Console, then consider re-enabling getAuthToken
+   * as a fast-path for already-signed-in users.
+   *
    * Never throws — returns null on any failure.
    */
   private async getToken(interactive = false): Promise<string | null> {
     if (typeof chrome === "undefined" || !chrome.identity) return null;
 
-    // 1. Our own launchWebAuthFlow cache (only populated if we previously
-    //    fell back). Cheap check; avoids hitting chrome.identity at all.
+    // 1. Our own launchWebAuthFlow token cache. Valid for ~55 min.
     const cached = await this.readFlowToken();
     if (cached) return cached;
 
-    // 2. Primary path: chrome.identity.getAuthToken.
-    const silent = await this.callGetAuthToken(false);
-    if (silent) return silent;
+    // 2. Non-interactive: no cached token → caller must prompt the user.
     if (!interactive) return null;
-    const fresh = await this.callGetAuthToken(true);
-    if (fresh) return fresh;
 
-    // 3. Fallback path: launchWebAuthFlow. Only reached when interactive.
+    // 3. launchWebAuthFlow — the only path used pre-publish.
     const flowToken = await this.callLaunchWebAuthFlow();
     if (flowToken) await this.writeFlowToken(flowToken);
     return flowToken;
