@@ -40,10 +40,16 @@ export function getMessagesFromChunks(
       messages.push(session.messages[chunk.messageIndex])
     }
   }
-  session.messages.slice(-6).forEach(m => {
-    const idx = session.messages.indexOf(m)
-    if (!seen.has(idx)) { seen.add(idx); messages.push(m) }
-  })
+  // Only tail-pad when the attention engine returned very few chunks.  When
+  // chunks.length >= 5 the semantic filter already selected the relevant set;
+  // unconditionally appending the tail would silently erase that filtering and
+  // produce a T3 file identical in message count to T1.
+  if (chunks.length < 5) {
+    session.messages.slice(-10).forEach(m => {
+      const idx = session.messages.indexOf(m)
+      if (!seen.has(idx)) { seen.add(idx); messages.push(m) }
+    })
+  }
   return messages.sort((a, b) =>
     session.messages.indexOf(a) - session.messages.indexOf(b)
   )
@@ -166,6 +172,20 @@ export function buildTier3File(
 ): MigrationFile {
   const retrievedMessages = getMessagesFromChunks(chunks, session)
 
+  // Build per-message relevance score lookup from attentionMap when available.
+  // Key = message content string; value = highest relevanceScore among all chunks
+  // that reference this message.  Used to annotate each <message> tag so the
+  // receiving model can see which turns were most topically relevant.
+  const scoreByContent = new Map<string, number>()
+  if (attentionMap) {
+    for (const ac of attentionMap.topChunks) {
+      if (ac.type === 'message') {
+        const prev = scoreByContent.get(ac.content) ?? 0
+        if (ac.relevanceScore > prev) scoreByContent.set(ac.content, ac.relevanceScore)
+      }
+    }
+  }
+
   const content = `<?xml version="1.0" encoding="UTF-8"?>
 <contextmover_migration tier="3" type="attention_engine">
 
@@ -174,6 +194,7 @@ export function buildTier3File(
     <session_title><![CDATA[${session.title}]]></session_title>
     <original_message_count>${session.messages.length}</original_message_count>
     <retrieved_chunks>${chunks.length}</retrieved_chunks>
+    <retrieved_messages>${retrievedMessages.length}</retrieved_messages>
     <task><![CDATA[${task}]]></task>
     <exported_at>${new Date().toISOString()}</exported_at>
     <tier>Attention Engine — semantically focused</tier>
@@ -198,10 +219,14 @@ export function buildTier3File(
   </instructions_for_ai>
 
   <focused_context>
-${retrievedMessages.map((m: Message, i: number) => `
-    <message index="${i + 1}" role="${m.role}">
+${retrievedMessages.map((m: Message, i: number) => {
+  const score = scoreByContent.get(m.content)
+  const scoreAttr = score !== undefined ? ` score="${score.toFixed(3)}"` : ''
+  return `
+    <message index="${i + 1}" role="${m.role}"${scoreAttr}>
       <![CDATA[${m.content}]]>
-    </message>`).join('')}
+    </message>`
+}).join('')}
   </focused_context>
 
 </contextmover_migration>`

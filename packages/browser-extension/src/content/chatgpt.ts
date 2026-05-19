@@ -30,15 +30,20 @@ function scrapeMessages(): Message[] {
     })
     if (found.length > 0) {
       const contentSel = _remoteSelectors.contentSelector ?? '.markdown, .whitespace-pre-wrap'
-      return found.map(({ el, role }) => ({
+      const msgs = found.map(({ el, role }) => ({
         role,
         content: extractContent(el.querySelector<HTMLElement>(contentSel) ?? el as HTMLElement),
         timestamp: Date.now()
       })).filter(m => m.content.trim().length > 0)
+      const u = msgs.filter(m => m.role === 'user').length
+      const a = msgs.filter(m => m.role === 'assistant').length
+      console.log(`[CM:diag:chatgpt] strategy=0 user=${u} asst=${a}`)
+      return msgs
     }
     console.debug('[CM:chatgpt] remote selectors returned 0 — falling through to hardcoded')
   }
 
+  // Strategy 1 (primary): [data-message-author-role] — stable across all 2026 ChatGPT builds.
   document.querySelectorAll('[data-message-author-role]').forEach(el => {
     const role = el.getAttribute('data-message-author-role')
     if (role !== 'user' && role !== 'assistant') return
@@ -50,13 +55,18 @@ function scrapeMessages(): Message[] {
     a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
   )
 
-  return found.map(({ el, role }) => ({
+  const msgs = found.map(({ el, role }) => ({
     role,
     content: extractContent(
       el.querySelector('.markdown, .whitespace-pre-wrap') ?? el
     ),
     timestamp: Date.now()
   })).filter(m => m.content.trim().length > 0)
+
+  const u = msgs.filter(m => m.role === 'user').length
+  const a = msgs.filter(m => m.role === 'assistant').length
+  console.log(`[CM:diag:chatgpt] strategy=1 user=${u} asst=${a}`)
+  return msgs
 }
 
 // ── Network interceptor — captures ALL messages from the ChatGPT API ──────────
@@ -137,6 +147,9 @@ startSessionCapture({
   platform: "chatgpt",
   selectorOrElement: "main",
   scrapeMessages: () => runCapturePipeline("chatgpt", scrapeMessages),
+  requiresScrollBack: true,
+  getScrollContainerSelector: () => _remoteSelectors?.scrollContainer,
+  extraCaptureDelays: [1500, 3000],
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {

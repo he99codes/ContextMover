@@ -121,6 +121,8 @@ function MigrationSuccess({
   migrationFile,
   cacheKey,
   injected,
+  injectionError,
+  qualityWarning,
   elapsed,
   targetPlatform,
   onClose
@@ -135,6 +137,8 @@ function MigrationSuccess({
   }
   cacheKey: string
   injected: boolean
+  injectionError?: string
+  qualityWarning?: string
   elapsed: number
   targetPlatform: string
   onClose: () => void
@@ -156,6 +160,8 @@ function MigrationSuccess({
   // so it is never reconstructed on every render. It is only rebuilt when
   // fileContent itself changes (see the useEffect below).
   const fileRef = useRef<File | null>(null)
+  // Blob URL created at dragstart; revoked at dragend to avoid memory leaks.
+  const dragUrlRef = useRef<string | null>(null)
 
   const [fileReady, setFileReady] = useState(false)
   const [fetchError, setFetchError] = useState(false)
@@ -281,13 +287,32 @@ function MigrationSuccess({
             letterSpacing:'0.1em' }}>
             Migration complete
           </div>
-          <div style={{ fontSize:'10px', color:'#6B6B6B', marginTop:'2px' }}>
+          <div style={{ fontSize:'10px', color: (!injected && injectionError) ? '#EF4444' : '#6B6B6B', marginTop:'2px' }}>
             {injected
               ? `Instructions injected into ${targetPlatform} ✓`
+              : injectionError
+              ? injectionError
               : `Open ${targetPlatform} and paste instructions`}
           </div>
         </div>
       </div>
+
+      {/* ── Tier-fallback quality badge ── */}
+      {qualityWarning && (
+        <div style={{
+          marginBottom: '12px',
+          padding: '6px 10px',
+          background: 'rgba(239,68,68,0.07)',
+          border: '1px solid rgba(239,68,68,0.22)',
+          borderRadius: '4px',
+          fontSize: '9px',
+          color: '#EF4444',
+          letterSpacing: '0.04em',
+          lineHeight: '1.4',
+        }}>
+          {'⚠️ Context: Compressed — '}{qualityWarning}
+        </div>
+      )}
 
       {fetchError ? (
         <div style={{
@@ -372,29 +397,37 @@ function MigrationSuccess({
               tabIndex={0}
               draggable={true}
               onDragStart={(e) => {
-                const file = fileRef.current
-                if (!file) {
+                if (!fileContent) {
                   e.preventDefault()
                   setDragState('failed')
                   handleDownload()
                   return
                 }
                 try { e.dataTransfer.clearData() } catch { /* ok */ }
-                e.dataTransfer.items.add(file)
-                // Immediately check whether the File was actually accepted.
-                // items.add() silently no-ops when Chromium's extension→page
-                // security boundary blocks the transfer; items.length === 0
-                // is the only reliable signal of that failure.
-                if (e.dataTransfer.items.length === 0) {
-                  e.preventDefault()
-                  setDragState('failed')
-                  handleDownload()
-                  return
-                }
+                // Primary: DownloadURL — Chrome resolves this at the OS drag
+                // layer, bypassing the extension→page security boundary that
+                // silently drops dataTransfer.items.add(File).
+                const blob = new Blob([fileContent], { type: 'application/xml' })
+                const url = URL.createObjectURL(blob)
+                dragUrlRef.current = url
+                e.dataTransfer.setData(
+                  'DownloadURL',
+                  `application/xml:${migrationFile.filename}:${url}`
+                )
+                e.dataTransfer.setData('text/plain', migrationFile.filename)
+                // Secondary: items.add — works in same-origin contexts but
+                // silently no-ops across the extension→page boundary; we
+                // don't abort if it fails since DownloadURL is the primary.
+                const file = fileRef.current
+                if (file) { try { e.dataTransfer.items.add(file) } catch { /* blocked, ok */ } }
                 e.dataTransfer.effectAllowed = 'copy'
                 setDragState('dragging')
               }}
               onDragEnd={() => {
+                if (dragUrlRef.current) {
+                  URL.revokeObjectURL(dragUrlRef.current)
+                  dragUrlRef.current = null
+                }
                 if (dragState === 'dragging') {
                   setDragState('success')
                   deleteCachedFile()
@@ -546,10 +579,15 @@ export default function MigrationModal({
   const [migrateProgress, setMigrateProgress] = useState(0);
   const [migrateStage, setMigrateStage] = useState("");
   const [downgradedToast, setDowngradedToast] = useState<string | null>(null);
+  const [qualityWarning, setQualityWarning] = useState<string | null>(null);
   const [migrationResult, setMigrationResult] = useState<any>(null);
   const userHasManuallySelected = useRef(false);
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref-copy of qualityWarning — readable synchronously inside the migration
+  // response callback (React state updates are async so the state value can
+  // lag behind when the response handler fires).
+  const qualityWarningRef = useRef<string | null>(null);
   // Prompt Engine state
   const [promptTemplateId, setPromptTemplateId] = useState<string | null>(null);
   const [promptExpanded, setPromptExpanded] = useState(false);
@@ -589,7 +627,7 @@ export default function MigrationModal({
 
   // ── Listen for migration progress + downgrade events ────────────────────────
   useEffect(() => {
-    const handler = (msg: { type: string; progress?: number; stage?: string; from?: number; to?: number; reason?: string }) => {
+    const handler = (msg: { type: string; progress?: number; stage?: string; from?: number; to?: number; reason?: string; originalTier?: number; fallbackTier?: number }) => {
       if (msg.type === "MIGRATION_PROGRESS") {
         setMigrateProgress(msg.progress ?? 0);
         setMigrateStage(msg.stage ?? "");
@@ -597,6 +635,12 @@ export default function MigrationModal({
         const reason = msg.reason === "timeout" ? "8s timeout" : "slow device";
         setDowngradedToast(`Used Smart Summary (${reason} — Attention Engine skipped)`);
         setTimeout(() => setDowngradedToast(null), 5000);
+      } else if (msg.type === "MIGRATION_QUALITY_WARNING") {
+        const from = msg.originalTier ?? "?", to = msg.fallbackTier ?? 1;
+        const warningText = `Tier ${from}→${to} fallback — context compressed (semantic indexing unavailable)`;
+        qualityWarningRef.current = warningText;
+        setQualityWarning(warningText);
+        setTimeout(() => setQualityWarning(null), 8_000);
       }
     };
     chrome.runtime.onMessage.addListener(handler);
@@ -762,6 +806,7 @@ export default function MigrationModal({
     setMigrateState({ status: "migrating" });
     setMigrateProgress(0);
     setMigrateStage("");
+    qualityWarningRef.current = null; // reset from any previous migration
 
     const tab = await findTargetPlatformTab(targetPlatform);
     if (!tab?.id) {
@@ -846,7 +891,8 @@ export default function MigrationModal({
           return;
         }
         if (response?.success) {
-          setMigrationResult(response);
+          setMigrationResult({ ...response, qualityWarning: qualityWarningRef.current ?? undefined });
+          qualityWarningRef.current = null;
           return;
         }
         const chars = (response?.prompt as string | undefined)?.length ?? 0;
@@ -934,6 +980,12 @@ export default function MigrationModal({
         {hw?.tier === "minimal" && (
           <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F59E0B", letterSpacing: "0.06em", lineHeight: "1" }}>
             ⚠ Slow device — Smart Summary recommended. Attention Engine may take 2+ min.
+          </div>
+        )}
+        {/* ── Quality-warning toast (tier fallback) ── */}
+        {qualityWarning && (
+          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "4px", fontSize: "9px", color: "#EF4444", letterSpacing: "0.04em" }}>
+            {"\u26A0\uFE0F " + qualityWarning}
           </div>
         )}
         {/* ── Tier-downgrade toast ── */}
@@ -1450,6 +1502,8 @@ export default function MigrationModal({
             migrationFile={migrationResult.migrationFile}
             cacheKey={migrationResult.cacheKey}
             injected={migrationResult.injected}
+            injectionError={migrationResult.injectionError}
+            qualityWarning={migrationResult.qualityWarning}
             elapsed={migrationResult.elapsed}
             targetPlatform={targetPlatform}
             onClose={() => { setMigrationResult(null); onClose() }}

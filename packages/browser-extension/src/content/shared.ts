@@ -132,6 +132,13 @@ export function startSessionCapture(config: {
   // e.g. Claude's lazy virtual-scroll mount. The shrink-guard below prevents
   // a late partial scrape from clobbering an earlier complete capture.
   extraCaptureDelays?: number[];
+  // When true, autoScrollBackToTop runs once at startup to force lazy-rendered
+  // history into the DOM before the first scrape. Required for ChatGPT, Gemini,
+  // Claude (long sessions), and DeepSeek which virtualise off-screen turns.
+  requiresScrollBack?: boolean;
+  // Lazy getter for the remote-config scrollContainer selector — evaluated when
+  // autoScrollBackToTop runs so the async remote config has time to load.
+  getScrollContainerSelector?: () => string | undefined;
 }) {
   // Guard against the content script being loaded twice in the same page.
   // This happens when the service worker re-injects on install/reload while
@@ -395,11 +402,6 @@ export function startSessionCapture(config: {
   createObserver(config.selectorOrElement, capture);
 
   // Staggered initial captures — catches lazy-rendered messages at each stage.
-  // Capped at 1500ms: anything later fires AFTER the SW captureInFlight lock
-  // (2.2s) has cleared, by which time virtual-scroll eviction may have removed
-  // older messages from the DOM. Late captures would then overwrite a complete
-  // earlier capture with a partial one. The MutationObserver + scroll listener
-  // + visibilitychange already cover later lazy-render cases.
   void capture();
   setTimeout(capture, 100);
   setTimeout(capture, 500);
@@ -408,6 +410,31 @@ export function startSessionCapture(config: {
   // Platform-specific late captures (e.g. Claude SPA renders at 2–6s).
   if (config.extraCaptureDelays?.length) {
     for (const d of config.extraCaptureDelays) setTimeout(capture, d);
+  }
+
+  // 4A — scroll-back loader: for platforms that virtualise off-screen turns,
+  // scroll the conversation container to the top and wait for the SPA to
+  // hydrate all lazy-rendered history before running an additional capture.
+  // Runs ONCE at init, in parallel with the staggered schedule above.
+  // The shrink-guard ensures this authoritative full-history capture wins over
+  // any partial viewport captures that may have already been sent.
+  if (config.requiresScrollBack) {
+    ;(async () => {
+      const scopeEl: Element =
+        typeof config.selectorOrElement === 'string'
+          ? (document.querySelector(config.selectorOrElement) ?? document.body)
+          : config.selectorOrElement
+      try {
+        console.log(`[CM:${config.platform}] scrollback: starting — loading lazy history`)
+        const restore = await autoScrollBackToTop(scopeEl, config.getScrollContainerSelector)
+        console.log(`[CM:${config.platform}] scrollback: DOM settled — running full capture`)
+        await capture()
+        restore()
+        setTimeout(() => void capture(), 800)
+      } catch (err) {
+        console.warn(`[CM:${config.platform}] scrollback failed:`, err)
+      }
+    })()
   }
   window.addEventListener("load", capture, { once: true });
 
@@ -591,6 +618,90 @@ export function runCapturePipeline(
 }
 
 export const sleep = (ms: number): Promise<void> => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Scroll the conversation container to the top and wait until no new DOM nodes
+ * have appeared for SETTLE_MS (800ms) — signals lazy-loaded history is done.
+ * Hard cap at 30s to prevent hanging on infinite-scroll pages.
+ * Returns a restore function that sets scrollTop back to the original position.
+ *
+ * Detection order for the scroll container:
+ *   1. CSS selector returned by getScrollContainerSelector() (remote config)
+ *   2. Scrollable direct children of scope (SPA pattern — e.g. ChatGPT)
+ *   3. Nearest scrollable ancestor of scope
+ *   4. document.documentElement fallback
+ *
+ * When the container is already at scrollTop=0, returns a no-op immediately.
+ */
+export async function autoScrollBackToTop(
+  scope: Element,
+  getScrollContainerSelector?: () => string | undefined
+): Promise<() => void> {
+  const SETTLE_MS = 800
+  const HARD_CAP_MS = 30_000
+
+  let container: Element | null = null
+
+  const remoteSel = getScrollContainerSelector?.()
+  if (remoteSel) {
+    container = document.querySelector(remoteSel)
+  }
+
+  if (!container) {
+    for (const child of Array.from(scope.children)) {
+      const cs = getComputedStyle(child)
+      if (
+        (cs.overflowY === 'auto' || cs.overflowY === 'scroll') &&
+        child.scrollHeight > child.clientHeight + 4
+      ) {
+        container = child
+        break
+      }
+    }
+  }
+
+  if (!container) {
+    let el: Element | null = scope.parentElement
+    while (el && el !== document.documentElement) {
+      const cs = getComputedStyle(el)
+      if (
+        (cs.overflowY === 'auto' || cs.overflowY === 'scroll') &&
+        el.scrollHeight > el.clientHeight + 4
+      ) {
+        container = el
+        break
+      }
+      el = el.parentElement
+    }
+  }
+
+  if (!container) container = document.documentElement
+
+  const originalScrollTop = container.scrollTop
+  if (originalScrollTop === 0) return () => { /* already at top */ }
+
+  const target = container
+  await new Promise<void>((resolve) => {
+    let settleTimer: ReturnType<typeof setTimeout> | null = null
+    const done = () => {
+      obs.disconnect()
+      clearTimeout(hardCapTimer)
+      if (settleTimer) clearTimeout(settleTimer)
+      resolve()
+    }
+    const hardCapTimer = setTimeout(done, HARD_CAP_MS)
+    const resetSettle = () => {
+      if (settleTimer) clearTimeout(settleTimer)
+      settleTimer = setTimeout(done, SETTLE_MS)
+    }
+    const obs = new MutationObserver(resetSettle)
+    obs.observe(target, { childList: true, subtree: true })
+    target.scrollTop = 0
+    resetSettle()
+  })
+
+  return () => { target.scrollTop = originalScrollTop }
+}
 
 /**
  * Retries setPromptInputValue up to maxAttempts times with exponential backoff.

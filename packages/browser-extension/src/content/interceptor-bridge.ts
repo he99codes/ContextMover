@@ -19,6 +19,7 @@ import { resolveSessionId, makeLegacyChecker } from "@/lib/session-id";
 import type { Message, Platform } from "@/lib/types";
 
 type CapturedMessage = Message & {
+  id?: string;                // platform message ID — used for ID-first dedup in mergeMessages
   codeBlocks?: { language: string; code: string }[];
   toolCalls?: Array<{ id: string; name: string; arguments: string; result?: string }>;
   artifacts?: Array<{ type: string; title?: string; language?: string; content?: string; url?: string }>;
@@ -134,6 +135,7 @@ function install() {
             role: m.role,
             content: m.content,
             timestamp: typeof m.timestamp === "number" ? m.timestamp : Date.now(),
+            ...(typeof m.id === "string" && m.id ? { id: m.id } : {}),
             ...(Array.isArray(m.codeBlocks) && m.codeBlocks.length > 0
               ? { codeBlocks: m.codeBlocks }
               : {}),
@@ -267,9 +269,10 @@ function capMessage(m: CapturedMessage): CapturedMessage {
 }
 
 // Merge a freshly-captured batch with previously-known messages.  Strategy:
-//   • Use (role + first 80 chars of content) as a fingerprint.
-//   • If a fresh message matches an existing fingerprint, REPLACE it (the new
-//     copy is more complete — assistant streams grow over time).
+//   • If a fresh message carries a platform ID, try ID-based match first —
+//     more precise than content fingerprinting and handles truncation.
+//   • Fall back to (role + first 80 chars of content) fingerprint.
+//   • If a match is found, REPLACE with the longer copy (streams grow over time).
 //   • Otherwise APPEND.
 function mergeMessages(prior: CapturedMessage[], fresh: CapturedMessage[]): CapturedMessage[] {
   // If accumulator is already at the size cap, stop merging — forward as-is.
@@ -282,6 +285,14 @@ function mergeMessages(prior: CapturedMessage[], fresh: CapturedMessage[]): Capt
   const out = [...prior];
   for (const m of fresh) {
     const capped = capMessage(m);
+    // Try ID-based match first (API messages carry IDs; DOM scrapes do not).
+    const byId = capped.id ? out.findIndex((p) => p.id === capped.id) : -1;
+    if (byId >= 0) {
+      const existing = out[byId];
+      out[byId] = capped.content.length >= existing.content.length ? capped : existing;
+      continue;
+    }
+    // Fall back to content fingerprint.
     const fp = fingerprint(capped);
     const idx = out.findIndex((p) => fingerprint(p) === fp);
     if (idx >= 0) {

@@ -98,15 +98,44 @@ function scrapeMessages(): Message[] {
     console.debug('[CM:claude] remote selectors returned 0 — falling through to hardcoded')
   }
 
-  // Primary selectors — role assigned from the selector itself, never from
-  // DOM position or class-substring guessing.
-  scope.querySelectorAll<HTMLElement>('[data-testid="human-turn"]')
-    .forEach(el => { if (!isStreaming(el)) found.push({ el, role: 'user' }) })
-  scope.querySelectorAll<HTMLElement>('[data-testid="ai-turn"]')
-    .forEach(el => { if (!isStreaming(el)) found.push({ el, role: 'assistant' }) })
+  // Primary selectors — each queried independently so the per-selector
+  // outermost guard (closest) never cross-contaminates across selector variants.
+  // This prevents .font-claude-response (nested inside .font-claude-message)
+  // from being filtered out when the two selectors share a combined string.
+  const primaryUserCandidates = [
+    '[data-testid="human-turn"]',
+    '[data-testid="user-message"]',
+  ];
+  const primaryAsstCandidates = [
+    '[data-testid="assistant-message"]',
+    '[data-testid="ai-turn"]',
+    '.font-claude-message',
+    '.font-claude-response',
+  ];
+
+  for (const sel of primaryUserCandidates) {
+    const els = Array.from(scope.querySelectorAll<HTMLElement>(sel))
+      .filter(el => !el.parentElement?.closest(sel) && !isStreaming(el));
+    if (els.length > 0) {
+      els.forEach(el => found.push({ el, role: 'user' }));
+      console.log(`[CM:diag:claude] primary user matched via ${sel}: ${els.length}`);
+      break;
+    }
+  }
+  for (const sel of primaryAsstCandidates) {
+    const els = Array.from(scope.querySelectorAll<HTMLElement>(sel))
+      .filter(el => !el.parentElement?.closest(sel) && !isStreaming(el));
+    if (els.length > 0) {
+      els.forEach(el => found.push({ el, role: 'assistant' }));
+      console.log(`[CM:diag:claude] primary asst matched via ${sel}: ${els.length}`);
+      break;
+    }
+  }
 
   if (found.length > 0) {
-    console.log(`[CM:claude] primary selectors matched: ${found.length} turns`)
+    const u = found.filter(e => e.role === 'user').length;
+    const a = found.filter(e => e.role === 'assistant').length;
+    console.log(`[CM:diag:claude] primary selectors matched: user=${u} asst=${a}`)
   }
 
   // Fallback A: 2024-2025 Claude markers. user is stable as
@@ -194,6 +223,21 @@ function scrapeMessages(): Message[] {
     }
   }
 
+  // Fallback D: prose content blocks. When no role-aware selector matches,
+  // collect .prose / [class*="prose"] elements inside any visible container —
+  // Claude renders all assistant responses inside a prose wrapper.
+  // Only used as assistant captures; role assignment is conservative (all asst).
+  if (found.length === 0) {
+    const proseSel = 'div[class*="prose"], div.prose'
+    const proseEls = Array.from(scope.querySelectorAll<HTMLElement>(proseSel))
+      .filter(el => !el.parentElement?.closest(proseSel) && !isStreaming(el))
+      .filter(el => (el.textContent ?? '').trim().length > 20)
+    if (proseEls.length > 0) {
+      proseEls.forEach(el => found.push({ el, role: 'assistant' }))
+      console.log(`[CM:diag:claude] fallback D (prose) matched: ${proseEls.length} asst blocks`)
+    }
+  }
+
   if (found.length === 0) {
     console.warn('[CM:claude] all selectors returned 0 — structural fallback will run next')
   }
@@ -216,12 +260,16 @@ startSessionCapture({
   platform: "claude",
   selectorOrElement: "main",
   scrapeMessages: () => runCapturePipeline("claude", scrapeMessages),
-  // Claude's SPA can take 2\u20136s to render messages after route changes (lazy
+  // Claude's SPA can take 2–6s to render messages after route changes (lazy
   // virtual-scroll mount). The default capture schedule (immediate, 100,
   // 500, 1000, 1500ms) misses these late renders. Add 3s and 6s as a safety
-  // net \u2014 the SW's shrink-guard prevents these late captures from clobbering
+  // net — the SW's shrink-guard prevents these late captures from clobbering
   // a complete earlier capture with a partial one.
   extraCaptureDelays: [3000, 6000],
+  // Scrollback is a no-op for short/new sessions (originalScrollTop===0);
+  // for long sessions (>100 turns) it loads virtualized history.
+  requiresScrollBack: true,
+  getScrollContainerSelector: () => _remoteSelectors?.scrollContainer,
 });
 
 // Listen for injection requests from the service worker

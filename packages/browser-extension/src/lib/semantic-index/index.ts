@@ -22,17 +22,55 @@ import {
   type StoredSummary,
 } from "../db";
 import type { ContextSession } from "../types";
-import {
-  modelRegistry,
-  MODEL_CONFIGS,
-  type ModelTier,
-} from "./model-registry";
+import { MODEL_CONFIGS, type ModelTier } from "./model-constants";
 import { hashMessages, hashQuery } from "./hasher";
 import { getHardwareProfile, type HardwareProfile } from "../attention-engine";
 
 // ──────────────────────────────────────────────────────────────────────────
 // Cosine similarity helper
 // ──────────────────────────────────────────────────────────────────────────
+/**
+ * BM25-inspired keyword retrieval — used when ML embedding is unavailable
+ * (e.g. when the offscreen document is unreachable in SW context).
+ * Mirrors the cosine-path boosts so scores are comparable.
+ */
+function keywordRetrieve(
+  allChunks: ChunkEmbedding[],
+  query: string,
+  topK: number
+): ChunkEmbedding[] {
+  const tokens = query.toLowerCase().split(/\W+/).filter((t) => t.length > 2);
+  const maxMsgIdx = Math.max(...allChunks.map((c) => c.messageIndex), 0);
+
+  const scored = allChunks.map((chunk) => {
+    const text = chunk.text.toLowerCase();
+    let score = 0;
+    for (const tok of tokens) {
+      let pos = 0;
+      while ((pos = text.indexOf(tok, pos)) !== -1) { score++; pos += tok.length; }
+    }
+    const recency = maxMsgIdx > 0 ? 0.15 * (chunk.messageIndex / maxMsgIdx) : 0;
+    if (chunk.hasCode) score += 0.5;
+    return { chunk, score: score + recency };
+  });
+  scored.sort((a, b) => b.score - a.score);
+
+  // Always keep a recent tail (mirror TAIL_SIZE in attention-engine)
+  const RECENT_WINDOW = maxMsgIdx < 60 ? 6 : maxMsgIdx < 200 ? 10 : 15;
+  const recentCutoff = Math.max(0, maxMsgIdx - RECENT_WINDOW + 1);
+  const recent = allChunks.filter((c) => c.messageIndex >= recentCutoff);
+  const topScored = scored
+    .filter((s) => s.chunk.messageIndex < recentCutoff)
+    .slice(0, Math.max(0, topK - recent.length))
+    .map((s) => s.chunk);
+
+  const seen = new Set<string>();
+  return [...recent, ...topScored]
+    .filter((c) => { if (seen.has(c.id)) return false; seen.add(c.id); return true; })
+    .sort((a, b) => a.messageIndex - b.messageIndex)
+    .slice(0, topK);
+}
+
 function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) return 0;
   let dot = 0, na = 0, nb = 0;
@@ -62,8 +100,20 @@ async function ensureOffscreenDocument(): Promise<void> {
   try {
     // hasDocument is only on Chrome 116+
     const has = await offscreen.hasDocument?.();
-    if (has) return;
-  } catch { /* fall through */ }
+    if (has) {
+      // Verify the doc is alive — it may have crashed without Chrome updating hasDocument.
+      const alive = await new Promise<boolean>((resolve) => {
+        const t = setTimeout(() => resolve(false), 1_500);
+        chrome.runtime.sendMessage({ type: "OFFSCREEN_PING" }, (resp) => {
+          clearTimeout(t);
+          resolve(!chrome.runtime.lastError && resp?.alive === true);
+        });
+      });
+      if (alive) return;
+      console.warn("[CM:offscreen] document unresponsive — closing and recreating");
+      await offscreen.closeDocument?.().catch(() => {});
+    }
+  } catch { /* fall through to createDocument */ }
 
   try {
     await offscreen.createDocument({
@@ -71,11 +121,14 @@ async function ensureOffscreenDocument(): Promise<void> {
       reasons: ["WORKERS"],
       justification: "Run embedding model in a worker for retrieval-first migration",
     });
+    console.log("[CM:offscreen] document created");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (!msg.includes("Only a single offscreen") && !msg.includes("already")) {
+      console.error("[CM:offscreen] document creation failed:", msg);
       throw err;
     }
+    console.log("[CM:offscreen] document already exists");
   }
 }
 
@@ -312,6 +365,9 @@ export class SemanticIndex {
     const chunks = chunkMessages(session.messages);
 
     onProgress?.(15, "Loading model...");
+    // Dynamic import: keeps @xenova/transformers out of the SW bundle.
+    // This path only runs in sidebar/offscreen contexts (SW always uses offscreen).
+    const { modelRegistry } = await import("./model-registry");
     await modelRegistry.initialize(hw, (pct) => {
       onProgress?.(15 + pct * 0.4, "Loading AI model...");
     });
@@ -338,7 +394,7 @@ export class SemanticIndex {
     }));
     await dexieDb.chunkEmbeddings.bulkPut(records);
 
-    const config = modelRegistry.getConfig();
+    const config = (await import("./model-registry")).modelRegistry.getConfig();
     await dexieDb.sessionHashes.put({
       sessionId: session.id,
       hash: hashMessages(session.messages),
@@ -384,22 +440,35 @@ export class SemanticIndex {
       return result;
     }
 
-    // Embed the query — prefer offscreen path, fall back to in-process
+    // Embed the query — prefer offscreen path, fall back to keyword-only
     const hw = await getHardwareProfile();
-    let queryEmbedding: number[];
+    let queryEmbedding: number[] | null = null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hasOffscreen = !!(chrome as any).offscreen;
     if (hasOffscreen) {
       try {
         queryEmbedding = await offscreenEmbedQuery(query, hw);
       } catch (err) {
-        console.warn("[CM:index] Offscreen query embed failed, retrying in-process:", err);
-        await modelRegistry.initialize(hw);
-        queryEmbedding = await modelRegistry.embed(query);
+        // In SW context, DOM is unavailable so in-process model loading fails.
+        // Fall through to keyword-only retrieval — safe in all contexts.
+        console.warn("[CM:index] Offscreen query embed failed — using keyword fallback:", err);
       }
     } else {
-      await modelRegistry.initialize(hw);
-      queryEmbedding = await modelRegistry.embed(query);
+      // Sidebar / page context: safe to load model in-process.
+      try {
+        const { modelRegistry } = await import("./model-registry");
+        await modelRegistry.initialize(hw);
+        queryEmbedding = await modelRegistry.embed(query);
+      } catch (err) {
+        console.warn("[CM:index] In-process embed failed — using keyword fallback:", err);
+      }
+    }
+
+    if (queryEmbedding === null) {
+      const result = keywordRetrieve(allChunks, query, topK);
+      _retrieveCache.set(cacheKey, { results: result, ts: Date.now() });
+      console.log(`[CM:index] Keyword fallback: ${result.length}/${allChunks.length} chunks in ${(performance.now() - t0).toFixed(1)}ms`);
+      return result;
     }
 
     // Multi-signal attention score:
@@ -639,8 +708,10 @@ export class SemanticIndex {
       summaryCount,
       cacheCount,
       estimatedStorageMB,
-      modelTier: modelRegistry.getTier(),
-      modelLabel: modelRegistry.getConfig()?.label ?? null,
+      // modelRegistry is only loaded in offscreen/sidebar contexts.
+      // Return null in SW context — non-critical for stats display.
+      modelTier: null,
+      modelLabel: null,
     };
   }
 

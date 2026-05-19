@@ -236,10 +236,11 @@ class DriveSyncManager {
 
       const index = await driveClient.downloadIndex();
       // No index yet — first connection from this profile.  Build one from
-      // whatever local sessions we already have so other profiles can see them.
+      // whatever is in Drive (may include sessions from other profiles) and
+      // upload local sessions.  Returns the number of Drive sessions imported.
       if (!index) {
-        await this.bootstrapInitialIndex();
-        return { added: 0, updated: 0 };
+        const seeded = await this.bootstrapInitialIndex();
+        return { added: seeded, updated: 0 };
       }
 
       let added = 0;
@@ -325,17 +326,54 @@ class DriveSyncManager {
   }
 
   /**
-   * First-ever sync from this profile: upload every local session and
-   * publish the initial index.  Triggered when downloadIndex() returns null.
+   * First-ever sync from this profile.
+   *
+   * 6B pull-on-connect: list Drive appdata immediately and import every
+   * session not already in the local DB (seeding from other profiles).
+   * Then upload originally-local sessions (already-seeded ones are already
+   * in Drive so we skip them to avoid redundant PATCHes).
+   * Finally rebuild the index to cover everything.
+   *
+   * Returns the number of sessions seeded from Drive.
    */
-  private async bootstrapInitialIndex(): Promise<void> {
+  private async bootstrapInitialIndex(): Promise<number> {
     try {
-      const all = await db.getAllSessions();
-      for (const s of all) await driveClient.uploadSession(s);
+      // Snapshot local sessions BEFORE seeding so we don't re-upload
+      // sessions we are about to download from Drive.
+      const originalLocal = await db.getAllSessions();
+      const localIdSet = new Set(originalLocal.map((s) => s.id));
+
+      // 6B: Seed — download Drive sessions absent from this profile.
+      let seeded = 0;
+      const seededIds: string[] = [];
+      const remoteFiles = await driveClient.listSessionFiles();
+      for (const file of remoteFiles) {
+        const id = file.name.replace(/^session-/, "").replace(/\.json$/, "");
+        if (!id || localIdSet.has(id)) continue;
+        try {
+          const full = await driveClient.downloadSession(file.id);
+          if (full) {
+            await db.saveSession(full);
+            seededIds.push(full.id);
+            seeded++;
+          }
+        } catch (e) {
+          console.warn("[drive-sync] bootstrap seed failed for", file.name, e);
+        }
+      }
+
+      // Upload originally-local sessions (seeded ones are already in Drive).
+      for (const s of originalLocal) await driveClient.uploadSession(s);
       await this.rebuildIndex();
-      console.log(`[drive-sync] bootstrap: uploaded ${all.length} local session(s)`);
+
+      if (seededIds.length) await addSourcedIds(seededIds);
+      console.log(
+        `[drive-sync] bootstrap: seeded ${seeded} from Drive, uploaded ${originalLocal.length} local session(s)`
+      );
+      return seeded;
     } catch (e) {
       console.warn("[drive-sync] bootstrap failed", e);
+      return 0;
     }
   }
 

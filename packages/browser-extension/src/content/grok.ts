@@ -27,28 +27,83 @@ function isStreaming(el: Element): boolean {
   )
 }
 
+function queryOutermost<T extends HTMLElement>(sel: string): T[] {
+  return [...document.querySelectorAll<T>(sel)]
+    .filter(el => !el.parentElement?.closest(sel) && !isStreaming(el))
+}
+
 function scrapeMessages(): Message[] {
-  // Remote selectors override hardcoded defaults when present.
-  const userSel = _remoteSelectors?.userSelector ??
-    '[class*="usermessage"], [class*="user-message"], [class*="UserMessage"]'
-  const asstSel = _remoteSelectors?.assistantSelector ??
-    '[class*="assistantmessage"], [class*="assistant-message"], [class*="AssistantMessage"], [class*="response-content-markdown"]'
-
   const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
+  const hasUser = () => found.some(e => e.role === 'user')
+  const hasAsst = () => found.some(e => e.role === 'assistant')
 
-  // Targeted query + outermost-only filter: if a node's parent also matches
-  // the same selector, skip it — that would be a nested child being
-  // double-captured (e.g. .user-message-bubble inside .user-message).
-  document.querySelectorAll<HTMLElement>(userSel).forEach((el) => {
-    if (el.parentElement?.closest(userSel)) return
-    if (isStreaming(el)) return
-    found.push({ el, role: 'user' })
-  })
-  document.querySelectorAll<HTMLElement>(asstSel).forEach((el) => {
-    if (el.parentElement?.closest(asstSel)) return
-    if (isStreaming(el)) return
-    found.push({ el, role: 'assistant' })
-  })
+  // ── Remote override ──────────────────────────────────────────
+  if (_remoteSelectors?.userSelector) {
+    const uS = _remoteSelectors.userSelector
+    const aS = _remoteSelectors.assistantSelector ?? ''
+    queryOutermost(uS).forEach(el => found.push({ el, role: 'user' }))
+    if (aS) queryOutermost(aS).forEach(el => found.push({ el, role: 'assistant' }))
+    if (found.length > 0) {
+      console.log(`[CM:diag:grok] remote: user=${found.filter(e=>e.role==='user').length} asst=${found.filter(e=>e.role==='assistant').length}`)
+    }
+  }
+
+  // ── Strategy 1: data-testid role attributes — primary 2026 Grok pattern ─
+  if (!hasUser()) {
+    const uS1 = '[data-testid="human-turn"], [data-testid*="human-message"], [data-testid*="human"]'
+    const aS1 = '[data-testid="ai-turn"], [data-testid*="ai-response"], [data-testid*="grok-response"]'
+    const uEls = queryOutermost(uS1)
+    const aEls = queryOutermost(aS1)
+    uEls.forEach(el => found.push({ el, role: 'user' }))
+    if (!hasAsst()) aEls.forEach(el => found.push({ el, role: 'assistant' }))
+    console.log(`[CM:diag:grok] S1 testid: user=${uEls.length} asst=${aEls.length}`)
+  }
+
+  // ── Strategy 2: class substrings — human-turn / HumanTurn (2025-2026) ───
+  if (!hasUser()) {
+    const uS2 = '[class*="human-turn"], [class*="HumanTurn"], [class*="human_turn"]'
+    const aS2 = '[class*="response-content-markdown"], [class*="grok-response"], [class*="GrokResponse"]'
+    const uEls = queryOutermost(uS2)
+    const aEls = queryOutermost(aS2)
+    uEls.forEach(el => found.push({ el, role: 'user' }))
+    if (!hasAsst()) aEls.forEach(el => found.push({ el, role: 'assistant' }))
+    console.log(`[CM:diag:grok] S2 human-turn class: user=${uEls.length} asst=${aEls.length}`)
+  }
+
+  // ── Strategy 3: legacy patterns + role / data-role attribute ────────────
+  if (!hasUser()) {
+    const uS3 = '[class*="usermessage"], [class*="user-message"], [class*="UserMessage"], [data-role="user"], [role="user"]'
+    const aS3 = '[class*="assistantmessage"], [class*="assistant-message"], [class*="AssistantMessage"]'
+    const uEls = queryOutermost(uS3)
+    const aEls = queryOutermost(aS3)
+    uEls.forEach(el => found.push({ el, role: 'user' }))
+    if (!hasAsst()) aEls.forEach(el => found.push({ el, role: 'assistant' }))
+    console.log(`[CM:diag:grok] S3 legacy+role: user=${uEls.length} asst=${aEls.length}`)
+  }
+
+  const u = found.filter(e => e.role === 'user').length
+  const a = found.filter(e => e.role === 'assistant').length
+  console.log(`[CM:diag:grok] final: user=${u} asst=${a}`)
+
+  // ── DOM inspection when user=0 but asst>0 ──────────────────────────
+  if (u === 0 && a > 0) {
+    const classHits = new Map<string, number>()
+    const testidHits: string[] = []
+    document.querySelectorAll<HTMLElement>('*').forEach(el => {
+      if (!(el as HTMLElement).offsetParent && el.tagName !== 'BODY') return
+      el.classList.forEach(c => {
+        if (/human|user|query|question|prompt/i.test(c))
+          classHits.set(c, (classHits.get(c) ?? 0) + 1)
+      })
+      const dt = (el as HTMLElement).dataset?.testid ?? ''
+      if (dt && /human|user/i.test(dt) && !testidHits.includes(dt)) testidHits.push(dt)
+      const dr = (el as HTMLElement).dataset?.role ?? ''
+      if (dr && /human|user/i.test(dr) && !testidHits.includes('data-role='+dr)) testidHits.push('data-role='+dr)
+    })
+    console.warn('[CM:diag:grok] user=0 — selectors tried: S1=[data-testid*=human], S2=[class*=human-turn], S3=[class*=user-message]')
+    console.warn('[CM:diag:grok] Candidate user classes:', [...classHits.entries()].sort((x,y)=>y[1]-x[1]).slice(0,10))
+    console.warn('[CM:diag:grok] Candidate user testids/roles:', testidHits.slice(0,10))
+  }
 
   found.sort((a, b) =>
     a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
@@ -65,6 +120,7 @@ startSessionCapture({
   platform: "grok",
   selectorOrElement: "main",
   scrapeMessages: () => runCapturePipeline("grok", scrapeMessages),
+  extraCaptureDelays: [1500, 3000],
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {

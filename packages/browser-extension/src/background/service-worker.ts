@@ -262,17 +262,10 @@ async function closeAllSidebarsAndNotify(): Promise<void> {
   } catch { /* getContexts unavailable */ }
 }
 
-chrome.tabs.onActivated.addListener(() => {
-  void closeAllSidebarsAndNotify();
-});
-
-// Window focus change — close on switching to a different Chrome window.
-// Skip WINDOW_ID_NONE: that fires when user opens DevTools or switches to
-// another app. We don't want to close on those (would be annoying).
-chrome.windows.onFocusChanged.addListener((windowId) => {
-  if (windowId === chrome.windows.WINDOW_ID_NONE) return;
-  void closeAllSidebarsAndNotify();
-});
+// Auto-close on tab/window change removed: sidebar must persist across tab
+// switches so cross-tab migrations (source tab → target LLM tab) are not
+// interrupted. closeAllSidebarsAndNotify() remains available for explicit
+// programmatic close (e.g. on extension uninstall or user-initiated logout).
 
 const PLATFORM_URLS = {
   claude:     ["https://claude.ai/*"],
@@ -360,11 +353,14 @@ void (async () => {
 })();
 
 // ── Remote config: warm cache so content scripts have selectors ready ────────
-// We do NOT use chrome.alarms here — that requires a new manifest permission.
-// Instead we rely on getRemoteConfig()'s built-in 1-hour TTL: any content
-// script call after expiry triggers a fresh fetch automatically. The SW also
-// re-warms on every wake (onInstalled, onStartup) which already covers the
-// vast majority of refresh windows.
+// Refresh is triggered from THREE places (defence in depth):
+//   1. chrome.runtime.onInstalled — fresh install / extension update
+//   2. chrome.runtime.onStartup    — browser startup (covers stale-cache restart)
+//   3. chrome.alarms (every 6 h)   — long-running browser sessions
+// Plus content scripts implicitly refresh via getRemoteConfig()'s 1-hour TTL.
+// Hot-fixes pushed to selectors.json reach all users within ~6 h worst-case.
+const REMOTE_CONFIG_ALARM = "cm-remote-config-refresh";
+const REMOTE_CONFIG_PERIOD_MIN = 6 * 60; // 6 hours
 async function refreshRemoteConfig(): Promise<void> {
   try {
     // Force-expire the cache by clearing the timestamp, then call getRemoteConfig
@@ -506,6 +502,23 @@ chrome.runtime.onInstalled.addListener(async () => {
 chrome.runtime.onStartup.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
     .catch(() => {});
+  // Warm remote selector cache after a browser restart (TTL may have expired).
+  void refreshRemoteConfig();
+  // Re-register the periodic refresh alarm (alarms persist across SW restarts
+  // but `create` with the same name is idempotent — safe to call every startup).
+  chrome.alarms.create(REMOTE_CONFIG_ALARM, { periodInMinutes: REMOTE_CONFIG_PERIOD_MIN });
+});
+
+// Ensure the periodic alarm exists on install/update too.
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.alarms.create(REMOTE_CONFIG_ALARM, { periodInMinutes: REMOTE_CONFIG_PERIOD_MIN });
+});
+
+// Periodic remote-config refresh — fires every 6 h while the browser is running.
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === REMOTE_CONFIG_ALARM) {
+    void refreshRemoteConfig();
+  }
 });
 
 // Fallback: explicitly open the panel when the toolbar icon is clicked.
@@ -1632,6 +1645,13 @@ async function handleMigrateContext(
   } catch (err: any) {
     console.warn('[CM:sw] File build failed, falling back to tier 1:', err)
     migrationFile = buildTier1File(session)
+    // Notify sidebar so the user knows the context was compressed.
+    void broadcastToViews({
+      type: 'MIGRATION_QUALITY_WARNING',
+      originalTier: tier,
+      fallbackTier: 1,
+      reason: String(err instanceof Error ? err.message : err).slice(0, 120),
+    })
   }
 
   // ── Attach prompt template to XML if specified ────────────────────────────────────
@@ -1688,17 +1708,28 @@ async function handleMigrateContext(
   })
   reportProgress(90, 'Injecting instructions...')
   let injected = false
+  let injectionError: string | undefined
   if (!payload.targetTabId) {
     console.warn('[CM:sw] No targetTabId — skipping injection')
   } else {
     try {
-      const result = await sendMessageToTab(payload.targetTabId, {
-        type: 'INJECT_CONTEXT',
-        prompt: instructionPrompt,
-        platform: payload.targetPlatform
-      })
-      injected = result?.ok ?? false
+      // Phase 1+2: wait for tab load completion + content-script ping with exponential backoff.
+      // If all 3 pings fail we skip sendMessageToTab entirely — avoids 3 × 5 s timeouts.
+      const ready = await waitForTabContentScript(payload.targetTabId);
+      if (!ready) {
+        injectionError = `The ${payload.targetPlatform} tab did not respond to 3 pings (2 s / 4 s / 8 s) — make sure the page has finished loading and try again.`;
+        console.warn(`[CM:sw] Tab ${payload.targetTabId} content script not ready after 3 pings — skipping injection`);
+      } else {
+        const result = await sendMessageToTab(payload.targetTabId, {
+          type: 'INJECT_CONTEXT',
+          prompt: instructionPrompt,
+          platform: payload.targetPlatform
+        })
+        injected = result?.ok ?? false
+        if (!result.ok) injectionError = result.error;
+      }
     } catch (err) {
+      injectionError = err instanceof Error ? err.message : String(err);
       console.warn('[CM:sw] Injection failed (non-fatal):', err)
     }
   }
@@ -1724,6 +1755,7 @@ async function handleMigrateContext(
   sendResponse({
     success: true,
     injected,
+    injectionError,
     cacheKey,
     migrationFile: {
       filename: migrationFile.filename,
@@ -2023,23 +2055,85 @@ function injectPromptInPage(
   return { ok: false, error: "Unrecognised input type on target page." };
 }
 
+/**
+ * Resolves to true when tab.status === 'complete', false on timeout.
+ * Event-driven via chrome.tabs.onUpdated — no polling loop.
+ */
+function waitForTabComplete(tabId: number, timeoutMs = 15_000): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    chrome.tabs.get(tabId, (tab) => {
+      if (chrome.runtime.lastError || !tab) { resolve(false); return; }
+      if (tab.status === "complete") { resolve(true); return; }
+      const listener = (id: number, info: chrome.tabs.TabChangeInfo) => {
+        if (id !== tabId || info.status !== "complete") return;
+        chrome.tabs.onUpdated.removeListener(listener);
+        clearTimeout(timer);
+        resolve(true);
+      };
+      chrome.tabs.onUpdated.addListener(listener);
+      const timer = setTimeout(() => {
+        chrome.tabs.onUpdated.removeListener(listener);
+        resolve(false);
+      }, timeoutMs);
+    });
+  });
+}
+
+/**
+ * Two-phase readiness check before INJECT_CONTEXT:
+ * Phase 1 — waits for tab.status === 'complete' (event-driven via onUpdated, 15 s cap).
+ * Phase 2 — pings the content script with exponential backoff: 2 s → 4 s → 8 s.
+ * Returns true when the script responds, false when all 3 pings are exhausted.
+ */
+async function waitForTabContentScript(tabId: number): Promise<boolean> {
+  // Phase 1: wait for the tab to finish its initial navigation.
+  const complete = await waitForTabComplete(tabId, 15_000);
+  console.log(
+    complete
+      ? `[CM:sw] Tab ${tabId} reached 'complete' status`
+      : `[CM:sw] Tab ${tabId} did not reach 'complete' within 15 s — proceeding with pings`
+  );
+
+  // Phase 2: ping with exponential backoff (delay runs BEFORE each attempt).
+  const PING_DELAYS_MS = [2_000, 4_000, 8_000];
+  for (let i = 0; i < PING_DELAYS_MS.length; i++) {
+    await new Promise<void>((r) => setTimeout(r, PING_DELAYS_MS[i]));
+    const alive = await new Promise<boolean>((resolve) => {
+      try {
+        chrome.tabs.sendMessage(tabId, { type: "PING" }, (resp) => {
+          resolve(!chrome.runtime.lastError && !!resp);
+        });
+      } catch { resolve(false); }
+    });
+    if (alive) {
+      console.log(`[CM:sw] Tab ${tabId} content script ready (attempt ${i + 1}/${PING_DELAYS_MS.length})`);
+      return true;
+    }
+    console.log(`[CM:sw] Tab ${tabId} ping ${i + 1}/${PING_DELAYS_MS.length} — no response`);
+  }
+  return false;
+}
+
 async function sendMessageToTab(
   tabId: number,
   message: { type: "INJECT_CONTEXT"; prompt: string; platform: string }
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const MAX_RETRIES = 3;
-  const RETRY_DELAY_MS = 500;
-  const ATTEMPT_TIMEOUT_MS = 10_000;
+  const RETRY_DELAYS_MS = [2_000, 4_000]; // exponential backoff between attempts
+  // Per-attempt timeout reduced from 10s → 5s: waitForTabContentScript already
+  // confirmed the content script is alive via PING, so 5s is ample for an
+  // INJECT_CONTEXT ack and reduces user-perceived hang on slow target tabs.
+  const ATTEMPT_TIMEOUT_MS = 5_000;
 
   let lastError = "Unknown injection error";
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      // Race the tab message against a per-attempt 10-second timeout.
+      // Race the tab message against the per-attempt timeout.
       const response = await Promise.race([
         chrome.tabs.sendMessage(tabId, message) as Promise<unknown>,
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Injection timed out after 10s")), ATTEMPT_TIMEOUT_MS)
+          setTimeout(() => reject(new Error(`Injection timed out after ${ATTEMPT_TIMEOUT_MS / 1000}s`)), ATTEMPT_TIMEOUT_MS)
         ),
       ]);
 
@@ -2086,9 +2180,10 @@ async function sendMessageToTab(
         }
       }
 
-      // Timeout or other transient error — wait before retry.
+      // Timeout or other transient error — exponential backoff before retry.
       if (attempt < MAX_RETRIES) {
-        await new Promise<void>((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        const delay = RETRY_DELAYS_MS[attempt - 1] ?? 4_000;
+        await new Promise<void>((resolve) => setTimeout(resolve, delay));
       }
     }
   }

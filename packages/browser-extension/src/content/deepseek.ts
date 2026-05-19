@@ -16,20 +16,38 @@ console.log("[ContextMover] DeepSeek content script loaded");
 let _remoteSelectors: PlatformSelectors | null = null;
 getPlatformSelectors("deepseek").then((s) => { _remoteSelectors = s; }).catch(() => {});
 
+// Returns true when the element's text content ends with sentence-final punctuation,
+// which reliably signals that generation is complete even when the streaming class
+// hasn't been removed from its ancestor yet (DOM-commitment lag).
+function hasTerminalPunctuation(el: HTMLElement): boolean {
+  const text = (el.textContent ?? '').replace(/\s+$/, '')
+  if (!text) return false
+  const last = text.slice(-1)
+  // ASCII + common Unicode terminal punctuation; backtick closes a code fence.
+  return '.!?…`。！？'.includes(last)
+}
+
 function isStreaming(el: HTMLElement): boolean {
-  return (
+  const hasStreamingMarker = (
     el.classList.contains("result-streaming") ||
     el.querySelector(".result-streaming") !== null ||
     el.closest("[data-is-streaming]") !== null ||
     el.closest("[class*='streaming']") !== null ||
     el.closest("[class*='loading']") !== null
-  );
+  )
+  if (!hasStreamingMarker) return false
+  // Escape hatch: if content already ends with terminal punctuation the response
+  // is complete — include the message even if the loading/streaming class on its
+  // ancestor hasn't been cleared yet (observed on DeepSeek's last assistant turn).
+  return !hasTerminalPunctuation(el)
 }
 
 function scrapeMessages(): Message[] {
   type Entry = { el: HTMLElement; role: "user" | "assistant" };
   const collected: Entry[] = [];
+  const hasUser = () => collected.some((e) => e.role === "user");
   const hasAsst = () => collected.some((e) => e.role === "assistant");
+  let matchedStrategy = 'none';
 
   // ── Strategy A: data-message-author-role (remote messageSelector overrides) ──
   {
@@ -41,11 +59,13 @@ function scrapeMessages(): Message[] {
       if (role === "user" || role === "assistant") collected.push({ el, role });
     }
     console.log(`[ContextMover:deepseek] A data-author-role: ${collected.length}`);
+    if (collected.length > 0) matchedStrategy = 'A';
   }
 
   // ── Strategy B: DeepSeek class patterns ─────────────────────────────────────
   if (!hasAsst()) {
-    const userSel = _remoteSelectors?.userSelector ?? '[class*="userMessage"], [class*="user-message"], [class*="human-message"], [class*="UserMessage"]';
+    // DeepSeek 2025+ uses human_turn / user_turn / fz-user class patterns.
+    const userSel = _remoteSelectors?.userSelector ?? '[class*="userMessage"], [class*="user-message"], [class*="human-message"], [class*="UserMessage"], [class*="human_turn"], [class*="user_turn"], [class*="fz-user"], [data-type="user"], [data-role="user"]';
     const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="ds-markdown"], [class*="markdown-content"], [class*="assistantMessage"], [class*="assistant-message"], [class*="AssistantMessage"], [class*="model-response"]';
 
     const userEls = [...document.querySelectorAll<HTMLElement>(userSel)]
@@ -56,10 +76,13 @@ function scrapeMessages(): Message[] {
     for (const el of userEls) collected.push({ el, role: "user" });
     for (const el of asstEls) collected.push({ el, role: "assistant" });
     console.log(`[ContextMover:deepseek] B class-substr: user=${userEls.length} asst=${asstEls.length}`);
+    if (userEls.length + asstEls.length > 0) matchedStrategy = 'B';
   }
 
   // ── Strategy C: data-role / role attributes ──────────────────────────────────
-  if (!hasAsst()) {
+  // Run if user messages still missing — even when assistant was found in Strategy B.
+  if (!hasUser()) {
+    const prevC = collected.length;
     const els = [...document.querySelectorAll<HTMLElement>("[data-role], [role='listitem']")]
       .filter((el) => !el.parentElement?.closest("[data-role]") && !isStreaming(el));
     for (const el of els) {
@@ -68,13 +91,14 @@ function scrapeMessages(): Message[] {
       else if (role === "assistant" || role === "ai" || role === "bot") collected.push({ el, role: "assistant" });
     }
     console.log(`[ContextMover:deepseek] C data-role: ${collected.length}`);
+    if (collected.length > prevC && matchedStrategy === 'none') matchedStrategy = 'C';
   }
 
   // ── Strategy D: Structural — chat message containers ────────────────────────
   // DeepSeek uses a classic chat layout with alternating bubbles.
   // Walk through [class*="message"] leaf containers; identify user vs assistant
   // by checking whether the child contains textarea/input (user) vs a markdown block.
-  if (!hasAsst()) {
+  if (!hasUser()) {
     const msgEls = [...document.querySelectorAll<HTMLElement>(
       '[class*="message"], [class*="chat-item"], [class*="turn"], [class*="bubble"]'
     )].filter((el) => !el.parentElement?.closest('[class*="message"], [class*="chat-item"], [class*="turn"], [class*="bubble"]') && !isStreaming(el));
@@ -86,14 +110,16 @@ function scrapeMessages(): Message[] {
       const cls = el.className.toLowerCase();
       if (/user|human|query/.test(cls)) {
         collected.push({ el, role: "user" });
-      } else if (hasMarkdown || /assistant|ai|bot|model|response/.test(cls)) {
+      } else if (!hasAsst() && (hasMarkdown || /assistant|ai|bot|model|response/.test(cls))) {
+        // Only add assistant from structural scan if Strategy B didn't already find them.
         collected.push({ el, role: "assistant" });
       }
     }
     console.log(`[ContextMover:deepseek] D structural: ${collected.length}`);
+    if (matchedStrategy === 'none' && collected.length > 0) matchedStrategy = 'D';
   }
 
-  // ── Diagnostic ───────────────────────────────────────────────────────────────
+  // ── Diagnostic ─────────────────────────────────────────────────────
   if (collected.length === 0) {
     const classHits = new Map<string, number>();
     document.querySelectorAll<HTMLElement>("*").forEach((el) => {
@@ -108,26 +134,62 @@ function scrapeMessages(): Message[] {
     return [];
   }
 
+  // ── DOM inspection when user=0 but asst>0 ──────────────────────────
+  if (!hasUser() && hasAsst()) {
+    const classHits = new Map<string, number>();
+    const attrHits: string[] = [];
+    document.querySelectorAll<HTMLElement>("*").forEach((el) => {
+      if (!el.offsetParent && el.tagName !== "BODY") return;
+      el.classList.forEach((c) => {
+        if (/user|human|query|question|prompt/i.test(c))
+          classHits.set(c, (classHits.get(c) ?? 0) + 1);
+      });
+      const dr = el.dataset?.role ?? "";
+      if (dr && !attrHits.includes('data-role='+dr)) attrHits.push('data-role='+dr);
+      const dt = el.dataset?.type ?? "";
+      if (dt && /user|human/i.test(dt) && !attrHits.includes('data-type='+dt)) attrHits.push('data-type='+dt);
+      const ma = el.getAttribute("data-message-author-role") ?? "";
+      if (ma && !attrHits.includes('author-role='+ma)) attrHits.push('author-role='+ma);
+    });
+    console.warn(
+      '[CM:diag:deepseek] user=0 — tried: A=[data-message-author-role], B=[class*=userMessage/human_turn/fz-user], C=[data-role], D=[class*=message structural]'
+    );
+    console.warn("[CM:diag:deepseek] Candidate user classes:", [...classHits.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10));
+    console.warn("[CM:diag:deepseek] Candidate role/type attrs seen:", attrHits.slice(0, 15));
+  }
+
   collected.sort((a, b) => {
     const pos = a.el.compareDocumentPosition(b.el);
     return pos & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
   });
 
+  // Content-hash dedup: guards against the same logical message appearing twice
+  // when DeepSeek re-renders an element (new DOM reference, identical text) or
+  // when multiple strategies independently match the same turn.
+  const seenContent = new Set<string>()
   const messages: Message[] = [];
   for (const { el, role } of collected) {
     const content = extractMessageContent(el);
-    if (content) messages.push({ role, content, timestamp: Date.now() });
-    else console.warn(`[ContextMover:deepseek] empty content for role=${role}`);
+    if (!content) { console.warn(`[ContextMover:deepseek] empty content for role=${role}`); continue; }
+    const key = `${role}:${content.slice(0, 80)}`
+    if (seenContent.has(key)) {
+      console.log(`[CM:diag:deepseek] content-dedup dropped duplicate ${role} turn`)
+      continue
+    }
+    seenContent.add(key)
+    messages.push({ role, content, timestamp: Date.now() });
   }
 
   const u = messages.filter((m) => m.role === "user").length;
   const a = messages.filter((m) => m.role === "assistant").length;
+  console.log(`[CM:diag:deepseek] strategy=${matchedStrategy} user=${u} asst=${a}`);
   console.log('[CM:capture]', 'deepseek', {
     total: messages.length,
     user: u,
     assistant: a,
     preview: messages.map(m => ({ role: m.role, len: m.content.length }))
   });
+  if (u === 0 && a > 0) console.warn("[CM:diag:deepseek] scraped: user=0 — user questions missing from capture");
   if (a === 0 && u > 0) console.error("[ContextMover:deepseek] ASSISTANT MESSAGES MISSING");
 
   return messages;
@@ -137,6 +199,9 @@ startSessionCapture({
   platform: "deepseek",
   selectorOrElement: "main",
   scrapeMessages: () => runCapturePipeline("deepseek", scrapeMessages),
+  requiresScrollBack: true,
+  getScrollContainerSelector: () => _remoteSelectors?.scrollContainer,
+  extraCaptureDelays: [1500, 3000],
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {

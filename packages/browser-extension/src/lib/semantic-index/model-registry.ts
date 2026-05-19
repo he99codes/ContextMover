@@ -12,33 +12,10 @@
 // offscreen / SW). Caller is expected to hold this module lifetime.
 
 import type { HardwareProfile } from "../attention-engine";
+import { MODEL_CONFIGS, type ModelTier, type ModelConfig } from "./model-constants";
 
-export type ModelTier = "tiny" | "full";
-
-export interface ModelConfig {
-  modelId: string;
-  dimensions: number;
-  device: "webgpu" | "wasm";
-  threads: number;
-  label: string;
-}
-
-export const MODEL_CONFIGS: Record<ModelTier, ModelConfig> = {
-  tiny: {
-    modelId: "Xenova/all-MiniLM-L6-v2",
-    dimensions: 384,
-    device: "wasm",
-    threads: 0,
-    label: "gte-tiny (fast)",
-  },
-  full: {
-    modelId: "Xenova/all-MiniLM-L6-v2",
-    dimensions: 384,
-    device: "webgpu",
-    threads: 0,
-    label: "MiniLM-L6 (accurate)",
-  },
-};
+export type { ModelTier, ModelConfig };
+export { MODEL_CONFIGS };
 
 class ModelRegistry {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

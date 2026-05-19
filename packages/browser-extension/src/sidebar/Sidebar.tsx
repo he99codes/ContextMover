@@ -21,8 +21,6 @@ import { fileContextBuilder } from "@/lib/file-system/context-builder";
 import { fileCopier } from "@/lib/file-system/file-copier";
 import type { FileTreeNode } from "@/lib/file-system/project-reader";
 import { VAULT_URL, DASHBOARD_URL, PRICING_URL } from "@/config/urls";
-import { healthMonitor } from "@/lib/capture/health-monitor";
-import type { CaptureAlert } from "@/lib/capture/health-monitor";
 
 interface IndexStats {
   sessionCount: number;
@@ -42,8 +40,6 @@ interface SessionCardProps {
   migrationTier?: 1 | 2 | 3;
   driveSourced?: boolean;
   onSelect: () => void;
-  onExportSuccess: (fmt: string) => void;
-  onExportError: (text: string) => void;
 }
 
 const SessionCard = memo<SessionCardProps>(function SessionCard({
@@ -52,8 +48,6 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
   migrationTier,
   driveSourced,
   onSelect,
-  onExportSuccess,
-  onExportError,
 }) {
   const pColor = PLATFORM_COLORS[session.platform];
   return (
@@ -115,13 +109,6 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1 pt-0.5">
-          <ExportMenu
-            session={session}
-            variant="icon"
-            align="right"
-            onSuccess={onExportSuccess}
-            onError={onExportError}
-          />
           <span className="text-[#3A3A3A] transition-colors group-hover:text-[#00FF88]">›</span>
         </div>
       </div>
@@ -214,7 +201,6 @@ export default function Sidebar() {
   const loadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const semanticTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSubFetch = useRef<number>(0);
-  const [captureAlert, setCaptureAlert] = useState<CaptureAlert | null>(null);
   // Ref-stable message handler — avoids re-registering the listener on every render.
   const handleMessageRef = useRef<(msg: { type: string }) => void>();
   // Precomputed summaries — keyed by sessionId, populated on session card click.
@@ -294,12 +280,6 @@ export default function Sidebar() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    healthMonitor.getAlerts().then((alerts) => {
-      const active = Object.values(alerts)[0] ?? null;
-      setCaptureAlert(active);
-    }).catch(() => {});
-  }, []);
 
   useEffect(() => {
     loadSessions();
@@ -323,13 +303,6 @@ export default function Sidebar() {
     // Instant refresh on SW broadcast — handler stored in ref so the listener
     // is registered exactly once (empty deps) and always calls the latest closure.
     const stableListener = (msg: { type: string }) => {
-      // Force-close on tab/window switch (broadcast from SW). window.close()
-      // is the only reliable cross-Chrome-version path; sidePanel.close()
-      // silently no-ops in many cases.
-      if (msg?.type === "SIDEBAR_FORCE_CLOSE") {
-        try { window.close(); } catch { /* fallback to listener */ }
-        return;
-      }
       handleMessageRef.current?.(msg);
     };
     chrome.runtime.onMessage.addListener(stableListener);
@@ -960,17 +933,6 @@ export default function Sidebar() {
             >×</button>
           </div>
         )}
-        {/* ── Capture health alert banner ── */}
-        {captureAlert && (
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "6px 12px", background: "rgba(245,158,11,0.08)", borderBottom: "1px solid rgba(245,158,11,0.25)", fontSize: 9, color: "#F59E0B", lineHeight: 1.4 }}>
-            <span style={{ flexShrink: 0, marginTop: 1 }}>⚠</span>
-            <span style={{ flex: 1 }}>{captureAlert.message}</span>
-            <button
-              onClick={() => { setCaptureAlert(null); void healthMonitor.clearAlert(captureAlert.platform); }}
-              style={{ flexShrink: 0, background: "none", border: "none", color: "#F59E0B", cursor: "pointer", fontSize: 11, lineHeight: 1, padding: 0 }}
-            >×</button>
-          </div>
-        )}
         {/* Header */}
         <div className="border-b border-[#0D2A0D] px-4 py-4" style={{ background: "linear-gradient(135deg, #050505 0%, #091409 55%, #050505 100%)", boxShadow: "0 1px 0 rgba(0,255,136,0.07)" }}>
           <div className="flex items-center justify-between">
@@ -1280,10 +1242,6 @@ export default function Sidebar() {
                   migrationTier={migrationTiers[session.id]}
                   driveSourced={driveSourcedSet.has(session.id)}
                   onSelect={() => handleSessionSelect(session)}
-                  onExportSuccess={(fmt) =>
-                    setStatusMessage({ tone: "success", text: `Exported as ${fmt.toUpperCase()} — check downloads.` })
-                  }
-                  onExportError={(text) => setStatusMessage({ tone: "error", text })}
                 />
               ))}
             </div>
@@ -1507,6 +1465,10 @@ function DriveSyncPanel({
               Your data is stored in a private folder in your own Drive — only this
               extension can access it. Your data never passes through our servers.
             </p>
+            <p className="text-[9px] leading-relaxed rounded-[4px] border border-[rgba(90,169,255,0.15)] bg-[rgba(90,169,255,0.05)] px-2 py-1.5" style={{ color: "#7A9ABB" }}>
+              ⚠️ Cross-profile sync requires the <strong>same Google account</strong> in every profile.
+              Different Google accounts are always separate silos.
+            </p>
             <button
               onClick={onConnect}
               disabled={busy}
@@ -1560,9 +1522,9 @@ function DriveSyncPanel({
       </div>
       <p className="text-[9px] leading-relaxed" style={{ color: "#2A3A2A" }}>
         Sessions captured on this profile sync to your private appdata folder.
-        Sessions from other Chrome profiles signed into the same Google account
-        appear here with a ☁ badge. Disconnecting clears Drive state — your
-        local sessions stay on this device.
+        Sessions from other Chrome profiles signed into the <strong style={{ color: "#3A5A3A" }}>same Google account</strong> appear
+        here with a ☁ badge. Different Google accounts are always separate silos.
+        Disconnecting clears Drive state — your local sessions stay on this device.
       </p>
     </div>
   );

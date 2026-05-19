@@ -27,6 +27,7 @@ function scrapeMessages(): Message[] {
   // Remote selectors override hardcoded defaults when present.
   const userSel = _remoteSelectors?.userSelector ?? 'user-query, .user-query, [class*="user-query"]'
   const asstSel = _remoteSelectors?.assistantSelector ?? 'model-response, .model-response, [class*="model-response"]'
+  const strategy = (_remoteSelectors?.userSelector || _remoteSelectors?.assistantSelector) ? 0 : 1
 
   const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
 
@@ -46,17 +47,25 @@ function scrapeMessages(): Message[] {
     a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
   )
 
-  return found.map(({ el, role }) => ({
+  const msgs = found.map(({ el, role }) => ({
     role,
     content: extractContent(el),
     timestamp: Date.now()
   })).filter(m => m.content.trim().length > 0)
+
+  const u = msgs.filter(m => m.role === 'user').length
+  const a = msgs.filter(m => m.role === 'assistant').length
+  console.log(`[CM:diag:gemini] strategy=${strategy} user=${u} asst=${a}`)
+  return msgs
 }
 
 startSessionCapture({
   platform: "gemini",
   selectorOrElement: "chat-window, main",
   scrapeMessages: () => runCapturePipeline("gemini", scrapeMessages),
+  requiresScrollBack: true,
+  getScrollContainerSelector: () => _remoteSelectors?.scrollContainer,
+  extraCaptureDelays: [1500, 3000],
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {

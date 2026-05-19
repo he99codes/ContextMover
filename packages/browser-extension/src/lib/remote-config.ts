@@ -25,6 +25,10 @@ export interface PlatformSelectors {
   /** Single selector covering all message turns; role read from an attribute. */
   messageSelector?: string;
   /** Selector for the inner content element within a messageSelector turn. */
+  /** CSS selector for the overflow-scroll container that holds the conversation.
+   *  Used by autoScrollBackToTop to load lazy-rendered history.
+   *  Falls back to nearest-scrollable-ancestor detection when absent. */
+  scrollContainer?: string;
   contentSelector?: string;
   /** Selector for user turns when roles must be detected separately. */
   userSelector?: string;

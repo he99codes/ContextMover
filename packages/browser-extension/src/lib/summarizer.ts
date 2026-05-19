@@ -221,12 +221,13 @@ export default async function summarize(
     content = fullTranscript;
     mode = "verbatim";
   } else if (msgCount <= 100) {
-    // Tier 1b (30–100 msgs): keep first 3 + last 10 verbatim; compress middle to 2 sentences.
+    // Tier 1b (30–100 msgs): keep first 5 + last 10 verbatim; compress middle to 2 sentences.
     mode = "summarized";
+    const headCount = 5;
     const tailCount = 10;
-    const tailStart = Math.max(3, messages.length - tailCount);
-    const head   = messages.slice(0, 3);
-    const middle = messages.slice(3, tailStart);
+    const tailStart = Math.max(headCount, messages.length - tailCount);
+    const head   = messages.slice(0, headCount);
+    const middle = messages.slice(headCount, tailStart);
     const tail   = messages.slice(tailStart);
     const processedMiddle = middle.map((msg) =>
       msg.role === "user" ? msg : { ...msg, content: compressTier1Assistant(msg.content, 2) }
@@ -311,11 +312,11 @@ export default async function summarize(
 
   // ── Hard output limit: 48,000 chars (safe for all AI platforms) ─────────────
   // If the compressed output is still over the limit, drop oldest middle messages
-  // one by one until we fit. Head (3) and tail (6) are always preserved.
+  // one by one until we fit. Head (5) and tail (10) are always preserved.
   const MAX_OUTPUT_CHARS = 48_000;
   if (content.length > MAX_OUTPUT_CHARS && msgCount >= 30) {
-    const headCount = msgCount > 100 ? 5 : 3;
-    const tailCount = msgCount > 100 ? 10 : 10;
+    const headCount = 5;
+    const tailCount = 10;
     const tailStart = Math.max(headCount, messages.length - tailCount);
     const head = messages.slice(0, headCount);
     const tail = messages.slice(tailStart);

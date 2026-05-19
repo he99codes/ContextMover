@@ -116,6 +116,21 @@ export default defineConfig(async ({ mode }) => {
           "src/content/interceptor-bridge": "src/content/interceptor-bridge.ts",
           "src/content/sidebar-toggle/toggle": "src/content/sidebar-toggle/toggle.ts",
         },
+        output: {
+          // Isolate @xenova/transformers + onnxruntime into a dedicated chunk.
+          // The service worker MUST NOT load this chunk — model loading is
+          // offscreen-only. The static import chain from SW was broken in
+          // semantic-index/index.ts; this manualChunks is defence-in-depth.
+          manualChunks(id: string) {
+            if (
+              id.includes("@xenova/transformers") ||
+              id.includes("onnxruntime-web") ||
+              id.includes("onnxruntime")
+            ) {
+              return "transformers-vendor";
+            }
+          },
+        },
       },
       target: "esnext",
       // Task 5: obfuscator (compact:true) handles minification + comment

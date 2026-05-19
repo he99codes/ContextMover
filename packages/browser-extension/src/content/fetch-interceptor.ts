@@ -25,6 +25,7 @@
     role: Role;
     content: string;
     timestamp: number;
+    id?: string;                // platform message ID — used for precise dedup in the bridge
     codeBlocks?: { language: string; code: string }[];
     toolCalls?: ToolCall[];
     artifacts?: Artifact[];
@@ -317,6 +318,8 @@
       // same message id into a single string.
       const byMsgId = new Map<string, { role: Role; content: string; ts: number }>();
       const lines = text.split(/\r?\n/);
+      // Tracks the active message ID for v-patch deltas (2026 ChatGPT streaming format).
+      let currentMsgId: string | null = null;
 
       for (const raw of lines) {
         const line = raw.trim();
@@ -330,9 +333,11 @@
         const obj = j as Record<string, unknown>;
 
         // Modern ChatGPT format: { message: { id, author: { role }, content: { parts: [...] } } }
-        const msg = (obj.message ?? obj.v ?? null) as Record<string, unknown> | null;
+        // NOTE: Do NOT fall back to obj.v here — obj.v is a string patch value, not a message object.
+        const msg = obj.message as Record<string, unknown> | null | undefined;
         if (msg && typeof msg === "object") {
           const id = String((msg.id as string) ?? "_");
+          currentMsgId = id; // set for subsequent v-patch deltas
           const author = (msg.author as Record<string, unknown> | undefined) ?? {};
           const role = String((author.role as string) ?? "");
           if (role !== "user" && role !== "assistant") continue;
@@ -346,11 +351,28 @@
             chunk = c.text;
           }
           const cur = byMsgId.get(id) ?? { role: role as Role, content: "", ts: Date.now() };
-          // Streaming chunks REPLACE the parts array (full content each delta)
-          // so we take the latest, longest version.
+          // Streaming chunks send the FULL accumulated parts array each time;
+          // always keep the longest version.
           if (chunk.length >= cur.content.length) cur.content = chunk;
           cur.role = role as Role;
           byMsgId.set(id, cur);
+          continue;
+        }
+
+        // 2026 v-patch format: { "v": "text", "p": "/message/content/parts/0", "o": "append"|"replace" }
+        // These are text deltas for the currently-active message (set by the preceding message event).
+        if (typeof obj.v === "string" && typeof obj.p === "string" && currentMsgId) {
+          const cur = byMsgId.get(currentMsgId);
+          if (cur && String(obj.p).includes("/content/")) {
+            const op = String((obj.o as string) ?? "replace");
+            if (op === "append") {
+              cur.content += obj.v;
+            } else if (obj.v.length > cur.content.length || cur.content === "") {
+              cur.content = obj.v;
+            }
+            byMsgId.set(currentMsgId, cur);
+          }
+          continue;
         }
 
         // Legacy/openai-spec fallback: { choices: [{ delta: {role, content} }] }
@@ -361,6 +383,7 @@
           const piece = String((delta.content as string) ?? "");
           if (piece) {
             const id = String((obj.id as string) ?? "legacy");
+            currentMsgId = id;
             const cur = byMsgId.get(id) ?? { role, content: "", ts: Date.now() };
             cur.content += piece;
             byMsgId.set(id, cur);
@@ -369,9 +392,10 @@
       }
 
       const out: CapturedMessage[] = [];
-      byMsgId.forEach((v) => {
+      // Include the platform message ID so the bridge can dedup by ID before content.
+      byMsgId.forEach((v, msgId) => {
         const fin = finalize(v.role, v.content, v.ts);
-        if (fin) out.push(fin);
+        if (fin) out.push({ ...fin, id: msgId });
       });
       return out;
     } catch (err) {
@@ -690,12 +714,14 @@
           .trim();
         if (text.length < 2) continue;
         const createTime = msg.create_time as number | undefined;
+        // Include the platform message ID for precise dedup in the bridge.
+        const msgId = typeof msg.id === "string" ? msg.id : undefined;
         const fin = finalize(
           role as Role,
           text,
           createTime ? Math.floor(createTime * 1000) : undefined
         );
-        if (fin) messages.push(fin);
+        if (fin) messages.push({ ...fin, ...(msgId ? { id: msgId } : {}) });
       }
       return messages.sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
     } catch {
@@ -798,7 +824,9 @@
       // Extract metadata from request body
       const metadata = extractRequestMetadata(requestBody ?? null, response.url);
 
-      console.log(`${TAG} ${platform}: parsed ${messages.length} msg(s) (fullHistory=${isFullHistory})`, metadata ? `model=${metadata.model}` : "");
+      const _u = messages.filter((m) => m.role === "user").length;
+      const _a = messages.filter((m) => m.role === "assistant").length;
+      console.log(`[CM:diag:${platform}] fetch-tap user=${_u} asst=${_a} fullHistory=${isFullHistory}` + (metadata?.model ? ` model=${metadata.model}` : ""));
       dispatchCaptured(platform, messages, metadata, isFullHistory);
     } catch (err) {
       console.warn(`${TAG} handleAIResponse failed`, err);

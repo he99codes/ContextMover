@@ -13,7 +13,8 @@
         "sidePanel",
         "downloads",
         "offscreen",
-        "identity"
+        "identity",
+        "alarms"
     ],
     "oauth2": {
         "client_id": "537316078537-hcpqdq1jsh3eh748071u0q4id7j1iivd.apps.googleusercontent.com",
