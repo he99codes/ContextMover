@@ -359,9 +359,12 @@ void (async () => {
   void migrateFromContextForge();
 })();
 
-// ── Remote config: warm cache hourly so content scripts always have fresh selectors ──
-const RC_ALARM = "CM_CONFIG_REFRESH";
-
+// ── Remote config: warm cache so content scripts have selectors ready ────────
+// We do NOT use chrome.alarms here — that requires a new manifest permission.
+// Instead we rely on getRemoteConfig()'s built-in 1-hour TTL: any content
+// script call after expiry triggers a fresh fetch automatically. The SW also
+// re-warms on every wake (onInstalled, onStartup) which already covers the
+// vast majority of refresh windows.
 async function refreshRemoteConfig(): Promise<void> {
   try {
     // Force-expire the cache by clearing the timestamp, then call getRemoteConfig
@@ -378,19 +381,15 @@ async function refreshRemoteConfig(): Promise<void> {
   }
 }
 
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === RC_ALARM) void refreshRemoteConfig();
-});
-
 chrome.runtime.onInstalled.addListener(async () => {
   console.log("[ContextMover] Extension installed.");
   // Belt-and-braces: also trigger on install/update so a fresh-install path
   // during the legacy database upgrade to ContextMover is always covered.
   await migrateFromContextForge().catch(() => { /* non-fatal */ });
 
-  // Warm remote selector config immediately, then refresh hourly.
+  // Warm remote selector config on install — content scripts will refresh
+  // naturally via the 1-hour TTL after that.
   void refreshRemoteConfig();
-  chrome.alarms.create(RC_ALARM, { delayInMinutes: 60, periodInMinutes: 60 });
 
   const existing = await chrome.storage.local.get(["sessions"]);
   if (!existing.sessions) await chrome.storage.local.set({ sessions: [] });
