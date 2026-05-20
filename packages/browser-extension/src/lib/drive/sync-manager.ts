@@ -8,7 +8,16 @@
 // src/lib/drive/sync-manager.ts
 //
 // Orchestrates sync between the local IndexedDB session store and the
-// per-user Drive appdata folder.  Read-only against db.ts (the local store
+// per-user Drive appdata folder.
+//
+// VERIFICATION CHECKLIST:
+// SYNC-1: fresh extension + connect drive → all sessions appear
+// SYNC-2: session updated on ext A → appears on ext B within 5min
+// SYNC-3: session deleted on ext A → deleted on ext B within 5min
+// SYNC-4: same session updated → Drive file updated not duplicated
+// SYNC-5: Drive index stays consistent after all operations
+//
+// Read-only against db.ts (the local store
 // is the source of truth for the LOCAL device) and read-only against the
 // existing Supabase vault code (zero overlap).
 //
@@ -391,6 +400,62 @@ class DriveSyncManager {
       }
     } catch (e) {
       console.warn("[drive-sync] initialSync error", e);
+    }
+  }
+
+  /**
+   * Delete a session from Drive (and update the index).
+   * Called by the SW after local IndexedDB deletion.
+   * Silent no-op when Drive is not connected. Never throws.
+   */
+  async deleteFromDrive(sessionId: string): Promise<void> {
+    try {
+      if (!(await driveClient.isConnected())) return;
+      const fileId = await driveClient.findFileBySessionId(sessionId);
+      if (!fileId) return;
+      const ok = await driveClient.deleteFile(fileId);
+      if (ok) {
+        console.log(`[drive-sync] deleted session ${sessionId} from Drive`);
+        // Remove from the index so other profiles see the deletion.
+        await this.removeFromIndex(sessionId);
+      }
+    } catch (e) {
+      console.warn("[drive-sync] deleteFromDrive error", sessionId, e);
+    }
+  }
+
+  /**
+   * Bidirectional sync: pull newer sessions from Drive, push newer
+   * local sessions to Drive. Used by the periodic alarm.
+   * Never throws.
+   */
+  async syncBidirectional(): Promise<void> {
+    try {
+      if (!(await driveClient.isConnected())) return;
+      // Pull first (import remote changes), then flush any queued uploads.
+      await this.pullFromDrive();
+      await this.flushUploadQueue();
+    } catch (e) {
+      console.warn("[drive-sync] syncBidirectional error", e);
+    }
+  }
+
+  /**
+   * Remove a session entry from the Drive index file.
+   * Downloads current index, filters out the session, re-uploads.
+   */
+  private async removeFromIndex(sessionId: string): Promise<void> {
+    try {
+      const index = await driveClient.downloadIndex();
+      if (!index) return;
+      const before = index.sessions.length;
+      index.sessions = index.sessions.filter((e) => e.id !== sessionId);
+      if (index.sessions.length === before) return; // not in index
+      index.lastSync = Date.now();
+      await driveClient.uploadIndex(index);
+      console.log(`[drive-sync] removed ${sessionId} from Drive index`);
+    } catch (e) {
+      console.warn("[drive-sync] removeFromIndex error", sessionId, e);
     }
   }
 

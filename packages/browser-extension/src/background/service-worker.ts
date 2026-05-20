@@ -519,6 +519,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === REMOTE_CONFIG_ALARM) {
     void refreshRemoteConfig();
   }
+  if (alarm.name === "drive-sync-periodic") {
+    // SYNC-2, SYNC-3: bidirectional sync every 5 min while Drive connected.
+    void driveSyncManager.syncBidirectional();
+  }
 });
 
 // Fallback: explicitly open the panel when the toolbar icon is clicked.
@@ -561,6 +565,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           if (connected) {
             // Pull existing Drive sessions in background; never block UI.
             void driveSyncManager.initialSync();
+            // Start periodic bidirectional sync (every 5 min).
+            // SYNC-2: ensures cross-extension changes propagate within 5 min.
+            chrome.alarms.create("drive-sync-periodic", { periodInMinutes: 5 });
           }
           sendResponse({ connected });
         } catch (err) {
@@ -572,6 +579,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       case "DRIVE_DISCONNECT": {
         if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         await driveClient.disconnect();
+        // Stop periodic sync — no point syncing when disconnected.
+        chrome.alarms.clear("drive-sync-periodic");
         sendResponse({ ok: true });
         break;
       }
@@ -731,6 +740,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             await vaultClient.from('cm_sessions').delete().eq('id', msg.sessionId);
           } catch { /* vault failure never blocks */ }
         })();
+        // SYNC-4: also delete from Drive so other profiles see the deletion.
+        void driveSyncManager.deleteFromDrive(msg.sessionId);
         void broadcastForgetToTabs(msg.sessionId);
         void broadcastToViews({ type: "SESSIONS_UPDATED" });
         sendResponse({ ok: true });

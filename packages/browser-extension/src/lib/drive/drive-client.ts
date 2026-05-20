@@ -396,6 +396,31 @@ class DriveClient {
     await this.upsertJsonFile(INDEX_FILE_NAME, index);
   }
 
+  /**
+   * Delete a file by Drive file id. Returns true on success.
+   * Handles 404 (already deleted) gracefully — returns true.
+   * Never throws.
+   */
+  async deleteFile(fileId: string): Promise<boolean> {
+    try {
+      const url = `${DRIVE_FILES_BASE}/${encodeURIComponent(fileId)}`;
+      const res = await this.apiCall(url, { method: "DELETE" });
+      if (res.status === 404) return true; // already gone
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Find a session file by sessionId (not Drive fileId).
+   * Returns the Drive fileId if found, null otherwise.
+   */
+  async findFileBySessionId(sessionId: string): Promise<string | null> {
+    const name = `${SESSION_FILE_PREFIX}${sessionId}.json`;
+    return this.findFile(name);
+  }
+
   async downloadIndex(): Promise<DriveIndex | null> {
     try {
       const id = await this.findFile(INDEX_FILE_NAME);

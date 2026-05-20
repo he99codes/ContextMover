@@ -36,6 +36,30 @@ function AuthForm() {
   const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
 
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setError(null);
+    const supabase = createClient();
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      });
+      if (error) throw error;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Google sign-in failed");
+      setGoogleLoading(false);
+    }
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -174,6 +198,24 @@ function AuthForm() {
                   : "Create account"}
               </Button>
             </form>
+
+            <div className="mt-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-[#2A2A2A]" />
+              <span className="text-xs text-[#6B6B6B] uppercase tracking-wider">or</span>
+              <div className="h-px flex-1 bg-[#2A2A2A]" />
+            </div>
+
+            <div className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={googleLoading || isLoading}
+                onClick={handleGoogleSignIn}
+                className="w-full border-[#2A2A2A] bg-[#1A1A1A] text-[#F5F5F5] hover:bg-[#252525] hover:border-[#3A3A3A] rounded-[8px] font-medium transition-all"
+              >
+                Continue with Google
+              </Button>
+            </div>
 
             <div className="mt-4 text-center">
               <button
