@@ -625,7 +625,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const session = await db.getSession(msg.payload?.sessionId);
         if (!session) { sendResponse(null); break; }
         try {
-          await summarize(session.messages);
+          await summarize(session.messages, { skipHardLimit: true });
           summarizeIntelligent(session.messages);
           console.log(`[CM:sw] PRECOMPUTE_SUMMARY warmed summaries for session ${session.id}`);
           sendResponse({ cached: true });
@@ -1033,6 +1033,39 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
+      case "INJECT_FILE_TO_TAB": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ ok: false, error: "Unauthorized" }); return; }
+        const { tabId: injectTabId, fileName, fileContent: fileContentPayload } = msg as {
+          tabId: number; fileName: string; fileContent: string;
+        };
+        if (!injectTabId) { sendResponse({ ok: false, error: "no tabId" }); return; }
+        chrome.tabs.sendMessage(
+          injectTabId,
+          { type: "INJECT_FILE_AS_UPLOAD", fileName, fileContent: fileContentPayload },
+          (response) => {
+            void chrome.runtime.lastError;
+            sendResponse(response ?? { ok: false, error: "no response from content script" });
+          }
+        );
+        return true; // async response
+      }
+
+      case "SIDEBAR_CLOSED": {
+        if (!isFromOwnExtension(sender)) { sendResponse({}); return; }
+        // The sidebar panel sends this via chrome.runtime.sendMessage which
+        // reaches the SW but NOT content scripts. Relay it to the toggle
+        // content script on the associated tab so its icon reflects closed state.
+        if (sender.tab?.id != null) {
+          chrome.tabs.sendMessage(
+            sender.tab.id,
+            { type: "SIDEBAR_CLOSED" },
+            () => { void chrome.runtime.lastError; }
+          );
+        }
+        sendResponse({});
+        break;
+      }
+
       case "BACKGROUND_INDEX": {
         if (!isFromOwnExtension(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const { sessionId: bgSessionId } = msg as { sessionId?: string };
@@ -1419,7 +1452,8 @@ async function buildMetaPromptAsync(session: ContextSession): Promise<void> {
   const t0 = performance.now();
 
   // Quick tier-1 summary (fast, < 100ms)
-  const summaryResult = await summarize(session.messages).catch(() => null);
+  // skipHardLimit: file-based migration uploads the XML directly — no paste limit.
+  const summaryResult = await summarize(session.messages, { skipHardLimit: true }).catch(() => null);
   if (!summaryResult) return;
 
   const tier1Meta = summaryResult.extracted;
@@ -1711,6 +1745,8 @@ async function handleMigrateContext(
   let injectionError: string | undefined
   if (!payload.targetTabId) {
     console.warn('[CM:sw] No targetTabId — skipping injection')
+  } else if (tier === 1) {
+    console.log('[CM:sw] Tier 1 file migration — skipping text injection (file carries full context)')
   } else {
     try {
       // Phase 1+2: wait for tab load completion + content-script ping with exponential backoff.

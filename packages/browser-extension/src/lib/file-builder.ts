@@ -21,6 +21,20 @@ export interface MigrationFile {
   platform: string
 }
 
+// Escape ]]> sequences in user content so they cannot prematurely terminate
+// the surrounding CDATA section. Per XML 1.0 §2.7, CDATA cannot contain ]]>;
+// the W3C-recommended workaround is to split it as ]]]]><![CDATA[> so the
+// closing brackets sit in their own freshly-opened CDATA section.
+//
+// CRITICAL: without this, any message that itself contains a CDATA block
+// (e.g. a previous ContextMover migration file pasted into chat) breaks the
+// entire XML — the outer CDATA closes at the first inner ]]> and everything
+// after that is parsed as raw XML, corrupting the migration file.
+export function cdata(text: unknown): string {
+  const s = text == null ? '' : String(text);
+  return `<![CDATA[${s.replace(/]]>/g, ']]]]><![CDATA[>')}]]>`;
+}
+
 export function buildFilename(session: ContextSession, tier: number): string {
   const names: Record<number, string> = { 1: 'full', 2: 'summary', 3: 'attention' }
   const slug = session.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30)
@@ -61,7 +75,7 @@ export function buildTier1File(session: ContextSession): MigrationFile {
 
   <meta>
     <source_platform>${session.platform}</source_platform>
-    <session_title><![CDATA[${session.title}]]></session_title>
+    <session_title>${cdata(session.title)}</session_title>
     <message_count>${session.messages.length}</message_count>
     <exported_at>${new Date().toISOString()}</exported_at>
     <tier>Full Context — all messages verbatim</tier>
@@ -76,7 +90,7 @@ export function buildTier1File(session: ContextSession): MigrationFile {
   <conversation>
 ${session.messages.map((m, i) => `
     <message index="${i + 1}" role="${m.role}">
-      <![CDATA[${m.content}]]>
+      ${cdata(m.content)}
     </message>`).join('')}
   </conversation>
 
@@ -103,7 +117,7 @@ export function buildTier2File(
   <code_blocks count="${summary.codeBlocks.length}">
 ${summary.codeBlocks.map((cb: any, i: number) => `
     <code index="${i + 1}" language="${cb.language ?? 'unknown'}"${cb.path ? ` path="${cb.path}"` : ''}>
-      <![CDATA[${cb.code}]]>
+      ${cdata(cb.code)}
     </code>`).join('')}
   </code_blocks>` : ''
 
@@ -112,12 +126,12 @@ ${summary.codeBlocks.map((cb: any, i: number) => `
 
   <meta>
     <source_platform>${session.platform}</source_platform>
-    <session_title><![CDATA[${session.title}]]></session_title>
+    <session_title>${cdata(session.title)}</session_title>
     <original_message_count>${session.messages.length}</original_message_count>
     <compression_ratio>${summary.compressionRatio ?? 0}%</compression_ratio>
     <exported_at>${new Date().toISOString()}</exported_at>
     <tier>Smart Summary — intelligently extracted</tier>
-    ${task ? `<focus_task><![CDATA[${task}]]></focus_task>` : ''}
+    ${task ? `<focus_task>${cdata(task)}</focus_task>` : ''}
   </meta>
 
   <instructions_for_ai>
@@ -128,25 +142,25 @@ ${summary.codeBlocks.map((cb: any, i: number) => `
   </instructions_for_ai>
 
   <goal>
-    <primary><![CDATA[${summary.goal ?? ''}]]></primary>
-    <current><![CDATA[${summary.currentState ?? ''}]]></current>
+    <primary>${cdata(summary.goal ?? '')}</primary>
+    <current>${cdata(summary.currentState ?? '')}</current>
   </goal>
 
   <decisions count="${summary.decisions?.length ?? 0}">
 ${(summary.decisions ?? []).map((d: string, i: number) =>
-  `    <decision index="${i + 1}"><![CDATA[${d}]]></decision>`).join('\n')}
+  `    <decision index="${i + 1}">${cdata(d)}</decision>`).join('\n')}
   </decisions>
 
   <bugs_fixed count="${summary.bugsFixed?.length ?? 0}">
 ${(summary.bugsFixed ?? []).map((b: string, i: number) =>
-  `    <bug index="${i + 1}"><![CDATA[${b}]]></bug>`).join('\n')}
+  `    <bug index="${i + 1}">${cdata(b)}</bug>`).join('\n')}
   </bugs_fixed>
 ${codeSection}
 
   <conversation_tail count="${summary.tail?.length ?? 0}">
 ${(summary.tail ?? []).map((m: Message, i: number) => `
     <message index="${i + 1}" role="${m.role}">
-      <![CDATA[${m.content}]]>
+      ${cdata(m.content)}
     </message>`).join('')}
   </conversation_tail>
 
@@ -191,17 +205,17 @@ export function buildTier3File(
 
   <meta>
     <source_platform>${session.platform}</source_platform>
-    <session_title><![CDATA[${session.title}]]></session_title>
+    <session_title>${cdata(session.title)}</session_title>
     <original_message_count>${session.messages.length}</original_message_count>
     <retrieved_chunks>${chunks.length}</retrieved_chunks>
     <retrieved_messages>${retrievedMessages.length}</retrieved_messages>
-    <task><![CDATA[${task}]]></task>
+    <task>${cdata(task)}</task>
     <exported_at>${new Date().toISOString()}</exported_at>
     <tier>Attention Engine — semantically focused</tier>
   </meta>
 
   <attention_engine>
-    <task><![CDATA[${task}]]></task>
+    <task>${cdata(task)}</task>
     ${attentionMap ? `
     <highlighted_files>
       ${attentionMap.highlightedFiles?.map((f: string) =>
@@ -224,7 +238,7 @@ ${retrievedMessages.map((m: Message, i: number) => {
   const scoreAttr = score !== undefined ? ` score="${score.toFixed(3)}"` : ''
   return `
     <message index="${i + 1}" role="${m.role}"${scoreAttr}>
-      <![CDATA[${m.content}]]>
+      ${cdata(m.content)}
     </message>`
 }).join('')}
   </focused_context>

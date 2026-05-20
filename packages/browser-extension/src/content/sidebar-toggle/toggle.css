@@ -6,11 +6,9 @@
 }
 
 .cf-toggle {
-  /* Position: shift left by own width from 0×0 host */
   position: absolute;
   top: 0;
-  left: 0;
-  transform: translateX(-100%);
+  right: 0;
 
   /* Size and shape */
   width: 48px;
@@ -50,7 +48,7 @@
 
 .cf-toggle:active {
   opacity: 0.9;
-  transform: translateX(-100%) scale(0.96);
+  transform: scale(0.96);
 }
 
 .cf-toggle:focus-visible {

@@ -22,6 +22,7 @@ import {
   type StoredSummary,
 } from "../db";
 import type { ContextSession } from "../types";
+import { SUMMARIZER_VERSION } from "../summarizer";
 import { MODEL_CONFIGS, type ModelTier } from "./model-constants";
 import { hashMessages, hashQuery } from "./hasher";
 import { getHardwareProfile, type HardwareProfile } from "../attention-engine";
@@ -562,7 +563,7 @@ export class SemanticIndex {
     messageCount: number
   ): Promise<StoredSummary | null> {
     const taskHash = task ? hashQuery(task) : "none";
-    const id = `${sessionId}:${tier}:${taskHash}`;
+    const id = `${sessionId}:${tier}:v${SUMMARIZER_VERSION}:${taskHash}`;
     const stored = await dexieDb.storedSummaries.get(id);
     if (!stored) return null;
     if (stored.messageCount !== messageCount) return null;
@@ -580,7 +581,7 @@ export class SemanticIndex {
   ): Promise<void> {
     const taskHash = task ? hashQuery(task) : "none";
     await dexieDb.storedSummaries.put({
-      id: `${sessionId}:${tier}:${taskHash}`,
+      id: `${sessionId}:${tier}:v${SUMMARIZER_VERSION}:${taskHash}`,
       sessionId,
       tier,
       task,

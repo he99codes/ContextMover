@@ -11,6 +11,11 @@
 //   extracted — rich structured object used by translator.ts for per-model formatting
 //   content   — legacy plain-text fallback for backward compatibility
 
+// Bump this when summarizer extraction logic changes to invalidate cached
+// summaries in IndexedDB. Without this, stale (potentially broken) summaries
+// are served for up to 24 hours after a code change.
+export const SUMMARIZER_VERSION = 2;
+
 import type { CodeBlock, ContextSession, ExtractedContext, Message } from "./types";
 import { attentionEngine } from "./attention-engine";
 import type { AttentionMap } from "./attention-engine";
@@ -180,7 +185,7 @@ function compressTier1Assistant(content: string, maxSentences: number): string {
 
 export default async function summarize(
   messages: Message[],
-  options?: { caveman?: boolean }
+  options?: { caveman?: boolean; skipHardLimit?: boolean }
 ): Promise<SummaryResult> {
   if (!messages.length) {
     const empty: ExtractedContext = {
@@ -313,8 +318,10 @@ export default async function summarize(
   // ── Hard output limit: 48,000 chars (safe for all AI platforms) ─────────────
   // If the compressed output is still over the limit, drop oldest middle messages
   // one by one until we fit. Head (5) and tail (10) are always preserved.
+  // Skipped for file-based migrations (skipHardLimit=true) because the file is
+  // uploaded directly — there is no context-window paste limit to respect.
   const MAX_OUTPUT_CHARS = 48_000;
-  if (content.length > MAX_OUTPUT_CHARS && msgCount >= 30) {
+  if (!options?.skipHardLimit && content.length > MAX_OUTPUT_CHARS && msgCount >= 30) {
     const headCount = 5;
     const tailCount = 10;
     const tailStart = Math.max(headCount, messages.length - tailCount);
@@ -424,31 +431,44 @@ function extractContext(messages: Message[], compressed?: Message[]): ExtractedC
 
 // ── Goal extraction ───────────────────────────────────────────────────────────
 
+// Patterns that indicate a message is a migration/bootstrap instruction
+// rather than a real goal. The first user message in a migrated session is
+// often a <context_migration> XML block — using it as the goal produces
+// garbage like "I am continuing a conversation from claude..."
+const MIGRATION_INSTRUCTION_RE =
+  /^<context_migration>|<instruction>\s*I am continuing a conversation from/i;
+
 function extractPrimaryGoal(messages: Message[]): string {
   const userMessages = messages.filter((m) => m.role === "user");
   if (!userMessages.length) return "Not specified";
-  const first = userMessages[0].content.trim();
+  // Skip migration/bootstrap instructions — they are not real goals.
+  let first = userMessages[0].content.trim();
+  let idx = 0;
+  while (idx < userMessages.length && MIGRATION_INSTRUCTION_RE.test(first)) {
+    idx++;
+    first = userMessages[idx]?.content.trim() ?? "Not specified";
+  }
   return first.length > 600 ? first.slice(0, 600) + "…" : first;
 }
 
 function extractCurrentFocus(messages: Message[]): string {
   if (!messages.length) return "Not specified";
-  // Use last 8 messages regardless of role to capture assistant-introduced
-  // direction changes that the user has acknowledged.
-  let window = messages.slice(-8);
-  // Skip a short ack (< 20 chars) from the tip so stale "ok"/"yes" don't
-  // become the focus anchor.  Use the message before it instead.
-  const tip = window[window.length - 1];
-  if (tip && tip.role === "user" && tip.content.trim().length < 20) {
-    window = window.slice(0, -1);
+  // Use last 3 substantive messages (skip short acks < 20 chars).
+  // Previously used last 8 joined with " → " which produced an unreadable
+  // 1000+ char blob. 3 messages is enough to capture the current direction.
+  const substantive: Message[] = [];
+  for (let i = messages.length - 1; i >= 0 && substantive.length < 3; i--) {
+    const m = messages[i];
+    if (m.content.trim().length < 20) continue;
+    substantive.unshift(m);
   }
-  if (!window.length) return "Not specified";
-  return window
+  if (!substantive.length) return "Not specified";
+  return substantive
     .map((m) => {
       const text = m.content.trim();
       return text.length > 300 ? text.slice(0, 300) + "…" : text;
     })
-    .join(" → ");
+    .join("\n");
 }
 
 // ── Completed tasks ───────────────────────────────────────────────────────────
@@ -725,30 +745,39 @@ export function summarizeIntelligent(messages: Message[], task?: string): Intell
   if (!messages.length) throw new Error('[CM:summarizer:tier2] Empty messages array — nothing to summarize');
   const t0 = Date.now();
 
-  // ── 1. Goal — first user message, up to 600 chars ─────────────────────────────
+  // ── 1. Goal — first substantive user message, up to 600 chars ────────────────
+  // Skip migration/bootstrap instructions (e.g. <context_migration> pastes)
+  // which are not real goals.
   const userMessages = messages.filter((m) => m.role === "user");
+  let goalIdx = 0;
+  while (
+    goalIdx < userMessages.length &&
+    MIGRATION_INSTRUCTION_RE.test(userMessages[goalIdx].content.trim())
+  ) {
+    goalIdx++;
+  }
   const goal =
-    userMessages.length > 0
-      ? userMessages[0].content.trim().slice(0, 600) || "Not specified"
+    goalIdx < userMessages.length
+      ? userMessages[goalIdx].content.trim().slice(0, 600) || "Not specified"
       : "Not specified";
 
-  // ── 5. Current state — last 8 messages regardless of role ───────────────────
-  // Using all-role window captures assistant-introduced direction changes
-  // (e.g. "I recommend Supabase" + user "ok") not visible in user-only slice.
-  let stateWindow = messages.slice(-8);
-  // Skip a short ack at the tip to avoid "ok" becoming the currentState anchor.
-  const stateTip = stateWindow[stateWindow.length - 1];
-  if (stateTip && stateTip.role === "user" && stateTip.content.trim().length < 20) {
-    stateWindow = stateWindow.slice(0, -1);
+  // ── 5. Current state — last 3 substantive messages regardless of role ──────
+  // Skip short acks (< 20 chars). 3 messages capture the current direction
+  // without producing an unreadable 1000+ char blob.
+  const substantive: Message[] = [];
+  for (let i = messages.length - 1; i >= 0 && substantive.length < 3; i--) {
+    const m = messages[i];
+    if (m.content.trim().length < 20) continue;
+    substantive.unshift(m);
   }
   const currentState =
-    stateWindow.length > 0
-      ? stateWindow
+    substantive.length > 0
+      ? substantive
           .map((m) => {
             const t = m.content.trim();
             return t.length > 300 ? t.slice(0, 300) + "…" : t;
           })
-          .join(" → ")
+          .join("\n")
       : "Not specified";
 
   // ── 2. Decisions — verbatim sentences from ALL assistant messages ──────────

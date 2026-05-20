@@ -125,6 +125,7 @@ function MigrationSuccess({
   qualityWarning,
   elapsed,
   targetPlatform,
+  injectTabId,
   onClose
 }: {
   migrationFile: {
@@ -141,28 +142,18 @@ function MigrationSuccess({
   qualityWarning?: string
   elapsed: number
   targetPlatform: string
+  injectTabId?: number
   onClose: () => void
 }) {
   // ── Download status ──────────────────────────────────────────────────────
   type Status = 'idle' | 'downloading' | 'downloaded'
   const [status, setStatus] = useState<Status>('idle')
 
-  // ── Drag state machine ───────────────────────────────────────────────────
-  //   idle     → file ready, waiting for the user to drag
-  //   dragging → dragstart fired, File added to dataTransfer
-  //   success  → dragend fired with a valid items payload
-  //   failed   → items.add returned length 0 (extension→page boundary
-  //              blocked the File); download was triggered automatically
-  type DragState = 'idle' | 'dragging' | 'success' | 'failed'
-  const [dragState, setDragState] = useState<DragState>('idle')
+  // ── Inject state machine ──────────────────────────────
+  type InjectState = 'idle' | 'success' | 'failed'
+  const [injectState, setInjectState] = useState<InjectState>('idle')
 
-  // The File object is built from the raw XML string and stored in a ref
-  // so it is never reconstructed on every render. It is only rebuilt when
-  // fileContent itself changes (see the useEffect below).
   const fileRef = useRef<File | null>(null)
-  // Blob URL created at dragstart; revoked at dragend to avoid memory leaks.
-  const dragUrlRef = useRef<string | null>(null)
-
   const [fileReady, setFileReady] = useState(false)
   const [fetchError, setFetchError] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -270,7 +261,7 @@ function MigrationSuccess({
   // download — the file is now on disk so the in-memory cache is no longer
   // needed. (The 30-min TTL would catch this anyway.)
   function handleClose(): void {
-    if (status === 'downloaded' || dragState === 'success') deleteCachedFile()
+    if (status === 'downloaded' || injectState === 'success') deleteCachedFile()
     onClose()
   }
 
@@ -287,9 +278,11 @@ function MigrationSuccess({
             letterSpacing:'0.1em' }}>
             Migration complete
           </div>
-          <div style={{ fontSize:'10px', color: (!injected && injectionError) ? '#EF4444' : '#6B6B6B', marginTop:'2px' }}>
+          <div style={{ fontSize:'10px', color: (!injected && injectionError && !injectTabId) ? '#EF4444' : '#6B6B6B', marginTop:'2px' }}>
             {injected
               ? `Instructions injected into ${targetPlatform} ✓`
+              : injectTabId
+              ? `Context file ready — click below to inject`
               : injectionError
               ? injectionError
               : `Open ${targetPlatform} and paste instructions`}
@@ -352,8 +345,8 @@ function MigrationSuccess({
         </div>
       ) : (
         <>
-          {/* ── Drag zone (primary option) ─────────────────────────────── */}
-          {dragState === 'success' ? (
+          {/* ── Inject-to-chat button (primary option) ────────────────── */}
+          {injectState === 'success' ? (
             <div style={{
               background: 'rgba(0,255,136,0.08)',
               border: '1px solid rgba(0,255,136,0.2)',
@@ -365,13 +358,13 @@ function MigrationSuccess({
               <div style={{ fontSize: '28px', marginBottom: '8px' }}>🎉</div>
               <div style={{ fontSize: '11px', fontWeight: 900,
                 color: '#00FF88', marginBottom: '4px' }}>
-                Dropped successfully
+                File injected into chat!
               </div>
               <div style={{ fontSize: '9px', color: '#6B6B6B' }}>
-                The AI chat received the file — send the message to continue
+                The file was attached — send the message to continue
               </div>
             </div>
-          ) : dragState === 'failed' ? (
+          ) : injectState === 'failed' ? (
             <div style={{
               background: 'rgba(0,255,136,0.06)',
               border: '1px solid rgba(0,255,136,0.15)',
@@ -383,93 +376,67 @@ function MigrationSuccess({
               <div style={{ fontSize: '28px', marginBottom: '8px' }}>⬇️</div>
               <div style={{ fontSize: '11px', fontWeight: 900,
                 color: '#00FF88', marginBottom: '4px' }}>
-                Drag blocked — file downloaded instead
+                Auto-inject failed — file downloaded instead
               </div>
               <div style={{ fontSize: '9px', color: '#6B6B6B', lineHeight: 1.5 }}>
-                Chrome prevents file drops from extensions into web pages.
                 The file was saved to your Downloads folder — attach it
                 via the 📎 button in the chat.
               </div>
             </div>
           ) : (
-            <div
-              role="button"
-              tabIndex={0}
-              draggable={true}
-              onDragStart={(e) => {
-                if (!fileContent) {
-                  e.preventDefault()
-                  setDragState('failed')
+            <button
+              onClick={() => {
+                if (!fileContent || !injectTabId) {
                   handleDownload()
+                  setInjectState('failed')
                   return
                 }
-                try { e.dataTransfer.clearData() } catch { /* ok */ }
-                const blob = new Blob([fileContent], { type: 'text/xml' })
-                const url = URL.createObjectURL(blob)
-                dragUrlRef.current = url
-                // Primary: File object — web apps (Claude, ChatGPT, etc.) receive
-                // the actual file content via the DataTransfer items list.
-                try {
-                  e.dataTransfer.items.add(
-                    new File([blob], migrationFile.filename, { type: blob.type })
-                  )
-                } catch { /* blocked at extension→page boundary; DownloadURL fallback used */ }
-                // Fallback: DownloadURL — resolved at the OS drag layer for
-                // cross-origin / extension→page drops where items.add is blocked.
-                e.dataTransfer.setData(
-                  'DownloadURL',
-                  `text/xml:${migrationFile.filename}:${url}`
+                chrome.runtime.sendMessage(
+                  {
+                    type: 'INJECT_FILE_TO_TAB',
+                    tabId: injectTabId,
+                    fileName: migrationFile.filename,
+                    fileContent,
+                  },
+                  (response) => {
+                    if (response?.ok) {
+                      setInjectState('success')
+                      deleteCachedFile()
+                    } else {
+                      handleDownload()
+                      setInjectState('failed')
+                    }
+                  }
                 )
-                e.dataTransfer.setData('text/plain', migrationFile.filename)
-                e.dataTransfer.effectAllowed = 'copy'
-                setDragState('dragging')
               }}
-              onDragEnd={() => {
-                if (dragUrlRef.current) {
-                  URL.revokeObjectURL(dragUrlRef.current)
-                  dragUrlRef.current = null
-                }
-                if (dragState === 'dragging') {
-                  setDragState('success')
-                  deleteCachedFile()
-                }
-              }}
+              disabled={!fileReady}
               style={{
                 display: 'block',
-                background: dragState === 'dragging'
-                  ? 'rgba(0,255,136,0.12)'
-                  : 'rgba(0,255,136,0.04)',
-                border: `2px dashed ${dragState === 'dragging'
-                  ? '#00FF88'
-                  : 'rgba(0,255,136,0.35)'}`,
+                width: '100%',
+                background: 'rgba(0,255,136,0.04)',
+                border: '2px dashed rgba(0,255,136,0.35)',
                 borderRadius: '10px',
                 padding: '20px 14px',
                 marginBottom: '12px',
-                cursor: 'grab',
-                opacity: dragState === 'dragging' ? 0.6 : 1,
+                cursor: fileReady ? 'pointer' : 'wait',
+                textAlign: 'center',
                 transition: 'all 0.15s ease',
-                userSelect: 'none'
               }}
             >
-              <div style={{ fontSize: '28px', marginBottom: '8px',
-                pointerEvents: 'none' }}>
-                📁
-              </div>
+              <div style={{ fontSize: '28px', marginBottom: '8px' }}>📁</div>
               <div style={{ fontSize: '11px', fontWeight: 900,
-                color: '#00FF88', marginBottom: '4px',
-                pointerEvents: 'none' }}>
-                {dragState === 'dragging' ? 'Drop into AI chat!' : 'Drag into AI chat'}
+                color: '#00FF88', marginBottom: '4px' }}>
+                Inject file into AI chat
               </div>
               <div style={{ fontSize: '9px', color: '#6B6B6B',
                 fontFamily: 'monospace', marginBottom: '4px',
-                wordBreak: 'break-all', pointerEvents: 'none' }}>
+                wordBreak: 'break-all' }}>
                 {migrationFile.filename}
               </div>
-              <div style={{ fontSize: '9px', color: '#4A4A4A',
-                pointerEvents: 'none' }}>
+              <div style={{ fontSize: '9px', color: '#4A4A4A' }}>
                 {sizeKB}KB · ~{migrationFile.estimatedTokens.toLocaleString()} tokens
               </div>
-            </div>
+            </button>
           )}
 
           {/* ── Download button (always visible as fallback) ──────────── */}
@@ -497,7 +464,7 @@ function MigrationSuccess({
           </div>
 
           {/* ── Upload hint (shown after manual download) ───────────────── */}
-          {status === 'downloaded' && dragState !== 'success' && (
+          {status === 'downloaded' && injectState !== 'success' && (
             <div style={{
               background: '#0A0A0A',
               border: '1px solid rgba(0,255,136,0.25)',
@@ -580,6 +547,7 @@ export default function MigrationModal({
   const [downgradedToast, setDowngradedToast] = useState<string | null>(null);
   const [qualityWarning, setQualityWarning] = useState<string | null>(null);
   const [migrationResult, setMigrationResult] = useState<any>(null);
+  const [targetTabId, setTargetTabId] = useState<number | null>(null);
   const userHasManuallySelected = useRef(false);
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -816,6 +784,7 @@ export default function MigrationModal({
       return;
     }
 
+    setTargetTabId(tab.id ?? null);
     await focusTab(tab.id);
     await new Promise((r) => setTimeout(r, 300));
 
@@ -1505,6 +1474,7 @@ export default function MigrationModal({
             qualityWarning={migrationResult.qualityWarning}
             elapsed={migrationResult.elapsed}
             targetPlatform={targetPlatform}
+            injectTabId={targetTabId ?? undefined}
             onClose={() => { setMigrationResult(null); onClose() }}
           />
         )}

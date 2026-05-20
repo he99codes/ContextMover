@@ -403,11 +403,19 @@ function buildGrokPrompt(payload: MigrationPayload): string {
   const tail = tailMessages(ex, sourceSession.messages);
   const currentFocus = ex?.currentFocus ?? "See recent messages below";
   const ratio = payload.compressionRatio ?? 0;
+  const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
+  const meta = payload.metadata;
+
+  const metaLines: string[] = [
+    `> **From:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
+  ];
+  if (meta?.model) metaLines.push(`> **Model:** ${meta.model}  `);
+  if (meta?.temperature !== undefined) metaLines.push(`> **Temperature:** ${meta.temperature}  `);
 
   const out: string[] = [
     `## ContextMover — Session Import (Grok)`,
     ``,
-    `> **From:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | Compression: ${ratio}% | ${now}`,
+    ...metaLines,
     ``,
     `---`,
     ``,
@@ -451,6 +459,18 @@ function buildGrokPrompt(payload: MigrationPayload): string {
     }
   } else {
     out.push(`_No code blocks in this session_`, ``);
+  }
+
+  if (meta?.systemPrompt) {
+    out.push(`## System Prompt`, ``, meta.systemPrompt, ``, `---`, ``);
+  }
+
+  if (meta?.tools?.length) {
+    out.push(`## Available Tools`, ``);
+    for (const t of meta.tools) {
+      out.push(`- **${t.name}**${t.description ? `: ${t.description}` : ""}`);
+    }
+    out.push(``, `---`, ``);
   }
 
   if (ideContext) {
@@ -504,10 +524,17 @@ function buildGeminiPrompt(payload: MigrationPayload): string {
   const currentFocus = ex?.currentFocus ?? "See recent messages below";
   const ratio = payload.compressionRatio ?? 0;
   const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
+  const meta = payload.metadata;
+
+  const metaLine = [
+    `Source: ${sourceSession.platform} | Session: "${sourceSession.title}" | Messages: ${sourceSession.messages.length} | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
+    ...(meta?.model ? [`Model: ${meta.model}`] : []),
+    ...(meta?.temperature !== undefined ? [`Temperature: ${meta.temperature}`] : []),
+  ].join(" | ");
 
   const out: string[] = [
     `[CONTEXTMOVER MIGRATION]`,
-    `Source: ${sourceSession.platform} | Session: "${sourceSession.title}" | Messages: ${sourceSession.messages.length} | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
+    metaLine,
     ``,
     `[GOAL]`,
     ex?.primaryGoal ?? payload.summary,
@@ -537,6 +564,18 @@ function buildGeminiPrompt(payload: MigrationPayload): string {
     }
   } else {
     out.push(`(no code blocks detected)`, ``);
+  }
+
+  if (meta?.systemPrompt) {
+    out.push(`[SYSTEM PROMPT]`, meta.systemPrompt, ``);
+  }
+
+  if (meta?.tools?.length) {
+    out.push(`[AVAILABLE TOOLS]`);
+    for (const t of meta.tools) {
+      out.push(`  - ${t.name}${t.description ? `: ${t.description}` : ""}`);
+    }
+    out.push(``);
   }
 
   if (ideContext) {
@@ -578,10 +617,17 @@ function buildPerplexityPrompt(payload: MigrationPayload): string {
   const currentFocus = ex?.currentFocus ?? "See recent messages below";
   const ratio = payload.compressionRatio ?? 0;
   const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
+  const meta = payload.metadata;
+
+  const metaLine = [
+    `Source: ${sourceSession.platform} | Session: "${sourceSession.title}" | Messages: ${sourceSession.messages.length} | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
+    ...(meta?.model ? [`Model: ${meta.model}`] : []),
+    ...(meta?.temperature !== undefined ? [`Temperature: ${meta.temperature}`] : []),
+  ].join(" | ");
 
   const out: string[] = [
     `Migrated Context — Perplexity`,
-    `Source: ${sourceSession.platform} | Session: "${sourceSession.title}" | Messages: ${sourceSession.messages.length} | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
+    metaLine,
     ``,
     `GOAL`,
     ex?.primaryGoal ?? payload.summary,
@@ -610,6 +656,18 @@ function buildPerplexityPrompt(payload: MigrationPayload): string {
     }
   } else {
     out.push(`(no code blocks detected in this session)`, ``);
+  }
+
+  if (meta?.systemPrompt) {
+    out.push(`SYSTEM PROMPT`, meta.systemPrompt, ``);
+  }
+
+  if (meta?.tools?.length) {
+    out.push(`AVAILABLE TOOLS`);
+    for (const t of meta.tools) {
+      out.push(`  - ${t.name}${t.description ? `: ${t.description}` : ""}`);
+    }
+    out.push(``);
   }
 
   if (ideContext) {
@@ -652,11 +710,18 @@ function buildDeepSeekPrompt(payload: MigrationPayload): string {
   const currentFocus = ex?.currentFocus ?? "See recent messages below";
   const ratio = payload.compressionRatio ?? 0;
   const tierLabel = (payload.tier ?? 1) === 3 ? "attention_engine" : (payload.tier ?? 1) === 2 ? "smart_summary" : "tier1";
+  const meta = payload.metadata;
+
+  const metaLines: string[] = [
+    `**Source:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
+  ];
+  if (meta?.model) metaLines.push(`**Model:** ${meta.model}  `);
+  if (meta?.temperature !== undefined) metaLines.push(`**Temperature:** ${meta.temperature}  `);
 
   const out: string[] = [
     `# ContextMover Migration → DeepSeek`,
     ``,
-    `**Source:** ${sourceSession.platform} | **"${sourceSession.title}"** | ${sourceSession.messages.length} messages | Compression: ${ratio}% | Tier: ${tierLabel} | ${now}`,
+    ...metaLines,
     ``,
     `---`,
     ``,
@@ -696,6 +761,18 @@ function buildDeepSeekPrompt(payload: MigrationPayload): string {
     }
   } else {
     out.push(`_No code blocks detected in this session_`, ``);
+  }
+
+  if (meta?.systemPrompt) {
+    out.push(`## System Prompt`, ``, meta.systemPrompt, ``, `---`, ``);
+  }
+
+  if (meta?.tools?.length) {
+    out.push(`## Available Tools`, ``);
+    for (const t of meta.tools) {
+      out.push(`- **${t.name}**${t.description ? `: ${t.description}` : ""}`);
+    }
+    out.push(``, `---`, ``);
   }
 
   if (ideContext) {

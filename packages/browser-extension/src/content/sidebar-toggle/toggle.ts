@@ -41,16 +41,18 @@ function inject(): HTMLElement {
 
   const host = document.createElement("div");
   host.id = "cm-toggle-host";
-  Object.assign(host.style, {
-    position:      "fixed",
-    top:           "72px",
-    right:         "0",
-    width:         "0",
-    height:        "0",
-    overflow:      "visible",
-    zIndex:        "2147483647",
-    pointerEvents: "none",
-  });
+  // Use setProperty with "important" so platform CSS (even !important rules)
+  // cannot hide or reposition the toggle host.
+  const s = host.style;
+  s.setProperty("position",       "fixed",      "important");
+  s.setProperty("display",        "block",      "important");
+  s.setProperty("top",            "72px",       "important");
+  s.setProperty("right",          "0",          "important");
+  s.setProperty("width",          "48px",       "important");
+  s.setProperty("height",         "48px",       "important");
+  s.setProperty("overflow",       "visible",    "important");
+  s.setProperty("z-index",        "2147483647", "important");
+  s.setProperty("pointer-events", "none",       "important");
 
   (document.documentElement ?? document.body).appendChild(host);
 
