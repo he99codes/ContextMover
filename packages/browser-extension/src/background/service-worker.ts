@@ -835,6 +835,52 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
+      case "AUTH_GOOGLE_SIGN_IN": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
+        const { idToken } = msg.payload as { idToken: string };
+        try {
+          const res = await fetch(`${WEBAPP_URL}/api/auth/extension-google-signin`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken }),
+            signal: AbortSignal.timeout(10_000),
+          });
+          const data = (await res.json()) as {
+            error?: string;
+            message?: string;
+            signupUrl?: string;
+            access_token?: string;
+            refresh_token?: string;
+            user?: { id: string; email?: string };
+          };
+          if (!res.ok || data.error) {
+            sendResponse({
+              error: data.error ?? "signin_failed",
+              message: data.message,
+              signupUrl: data.signupUrl,
+            });
+            break;
+          }
+          if (data.access_token && data.refresh_token) {
+            await supabase.auth.setSession({
+              access_token: data.access_token,
+              refresh_token: data.refresh_token,
+            });
+          }
+          if (data.access_token) {
+            await chrome.storage.local.set({
+              accessToken: data.access_token,
+              userId: data.user?.id,
+            });
+          }
+          sendResponse({ user: data.user ?? null });
+          void broadcastToViews({ type: "AUTH_STATE_CHANGED" });
+        } catch (err) {
+          sendResponse({ error: "Google sign-in failed" });
+        }
+        break;
+      }
+
       case "AUTH_SIGN_IN": {
         if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const { email, password } = msg.payload;

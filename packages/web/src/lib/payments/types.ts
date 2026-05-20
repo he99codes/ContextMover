@@ -63,9 +63,9 @@ export interface UsageLimits {
 }
 
 export const FREE_LIMITS: UsageLimits = {
-  simpleMigrations:    50,
-  smartMigrations:     50,
-  attentionMigrations: 10,
+  simpleMigrations:    8,
+  smartMigrations:     5,
+  attentionMigrations: 3,
   sessionsStored:      10,
   promptTemplates:     6,
 };

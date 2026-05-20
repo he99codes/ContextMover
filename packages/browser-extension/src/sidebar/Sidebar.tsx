@@ -893,6 +893,7 @@ export default function Sidebar() {
             session={selected}
             targetPlatform={targetPlatform}
             attentionAvailable={attentionAvailable}
+            isPro={planStatus.isPro}
             onClose={() => setShowMigrationModal(false)}
             onSuccess={(tier, _compressionRatio, chars, qualityScore) => {
               setShowMigrationModal(false);

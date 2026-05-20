@@ -8,22 +8,23 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 type AuthUser = { id: string; email?: string | null } | null;
-type Mode = "signIn" | "signUp";
 
 interface AuthGateProps {
   children: (user: NonNullable<AuthUser>, signOut: () => void) => ReactNode;
 }
 
+const WEBAPP_URL = "https://contextmover.com";
+
 export default function AuthGate({ children }: AuthGateProps) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<AuthUser>(null);
 
-  const [mode, setMode] = useState<Mode>("signIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
     void refreshUser();
@@ -48,27 +49,73 @@ export default function AuthGate({ children }: AuthGateProps) {
     });
   }
 
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true);
+    setError(null);
+    setInfo(null);
+    try {
+      const manifest = chrome.runtime.getManifest() as chrome.runtime.Manifest & {
+        oauth2?: { client_id?: string; scopes?: string[] };
+      };
+      const clientId = manifest.oauth2?.client_id;
+      if (!clientId) { setError("OAuth not configured"); setGoogleLoading(false); return; }
+
+      const redirectUri = chrome.identity.getRedirectURL();
+      const scopes = ["openid", "email", "profile"];
+      const authUrl =
+        "https://accounts.google.com/o/oauth2/v2/auth" +
+        "?client_id=" + encodeURIComponent(clientId) +
+        "&response_type=id_token" +
+        "&redirect_uri=" + encodeURIComponent(redirectUri) +
+        "&scope=" + encodeURIComponent(scopes.join(" ")) +
+        "&nonce=" + Math.random().toString(36).slice(2) +
+        "&prompt=select_account";
+
+      const responseUrl = await new Promise<string | undefined>((resolve) => {
+        chrome.identity.launchWebAuthFlow(
+          { url: authUrl, interactive: true },
+          (url) => { resolve(url); void chrome.runtime.lastError; }
+        );
+      });
+      if (!responseUrl) { setError("Google sign-in cancelled"); setGoogleLoading(false); return; }
+
+      const idMatch = responseUrl.match(/[#&]id_token=([^&]+)/);
+      const idToken = idMatch?.[1];
+      if (!idToken) { setError("No id_token received"); setGoogleLoading(false); return; }
+
+      chrome.runtime.sendMessage(
+        { type: "AUTH_GOOGLE_SIGN_IN", payload: { idToken } },
+        (res) => {
+          setGoogleLoading(false);
+          if (res?.error) {
+            if (res.error === "no_account") {
+              setError(res.message ?? "No account found. Sign up on the web first.");
+              setInfo(`Go to ${WEBAPP_URL}/auth?mode=signup to create an account.`);
+            } else {
+              setError(res.error);
+            }
+            return;
+          }
+          setUser(res?.user ?? null);
+        }
+      );
+    } catch {
+      setError("Google sign-in failed");
+      setGoogleLoading(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setInfo(null);
     setSubmitting(true);
 
-    const type = mode === "signIn" ? "AUTH_SIGN_IN" : "AUTH_SIGN_UP";
     chrome.runtime.sendMessage(
-      { type, payload: { email: email.trim(), password } },
+      { type: "AUTH_SIGN_IN", payload: { email: email.trim(), password } },
       (res) => {
         setSubmitting(false);
-        if (res?.error) {
-          setError(res.error);
-          return;
-        }
-        if (mode === "signUp" && res?.needsConfirmation) {
-          setInfo("Check your email to confirm your account, then sign in.");
-          setMode("signIn");
-          setPassword("");
-          return;
-        }
+        if (res?.error) { setError(res.error); return; }
         setUser(res?.user ?? null);
       }
     );
@@ -116,7 +163,7 @@ export default function AuthGate({ children }: AuthGateProps) {
           </div>
           <h1 className="text-base font-semibold tracking-tight text-[#F5F5F5]">ContextMover</h1>
           <p className="mt-1 text-[11px] text-[#6B6B6B]">
-            Sign {mode === "signIn" ? "in" : "up"} to sync with the web dashboard
+            Sign in to sync with the web dashboard
           </p>
         </div>
 
@@ -167,26 +214,35 @@ export default function AuthGate({ children }: AuthGateProps) {
             disabled={submitting}
             className="w-full rounded-[4px] bg-[#00FF88] py-2 text-sm font-semibold text-black transition-all hover:bg-[#00CC6A] hover:shadow-[0_0_12px_rgba(0,255,136,0.3)] disabled:opacity-50"
           >
-            {submitting
-              ? "Please wait…"
-              : mode === "signIn"
-                ? "Sign in"
-                : "Create account"}
+            {submitting ? "Please wait…" : "Sign in"}
           </button>
         </form>
 
+        <div className="mt-4 flex items-center gap-2">
+          <div className="h-px flex-1 bg-[#2A2A2A]" />
+          <span className="text-[10px] text-[#6B6B6B] uppercase">or</span>
+          <div className="h-px flex-1 bg-[#2A2A2A]" />
+        </div>
+
         <button
-          onClick={() => {
-            setMode(mode === "signIn" ? "signUp" : "signIn");
-            setError(null);
-            setInfo(null);
-          }}
-          className="mt-4 w-full text-center text-[11px] text-[#6B6B6B] hover:text-[#00FF88] transition-colors"
+          onClick={() => void handleGoogleSignIn()}
+          disabled={googleLoading || submitting}
+          className="mt-3 w-full rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] py-2 text-sm text-[#F5F5F5] hover:bg-[#252525] transition-all disabled:opacity-50"
         >
-          {mode === "signIn"
-            ? "Don't have an account? Sign up"
-            : "Already have an account? Sign in"}
+          {googleLoading ? "Connecting…" : "Continue with Google"}
         </button>
+
+        <p className="mt-4 text-center text-[10px] text-[#6B6B6B]">
+          Don&apos;t have an account?{" "}
+          <a
+            href={`${WEBAPP_URL}/auth?mode=signup`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#00FF88] hover:underline"
+          >
+            Sign up on the web
+          </a>
+        </p>
       </div>
     </div>
   );
