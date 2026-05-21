@@ -14,6 +14,12 @@
 import type { Message } from "../types";
 
 const TARGET_CHUNK_TOKENS = 200;   // ~800 chars
+// Hard cap on chunks per session. Indexing N chunks costs ~400ms each on
+// minimal-tier hardware (no WebGPU); a 911-chunk session blocks the offscreen
+// doc for 6+ minutes, freezing semantic search and all other indexing jobs.
+// We retain the MOST RECENT chunks (most relevant for "what was I just
+// working on" retrieval). Older context falls back to keyword search.
+const MAX_CHUNKS_PER_SESSION = 250;
 // (CHUNK_OVERLAP_TOKENS reserved for future continuity-overlap logic)
 
 const STRIP_PATTERNS: RegExp[] = [
@@ -85,6 +91,12 @@ export function chunkMessages(messages: Message[]): Chunk[] {
     }
   }
 
+  // Cap to most recent N chunks. Older messages still appear in the session
+  // transcript; only their semantic embedding is skipped to keep indexing
+  // bounded. Retrieval falls back to keyword search across the full text.
+  if (chunks.length > MAX_CHUNKS_PER_SESSION) {
+    return chunks.slice(chunks.length - MAX_CHUNKS_PER_SESSION);
+  }
   return chunks;
 }
 

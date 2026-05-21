@@ -194,6 +194,7 @@ class DriveSyncManager {
           id: local.id,
           platform: String(local.platform),
           title: local.title,
+          customName: local.customName,
           messageCount: local.messages.length,
           updatedAt: local.updatedAt,
           driveFileId: file.id,
@@ -304,6 +305,20 @@ class DriveSyncManager {
               `local=${local.messages.length}@${local.updatedAt} vs ` +
               `remote=${remote.messageCount}@${remote.updatedAt}`
             );
+          }
+
+          // Rename-only sync: if remote has a newer customName, apply it even
+          // when local messages are otherwise newer.
+          if (
+            remote.customName !== undefined &&
+            remote.customName !== local.customName &&
+            remote.updatedAt > (local.updatedAt ?? 0)
+          ) {
+            local.customName = remote.customName;
+            local.updatedAt = remote.updatedAt;
+            await db.saveSession(local);
+            updated++;
+            console.log(`[drive-sync] applied rename from Drive for ${remote.id}`);
           }
         } catch (e) {
           console.warn("[drive-sync] pull iteration error", remote.id, e);

@@ -67,7 +67,6 @@ export async function POST(req: NextRequest) {
   const rl = await checkRateLimit(req, user.id);
   if (!rl.ok) return rl.response;
 
-  const body = await req.json().catch(() => ({}));
   const plan = "pro";
 
   const pricing = await getPricingConfig(req);

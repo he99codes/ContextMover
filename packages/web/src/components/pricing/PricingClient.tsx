@@ -14,7 +14,7 @@ import { Check, Zap, Shield, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import { detectPricing, type PricingPlan } from "@/lib/payments/geo-pricing";
+import { UNIFIED_PRICING } from "@/lib/payments/geo-pricing";
 import { RazorpayCheckout } from "@/components/payments/RazorpayCheckout";
 
 const FREE_FEATURES = [
@@ -42,7 +42,7 @@ type BillingPeriod = "monthly" | "annual";
 export function PricingClient() {
   const router = useRouter();
   const [billing, setBilling]   = useState<BillingPeriod>("monthly");
-  const [pricing, setPricing]   = useState<PricingPlan | null>(null);
+  const [pricing]   = useState(UNIFIED_PRICING);
   const [user,    setUser]      = useState<User | null>(null);
   const [isPro,   setIsPro]     = useState(false);
   const [loading, setLoading]   = useState(true);
@@ -50,11 +50,7 @@ export function PricingClient() {
   useEffect(() => {
     async function init() {
       try {
-        const [plan, supabase] = [
-          await detectPricing(),
-          createClient(),
-        ];
-        setPricing(plan);
+        const supabase = createClient();
 
         const { data: { user: u } } = await supabase.auth.getUser();
         setUser(u);
@@ -76,8 +72,8 @@ export function PricingClient() {
   }, []);
 
   const proPrice = billing === "monthly"
-    ? pricing?.pro.display
-    : pricing?.pro.annualDisplay;
+    ? pricing.pro.display
+    : pricing.pro.annualDisplay;
 
   const proPeriod = billing === "monthly" ? "/month" : "/year";
 
@@ -197,7 +193,7 @@ export function PricingClient() {
               <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#6B6B6B]">
                 Free forever
               </p>
-              <p className="mt-1 text-4xl font-black text-[#F5F5F5]">$0</p>
+              <p className="mt-1 text-4xl font-black text-[#F5F5F5]">Free</p>
               <p className="mt-0.5 text-xs text-[#6B6B6B]">No credit card required</p>
             </div>
             <ul className="mb-7 space-y-2.5">
@@ -231,10 +227,10 @@ export function PricingClient() {
                 <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#00FF88]">
                   Pro
                 </p>
-                {/* Geo badge */}
-                {!loading && pricing && (
+                {/* Geo badge — unified pricing for all */}
+                {!loading && (
                   <span className="rounded-full bg-[#1A1A1A] border border-[#2A2A2A] px-2 py-0.5 text-[9px] font-mono text-[#6B6B6B]">
-                    {pricing.region === "india" ? "🇮🇳 India pricing" : "🌍 Global pricing"}
+                    🇮🇳 India pricing
                   </span>
                 )}
               </div>
@@ -269,6 +265,10 @@ export function PricingClient() {
 
         <p className="mt-8 text-center text-xs text-[#3A3A3A]">
           7-day refund policy — no questions asked.
+        </p>
+        <p className="mt-3 text-center text-xs text-[#3A3A3A]">
+          ❤️ Built by an indie developer. Every subscription directly supports
+          the person writing the code, not a corporation.
         </p>
         <p className="mt-3 text-center text-xs text-[#3A3A3A]">
           Questions?{" "}

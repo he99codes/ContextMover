@@ -21,8 +21,7 @@
 //   webpack ESM bundle with onnxruntime-web inlined, so Rollup can bundle
 //   it without chasing external deps.
 
-// @ts-expect-error — no .d.ts ships alongside the dist bundle
-import * as transformers from "@xenova/transformers/dist/transformers.min.js";
+import * as transformers from "@xenova/transformers";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TransformersModule = { pipeline: any; env: any } & Record<string, unknown>;

@@ -27,6 +27,7 @@
 
 import { openDB, type IDBPDatabase } from "idb";
 import type { ContextSession, Message, CodeBlock } from "./types";
+import { dexieDb } from "./db";
 import {
   capabilityDetector,
   getTierConfig,
@@ -533,16 +534,24 @@ export class AttentionEngine {
    */
   async semanticSearch(query: string, limit = 10): Promise<AttentionChunk[]> {
     console.log(`${TAG} semanticSearch — limit=${limit}`);
-    const db = await this.openIdb();
-    const allChunks = (await (db.getAll(CHUNKS_STORE) as Promise<AttentionChunk[]>));
+    const allChunks = await dexieDb.chunkEmbeddings.toArray();
+    if (allChunks.length === 0) return [];
+
     const queryEmb = await this.getEmbedding(query);
 
     const scored = allChunks.map((chunk) => ({
-      ...chunk,
+      id: chunk.id,
+      sessionId: chunk.sessionId,
+      role: chunk.role,
+      content: chunk.text,
+      embedding: chunk.embedding,
       relevanceScore:
         queryEmb.some((v) => v !== 0) && chunk.embedding.length === EMBEDDING_DIM
           ? this.cosineSimilarity(queryEmb, chunk.embedding)
-          : this.keywordScore(query, chunk.content),
+          : this.keywordScore(query, chunk.text),
+      type: (chunk.hasCode ? "code" : "message") as "message" | "code",
+      language: chunk.language,
+      timestamp: chunk.createdAt,
     }));
 
     scored.sort((a, b) => b.relevanceScore - a.relevanceScore);
@@ -567,6 +576,8 @@ export class AttentionEngine {
       tx.objectStore(SESSIONS_META_STORE).clear(),
     ]);
     await tx.done;
+    await dexieDb.chunkEmbeddings.clear();
+    await dexieDb.sessionHashes.clear();
     this.appStructure = null;
     console.log(`${TAG} Index cleared`);
   }

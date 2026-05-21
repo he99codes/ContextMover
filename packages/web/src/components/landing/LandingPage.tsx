@@ -220,7 +220,6 @@ const STEPS = [
 export default function LandingPage() {
   useScrollReveal();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [indiaMode, setIndiaMode] = useState(false);
   const [annual, setAnnual] = useState(false);
 
   return (
@@ -697,23 +696,13 @@ export default function LandingPage() {
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${annual ? "bg-[#00FF88] text-[#0A0A0A]" : "text-[#6B6B6B] hover:text-[#F5F5F5]"}`}
               >Annual <span className="text-[10px] opacity-70">save 27%</span></button>
             </div>
-            <div className="flex items-center gap-2 bg-[#111] border border-[#2A2A2A] rounded-full p-1">
-              <button
-                onClick={() => setIndiaMode(false)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${!indiaMode ? "bg-[#1A1A1A] text-[#F5F5F5]" : "text-[#6B6B6B] hover:text-[#F5F5F5]"}`}
-              >🌍 Global ($)</button>
-              <button
-                onClick={() => setIndiaMode(true)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${indiaMode ? "bg-[#1A1A1A] text-[#F5F5F5]" : "text-[#6B6B6B] hover:text-[#F5F5F5]"}`}
-              >🇮🇳 India (₹)</button>
-            </div>
-          </div>
+                      </div>
           <div className="grid grid-cols-1 gap-5 mb-10">
             {/* FREE */}
             <div className="reveal card-hover bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-7 text-left flex flex-col">
               <div className="mb-6">
                 <p className="text-xs text-[#6B6B6B] font-medium uppercase tracking-widest mb-2">Free</p>
-                <p className="text-4xl font-bold text-[#F5F5F5]">{indiaMode ? "Free" : "$0"} <span className="text-sm font-normal text-[#6B6B6B]">/ forever</span></p>
+                <p className="text-4xl font-bold text-[#F5F5F5]">Free <span className="text-sm font-normal text-[#6B6B6B]">/ forever</span></p>
               </div>
               <ul className="space-y-3 text-sm text-[#6B6B6B] flex-1 mb-8">
                 {["Web session capture (all platforms)", "Basic migration + export", "10 sessions stored", "Full Context + Smart Summary tiers"].map((f) => (
@@ -730,10 +719,10 @@ export default function LandingPage() {
               <div className="mb-6">
                 <p className="text-xs text-[#00FF88] font-medium uppercase tracking-widest mb-2">Pro</p>
                 <p className="text-4xl font-bold text-[#F5F5F5]">
-                  {indiaMode ? (annual ? "₹200" : "₹299") : (annual ? "$4" : "$5")}
+                  {annual ? "₹200" : "₹299"}
                   <span className="text-sm font-normal text-[#6B6B6B]"> / month</span>
                 </p>
-                <p className="text-xs text-[#6B6B6B] mt-1">{annual ? (indiaMode ? "billed ₹2,399/yr" : "billed $48/yr") : (indiaMode ? "or ₹200/mo billed annually" : "or $4/mo billed annually")}</p>
+                <p className="text-xs text-[#6B6B6B] mt-1">{annual ? "billed ₹2,399/yr" : "or ₹200/mo billed annually"}</p>
               </div>
               <ul className="space-y-3 text-sm text-[#6B6B6B] flex-1 mb-8">
                 {["Unlimited sessions", "Attention Engine (semantic AI)", "IDE connection + MCP server", "GitHub repo extraction", "Priority updates"].map((f) => (
@@ -761,6 +750,7 @@ export default function LandingPage() {
           </div>
           <p className="mt-6 text-xs text-[#3A3A3A]">7-day refund policy — no questions asked.</p>
           <p className="mt-2 text-xs font-mono text-[#2A4A2A]">🔒 Zero-knowledge — your data never touches our servers · vault syncs only to your own Supabase.</p>
+          <p className="mt-2 text-xs text-[#3A3A3A]">❤️ Built by an indie developer. Every subscription directly supports the person writing the code, not a corporation.</p>
         </div>
       </section>
 

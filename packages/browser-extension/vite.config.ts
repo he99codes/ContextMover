@@ -69,13 +69,11 @@ function stripNonCmLogs(): Plugin {
     enforce: "post",
     renderChunk(code, chunk) {
       // Skip shared / vendor chunks (facadeModuleId is null for those).
-      // Third-party code like Dexie uses console.warn with long comma
-      // expressions; the greedy [^;]* regex consumes them and corrupts
-      // the output (e.g. the Dexie PR1398 recovery ternary becomes
-      // `PR1398_maxLoop?(` with the rest stripped → SyntaxError).
-      if (!chunk.facadeModuleId) return null;
+      // Also skip offscreen chunks — they contain the bundled transformers
+      // minified library which this regex can accidentally corrupt.
+      if (!chunk.facadeModuleId || chunk.facadeModuleId.includes("offscreen")) return null;
       const result = code.replace(
-        /console\.(log|warn|debug)\(\s*(["'`][^"'`\n]*["'`])[^;]*\);?/g,
+        /console\.(log|warn|debug)\(\s*(["'`][^"'`\n]*["'`])[^)]*\);?/g,
         (match) => (/\[(?:CM:|ContextMover)/.test(match) ? match : "")
       );
       return result === code ? null : { code: result, map: null };
@@ -167,19 +165,8 @@ export default defineConfig(async ({ mode }) => {
           "src/content/sidebar-toggle/toggle": "src/content/sidebar-toggle/toggle.ts",
         },
         output: {
-          // Isolate @xenova/transformers + onnxruntime into a dedicated chunk.
-          // The service worker MUST NOT load this chunk — model loading is
-          // offscreen-only. The static import chain from SW was broken in
-          // semantic-index/index.ts; this manualChunks is defence-in-depth.
-          manualChunks(id: string) {
-            if (
-              id.includes("@xenova/transformers") ||
-              id.includes("onnxruntime-web") ||
-              id.includes("onnxruntime")
-            ) {
-              return "transformers-vendor";
-            }
-          },
+          // @xenova/transformers is bundled into the offscreen chunk via
+          // transformers-loader.ts static import. No manual chunk split needed.
         },
       },
       target: "esnext",
@@ -192,7 +179,10 @@ export default defineConfig(async ({ mode }) => {
       sourcemap: false,
     },
     resolve: {
-      alias: { "@": path.resolve(__dirname, "src") },
+      alias: { 
+        "@": path.resolve(__dirname, "src"),
+        "@xenova/transformers": XENOVA_DIST_BUNDLE
+      },
     },
   };
 });

@@ -14,6 +14,7 @@ import type { ContextSession, Message } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { syncPromptTemplates, syncPromptAssignments, queueVaultSync } from "@/lib/cloud-sync";
 import { semanticIndex } from "@/lib/semantic-index/index";
+import { getHardwareProfile } from "@/lib/attention-engine";
 import { scoreMigration, formatScoreReport, type QualityScore } from "@/lib/quality/migration-scorer";
 import { generateQualityReport } from "@/lib/quality/report-generator";
 import { userVault } from "@/lib/user-vault/connector";
@@ -747,6 +748,44 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ ok: true });
         break;
 
+      case "RENAME_SESSION":
+        if (!isFromExtensionUI(sender)) {
+          sendResponse({ error: "Unauthorized" });
+          break;
+        }
+        const { sessionId: renameId, title: newTitle } = msg as {
+          sessionId: string;
+          title: string;
+        };
+        if (!renameId || !newTitle?.trim()) {
+          sendResponse({ error: "sessionId and title required" });
+          break;
+        }
+        const session = await db.getSession(renameId);
+        if (!session) {
+          sendResponse({ error: "Session not found" });
+          break;
+        }
+        const updatedSession = session;
+        updatedSession.customName = newTitle.trim();
+        updatedSession.updatedAt = Date.now();
+        await db.saveSession(updatedSession);
+        // Sync rename to Drive + vault
+        void driveSyncManager.syncAfterCapture(renameId).catch(() => {});
+        void (async () => {
+          try {
+            const vaultClient = await userVault.getClient();
+            if (!vaultClient) return;
+            await vaultClient
+              .from("cm_sessions")
+              .update({ title: updatedSession.customName, updated_at: new Date().toISOString() })
+              .eq("id", renameId);
+          } catch { /* vault failure never blocks */ }
+        })();
+        void broadcastToViews({ type: "SESSIONS_UPDATED" });
+        sendResponse({ ok: true });
+        break;
+
       case "SESSION_EXISTS": {
         // [SECURITY] Allow only from platform content scripts or extension UI.
         if (!isFromPlatformTab(sender) && !isFromExtensionUI(sender)) {
@@ -1467,6 +1506,15 @@ async function handleCaptureSession(payload: {
 async function backgroundIndex(session: ContextSession): Promise<void> {
   if (!attentionEngineAvailable) return;
   try {
+    // Skip embedding-based indexing on minimal-tier hardware (no WebGPU,
+    // ≤4 cores). Embedding hundreds of chunks at ~400ms/chunk on weak CPUs
+    // monopolizes the offscreen doc and freezes the sidebar / semantic search
+    // for minutes after large captures or Drive sync. Retrieval falls back to
+    // keyword search, which is acceptable for these users.
+    const hw = await getHardwareProfile().catch(() => null);
+    if (hw?.tier === "minimal") {
+      return;
+    }
     const t0 = performance.now();
     await semanticIndex.indexSession(session);
     const dt = (performance.now() - t0).toFixed(0);

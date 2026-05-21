@@ -49,6 +49,7 @@ export interface ContextSession {
   id: string;
   platform: Platform;
   title: string;
+  customName?: string;
   messages: Message[];
   createdAt: number;
   updatedAt: number;

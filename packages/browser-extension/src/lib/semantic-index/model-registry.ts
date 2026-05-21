@@ -13,6 +13,7 @@
 
 import type { HardwareProfile } from "../attention-engine";
 import { MODEL_CONFIGS, type ModelTier, type ModelConfig } from "./model-constants";
+import { getTransformers } from "./transformers-loader";
 
 export type { ModelTier, ModelConfig };
 export { MODEL_CONFIGS };
@@ -56,21 +57,11 @@ class ModelRegistry {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       typeof (chrome as any).runtime?.getURL === "function";
 
-    // Load @xenova/transformers via the extension-local pre-built bundle.
-    // Importing the bare specifier "@xenova/transformers" leaves it unresolved
-    // in the output because the package's src/transformers.js imports
-    // onnxruntime-web which is not reachable under pnpm's hoisted layout —
-    // Rollup silently bails and Chrome throws
-    // "Failed to resolve module specifier '@xenova/transformers'".
-    // The dist/transformers.min.js bundle inlines onnxruntime-web and is
-    // copied to dist/transformers/ by the copy-onnx-wasm Vite plugin.
-    // Using /* @vite-ignore */ tells Rollup to leave this import as-is;
-    // Chrome loads the extension-local chrome-extension:// URL at runtime.
-    const transformersUrl = isExtension
-      ? chrome.runtime.getURL("transformers/transformers.min.js")
-      : "@xenova/transformers"; // dev / test fallback
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { pipeline, env } = (await import(/* @vite-ignore */ transformersUrl)) as any;
+    // Load @xenova/transformers via the statically-bundled pre-built bundle.
+    // transformers-loader.ts imports @xenova/transformers/dist/transformers.min.js
+    // so Rollup bundles it into the offscreen chunk instead of leaving a bare
+    // specifier that Chrome cannot resolve at runtime.
+    const { pipeline, env } = getTransformers();
     if (isExtension) {
       env.localModelPath = chrome.runtime.getURL("models/");
       env.allowLocalModels = true;
@@ -172,6 +163,13 @@ class ModelRegistry {
       const batch = texts.slice(i, i + 8);
       const outputs = await Promise.all(batch.map((t) => this.embed(t)));
       results.push(...outputs);
+      // Yield to the event loop so the offscreen doc can service intervening
+      // OFFSCREEN_EMBED_QUERY requests (semantic search) and OFFSCREEN_PING
+      // health checks. Without this, a large indexing job (250+ chunks)
+      // monopolizes the doc for tens of seconds and freezes search.
+      if (i + 8 < texts.length) {
+        await new Promise((r) => setTimeout(r, 0));
+      }
     }
     return results;
   }

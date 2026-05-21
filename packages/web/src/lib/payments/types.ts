@@ -11,7 +11,7 @@
 
 export type Plan = "free" | "pro";
 export type Gateway = "razorpay";
-export type Currency = "usd" | "inr";
+export type Currency = "inr";
 export type SubscriptionStatus =
   | "active"
   | "cancelled"
@@ -72,7 +72,3 @@ export const PRO_LIMITS: UsageLimits = {
   promptTemplates:     "unlimited",
 };
 
-// Countries routed to Razorpay (INR pricing).
-export const SOUTH_ASIA_COUNTRIES = [
-  "IN", "PK", "BD", "NP", "LK", "MM", "BT", "AF",
-];

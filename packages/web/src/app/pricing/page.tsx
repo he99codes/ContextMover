@@ -16,17 +16,8 @@ import { useRouter } from "next/navigation";
 import { useSubscription } from "@/hooks/useSubscription";
 import { createClient } from "@/lib/supabase/client";
 import { RazorpaySubscription } from "@/components/payments/RazorpaySubscription";
-import { INDIA_PRICING, GLOBAL_PRICING, type PricingPlan } from "@/lib/payments/geo-pricing";
+import { UNIFIED_PRICING } from "@/lib/payments/geo-pricing";
 
-function detectDefaultCurrency(): "INR" | "USD" {
-  if (typeof window === "undefined") return "INR";
-  try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const lang = navigator.language;
-    if (tz === "Asia/Calcutta" || tz === "Asia/Kolkata" || lang.startsWith("en-IN")) return "INR";
-  } catch { /* ignore */ }
-  return "USD";
-}
 
 const FREE_FEATURES = [
   "50 Full Context migrations/mo",
@@ -64,15 +55,7 @@ export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [currency, setCurrency] = useState<"INR" | "USD">(detectDefaultCurrency);
-  const [currencySelected, setCurrencySelected] = useState(false);
-
-  const selectedPricing: PricingPlan = currency === "INR" ? INDIA_PRICING : GLOBAL_PRICING;
-
-  function handleCurrencySelect(c: "INR" | "USD") {
-    setCurrency(c);
-    setCurrencySelected(true);
-  }
+  const pricing = UNIFIED_PRICING;
 
   // Clear mock-mode notice after a few seconds.
   useEffect(() => {
@@ -265,27 +248,12 @@ export default function PricingPage() {
         </p>
       </div>
 
-      {/* Step 1: Currency selector */}
-      <div style={{ textAlign: "center", marginBottom: "40px" }}>
-        <p style={{ fontSize: "13px", color: "#6B6B6B", marginBottom: "16px" }}>
-          Select your currency
-        </p>
-        <CurrencySelector currency={currency} onSelect={handleCurrencySelect} />
-      </div>
-
-      {/* Step 2: Billing toggle + cards — revealed after currency selection */}
-      <div
-        style={{
-          opacity:       currencySelected ? 1 : 0,
-          transform:     currencySelected ? "none" : "translateY(16px)",
-          transition:    "opacity 0.4s ease, transform 0.4s ease",
-          pointerEvents: currencySelected ? "auto" : "none",
-        }}
-      >
+      {/* Billing toggle + cards */}
+      <div>
         <div style={{ textAlign: "center", marginBottom: "24px" }}>
-          <BillingToggle billingCycle={billingCycle} onChange={setBillingCycle} annualSavings={selectedPricing.pro.annualSavings} />
+          <BillingToggle billingCycle={billingCycle} onChange={setBillingCycle} annualSavings={pricing.pro.annualSavings} />
           <div style={{ marginTop: "12px", fontSize: "12px", color: "#3A3A3A" }}>
-            Showing {currency === "INR" ? "India (INR)" : "Global (USD)"} pricing
+            All prices in INR · One price worldwide · Billed in your local currency at checkout
           </div>
         </div>
         {mockNotice && (
@@ -327,7 +295,7 @@ export default function PricingPage() {
         <PlanCard
           tag="Free"
           tagColor="#6B6B6B"
-          price={`${currency === "INR" ? "₹" : "$"}0`}
+          price="₹0"
           subtitle="forever"
           features={FREE_FEATURES}
           featureColor="#6B6B6B"
@@ -341,10 +309,10 @@ export default function PricingPage() {
           tagColor="#00FF88"
           price={
             billingCycle === "annual"
-              ? selectedPricing.pro.annualDisplay
-              : selectedPricing.pro.display
+              ? pricing.pro.annualDisplay
+              : pricing.pro.display
           }
-          subtitle={billingCycle === "annual" ? `per year · ${selectedPricing.pro.annualSavings}` : "per month"}
+          subtitle={billingCycle === "annual" ? `per year · ${pricing.pro.annualSavings}` : "per month"}
           features={PRO_FEATURES}
           featureColor="#F5F5F5"
           featured
@@ -402,6 +370,9 @@ export default function PricingPage() {
         <div style={{ textAlign: "center", color: "#3A3A3A", fontSize: "12px" }}>
           🔒 Zero-knowledge · Local-first · Your data never touches our servers · Cancel anytime · No questions asked
         </div>
+        <div style={{ textAlign: "center", color: "#3A3A3A", fontSize: "12px", marginTop: "12px" }}>
+          ❤️ Built by an indie developer. Every subscription directly supports the person writing the code, not a corporation.
+        </div>
       </div>
     </div>
   );
@@ -455,46 +426,6 @@ function BillingToggle({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────────
-// CurrencySelector
-// ─────────────────────────────────────────────────────────────────────────────────
-
-function CurrencySelector({
-  currency,
-  onSelect,
-}: {
-  currency: "INR" | "USD";
-  onSelect: (c: "INR" | "USD") => void;
-}) {
-  return (
-    <div className="flex flex-col xs:flex-row justify-center gap-3 sm:gap-3">
-      {(["INR", "USD"] as const).map((c) => {
-        const active = currency === c;
-        return (
-          <button
-            key={c}
-            onClick={() => onSelect(c)}
-            style={{
-              padding: "12px 24px",
-              borderRadius: "8px",
-              fontSize: "14px",
-              fontWeight: 700,
-              cursor: "pointer",
-              border: `1px solid ${active ? "#00FF88" : "#2A2A2A"}`,
-              background: active ? "rgba(0,255,136,0.12)" : "transparent",
-              color: active ? "#00FF88" : "#6B6B6B",
-              transition: "all 0.15s",
-              outline: "none",
-              minHeight: "52px",
-            }}
-          >
-            {c === "INR" ? "₹ INR — India" : "$ USD — Global"}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 // ─────────────────────────────────────────────────────────────────────────────
 // PlanCard
 // ─────────────────────────────────────────────────────────────────────────────

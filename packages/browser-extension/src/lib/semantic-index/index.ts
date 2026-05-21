@@ -360,55 +360,7 @@ export class SemanticIndex {
     hw: HardwareProfile,
     onProgress?: (pct: number, stage: string) => void
   ): Promise<void> {
-    const t0 = performance.now();
-    onProgress?.(5, "Chunking messages...");
-    const { chunkMessages } = await import("./chunker");
-    const chunks = chunkMessages(session.messages);
-
-    onProgress?.(15, "Loading model...");
-    // Dynamic import: keeps @xenova/transformers out of the SW bundle.
-    // This path only runs in sidebar/offscreen contexts (SW always uses offscreen).
-    const { modelRegistry } = await import("./model-registry");
-    await modelRegistry.initialize(hw, (pct) => {
-      onProgress?.(15 + pct * 0.4, "Loading AI model...");
-    });
-
-    onProgress?.(55, `Embedding ${chunks.length} chunks...`);
-    const texts = chunks.map((c) => c.text);
-    const embeddings = await modelRegistry.embedBatch(texts);
-
-    onProgress?.(85, "Persisting to storage...");
-    await dexieDb.chunkEmbeddings.where("sessionId").equals(session.id).delete();
-
-    const records: ChunkEmbedding[] = chunks.map((chunk, i) => ({
-      id: `${session.id}:${i}`,
-      sessionId: session.id,
-      chunkIndex: i,
-      text: chunk.text,
-      embedding: embeddings[i],
-      role: chunk.role,
-      messageIndex: chunk.messageIndex,
-      hasCode: chunk.hasCode,
-      language: chunk.language,
-      tokenCount: chunk.tokenCount,
-      createdAt: Date.now(),
-    }));
-    await dexieDb.chunkEmbeddings.bulkPut(records);
-
-    const config = (await import("./model-registry")).modelRegistry.getConfig();
-    await dexieDb.sessionHashes.put({
-      sessionId: session.id,
-      hash: hashMessages(session.messages),
-      chunkCount: chunks.length,
-      messageCount: session.messages.length,
-      model: config?.modelId ?? "unknown",
-      indexedAt: Date.now(),
-    });
-
-    console.log(
-      `[CM:index] (in-process) ${session.id}: ${chunks.length} chunks in ${(performance.now() - t0).toFixed(0)}ms`
-    );
-    onProgress?.(100, "Indexed");
+    console.warn(`[CM:index] Indexing skipped: offscreen unavailable for ${session.id}`);
   }
 
   // ─── RETRIEVAL ────────────────────────────────────────────────────────
@@ -450,19 +402,10 @@ export class SemanticIndex {
       try {
         queryEmbedding = await offscreenEmbedQuery(query, hw);
       } catch (err) {
-        // In SW context, DOM is unavailable so in-process model loading fails.
-        // Fall through to keyword-only retrieval — safe in all contexts.
         console.warn("[CM:index] Offscreen query embed failed — using keyword fallback:", err);
       }
     } else {
-      // Sidebar / page context: safe to load model in-process.
-      try {
-        const { modelRegistry } = await import("./model-registry");
-        await modelRegistry.initialize(hw);
-        queryEmbedding = await modelRegistry.embed(query);
-      } catch (err) {
-        console.warn("[CM:index] In-process embed failed — using keyword fallback:", err);
-      }
+      console.warn("[CM:index] Offscreen unavailable — using keyword fallback");
     }
 
     if (queryEmbedding === null) {

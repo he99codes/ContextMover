@@ -59,7 +59,7 @@ async function flushVaultSync(vaultClient: any): Promise<void> {
     await vaultClient.from("cm_sessions").upsert({
       id: session.id,
       platform: session.platform,
-      title: session.title,
+      title: session.customName ?? session.title,
       messages: session.messages,
       message_count: session.messages.length,
       user_message_count: session.messages.filter((m) => m.role === "user").length,

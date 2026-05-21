@@ -104,14 +104,15 @@ export async function POST(req: NextRequest) {
       case "subscription.updated": {
         if (!userId || !subEntity) break;
         const planType = (subEntity.notes?.plan as "pro") ?? "pro";
-        const amount   = 29_900;
+        const amount   = (subEntity.amount as number) ?? 29_900;
+        const currency = (subEntity.currency as string)?.toLowerCase() ?? "inr";
         await upsertSubscription(userId, {
           plan:                  planType,
           status:                "active",
           gateway:               "razorpay",
           gatewayCustomerId:     subEntity.customer_id,
           gatewaySubscriptionId: subEntity.id,
-          currency:              "inr",
+          currency,
           amount,
           currentPeriodStart:    subEntity.current_start
             ? new Date(subEntity.current_start * 1000)

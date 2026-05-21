@@ -78,9 +78,13 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
               </span>
             )}
           </div>
-          <p className="mt-2 truncate text-sm font-semibold text-[#F5F5F5] transition-all duration-200 group-hover:text-[#00FF88] typing-glow">
-            {session.title}
-          </p>
+          <InlineRename
+            session={session}
+            displayClassName="mt-2 truncate text-sm font-semibold text-[#F5F5F5] transition-all duration-200 group-hover:text-[#00FF88] typing-glow cursor-text"
+            inputClassName="mt-2 w-full bg-transparent border-b border-[#00FF88] text-sm font-semibold text-[#F5F5F5] outline-none"
+            onRename={(name) => chrome.runtime.sendMessage({ type: "RENAME_SESSION", sessionId: session.id, title: name })}
+            stopPropagation
+          />
           <div className="mt-1.5 flex items-center gap-2 text-[10px] uppercase" style={{ letterSpacing: "0.1em", color: "#1A3A1A" }}>
             <span>{session.messages.length} turns</span>
             <span>·</span>
@@ -148,6 +152,70 @@ const PLATFORM_COLORS: Record<Platform, string> = {
   perplexity: "#20B2AA",
   deepseek:   "#4C8BF5",
 };
+
+function getDisplayName(session: ContextSession): string {
+  const name = session.customName ?? session.title ?? "Untitled session";
+  return name.length > 40 ? name.slice(0, 40) + "…" : name;
+}
+
+function InlineRename({
+  session,
+  displayClassName,
+  inputClassName,
+  onRename,
+  stopPropagation = false,
+}: {
+  session: ContextSession;
+  displayClassName: string;
+  inputClassName: string;
+  onRename: (name: string) => void;
+  stopPropagation?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState("");
+  const display = getDisplayName(session);
+
+  if (!editing) {
+    return (
+      <span
+        className={displayClassName}
+        title="Click to rename"
+        onClick={stopPropagation
+          ? (e) => { e.stopPropagation(); setEditing(true); setVal(display); }
+          : () => { setEditing(true); setVal(display); }}
+      >
+        {display}
+      </span>
+    );
+  }
+
+  return (
+    <input
+      autoFocus
+      className={inputClassName}
+      value={val}
+      onChange={(e) => setVal(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          setEditing(false);
+          if (val.trim() && val.trim() !== display) {
+            onRename(val.trim());
+          }
+        } else if (e.key === "Escape") {
+          setEditing(false);
+        }
+      }}
+      onBlur={() => {
+        setEditing(false);
+        if (val.trim() && val.trim() !== display) {
+          onRename(val.trim());
+        }
+      }}
+      onClick={stopPropagation ? (e) => e.stopPropagation() : undefined}
+    />
+  );
+}
 
 type View = "sessions" | "detail";
 type StatusTone = "info" | "success" | "error";
@@ -517,8 +585,13 @@ export default function Sidebar() {
   // Session is already selected/highlighted; we silently ask the SW to run
   // tier-1 + tier-2 summarization now so migration feels instant.
   const warmupSession = useCallback(async (session: ContextSession): Promise<void> => {
-    // 1. Trigger background semantic indexing via SW (fire & forget)
-    chrome.runtime.sendMessage({ type: 'BACKGROUND_INDEX', sessionId: session.id }).catch(() => {});
+    // 1. Trigger background semantic indexing via SW (fire & forget).
+    //    Skip on minimal-tier hardware — embedding hundreds of chunks at
+    //    ~400ms/chunk on no-WebGPU CPUs blocks the offscreen doc and freezes
+    //    the sidebar. Keyword search fallback covers retrieval acceptably.
+    if (hardwareTierRef.current !== 'minimal') {
+      chrome.runtime.sendMessage({ type: 'BACKGROUND_INDEX', sessionId: session.id }).catch(() => {});
+    }
     // 2. Precompute tier-2 summary if not already cached
     if (!precomputedSummaries.current.has(session.id)) {
       chrome.runtime.sendMessage(
@@ -635,6 +708,7 @@ export default function Sidebar() {
 
     return base.filter((session) => {
       const haystack = [
+        session.customName,
         session.title,
         PLATFORM_LABELS[session.platform],
         ...session.messages.slice(-4).map((message) => message.content),
@@ -686,7 +760,13 @@ export default function Sidebar() {
                 ← Back
               </button>
               <PlatformBadge platform={selected.platform} logoSize={11} />
-              <span className="min-w-0 flex-1 truncate text-xs font-semibold text-[#F5F5F5]" title={selected.title}>{selected.title}</span>
+              <InlineRename
+                key={selected.id}
+                session={selected}
+                displayClassName="min-w-0 flex-1 truncate text-xs font-semibold text-[#F5F5F5] cursor-text"
+                inputClassName="min-w-0 flex-1 bg-transparent border-b border-[#00FF88] text-xs font-semibold text-[#F5F5F5] outline-none"
+                onRename={(name) => chrome.runtime.sendMessage({ type: "RENAME_SESSION", sessionId: selected.id, title: name })}
+              />
             </div>
           </div>
 

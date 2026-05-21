@@ -25,11 +25,6 @@ export async function GET(req: NextRequest) {
         amount:   config.pro.amount,
         interval: config.pro.interval,
       },
-      team: {
-        display:  config.team.display,
-        amount:   config.team.amount,
-        interval: config.team.interval,
-      },
     });
   } catch (err) {
     console.error("[CM:api:pricing] error:", err);

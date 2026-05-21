@@ -43,6 +43,7 @@ export interface DriveSessionIndexEntry {
   id: string;
   platform: string;
   title: string;
+  customName?: string;
   messageCount: number;
   updatedAt: number;
   driveFileId: string;
