@@ -27,13 +27,14 @@ export async function POST(req: NextRequest) {
     const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
       type: "magiclink", email: match.email!,
     });
-    if (linkErr || !link?.properties?.access_token) {
+    const props = link?.properties as unknown as { access_token?: string; refresh_token?: string };
+    if (linkErr || !props?.access_token) {
       return NextResponse.json({ error: "Failed to create session" }, { status: 500 });
     }
 
     return NextResponse.json({
-      access_token: link.properties.access_token,
-      refresh_token: link.properties.refresh_token,
+      access_token: props.access_token,
+      refresh_token: props.refresh_token,
       user: { id: match.id, email: match.email },
     });
   } catch (e) {
