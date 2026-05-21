@@ -15,7 +15,7 @@ import { Loader2, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface Props {
-  plan:        "pro" | "team";
+  plan:        "pro";
   billing:     "monthly" | "annual";
   buttonText?: string;
   onSuccess:   () => void;

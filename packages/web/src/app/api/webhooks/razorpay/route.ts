@@ -103,8 +103,8 @@ export async function POST(req: NextRequest) {
       case "subscription.charged":
       case "subscription.updated": {
         if (!userId || !subEntity) break;
-        const planType = (subEntity.notes?.plan as "pro" | "team") ?? "pro";
-        const amount   = planType === "team" ? 99_900 : 19_900;
+        const planType = (subEntity.notes?.plan as "pro") ?? "pro";
+        const amount   = 29_900;
         await upsertSubscription(userId, {
           plan:                  planType,
           status:                "active",
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
       case "subscription.cancelled":
       case "subscription.completed": {
         if (!userId || !subEntity) break;
-        const planType = (subEntity.notes?.plan as "pro" | "team") ?? "pro";
+        const planType = (subEntity.notes?.plan as "pro") ?? "pro";
         await upsertSubscription(userId, {
           plan:                  planType,
           status:                "cancelled",
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
 
       case "subscription.halted": {
         if (!userId || !subEntity) break;
-        const planType = (subEntity.notes?.plan as "pro" | "team") ?? "pro";
+        const planType = (subEntity.notes?.plan as "pro") ?? "pro";
         await upsertSubscription(userId, {
           plan:                  planType,
           status:                "halted",
@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
       case "subscription.payment.failed":
       case "payment.failed": {
         if (!userId || !subEntity) break;
-        const planType = (subEntity.notes?.plan as "pro" | "team") ?? "pro";
+        const planType = (subEntity.notes?.plan as "pro") ?? "pro";
         await upsertSubscription(userId, {
           plan:                  planType,
           status:                "past_due",

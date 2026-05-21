@@ -16,9 +16,8 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 export const runtime = "nodejs";
 
 const PLAN_ID_MAP: Record<string, string | undefined> = {
-  pro_monthly:  process.env.RAZORPAY_PRO_MONTHLY_PLAN_ID,
-  pro_annual:   process.env.RAZORPAY_PRO_ANNUAL_PLAN_ID,
-  team_monthly: process.env.RAZORPAY_TEAM_MONTHLY_PLAN_ID,
+  pro_monthly: process.env.RAZORPAY_PRO_MONTHLY_PLAN_ID,
+  pro_annual:  process.env.RAZORPAY_PRO_ANNUAL_PLAN_ID,
 };
 
 export async function POST(req: NextRequest) {
@@ -50,7 +49,7 @@ export async function POST(req: NextRequest) {
     if (
       !plan ||
       !billing ||
-      !["pro", "team"].includes(plan) ||
+      !["pro"].includes(plan) ||
       !["monthly", "annual"].includes(billing)
     ) {
       return NextResponse.json(

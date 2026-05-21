@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { RazorpayResponse } from "@/types/razorpay";
 
 interface Props {
-  plan:      "pro" | "team";
+  plan:      "pro";
   billing:   "monthly" | "annual";
   label?:    string;
   onSuccess: () => void;

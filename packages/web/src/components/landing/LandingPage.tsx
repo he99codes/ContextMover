@@ -730,10 +730,10 @@ export default function LandingPage() {
               <div className="mb-6">
                 <p className="text-xs text-[#00FF88] font-medium uppercase tracking-widest mb-2">Pro</p>
                 <p className="text-4xl font-bold text-[#F5F5F5]">
-                  {indiaMode ? (annual ? "₹158" : "₹199") : (annual ? "$4" : "$5")}
+                  {indiaMode ? (annual ? "₹200" : "₹299") : (annual ? "$4" : "$5")}
                   <span className="text-sm font-normal text-[#6B6B6B]"> / month</span>
                 </p>
-                <p className="text-xs text-[#6B6B6B] mt-1">{annual ? (indiaMode ? "billed ₹1,899/yr" : "billed $48/yr") : (indiaMode ? "or ₹158/mo billed annually" : "or $4/mo billed annually")}</p>
+                <p className="text-xs text-[#6B6B6B] mt-1">{annual ? (indiaMode ? "billed ₹2,399/yr" : "billed $48/yr") : (indiaMode ? "or ₹200/mo billed annually" : "or $4/mo billed annually")}</p>
               </div>
               <ul className="space-y-3 text-sm text-[#6B6B6B] flex-1 mb-8">
                 {["Unlimited sessions", "Attention Engine (semantic AI)", "IDE connection + MCP server", "GitHub repo extraction", "Priority updates"].map((f) => (
@@ -749,21 +749,6 @@ export default function LandingPage() {
               <a href="/auth?mode=signup" className="block text-center bg-[#00FF88] text-[#0A0A0A] font-bold py-2.5 rounded-lg btn-primary text-sm">
                 Upgrade to Pro
               </a>
-            </div>
-            {/* TEAM */}
-            <div className="reveal reveal-d2 card-hover bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-7 text-left flex flex-col">
-              <div className="mb-6">
-                <p className="text-xs text-[#6B6B6B] font-medium uppercase tracking-widest mb-2">Team</p>
-                <p className="text-4xl font-bold text-[#F5F5F5]">{indiaMode ? (annual ? "₹749" : "₹999") : (annual ? "$29" : "$39")} <span className="text-sm font-normal text-[#6B6B6B]">/ user / mo</span></p>
-              </div>
-              <ul className="space-y-3 text-sm text-[#6B6B6B] flex-1 mb-8">
-                {["Everything in Pro", "Shared encrypted vaults", "Advanced mental modeling", "Admin dashboard + audit logs", "Priority support"].map((f) => (
-                  <li key={f} className="flex items-start gap-2"><span className="text-[#00FF88] shrink-0">✓</span>{f}</li>
-                ))}
-              </ul>
-              <div className="block text-center border border-[#2A2A2A] text-[#3A3A3A] font-semibold py-2.5 rounded-lg text-sm cursor-default select-none">
-                Team plans coming soon
-              </div>
             </div>
           </div>
           {/* Early bird */}

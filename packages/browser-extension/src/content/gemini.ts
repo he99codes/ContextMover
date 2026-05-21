@@ -25,8 +25,9 @@ function isStreaming(el: Element): boolean {
 
 function scrapeMessages(): Message[] {
   // Remote selectors override hardcoded defaults when present.
-  const userSel = _remoteSelectors?.userSelector ?? 'user-query, .user-query, [class*="user-query"]'
-  const asstSel = _remoteSelectors?.assistantSelector ?? 'model-response, .model-response, [class*="model-response"]'
+  // Gemini 2026: user-query-container, response-container-content, model-response-text, markdown
+  const userSel = _remoteSelectors?.userSelector ?? '[class*="user-query-container"], [class*="user-query-bubble"], user-query, .user-query, [class*="user-query"]'
+  const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="response-container-content"], [class*="model-response-text"], model-response, .model-response, [class*="model-response"]'
   const strategy = (_remoteSelectors?.userSelector || _remoteSelectors?.assistantSelector) ? 0 : 1
 
   const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
@@ -74,6 +75,22 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       .then((result) => sendResponse(result))
       .catch((err) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
     return true; // CRITICAL — keeps channel open for async response
+  }
+  if (msg.type === "INJECT_FILE_AS_UPLOAD") {
+    try {
+      const file = new File([msg.fileContent as string], msg.fileName as string, { type: "text/xml" });
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      const input = document.querySelector<HTMLInputElement>("input[type='file']");
+      if (!input) { sendResponse({ ok: false, error: "File input not found on Gemini page" }); return; }
+      input.files = dt.files;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      sendResponse({ ok: true });
+    } catch (err) {
+      sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+    return;
   }
 });
 

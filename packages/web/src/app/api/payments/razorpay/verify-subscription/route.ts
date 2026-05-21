@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
         gateway_subscription_id: razorpay_subscription_id,
         payment_id:              razorpay_payment_id,
         currency:                "inr",
-        amount:                  billing === "annual" ? 189900 : 19900,
+        amount:                  billing === "annual" ? 239900 : 29900,
         interval:                billing === "annual" ? "year" : "month",
         current_period_start:    now.toISOString(),
         current_period_end:      periodEnd.toISOString(),

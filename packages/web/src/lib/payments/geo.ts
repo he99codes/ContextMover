@@ -94,15 +94,9 @@ export async function getPricingConfig(req?: NextRequest): Promise<PricingConfig
       currency: "inr",
       symbol:   "₹",
       pro: {
-        amount:   19_900, // ₹199 in paise
-        display:  "₹199",
-        planId:   process.env.RAZORPAY_PRO_PLAN_ID ?? "plan_placeholder_pro",
-        interval: "month",
-      },
-      team: {
-        amount:   99_900, // ₹999 in paise
-        display:  "₹999",
-        planId:   process.env.RAZORPAY_TEAM_PLAN_ID ?? "plan_placeholder_team",
+        amount:   29_900, // ₹299 in paise
+        display:  "₹299",
+        planId:   process.env.RAZORPAY_PRO_MONTHLY_PLAN_ID ?? "plan_placeholder_pro_monthly",
         interval: "month",
       },
     };
@@ -115,15 +109,8 @@ export async function getPricingConfig(req?: NextRequest): Promise<PricingConfig
     pro: {
       amount:   500, // $5 in cents
       display:  "$5",
-      planId:   process.env.RAZORPAY_PRO_PLAN_ID ?? "plan_placeholder_pro",
-      interval: "month",
-    },
-    team: {
-      amount:   2_500, // $25 in cents
-      display:  "$25",
-      planId:   process.env.RAZORPAY_TEAM_PLAN_ID ?? "plan_placeholder_team",
+      planId:   process.env.RAZORPAY_PRO_MONTHLY_PLAN_ID ?? "plan_placeholder_pro_monthly",
       interval: "month",
     },
   };
 }
-

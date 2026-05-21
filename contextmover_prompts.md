@@ -71,7 +71,6 @@ Maintained by: Claude Sonnet 4.6
 - Single-click XML file injection fails on all 4 platforms
 - Download fallback may not be triggering correctly
 - Text migration (Tier 1/2) also broken on these platforms
-- No drag and drop (intentionally removed) — do not re-add
 **Architecture:**
 - Single click → attempt XML file injection via DataTransfer
 - On failure → auto-trigger XML download + show sidebar message
@@ -139,7 +138,6 @@ Maintained by: Claude Sonnet 4.6
 
 ### [P007] HIGH — Razorpay: remove all plans, keep only 3 clean plans
 **Priority:** P1 — billing must be clean before launch
-**Model:** Sonnet 4.6, Thinking ON
 **Files:** 
 - packages/web/src/lib/payments/ (all files)
 - packages/web/src/app/api/payments/ (all routes)

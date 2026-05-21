@@ -64,19 +64,21 @@ function scrapeMessages(): Message[] {
 
   // ── Strategy B: DeepSeek class patterns ─────────────────────────────────────
   if (!hasAsst()) {
-    // DeepSeek 2025+ uses human_turn / user_turn / fz-user class patterns.
-    const userSel = _remoteSelectors?.userSelector ?? '[class*="userMessage"], [class*="user-message"], [class*="human-message"], [class*="UserMessage"], [class*="human_turn"], [class*="user_turn"], [class*="fz-user"], [data-type="user"], [data-role="user"]';
-    const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="ds-markdown"], [class*="markdown-content"], [class*="assistantMessage"], [class*="assistant-message"], [class*="AssistantMessage"], [class*="model-response"]';
+    // DeepSeek 2026 uses ds-message / ds-markdown / ds-assistant-message-main-content.
+    const userSel = _remoteSelectors?.userSelector ?? '[class*="ds-message"]:not([class*="ds-assistant"]), [class*="userMessage"], [class*="user-message"], [class*="human-message"], [class*="UserMessage"], [class*="human_turn"], [class*="user_turn"], [class*="fz-user"], [data-type="user"], [data-role="user"]';
+    const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="ds-assistant-message-main-content"], [class*="ds-markdown"], [class*="markdown-content"], [class*="assistantMessage"], [class*="assistant-message"], [class*="AssistantMessage"], [class*="model-response"]';
 
     const userEls = [...document.querySelectorAll<HTMLElement>(userSel)]
       .filter((el) => !el.parentElement?.closest(userSel) && !isStreaming(el));
     const asstEls = [...document.querySelectorAll<HTMLElement>(asstSel)]
       .filter((el) => !el.parentElement?.closest(asstSel) && !isStreaming(el));
 
-    for (const el of userEls) collected.push({ el, role: "user" });
+    // Filter: ds-message elements that contain assistant markers are NOT user messages
+    const userFiltered = userEls.filter(el => !el.querySelector('[class*="ds-markdown"], [class*="ds-assistant-message-main-content"]'));
+    for (const el of userFiltered) collected.push({ el, role: "user" });
     for (const el of asstEls) collected.push({ el, role: "assistant" });
-    console.log(`[ContextMover:deepseek] B class-substr: user=${userEls.length} asst=${asstEls.length}`);
-    if (userEls.length + asstEls.length > 0) matchedStrategy = 'B';
+    console.log(`[ContextMover:deepseek] B class-substr: user=${userFiltered.length} asst=${asstEls.length}`);
+    if (userFiltered.length + asstEls.length > 0) matchedStrategy = 'B';
   }
 
   // ── Strategy C: data-role / role attributes ──────────────────────────────────
@@ -210,6 +212,22 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       .then((result) => sendResponse(result))
       .catch((err) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
     return true; // CRITICAL — keeps channel open for async response
+  }
+  if (msg.type === "INJECT_FILE_AS_UPLOAD") {
+    try {
+      const file = new File([msg.fileContent as string], msg.fileName as string, { type: "text/xml" });
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      const input = document.querySelector<HTMLInputElement>("input[type='file']");
+      if (!input) { sendResponse({ ok: false, error: "File input not found on DeepSeek page" }); return; }
+      input.files = dt.files;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      sendResponse({ ok: true });
+    } catch (err) {
+      sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+    return;
   }
 });
 

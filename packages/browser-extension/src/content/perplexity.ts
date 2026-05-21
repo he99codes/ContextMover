@@ -46,9 +46,9 @@ function scrapeMessages(): Message[] {
 
   // ── Strategy B: class substrings — UserMessage / AnswerText / answer-block ─
   if (!hasAsst()) {
-    // data-testid="user-message" is the stable 2025+ Perplexity user-turn testid.
-    const userSel = _remoteSelectors?.userSelector ?? '[data-testid="user-message"], [data-testid*="user"], [class*="UserMessage"], [class*="user-query"], [class*="query-bubble"], [class*="user-message"]';
-    const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="AnswerText"], [class*="answer-text"], [class*="model-answer"], [class*="assistant-message"], [class*="prose"][class*="answer"], .answer-block, [class*="answer-block"]';
+    // Perplexity 2026: group/query for user, prose for assistant
+    const userSel = _remoteSelectors?.userSelector ?? '[class*="group/query"], [data-testid="user-message"], [data-testid*="user"], [class*="UserMessage"], [class*="user-query"], [class*="query-bubble"], [class*="user-message"]';
+    const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="prose"], [class*="AnswerText"], [class*="answer-text"], [class*="model-answer"], [class*="assistant-message"], .answer-block, [class*="answer-block"]';
 
     const userEls = [...document.querySelectorAll<HTMLElement>(userSel)]
       .filter((el) => !el.parentElement?.closest(userSel) && !isStreaming(el));
@@ -174,6 +174,22 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       .then((result) => sendResponse(result))
       .catch((err) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
     return true; // CRITICAL — keeps channel open for async response
+  }
+  if (msg.type === "INJECT_FILE_AS_UPLOAD") {
+    try {
+      const file = new File([msg.fileContent as string], msg.fileName as string, { type: "text/xml" });
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      const input = document.querySelector<HTMLInputElement>("input[type='file']");
+      if (!input) { sendResponse({ ok: false, error: "File input not found on Perplexity page" }); return; }
+      input.files = dt.files;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      sendResponse({ ok: true });
+    } catch (err) {
+      sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+    return;
   }
 });
 

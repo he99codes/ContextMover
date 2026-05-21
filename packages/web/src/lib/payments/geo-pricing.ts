@@ -6,100 +6,33 @@
  */
 
 // packages/web/src/lib/payments/geo-pricing.ts
-// Detects user region and returns localised pricing config.
-// Result is cached in sessionStorage so ipapi.co is called at most once per tab session.
-
-const SOUTH_ASIA = ["IN", "PK", "BD", "NP", "LK", "MM", "BT"] as const;
-type SouthAsiaCode = (typeof SOUTH_ASIA)[number];
-
-const CACHE_KEY = "cm_geo_region";
-
-export type PricingRegion = "india" | "global";
+// Unified pricing — same plans for all users worldwide.
+// No geo-detection. One price. One gateway (Razorpay, INR).
 
 export interface PricingPlan {
-  region:   PricingRegion;
-  currency: "INR" | "USD";
-  gateway:  "razorpay" | "stripe";
+  currency: "INR";
+  gateway:  "razorpay";
   pro: {
-    monthly:      number;
-    annual:       number;
-    display:      string;
+    monthly:       number;
+    annual:        number;
+    display:       string;
     annualDisplay: string;
     annualSavings: string;
   };
-  team: {
-    monthly:      number;
-    annual:       number;
-    display:      string;
-    annualDisplay: string;
-  };
 }
 
-export const INDIA_PRICING: PricingPlan = {
-  region:   "india",
+export const UNIFIED_PRICING: PricingPlan = {
   currency: "INR",
   gateway:  "razorpay",
   pro: {
-    monthly:       199,
-    annual:        1899,
-    display:       "₹199",
-    annualDisplay: "₹1,899",
-    annualSavings: "Save ₹489/year",
-  },
-  team: {
-    monthly:       999,
-    annual:        9990,
-    display:       "₹999/user",
-    annualDisplay: "₹9,990/user",
+    monthly:       299,
+    annual:        2399,
+    display:       "₹299",
+    annualDisplay: "₹2,399",
+    annualSavings: "Save ₹1,189/year",
   },
 };
 
-export const GLOBAL_PRICING: PricingPlan = {
-  region:   "global",
-  currency: "USD",
-  gateway:  "razorpay",
-  pro: {
-    monthly:       5,
-    annual:        48,
-    display:       "$5",
-    annualDisplay: "$48",
-    annualSavings: "Save $12/year",
-  },
-  team: {
-    monthly:       15,
-    annual:        144,
-    display:       "$15/user",
-    annualDisplay: "$144/user",
-  },
-};
-
-export async function detectPricing(): Promise<PricingPlan> {
-  // Return cached result if available (avoids redundant network calls).
-  if (typeof window !== "undefined") {
-    const cached = sessionStorage.getItem(CACHE_KEY);
-    if (cached === "india")  return INDIA_PRICING;
-    if (cached === "global") return GLOBAL_PRICING;
-  }
-
-  try {
-    const res = await fetch("https://ipapi.co/json/", {
-      signal: AbortSignal.timeout(4000),
-    });
-    if (!res.ok) throw new Error("geo fetch failed");
-
-    const data = (await res.json()) as { country_code?: string };
-    const isSOuthAsia = SOUTH_ASIA.includes(
-      data.country_code as SouthAsiaCode
-    );
-    const region: PricingRegion = isSOuthAsia ? "india" : "global";
-
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem(CACHE_KEY, region);
-    }
-
-    return region === "india" ? INDIA_PRICING : GLOBAL_PRICING;
-  } catch {
-    // Geo detection failed — default to India pricing for the primary market.
-    return INDIA_PRICING;
-  }
+export function getPricing(): PricingPlan {
+  return UNIFIED_PRICING;
 }

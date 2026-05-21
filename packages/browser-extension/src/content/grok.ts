@@ -50,8 +50,8 @@ function scrapeMessages(): Message[] {
 
   // ── Strategy 1: data-testid role attributes — primary 2026 Grok pattern ─
   if (!hasUser()) {
-    const uS1 = '[data-testid="human-turn"], [data-testid*="human-message"], [data-testid*="human"]'
-    const aS1 = '[data-testid="ai-turn"], [data-testid*="ai-response"], [data-testid*="grok-response"]'
+    const uS1 = '[data-testid="user-message"], [data-testid="human-turn"], [data-testid*="human-message"], [data-testid*="human"]'
+    const aS1 = '[data-testid="assistant-message"], [data-testid="ai-turn"], [data-testid*="ai-response"], [data-testid*="grok-response"]'
     const uEls = queryOutermost(uS1)
     const aEls = queryOutermost(aS1)
     uEls.forEach(el => found.push({ el, role: 'user' }))
@@ -129,6 +129,22 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       .then((result) => sendResponse(result))
       .catch((err) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
     return true; // CRITICAL — keeps channel open for async response
+  }
+  if (msg.type === "INJECT_FILE_AS_UPLOAD") {
+    try {
+      const file = new File([msg.fileContent as string], msg.fileName as string, { type: "text/xml" });
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      const input = document.querySelector<HTMLInputElement>("input[type='file']");
+      if (!input) { sendResponse({ ok: false, error: "File input not found on Grok page" }); return; }
+      input.files = dt.files;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      sendResponse({ ok: true });
+    } catch (err) {
+      sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+    return;
   }
 });
 

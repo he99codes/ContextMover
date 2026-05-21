@@ -143,7 +143,7 @@ export default function TermsPage() {
                 <p>
                   Pro subscription removes all limits. Billed monthly. Cancel anytime.
                   <br />
-                  India: ₹199/month via Razorpay
+                  India: ₹299/month via Razorpay
                   <br />
                   Global: $5/month via Razorpay
                 </p>

@@ -13,8 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 
 // Amount in paise (1 INR = 100 paise).
 const AMOUNTS: Record<string, Record<string, number>> = {
-  pro:  { monthly: 19900,  annual: 189900 },
-  team: { monthly: 99900,  annual: 999000 },
+  pro:  { monthly: 29900,  annual: 239900 },
 };
 
 export async function POST(req: NextRequest) {

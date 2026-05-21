@@ -48,16 +48,6 @@ const PRO_FEATURES = [
   "Priority updates",
 ];
 
-const TEAM_FEATURES = [
-  "Everything in Pro",
-  "Shared prompt templates",
-  "Team session vault",
-  "Admin dashboard",
-  "Audit logs",
-  "Priority support",
-  "Custom onboarding",
-];
-
 // Razorpay subscription-mode constructor (different option shape from the
 // one-shot order constructor declared globally in `types/razorpay.d.ts`).
 // We cast `window.Razorpay` to this loose shape at call site.
@@ -69,7 +59,7 @@ export default function PricingPage() {
   const router = useRouter();
   const { isPro } = useSubscription();
   const supabase = createClient();
-  const [, setCheckoutLoading] = useState<"pro" | "team" | null>(null);
+  const [, setCheckoutLoading] = useState<"pro" | null>(null);
   const [mockNotice, setMockNotice] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +82,7 @@ export default function PricingPage() {
   }, [mockNotice]);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async function handleUpgrade(planType: "pro" | "team") {
+  async function handleUpgrade(planType: "pro") {
     setCheckoutLoading(planType);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -379,35 +369,6 @@ export default function PricingPage() {
               />
             </div>
           )}
-        </PlanCard>
-
-        {/* Team */}
-        <PlanCard
-          tag="Team"
-          tagColor="#6B6B6B"
-          price={selectedPricing.team.display}
-          subtitle="per user/month"
-          features={TEAM_FEATURES}
-          featureColor="#F5F5F5"
-        >
-          <div
-            style={{
-              marginTop:     "24px",
-              padding:       "14px",
-              border:        "1px solid #2A2A2A",
-              borderRadius:  "6px",
-              color:         "#3A3A3A",
-              fontSize:      "12px",
-              fontWeight:    700,
-              textAlign:     "center",
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              cursor:        "default",
-              userSelect:    "none",
-            }}
-          >
-            Team plans coming soon
-          </div>
         </PlanCard>
         </div>
 

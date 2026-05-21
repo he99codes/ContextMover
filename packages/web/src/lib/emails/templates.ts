@@ -93,7 +93,7 @@ export function welcomeEmail(email: string): { subject: string; html: string } {
 }
 
 export function proActivatedEmail(email: string, gateway: "razorpay" | "stripe"): { subject: string; html: string } {
-  const currency = gateway === "razorpay" ? "₹199/month" : "$5/month";
+  const currency = gateway === "razorpay" ? "₹299/month" : "$5/month";
   return {
     subject: "You're now on ContextMover Pro ✓",
     html: layout(`

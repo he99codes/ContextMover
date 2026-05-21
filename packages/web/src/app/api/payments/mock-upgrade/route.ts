@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const plan: Plan = body?.plan === "team" ? "team" : "pro";
+  const plan: Plan = "pro";
 
   const now      = new Date();
   const monthEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       gateway:               "mock",
       gatewaySubscriptionId: "sub_mock_" + Date.now(),
       currency:              "usd",
-      amount:                plan === "team" ? 2_500 : 500,
+      amount:                500,
       currentPeriodStart:    now,
       currentPeriodEnd:      monthEnd,
     });

@@ -9,7 +9,7 @@
 // Shared types for the v2 payment infrastructure.
 // Used by API routes, hooks, and the pricing page.
 
-export type Plan = "free" | "pro" | "team";
+export type Plan = "free" | "pro";
 export type Gateway = "razorpay";
 export type Currency = "usd" | "inr";
 export type SubscriptionStatus =
@@ -25,14 +25,8 @@ export interface PricingConfig {
   symbol:   string;
   pro: {
     amount:   number;           // in smallest unit (cents / paise)
-    display:  string;           // '₹199' or '$5'
+    display:  string;           // '₹299' or '$5'
     planId:   string;           // gateway plan/price ID
-    interval: "month";
-  };
-  team: {
-    amount:   number;
-    display:  string;
-    planId:   string;
     interval: "month";
   };
 }

@@ -43,9 +43,7 @@ export async function GET(req: NextRequest) {
     // Both pro and team get unlimited; free gets capped.
     const limits =
       subscription.plan === "free" ? FREE_LIMITS
-      : subscription.plan === "pro"  ? PRO_LIMITS
-      : subscription.plan === "team" ? PRO_LIMITS
-      : FREE_LIMITS;
+      : PRO_LIMITS;
 
     return NextResponse.json({ subscription, usage, limits, isPro });
   } catch (err) {
@@ -70,7 +68,7 @@ export async function POST(req: NextRequest) {
   if (!rl.ok) return rl.response;
 
   const body = await req.json().catch(() => ({}));
-  const plan = body?.plan === "team" ? "team" : "pro"; // default to pro
+  const plan = "pro";
 
   const pricing = await getPricingConfig(req);
   return createRazorpaySubscription(user.id, plan, pricing);
@@ -79,10 +77,10 @@ export async function POST(req: NextRequest) {
 // ── Razorpay subscription (mock-aware) ──────────────────────────────────────
 async function createRazorpaySubscription(
   userId:  string,
-  plan:    "pro" | "team",
+  plan:    "pro",
   pricing: PricingConfig
 ) {
-  const planConfig = plan === "team" ? pricing.team : pricing.pro;
+  const planConfig = pricing.pro;
 
   if (
     !process.env.RAZORPAY_KEY_ID ||
@@ -104,7 +102,7 @@ async function createRazorpaySubscription(
   }
 
   // One-time amounts in paise (used when no subscription plan is configured).
-  const ORDER_AMOUNTS: Record<string, number> = { pro: 19900, team: 99900 };
+  const ORDER_AMOUNTS: Record<string, number> = { pro: 29900 };
 
   try {
     // Razorpay v2 SDK has no published types — use a runtime import + any cast.
@@ -137,17 +135,14 @@ async function createRazorpaySubscription(
       key_secret: process.env.RAZORPAY_KEY_SECRET!,
     });
 
-    const planId =
-      plan === "team"
-        ? process.env.RAZORPAY_TEAM_PLAN_ID
-        : process.env.RAZORPAY_PRO_PLAN_ID;
+    const planId = process.env.RAZORPAY_PRO_MONTHLY_PLAN_ID;
 
     // ── Fallback: no subscription plan configured → Standard Checkout (one-time order)
     // Create a subscription plan in the Razorpay dashboard and set
-    // RAZORPAY_PRO_PLAN_ID / RAZORPAY_TEAM_PLAN_ID to enable recurring billing.
+    // RAZORPAY_PRO_MONTHLY_PLAN_ID to enable recurring billing.
     if (!planId || planId.startsWith("plan_placeholder")) {
       const order = await razorpay.orders.create({
-        amount:   ORDER_AMOUNTS[plan] ?? 19900,
+        amount:   ORDER_AMOUNTS[plan] ?? 29900,
         currency: "INR",
         receipt:  `cf_${plan}_${Date.now()}`,
         notes:    { userId, plan },

@@ -209,7 +209,7 @@ export default function BillingPage() {
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 function planLabel(plan: Plan): string {
-  return plan === "team" ? "Team" : plan === "pro" ? "Pro" : "Free";
+  return plan === "pro" ? "Pro" : "Free";
 }
 
 function statusLabel(sub: Subscription): string {
