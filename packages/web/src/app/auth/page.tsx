@@ -7,7 +7,7 @@
  * Proprietary and confidential.
  */
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
@@ -38,15 +38,50 @@ function AuthForm() {
 
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  // Surface auth-callback failures returned via ?error=... so the user sees
+  // a concrete reason instead of being silently bounced back to /auth.
+  useEffect(() => {
+    const e = searchParams.get("error");
+    if (!e) return;
+    if (e === "callback_failed") {
+      setError("Google sign-in failed at callback. Please try again.");
+    } else if (e === "no_code") {
+      setError("Sign-in was cancelled or returned without an authorization code.");
+    } else {
+      setError(decodeURIComponent(e));
+    }
+  }, [searchParams]);
+
+  // The button gets stuck when the user navigates away to Google and then
+  // comes back via the browser's back button (BFCache restore). React state
+  // (googleLoading=true) is preserved, so the button stays disabled until a
+  // manual refresh. Reset it whenever the page is shown from cache.
+  useEffect(() => {
+    function onPageShow(e: PageTransitionEvent) {
+      if (e.persisted) {
+        setGoogleLoading(false);
+        setIsLoading(false);
+      }
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     setError(null);
     const supabase = createClient();
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      // skipBrowserRedirect=true so we own the navigation. Without this,
+      // some browser/Supabase combinations either (a) silently no-op the
+      // redirect, leaving googleLoading=true forever and the button stuck,
+      // or (b) double-navigate. Owning the redirect makes the loading state
+      // deterministic.
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          skipBrowserRedirect: true,
           queryParams: {
             access_type: "offline",
             prompt: "consent",
@@ -54,6 +89,11 @@ function AuthForm() {
         },
       });
       if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      throw new Error("No OAuth URL returned");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Google sign-in failed");
       setGoogleLoading(false);

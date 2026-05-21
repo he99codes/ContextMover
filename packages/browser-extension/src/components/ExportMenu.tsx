@@ -24,6 +24,8 @@ interface Props {
   session: ContextSession;
   variant?: "icon" | "button";
   align?: "left" | "right"; // kept for API compatibility
+  isPro?: boolean;
+  onLocked?: () => void;
   onError?: (message: string) => void;
   onSuccess?: (label: string) => void;
 }
@@ -48,6 +50,8 @@ export default function ExportMenu({
   session,
   variant = "button",
   align = "right",
+  isPro = true,
+  onLocked,
   onError,
   onSuccess,
 }: Props) {
@@ -121,10 +125,14 @@ export default function ExportMenu({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          if (!isPro) {
+            onLocked?.();
+            return;
+          }
           open ? closeSheet() : openSheet();
         }}
-        title="Export session"
-        aria-label="Export session"
+        title={isPro ? "Export session" : "Pro only — upgrade to export sessions"}
+        aria-label={isPro ? "Export session" : "Export session (Pro only)"}
         aria-expanded={open}
         style={isActive ? { background: "rgba(0,210,106,0.1)", color: "#00D26A" } : undefined}
         className={
@@ -133,12 +141,19 @@ export default function ExportMenu({
             : "inline-flex items-center gap-1 rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-2 py-1 text-[10px] font-medium text-[#6B6B6B] transition hover:border-[#00FF88]/30 hover:text-[#00FF88]"
         }
       >
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M8 2v9" />
-          <path d="m4.5 7.5 3.5 3.5 3.5-3.5" />
-          <path d="M2.5 13.5h11" />
-        </svg>
-        {variant === "button" && <span>Export</span>}
+        {!isPro ? (
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <rect x="3" y="7" width="10" height="7" rx="1.5" />
+            <path d="M5 7V4.5a3 3 0 0 1 6 0V7" />
+          </svg>
+        ) : (
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M8 2v9" />
+            <path d="m4.5 7.5 3.5 3.5 3.5-3.5" />
+            <path d="M2.5 13.5h11" />
+          </svg>
+        )}
+        {variant === "button" && <span>{isPro ? "Export" : "Pro only"}</span>}
       </button>
 
       {/* Bottom-sheet popup — slides up from bottom of sidebar viewport */}
