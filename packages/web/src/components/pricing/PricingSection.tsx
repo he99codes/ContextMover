@@ -247,7 +247,7 @@ export default function PricingSection() {
 
       </div>
 
-      <div className="text-center mt-10 space-y-2 px-8 pb-8">
+      <div className="text-center mt-10 space-y-2 px-10 pb-10">
         <p className="text-zinc-500 text-s">
           🔒 Zero-knowledge — your data never touches our servers · vault syncs only to your own Supabase
         </p>
