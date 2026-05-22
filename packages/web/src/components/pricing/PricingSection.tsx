@@ -248,10 +248,10 @@ export default function PricingSection() {
       </div>
 
       <div className="text-center mt-10 space-y-2 px-10 pb-10">
-        <p className="text-zinc-500 text-ls">
+        <p className="text-zinc-500 text-sm">
           🔒 Zero-knowledge — your data never touches our servers
         </p>
-        <p className="text-zinc-500 text-ls">
+        <p className="text-zinc-500 text-sm">
           ❤️ Built by an indie developer. Every subscription directly supports the person writing the code, not a corporation.
         </p>
       </div>
