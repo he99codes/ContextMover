@@ -211,15 +211,21 @@ function broadcastIndexStatus(status: {
   } catch { /* runtime may be torn down during reload */ }
 }
 
+let _offscreenCloseTimer: ReturnType<typeof setTimeout> | null = null;
+
 async function maybeCloseOffscreen(): Promise<void> {
-  // Release offscreen-doc memory (and the embedding worker it hosts) once
-  // the queue drains. The next indexSession call will re-create it. Cheap:
-  // doc creation is ~30ms; model warm-up is amortized by modelRegistry's
-  // own cache on the next createDocument.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const offscreen = (chrome as any).offscreen;
-  if (!offscreen?.closeDocument) return;
-  try { await offscreen.closeDocument(); } catch { /* already closed */ }
+  // Keep the offscreen document (and its loaded embedding model) alive for
+  // 30 s after the last job drains. Without this, every back-to-back capture
+  // or session click reloads the ~23 MB model from scratch, adding 2-5 s of
+  // WASM init + network fetch on every single indexing run.
+  if (_offscreenCloseTimer) clearTimeout(_offscreenCloseTimer);
+  _offscreenCloseTimer = setTimeout(async () => {
+    _offscreenCloseTimer = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const offscreen = (chrome as any).offscreen;
+    if (!offscreen?.closeDocument) return;
+    try { await offscreen.closeDocument(); } catch { /* already closed */ }
+  }, 30_000);
 }
 
 // ──────────────────────────────────────────────────────────────────────────

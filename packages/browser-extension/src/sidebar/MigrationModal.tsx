@@ -442,28 +442,26 @@ function MigrationSuccess({
             </button>
           )}
 
-          {/* ── Download button (Pro only — free tier is a loophole) ──── */}
+          {/* ── Download button ──── */}
           <div style={{ textAlign: 'center', marginBottom: '14px' }}>
             <button
               onClick={handleDownload}
-              disabled={status === 'downloading' || !isPro}
-              title={!isPro ? 'Upgrade to Pro to download migration files' : 'Download file'}
+              disabled={status === 'downloading'}
+              title="Download file"
               style={{
                 background: 'transparent',
                 border: '1px solid #2A2A2A',
                 borderRadius: '4px',
-                color: status === 'downloading' ? '#3A3A3A' : !isPro ? '#3A3A3A' : '#6B6B6B',
+                color: status === 'downloading' ? '#3A3A3A' : '#6B6B6B',
                 fontSize: '9px',
                 fontWeight: 700,
                 padding: '6px 14px',
-                cursor: status === 'downloading' || !isPro ? 'not-allowed' : 'pointer',
+                cursor: status === 'downloading' ? 'not-allowed' : 'pointer',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
-                opacity: !isPro ? 0.4 : 1,
               }}
             >
-              {!isPro ? '🔒 Pro only'
-                : status === 'downloading' ? '⏳ Downloading...'
+              {status === 'downloading' ? '⏳ Downloading...'
                 : status === 'downloaded' ? '✓ Downloaded'
                 : '⬇ Download file'}
             </button>
