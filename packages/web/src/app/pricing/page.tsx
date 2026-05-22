@@ -12,33 +12,10 @@
 // plus a mock-mode pathway when API keys are placeholders.
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useSubscription } from "@/hooks/useSubscription";
 import { createClient } from "@/lib/supabase/client";
-import { RazorpaySubscription } from "@/components/payments/RazorpaySubscription";
-import { UNIFIED_PRICING } from "@/lib/payments/geo-pricing";
 import PricingSection from "@/components/pricing/PricingSection";
 
-
-const FREE_FEATURES = [
-  "50 Full Context migrations/mo",
-  "50 Smart Summary migrations/mo",
-  "10 Attention Engine migrations/mo",
-  "10 sessions stored",
-  "6 system prompt templates",
-  "All 4 AI platforms",
-];
-
-const PRO_FEATURES = [
-  "Unlimited migrations",
-  "Unlimited sessions stored",
-  "All 15 prompt templates",
-  "Custom prompt templates",
-  "IDE + file context",
-  "GitHub repo extraction",
-  "MCP server access",
-  "Priority updates",
-];
 
 // Razorpay subscription-mode constructor (different option shape from the
 // one-shot order constructor declared globally in `types/razorpay.d.ts`).
@@ -48,15 +25,10 @@ interface SubscriptionRazorpayCtor {
 }
 
 export default function PricingPage() {
-  const router = useRouter();
   const { isPro } = useSubscription();
   const supabase = createClient();
   const [, setCheckoutLoading] = useState<"pro" | null>(null);
   const [mockNotice, setMockNotice] = useState<string | null>(null);
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
-  const [error, setError] = useState<string | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const pricing = UNIFIED_PRICING;
 
   // Clear mock-mode notice after a few seconds.
   useEffect(() => {
@@ -248,18 +220,6 @@ export default function PricingPage() {
         </div>
       )}
 
-      {error && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-          <p style={{ color: "#EF4444", fontSize: "12px" }}>{error}</p>
-        </div>
-      )}
-
-      {showSuccess && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-          <div style={{ color: "#00FF88", fontSize: "12px" }}>✅ Subscription active!</div>
-        </div>
-      )}
-
       <PricingSection />
 
       {/* Dev-only mock upgrade — never shipped to production builds */}
@@ -291,196 +251,3 @@ export default function PricingPage() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BillingToggle
-// ─────────────────────────────────────────────────────────────────────────────
-
-function BillingToggle({
-  billingCycle,
-  onChange,
-  annualSavings,
-}: {
-  billingCycle:  "monthly" | "annual";
-  onChange:      (c: "monthly" | "annual") => void;
-  annualSavings: string;
-}) {
-  return (
-    <div style={{ marginTop: "24px", display: "flex", justifyContent: "center", gap: "8px" }}>
-      {(["monthly", "annual"] as const).map((cycle) => {
-        const active = billingCycle === cycle;
-        return (
-          <button
-            key={cycle}
-            onClick={() => onChange(cycle)}
-            style={{
-              padding:       "6px 16px",
-              borderRadius:  "6px",
-              fontSize:      "12px",
-              fontWeight:    700,
-              cursor:        "pointer",
-              border:        `1px solid ${active ? "#00FF88" : "#2A2A2A"}`,
-              background:    active ? "rgba(0,255,136,0.12)" : "transparent",
-              color:         active ? "#00FF88" : "#6B6B6B",
-              textTransform: "capitalize",
-              letterSpacing: "0.04em",
-              transition:    "all 0.15s",
-            }}
-          >
-            {cycle}
-            {cycle === "annual" && (
-              <span style={{ marginLeft: "6px", fontSize: "10px", color: "#F59E0B" }}>
-                {annualSavings}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PlanCard
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface PlanCardProps {
-  tag:          string;
-  tagColor:     string;
-  price:        string;
-  subtitle:     string;
-  features:     string[];
-  featureColor: string;
-  cta?:         string;
-  ctaDisabled?: boolean;
-  ctaVariant?:  "solid" | "outline";
-  featured?:    boolean;
-  onCta?:       () => void;
-  children?:    React.ReactNode;
-}
-
-function PlanCard({
-  tag,
-  tagColor,
-  price,
-  subtitle,
-  features,
-  featureColor,
-  cta,
-  ctaDisabled,
-  ctaVariant = "solid",
-  featured,
-  onCta,
-  children,
-}: PlanCardProps) {
-  const border = featured ? "1px solid rgba(0,255,136,0.4)" : "1px solid #2A2A2A";
-  const shadow = featured ? "0 0 40px rgba(0,255,136,0.08)" : undefined;
-
-  return (
-    <div
-      style={{
-        background:   "#111111",
-        border,
-        borderRadius: "12px",
-        padding:      "24px",
-        position:     "relative",
-        boxShadow:    shadow,
-      }}
-    >
-      {featured && (
-        <div
-          style={{
-            position:        "absolute",
-            top:             "-12px",
-            left:            "50%",
-            transform:       "translateX(-50%)",
-            background:      "#00FF88",
-            color:           "#0A0A0A",
-            fontSize:        "10px",
-            fontWeight:      900,
-            padding:         "4px 16px",
-            borderRadius:    "999px",
-            textTransform:   "uppercase",
-            letterSpacing:   "0.1em",
-          }}
-        >
-          Most popular
-        </div>
-      )}
-
-      <div
-        style={{
-          fontSize:       "12px",
-          fontWeight:     700,
-          color:          tagColor,
-          textTransform:  "uppercase",
-          letterSpacing:  "0.15em",
-          marginBottom:   "16px",
-        }}
-      >
-        {tag}
-      </div>
-
-      <div style={{ fontSize: "48px", fontWeight: 900, marginBottom: "4px" }}>
-        {price}
-      </div>
-      <div style={{ fontSize: "12px", color: "#6B6B6B", marginBottom: "32px" }}>
-        {subtitle}
-      </div>
-
-      {features.map((f) => (
-        <div
-          key={f}
-          style={{ fontSize: "13px", color: featureColor, marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}
-        >
-          ✓ {f}
-          {f === "MCP server access" && (
-            <span style={{
-              fontSize: "9px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.14em",
-              color: "#3A3A3A", border: "1px solid #2A2A2A", borderRadius: "3px", padding: "1px 5px", flexShrink: 0,
-            }}>Soon</span>
-          )}
-        </div>
-      ))}
-
-      {cta && (
-        <button
-          onClick={onCta}
-          disabled={ctaDisabled}
-          style={{
-            width:          "100%",
-            marginTop:      children ? "16px" : "24px",
-            padding:        "14px 16px",
-            minHeight:      "52px",
-            background:
-              ctaVariant === "outline"
-                ? "transparent"
-                : ctaDisabled
-                ? "#1A1A1A"
-                : "#00FF88",
-            border:
-              ctaVariant === "outline" ? "1px solid #00FF88" : "none",
-            borderRadius:   "6px",
-            color:
-              ctaVariant === "outline"
-                ? "#00FF88"
-                : ctaDisabled
-                ? "#6B6B6B"
-                : "#0A0A0A",
-            fontSize:       "12px",
-            fontWeight:     900,
-            cursor:         ctaDisabled ? "default" : "pointer",
-            textTransform:  "uppercase",
-            letterSpacing:  "0.1em",
-            boxShadow:
-              ctaDisabled || ctaVariant === "outline"
-                ? "none"
-                : "0 0 20px rgba(0,255,136,0.4)",
-          }}
-        >
-          {cta}
-        </button>
-      )}
-      {children}
-    </div>
-  );
-}
