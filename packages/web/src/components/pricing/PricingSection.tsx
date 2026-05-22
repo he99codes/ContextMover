@@ -247,10 +247,14 @@ export default function PricingSection() {
 
       </div>
 
-      {/* Bottom trust text */}
-      <p className="text-center text-zinc-600 text-xs mt-12">
-        🔒 Zero knowledge architecture · Your conversations never touch our servers
-      </p>
+      <div className="text-center mt-10 space-y-2 px-4 pb-4">
+        <p className="text-zinc-500 text-xs">
+          🔒 Zero-knowledge — your data never touches our servers · vault syncs only to your own Supabase
+        </p>
+        <p className="text-zinc-500 text-xs">
+          ❤️ Built by an indie developer. Every subscription directly supports the person writing the code, not a corporation.
+        </p>
+      </div>
     </section>
   );
 }

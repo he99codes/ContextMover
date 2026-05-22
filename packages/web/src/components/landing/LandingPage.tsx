@@ -109,18 +109,6 @@ function TerminalDemo() {
   );
 }
 
-function Countdown() {
-  const [secs, setSecs] = useState(62_340);
-  useEffect(() => {
-    const t = setInterval(() => setSecs((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(t);
-  }, []);
-  const h = String(Math.floor(secs / 3600)).padStart(2, "0");
-  const m = String(Math.floor((secs % 3600) / 60)).padStart(2, "0");
-  const s = String(secs % 60).padStart(2, "0");
-  return <code className="tabular-nums font-mono">{h}:{m}:{s}</code>;
-}
-
 const FAQ_ITEMS = [
   { q: "Is my data safe?",                               a: "Your conversations are stored locally in your browser by default. Cloud sync is optional and goes to YOUR personal Supabase project — not ours. Migration never passes through our servers." },
   { q: "Which AI platforms are supported?",              a: "Claude, ChatGPT, Google Gemini, and xAI Grok for full capture and migration. Perplexity and DeepSeek as migration targets. More platforms coming soon." },
@@ -220,7 +208,6 @@ const STEPS = [
 export default function LandingPage() {
   useScrollReveal();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [annual, setAnnual] = useState(false);
 
   return (
     <div className="bg-[#0A0A0A] text-[#F5F5F5] font-sans overflow-x-hidden">
@@ -679,82 +666,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ══════════════════════════ 9. PRICING ══════════════════════════ */}
-      <section id="pricing" className="py-14 sm:py-24 px-5">
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4">Start free. Upgrade when you need more.</h2>
-          <p className="reveal text-[#6B6B6B] mb-8">No credit card required. Cancel anytime.</p>
-          {/* Toggles */}
-          <div className="reveal flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-            <div className="flex items-center gap-2 bg-[#111] border border-[#2A2A2A] rounded-full p-1">
-              <button
-                onClick={() => setAnnual(false)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${!annual ? "bg-[#00FF88] text-[#0A0A0A]" : "text-[#6B6B6B] hover:text-[#F5F5F5]"}`}
-              >Monthly</button>
-              <button
-                onClick={() => setAnnual(true)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${annual ? "bg-[#00FF88] text-[#0A0A0A]" : "text-[#6B6B6B] hover:text-[#F5F5F5]"}`}
-              >Annual <span className="text-[10px] opacity-70">save 27%</span></button>
-            </div>
-                      </div>
-          <div className="grid grid-cols-1 gap-5 mb-10">
-            {/* FREE */}
-            <div className="reveal card-hover bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-7 text-left flex flex-col">
-              <div className="mb-6">
-                <p className="text-xs text-[#6B6B6B] font-medium uppercase tracking-widest mb-2">Free</p>
-                <p className="text-4xl font-bold text-[#F5F5F5]">Free <span className="text-sm font-normal text-[#6B6B6B]">/ forever</span></p>
-              </div>
-              <ul className="space-y-3 text-sm text-[#6B6B6B] flex-1 mb-8">
-                {["Web session capture (all platforms)", "Basic migration + export", "10 sessions stored", "Full Context + Smart Summary tiers"].map((f) => (
-                  <li key={f} className="flex items-start gap-2"><span className="text-[#00FF88] shrink-0">✓</span>{f}</li>
-                ))}
-              </ul>
-              <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer" className="block text-center border border-[#2A2A2A] hover:border-[rgba(0,255,136,0.4)] text-[#F5F5F5] font-semibold py-2.5 rounded-lg transition-colors text-sm">
-                Add to Chrome — free
-              </a>
-            </div>
-            {/* PRO */}
-            <div className="reveal reveal-d1 card-hover relative bg-[#0A0F0A] border-2 border-[#00FF88] rounded-2xl p-7 text-left flex flex-col shadow-[0_0_40px_rgba(0,255,136,0.12)]">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#00FF88] text-[#0A0A0A] text-[11px] font-bold px-3 py-0.5 rounded-full">MOST POPULAR</div>
-              <div className="mb-6">
-                <p className="text-xs text-[#00FF88] font-medium uppercase tracking-widest mb-2">Pro</p>
-                <p className="text-4xl font-bold text-[#F5F5F5]">
-                  {annual ? "₹200" : "₹299"}
-                  <span className="text-sm font-normal text-[#6B6B6B]"> / month</span>
-                </p>
-                <p className="text-xs text-[#6B6B6B] mt-1">{annual ? "billed ₹2,399/yr" : "or ₹200/mo billed annually"}</p>
-              </div>
-              <ul className="space-y-3 text-sm text-[#6B6B6B] flex-1 mb-8">
-                {["Unlimited sessions", "Attention Engine (semantic AI)", "IDE connection + MCP server", "GitHub repo extraction", "Priority updates"].map((f) => (
-                  <li key={f} className="flex items-center gap-2">
-                    <span className="text-[#00FF88] shrink-0">✓</span>
-                    {f}
-                    {f === "IDE connection + MCP server" && (
-                      <span className="text-[9px] font-black uppercase tracking-widest text-[#3A3A3A] border border-[#2A2A2A] rounded px-1 py-0.5 shrink-0">Soon</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              <a href="/auth?mode=signup" className="block text-center bg-[#00FF88] text-[#0A0A0A] font-bold py-2.5 rounded-lg btn-primary text-sm">
-                Upgrade to Pro
-              </a>
-            </div>
-          </div>
-          {/* Early bird */}
-          <div className="reveal flex flex-col sm:flex-row items-center gap-3 bg-[#1A1A1A] border border-[#F59E0B]/30 rounded-2xl px-6 py-4 text-sm w-full sm:w-auto sm:inline-flex">
-            <span className="text-lg">★</span>
-            <span className="text-[#F59E0B] font-semibold">Early Bird: Lifetime Pro for $149</span>
-            <span className="text-[#6B6B6B]">— first 500 only</span>
-            <span className="text-[#F59E0B] font-mono font-bold"><Countdown /></span>
-            <span className="text-[#6B6B6B] text-xs">remaining</span>
-          </div>
-          <p className="mt-6 text-xs text-[#3A3A3A]">7-day refund policy — no questions asked.</p>
-          <p className="mt-2 text-xs font-mono text-[#2A4A2A]">🔒 Zero-knowledge — your data never touches our servers · vault syncs only to your own Supabase.</p>
-          <p className="mt-2 text-xs text-[#3A3A3A]">❤️ Built by an indie developer. Every subscription directly supports the person writing the code, not a corporation.</p>
-        </div>
-      </section>
-
-      {/* ══════════════════════════ 10. BUILD WITH ME ══════════════════════════ */}
+      {/* ══════════════════════════ 9. BUILD WITH ME ══════════════════════════ */}
       <BuildWithMe />
 
       {/* ══════════════════════════ 11. FAQ ══════════════════════════ */}
