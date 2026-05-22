@@ -1148,32 +1148,32 @@ export default function Sidebar() {
 
           {leadSession ? (
             <div className="mt-0.5 flex items-center gap-1">
-              <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#00FF88] animate-pulse-green" style={{ boxShadow: "0 0 6px #00FF88" }} />
-              <span className="text-[10px] uppercase" style={{ letterSpacing: "0.12em", color: "#2A6A2A" }}>
+              <span className="h-1 w-1 flex-shrink-0 rounded-full bg-[#00FF88] animate-pulse-green" style={{ boxShadow: "0 0 4px #00FF88" }} />
+              <span className="text-[9px] uppercase" style={{ letterSpacing: "0.12em", color: "#2A6A2A" }}>
                 Online · <span style={{ color: "#6AFF6A" }}>{PLATFORM_LABELS[leadSession.platform]}</span>
                 {" · "}{formatRelativeTime(leadSession.updatedAt)}
               </span>
             </div>
           ) : (
-            <p className="mt-1 text-[10px] uppercase" style={{ letterSpacing: "0.12em", color: "#1A3A1A" }}>Awaiting signal — open Claude, ChatGPT or Gemini</p>
+            <p className="mt-0.5 text-[9px] uppercase" style={{ letterSpacing: "0.12em", color: "#1A3A1A" }}>Awaiting signal — open Claude, ChatGPT or Gemini</p>
           )}
 
-          <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+          <div className="mt-1 grid grid-cols-3 gap-1">
             {sourceCounts.map(({ platform, count }) => (
               <button
                 key={platform}
                 onClick={() => setFilter(platform)}
-                className="flex flex-col items-center gap-0.5 rounded-[5px] border py-1.5 transition-all duration-200 hover:scale-[1.06] hover:-translate-y-0.5"
+                className="flex flex-col items-center gap-0 rounded-[4px] border py-1 transition-all duration-200 hover:scale-[1.06] hover:-translate-y-0.5"
                 style={{
                   borderColor: count > 0 ? `${PLATFORM_COLORS[platform]}40` : "#141414",
-                  background: count > 0 ? `${PLATFORM_COLORS[platform]}0E` : "#0A0A0A",
+                  background: count > 0 ? `${PLATFORM_COLORS[platform]}0E` : "#0a0a0a",
                   boxShadow: count > 0 ? `0 0 8px ${PLATFORM_COLORS[platform]}18` : "none",
                 }}
                 title={PLATFORM_LABELS[platform]}
               >
-                <PlatformLogo platform={platform} size={16} className="mx-auto" />
-                <div className="text-[10px] font-black uppercase tabular-nums" style={{ color: count > 0 ? PLATFORM_COLORS[platform] : "#1A2A1A", textShadow: count > 0 ? `0 0 8px ${PLATFORM_COLORS[platform]}60` : "none" }}>{PLATFORM_SHORT[platform]}</div>
-                <div className="text-[14px] font-bold tabular-nums" style={{ color: count > 0 ? PLATFORM_COLORS[platform] : "#1A2A1A", textShadow: count > 0 ? `0 0 8px ${PLATFORM_COLORS[platform]}60` : "none" }}>{count}</div>
+                <PlatformLogo platform={platform} size={14} className="mx-auto" />
+                <div className="text-[9px] font-black uppercase tabular-nums" style={{ color: count > 0 ? PLATFORM_COLORS[platform] : "#1A2A1A", textShadow: count > 0 ? `0 0 8px ${PLATFORM_COLORS[platform]}60` : "none" }}>{PLATFORM_SHORT[platform]}</div>
+                <div className="text-[13px] font-bold tabular-nums" style={{ color: count > 0 ? PLATFORM_COLORS[platform] : "#1A2A1A", textShadow: count > 0 ? `0 0 8px ${PLATFORM_COLORS[platform]}60` : "none" }}>{count}</div>
               </button>
             ))}
           </div>
@@ -1181,7 +1181,7 @@ export default function Sidebar() {
 
         {statusMessage && (
           <div
-            className={`mx-3 mt-2 rounded-[4px] border px-3 py-2 text-[10px] font-mono uppercase tracking-wider ${
+            className={`mx-2 mt-1 rounded-[4px] border px-2 py-1 text-[9px] font-mono uppercase tracking-wider ${
               statusMessage.tone === "success"
                 ? "border-[#00FF88]/25 bg-[#00FF88]/6 text-[#00FF88]"
                 : statusMessage.tone === "error"
@@ -1196,22 +1196,22 @@ export default function Sidebar() {
           </div>
         )}
 
-        <div className="px-4 pt-1.5 space-y-1">
+        <div className="px-3 pt-1 space-y-1">
           <input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search sessions…"
-            className="w-full rounded-[5px] border border-[#1A3A1A] bg-[#080808] px-3 py-1.5 text-[11px] font-mono text-[#F5F5F5] outline-none placeholder:text-[#2A4A2A] focus:border-[#00FF88] focus:shadow-[0_0_0_2px_rgba(0,255,136,0.1)] transition-all"
+            className="w-full rounded-[4px] border border-[#1A3A1A] bg-[#0a0a0a] px-2 py-1 text-[10px] font-mono text-[#F5F5F5] outline-none placeholder:text-[#2A4A2A] focus:border-[#00FF88] focus:shadow-[0_0_0_2px_rgba(0,255,136,0.1)] transition-all"
           />
           <input
             value={semanticQuery}
             onChange={(e) => setSemanticQuery(e.target.value)}
             placeholder="Search by meaning (semantic)…"
-            className="w-full rounded-[5px] border border-[#1A1A3A] bg-[#080808] px-3 py-1.5 text-[11px] font-mono text-[#F5F5F5] outline-none placeholder:text-[#2A2A4A] focus:border-[#6366f1] focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-all"
+            className="w-full rounded-[4px] border border-[#1A1A3A] bg-[#0a0a0a] px-2 py-1 text-[10px] font-mono text-[#F5F5F5] outline-none placeholder:text-[#2A2A4A] focus:border-[#6366f1] focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-all"
           />
         </div>
 
-        <div className="flex gap-1.5 overflow-x-auto border-b border-[#0D2A0D] px-4 py-1 scrollbar-none" style={{ background: "linear-gradient(to right, #050505, #081208, #050505)" }}>
+        <div className="flex gap-1 overflow-x-auto border-b border-[#0D2A0D] px-3 py-0.5 scrollbar-none" style={{ background: "linear-gradient(to right, #050505, #081208, #050505)" }}>
           {(["all", "claude", "chatgpt", "gemini", "grok", "perplexity", "deepseek"] as const).map((item) => {
             const isActive = filter === item;
             const pColor = item !== "all" ? PLATFORM_COLORS[item] : null;
@@ -1220,7 +1220,7 @@ export default function Sidebar() {
               <button
                 key={item}
                 onClick={() => setFilter(item)}
-                className="whitespace-nowrap rounded-[4px] px-2 py-1 text-[9px] font-black uppercase tracking-[0.18em] transition-all duration-150 border hover:-translate-y-px"
+                className="whitespace-nowrap rounded-[3px] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.16em] transition-all duration-150 border hover:-translate-y-px"
                 style={isActive
                   ? pColor
                     ? { background: `${pColor}18`, borderColor: `${pColor}45`, color: pColor, boxShadow: `0 0 10px ${pColor}28` }
@@ -1257,10 +1257,10 @@ export default function Sidebar() {
             />
           </div>
         )}
-        <div className={showSettings ? 'hidden' : 'flex-1 overflow-y-auto px-2 py-1.5 space-y-1.5'}>
+        <div className={showSettings ? 'hidden' : 'flex-1 overflow-y-auto px-1.5 py-1 space-y-1'}>
           {semanticSessions.length > 0 && (
-            <div className="mb-3 space-y-1.5">
-              <div className="pb-1.5 text-[8px] uppercase tracking-widest text-[#6366f1]">Semantic matches</div>
+            <div className="mb-1.5 space-y-1">
+              <div className="pb-0.5 text-[7px] uppercase tracking-widest text-[#6366f1]">Semantic matches</div>
               {semanticSessions.map(({ session: s, score }) => (
                 <div
                   key={s.id}
@@ -1268,15 +1268,15 @@ export default function Sidebar() {
                   tabIndex={0}
                   onClick={() => { setSelected(s); setShowFullTranscript(false); setView("detail"); }}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelected(s); setShowFullTranscript(false); setView("detail"); } }}
-                  className="group relative block w-full cursor-pointer overflow-hidden rounded-[5px] border bg-[#0A0A0A] px-2 py-2 text-left transition-all duration-200 hover:shadow-[0_0_0_1px_#6366f1,0_4px_20px_rgba(99,102,241,0.15)] hover:-translate-y-[2px] hover:bg-[#0D0D1A]"
+                  className="group relative block w-full cursor-pointer overflow-hidden rounded-[4px] border bg-[#0a0a0a] px-1.5 py-1 text-left transition-all duration-200 hover:bg-[#111122]"
                   style={{ borderColor: `${PLATFORM_COLORS[s.platform]}25`, boxShadow: `0 1px 0 ${PLATFORM_COLORS[s.platform]}10` }}
                 >
-                  <span className="absolute inset-y-0 left-0 w-[3px] rounded-l-[6px]" style={{ background: PLATFORM_COLORS[s.platform] }} />
-                  <div className="flex items-start gap-1.5 pl-1">
+                  <span className="absolute inset-y-0 left-0 w-[2px]" style={{ background: PLATFORM_COLORS[s.platform] }} />
+                  <div className="flex items-center gap-1 pl-1">
                     <div className="min-w-0 flex-1">
-                      <PlatformBadge platform={s.platform} logoSize={9} />
-                      <p className="mt-0.5 truncate text-[11px] font-medium text-[#F5F5F5] transition-all duration-200 group-hover:text-[#6366f1]">{s.title}</p>
-                      <div className="mt-0.5 flex items-center gap-1.5 text-[9px] text-[#6B6B6B]">
+                      <PlatformBadge platform={s.platform} logoSize={8} />
+                      <p className="truncate text-[10px] font-medium text-[#F5F5F5] transition-colors group-hover:text-[#6366f1]">{s.title}</p>
+                      <div className="flex items-center gap-1 text-[8px] text-[#6B6B6B]">
                         <span>{s.messages.length} turns</span>
                         <span>·</span>
                         <span className="font-semibold text-[#6366f1]">{Math.round(score * 100)}% match</span>
@@ -1289,36 +1289,36 @@ export default function Sidebar() {
             </div>
           )}
           {sessionsLoading ? (
-            <div className="space-y-2">
+            <div className="space-y-1">
               {[...Array(4)].map((_, i) => (
                 <div
                   key={i}
-                  className="overflow-hidden rounded-[5px] border border-[#1A2A1A] bg-[#080808] px-2 py-2"
+                  className="overflow-hidden rounded-[4px] border border-[#1A2A1A] bg-[#0a0a0a] px-1.5 py-1"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-16 rounded-[20px] bg-[#2A2A2A] animate-pulse" />
+                    <div className="h-3 w-12 rounded-[20px] bg-[#2A2A2A] animate-pulse" />
                   </div>
-                  <div className="mt-2 h-3 w-[75%] rounded bg-[#2A2A2A] animate-pulse" />
-                  <div className="mt-1.5 h-2.5 w-[40%] rounded bg-[#1F1F1F] animate-pulse" />
+                  <div className="mt-1 h-2.5 w-[75%] rounded bg-[#2A2A2A] animate-pulse" />
+                  <div className="mt-1 h-2 w-[40%] rounded bg-[#1F1F1F] animate-pulse" />
                 </div>
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="rounded-[6px] border border-dashed px-4 py-6 text-center animate-fade-in neon-border-pulse" style={{ background: "#070707" }}>
-              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-[6px] border border-[#00FF88]/30 bg-[#00FF88]/5" style={{ boxShadow: "0 0 16px rgba(0,255,136,0.15)" }}>
-                <span className="text-lg">◆</span>
+            <div className="rounded-[6px] border border-dashed px-3 py-4 text-center animate-fade-in neon-border-pulse" style={{ background: "#070707" }}>
+              <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-[6px] border border-[#00FF88]/30 bg-[#00FF88]/5" style={{ boxShadow: "0 0 16px rgba(0,255,136,0.15)" }}>
+                <span className="text-base">◆</span>
               </div>
-              <p className="text-xs font-medium text-[#F5F5F5]">
+              <p className="text-[11px] font-medium text-[#F5F5F5]">
                 {sessions.length === 0 ? "No sessions yet" : "No results"}
               </p>
-              <p className="mt-1 text-[10px] text-[#6B6B6B]">
+              <p className="mt-0.5 text-[9px] text-[#6B6B6B]">
                 {sessions.length === 0
                   ? "Visit Claude, ChatGPT, Google Gemini, or xAI Grok."
                   : "Try a different search or filter."}
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1">
               {filtered.map((session) => (
                 <SessionCard
                   key={session.id}
@@ -1336,31 +1336,31 @@ export default function Sidebar() {
         {/* ── MCP IDE bridge status (Add-on 6) ────────────────────────────── */}
         <MCPStatusPanel />
 
-        <div className="border-t border-[#0D2A0D] px-4 py-1.5 space-y-1.5">
+        <div className="border-t border-[#0D2A0D] px-3 py-1 space-y-1">
           <div
-            className="crucible-pulse flex cursor-default flex-col items-center justify-center rounded-[6px] border border-dashed py-2 transition-all hover:scale-[1.01]"
+            className="crucible-pulse flex cursor-default items-center justify-center rounded-[4px] border border-dashed py-1 transition-all hover:scale-[1.01]"
             style={{ borderColor: "rgba(0,255,136,0.2)", background: "rgba(0,255,136,0.018)" }}
           >
-            <div className="text-[10px] font-black uppercase tracking-[0.35em] text-[#00FF88]" style={{ textShadow: "0 0 10px rgba(0,255,136,0.55)" }}>
+            <div className="text-[7.5px] font-black uppercase tracking-[0.3em] text-[#00FF88]" style={{ textShadow: "0 0 8px rgba(0,255,136,0.5)" }}>
               ⚗ THE CRUCIBLE
             </div>
-            <div className="mt-1 text-[11px] uppercase tracking-[0.18em]" style={{ color: "#1A3A1A" }}>
+            <div className="ml-2 text-[7.5px] uppercase tracking-[0.14em]" style={{ color: "#1A3A1A" }}>
               Drop sessions to merge · Super Memory
             </div>
           </div>
           {/* Quick links */}
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <button
               type="button"
               onClick={() => chrome.tabs.create({ url: DASHBOARD_URL })}
-              className="flex-1 rounded-[4px] border border-[#1A3A1A] bg-[#060606] py-1 text-[11px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
+              className="flex-1 rounded-[3px] border border-[#1A3A1A] bg-[#060606] py-0.5 text-[10px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
             >
               Dashboard ↗
             </button>
             <button
               type="button"
               onClick={() => chrome.tabs.create({ url: PRICING_URL })}
-              className="flex-1 rounded-[4px] border border-[#1A3A1A] bg-[#060606] py-1 text-[11px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
+              className="flex-1 rounded-[3px] border border-[#1A3A1A] bg-[#060606] py-0.5 text-[10px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
             >
               Upgrade ⚡
             </button>
@@ -1413,10 +1413,10 @@ function MCPStatusPanel() {
   const platforms = status?.platforms ?? {};
 
   return (
-    <div style={{ borderTop: "1px solid #0D2A0D", padding: "4px 12px", background: "#050505" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#3A3A3A", flexShrink: 0 }} />
-        <span style={{ fontSize: 10, fontWeight: 700, color: "#3A3A3A", textTransform: "uppercase", letterSpacing: "0.18em", flex: 1 }}>
+    <div style={{ borderTop: "1px solid #0D2A0D", padding: "2px 8px", background: "#040404" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#3A3A3A", flexShrink: 0 }} />
+        <span style={{ fontSize: 8, fontWeight: 700, color: "#3A3A3A", textTransform: "uppercase", letterSpacing: "0.18em", flex: 1 }}>
           IDE Bridge
         </span>
         <span style={{
