@@ -17,6 +17,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { createClient } from "@/lib/supabase/client";
 import { RazorpaySubscription } from "@/components/payments/RazorpaySubscription";
 import { UNIFIED_PRICING } from "@/lib/payments/geo-pricing";
+import PricingSection from "@/components/pricing/PricingSection";
 
 
 const FREE_FEATURES = [
@@ -227,40 +228,13 @@ export default function PricingPage() {
   const isDev = process.env.NODE_ENV !== "production";
 
   return (
-    <div
-      style={{
-        minHeight:  "100vh",
-        background: "#0A0A0A",
-        color:      "#F5F5F5",
-        fontFamily: "Inter, sans-serif",
-      }}
-      className="px-4 sm:px-6 pt-10 sm:pt-20 pb-16"
-    >
+    <div style={{ background: "#050505", minHeight: "100vh" }}>
       {/* Razorpay SDK is loaded globally in app/layout.tsx */}
 
-      {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: "40px" }}>
-        <h1 style={{ fontWeight: 900, margin: "0 0 16px" }} className="text-3xl sm:text-5xl">
-          Simple pricing.
-        </h1>
-        <p style={{ color: "#6B6B6B", margin: 0 }} className="text-base sm:text-lg">
-          Start free. Upgrade when you need more.
-        </p>
-      </div>
-
-      {/* Billing toggle + cards */}
-      <div>
-        <div style={{ textAlign: "center", marginBottom: "24px" }}>
-          <BillingToggle billingCycle={billingCycle} onChange={setBillingCycle} annualSavings={pricing.pro.annualSavings} />
-          <div style={{ marginTop: "12px", fontSize: "12px", color: "#3A3A3A" }}>
-            All prices in INR · One price worldwide · Billed in your local currency at checkout
-          </div>
-        </div>
-        {mockNotice && (
+      {mockNotice && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
           <div
             style={{
-              marginTop:    "20px",
-              display:      "inline-block",
               padding:      "10px 14px",
               fontSize:     "11px",
               border:       "1px solid rgba(0,255,136,0.3)",
@@ -271,91 +245,39 @@ export default function PricingPage() {
           >
             {mockNotice}
           </div>
-        )}
-        {error && (
-          <p style={{ color: "#EF4444", fontSize: "12px", marginTop: "12px" }}>
-            {error}
-          </p>
-        )}
-        {showSuccess && (
-          <div style={{ marginTop: "12px", color: "#00FF88", fontSize: "12px" }}>
-            ✅ Subscription active!
-          </div>
-        )}
-
-        {/* Pricing cards */}
-        <div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6"
-          style={{
-            maxWidth: "900px",
-            margin:   "0 auto 60px",
-          }}
-        >
-        {/* Free */}
-        <PlanCard
-          tag="Free"
-          tagColor="#6B6B6B"
-          price="₹0"
-          subtitle="forever"
-          features={FREE_FEATURES}
-          featureColor="#6B6B6B"
-          cta={isPro ? "Downgrade" : "Current plan"}
-          ctaDisabled
-        />
-
-        {/* Pro */}
-        <PlanCard
-          tag="Pro"
-          tagColor="#00FF88"
-          price={
-            billingCycle === "annual"
-              ? pricing.pro.annualDisplay
-              : pricing.pro.display
-          }
-          subtitle={billingCycle === "annual" ? `per year · ${pricing.pro.annualSavings}` : "per month"}
-          features={PRO_FEATURES}
-          featureColor="#F5F5F5"
-          featured
-          cta={isPro ? "Current plan" : undefined}
-          ctaDisabled={isPro}
-        >
-          {!isPro && (
-            <div style={{ marginTop: "16px" }}>
-              <RazorpaySubscription
-                plan="pro"
-                billing={billingCycle}
-                buttonText={billingCycle === "annual" ? "Subscribe Yearly" : "Subscribe Monthly"}
-                onSuccess={() => {
-                  setShowSuccess(true);
-                  setError(null);
-                  setTimeout(() => router.push("/settings?payment=success"), 1_000);
-                }}
-                onFailure={(err) => {
-                  setError(err);
-                  setShowSuccess(false);
-                }}
-              />
-            </div>
-          )}
-        </PlanCard>
         </div>
+      )}
 
-        {/* Dev-only mock upgrade — never shipped to production builds */}
-        {isDev && !isPro && (
-        <div style={{ textAlign: "center", marginBottom: "24px" }}>
+      {error && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+          <p style={{ color: "#EF4444", fontSize: "12px" }}>{error}</p>
+        </div>
+      )}
+
+      {showSuccess && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+          <div style={{ color: "#00FF88", fontSize: "12px" }}>✅ Subscription active!</div>
+        </div>
+      )}
+
+      <PricingSection />
+
+      {/* Dev-only mock upgrade — never shipped to production builds */}
+      {isDev && !isPro && (
+        <div style={{ textAlign: "center", paddingBottom: "32px" }}>
           <button
             onClick={activateMockPro}
             style={{
-              padding:        "10px 18px",
-              background:     "transparent",
-              border:         "1px dashed #00FF88",
-              borderRadius:   "6px",
-              color:          "#00FF88",
-              fontSize:       "11px",
-              fontWeight:     700,
-              cursor:         "pointer",
-              textTransform:  "uppercase",
-              letterSpacing:  "0.1em",
+              padding:       "10px 18px",
+              background:    "transparent",
+              border:        "1px dashed #00FF88",
+              borderRadius:  "6px",
+              color:         "#00FF88",
+              fontSize:      "11px",
+              fontWeight:    700,
+              cursor:        "pointer",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
             }}
           >
             [DEV] Activate Mock Pro
@@ -365,15 +287,6 @@ export default function PricingPage() {
           </div>
         </div>
       )}
-
-        {/* Trust signals */}
-        <div style={{ textAlign: "center", color: "#3A3A3A", fontSize: "12px" }}>
-          🔒 Zero-knowledge · Local-first · Your data never touches our servers · Cancel anytime · No questions asked
-        </div>
-        <div style={{ textAlign: "center", color: "#3A3A3A", fontSize: "12px", marginTop: "12px" }}>
-          ❤️ Built by an indie developer. Every subscription directly supports the person writing the code, not a corporation.
-        </div>
-      </div>
     </div>
   );
 }
