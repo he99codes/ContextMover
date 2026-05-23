@@ -163,7 +163,7 @@ export default function BuildWithMePage() {
       <div className="pt-14">
         <section
           id="build-with-me"
-          className="py-24 sm:py-32 px-5 bg-[#02050A] border-y border-[rgba(99,102,241,0.15)] relative overflow-hidden"
+          className="py-16 sm:py-24 md:py-32 px-4 sm:px-8 md:px-16 bg-[#02050A] border-y border-[rgba(99,102,241,0.15)] relative overflow-hidden"
         >
           {/* Purple radial glow — top and bottom */}
           <div className="absolute inset-0 pointer-events-none">
