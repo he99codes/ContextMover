@@ -212,12 +212,15 @@ export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="bg-[#020202] text-[#F5F5F5] font-sans overflow-x-hidden relative" style={{
+    <div className="bg-[#020202] bg-grid-pattern text-[#F5F5F5] font-sans overflow-x-hidden relative" style={{
       background: `
         radial-gradient(ellipse 80% 50% at 20% 20%, rgba(0,255,136,0.03) 0%, transparent 60%),
         radial-gradient(ellipse 60% 40% at 80% 80%, rgba(0,180,255,0.03) 0%, transparent 60%),
+        linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px),
         #020202
-      `
+      `,
+      backgroundSize: "100% 100%, 100% 100%, 52px 52px, 52px 52px, 100% 100%"
     }}>
 
       {/* ══════════════════════════ 1. NAVBAR ══════════════════════════ */}
@@ -272,7 +275,7 @@ export default function LandingPage() {
 
         {/* Mobile full-screen overlay menu */}
         {menuOpen && (
-          <div className="md:hidden fixed inset-0 z-[200] bg-[#0A0A0A] flex flex-col" style={{ top: 0 }}>
+          <div className="md:hidden fixed inset-0 z-[200] bg-[#0A0A0A] bg-grid-pattern flex flex-col" style={{ top: 0 }}>
             {/* Overlay header */}
             <div className="flex items-center justify-between px-5 h-14 border-b border-[#1A1A1A] shrink-0">
               <a href="/" className="flex items-center gap-2.5">
@@ -631,7 +634,7 @@ export default function LandingPage() {
       <div className="w-full h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent)" }} />
 
       {/* ══════════════════════════ 7. PRIVACY / TRUST ══════════════════════════ */}
-      <section className="py-14 sm:py-24 px-5 bg-[#0A0F0A] border-y border-[rgba(0,255,136,0.08)] relative overflow-hidden">
+      <section className="py-14 sm:py-24 px-5 bg-[#0A0F0A] bg-grid-pattern border-y border-[rgba(0,255,136,0.08)] relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[500px] bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(0,255,136,0.04),transparent)]" />
         </div>
@@ -804,13 +807,7 @@ export default function LandingPage() {
       <div className="w-full h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent)" }} />
 
       {/* ══════════════════════════ 10. FAQ ══════════════════════════ */}
-      <section className="py-24 px-5 relative overflow-hidden" style={{
-        backgroundImage: `
-          linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)
-        `,
-        backgroundSize: "40px 40px"
-      }}>
+      <section className="py-24 px-5 bg-grid-pattern relative overflow-hidden">
         <div className="max-w-2xl mx-auto text-center relative z-10">
           <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-14" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}><span className="text-[#00ff88]">Questions.</span></h2>
           <FaqAccordion />
@@ -819,7 +816,7 @@ export default function LandingPage() {
       <div className="w-full h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent)" }} />
 
       {/* ═══════════════ TRUST BAR ═══════════════ */}
-      <div className="bg-[#050F05] border-t border-[rgba(0,255,136,0.06)] py-3 px-5 text-center">
+      <div className="bg-[#050F05] bg-grid-pattern border-t border-[rgba(0,255,136,0.06)] py-3 px-5 text-center">
         <p className="text-xs font-mono text-[#2A6A2A]">
           🔒 <strong className="text-[#00FF88]">Zero-knowledge.</strong>{" "}
           Data never touches our servers · Context stays on your machine · Vault syncs to your own Supabase · We cannot read or sell your conversations.
@@ -827,7 +824,7 @@ export default function LandingPage() {
       </div>
 
       {/* ══════════════════════════ 11. FOOTER ══════════════════════════ */}
-      <footer className="py-14 px-5 relative overflow-hidden" style={{
+      <footer className="py-14 px-5 bg-grid-pattern relative overflow-hidden" style={{
         background: "#010101",
         borderTop: "1px solid transparent",
         backgroundImage: "linear-gradient(90deg, transparent, rgba(0,255,136,0.2), transparent)",

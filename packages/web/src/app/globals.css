@@ -237,6 +237,15 @@ body { overflow-x: hidden; }
 .reveal-d3.is-visible       { transition-delay: 300ms; }
 .reveal-d4.is-visible       { transition-delay: 400ms; }
 
+/* ── Subtle grid background pattern ── */
+@layer utilities {
+  .bg-grid-pattern {
+    background-image: linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
+    background-size: 52px 52px;
+  }
+}
+
 /* ── Landing page: animated flow lines ── */
 @keyframes flow-shimmer {
   0%   { background-position: -200% center; }
