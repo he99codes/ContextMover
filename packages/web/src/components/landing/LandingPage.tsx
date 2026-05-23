@@ -11,7 +11,6 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Check, Mail } from "lucide-react";
 import { CHROME_STORE_URL } from "@/config/urls";
-import BuildWithMe from "@/components/BuildWithMe";
 import EmailWidget from "@/components/EmailWidget";
 
 // ─── Scroll-reveal hook ───────────────────────────────────────────────────────
@@ -250,9 +249,9 @@ export default function LandingPage() {
             <a href="/pricing" className="px-3 py-1.5 text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors rounded-md hover:bg-[#111]">Pricing</a>
             <a href="/dashboard" className="px-3 py-1.5 text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors rounded-md hover:bg-[#111]">Dashboard</a>
             <a href="/docs" className="px-3 py-1.5 text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors rounded-md hover:bg-[#111]">Docs</a>
+            <a href="/build-with-me" className="px-3 py-1.5 text-sm text-[#00FF88]/70 hover:text-[#00FF88] transition-colors rounded-md hover:bg-[#111]">Build with me</a>
             <a href="/feedback" className="px-3 py-1.5 text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors rounded-md hover:bg-[#111]">Feedback</a>
             <a href="/contact" className="px-3 py-1.5 text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors rounded-md hover:bg-[#111]">Contact</a>
-            <a href="#build-with-me" className="px-3 py-1.5 text-sm text-[#00FF88]/60 hover:text-[#00FF88] transition-colors rounded-md hover:bg-[#111]">Build with me</a>
           </div>
 
           {/* Desktop right */}
@@ -309,12 +308,12 @@ export default function LandingPage() {
                 ["Pricing",      "/pricing"],
                 ["Dashboard",    "/dashboard"],
                 ["Docs",         "/docs"],
+                ["Build with me", "/build-with-me"],
                 ["Feedback",     "/feedback"],
                 ["Contact",      "/contact"],
               ] as const).map(([label, href]) => (
-                <a key={label} href={href} className="flex items-center text-[18px] text-[#6B6B6B] min-h-[56px] px-3 border-b border-[#111] active:opacity-70" onClick={() => setMenuOpen(false)}>{label}</a>
+                <a key={label} href={href} className={`flex items-center text-[18px] min-h-[56px] px-3 border-b border-[#111] active:opacity-70 ${label === "Build with me" ? "text-[#00FF88]/70" : "text-[#6B6B6B]"}`} onClick={() => setMenuOpen(false)}>{label}</a>
               ))}
-              <a href="#build-with-me" className="flex items-center text-[18px] text-[#00FF88]/60 min-h-[56px] px-3 active:opacity-70" onClick={() => setMenuOpen(false)}>Build with me</a>
             </nav>
             {/* Overlay CTAs */}
             <div className="shrink-0 px-5 pb-8 pt-4 flex flex-col gap-3 border-t border-[#1A1A1A]">
@@ -804,10 +803,7 @@ export default function LandingPage() {
       </section>
       <div className="w-full h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent)" }} />
 
-      {/* ══════════════════════════ 9. BUILD WITH ME ══════════════════════════ */}
-      <BuildWithMe />
-
-      {/* ══════════════════════════ 11. FAQ ══════════════════════════ */}
+      {/* ══════════════════════════ 10. FAQ ══════════════════════════ */}
       <section className="py-24 px-5 relative overflow-hidden" style={{
         backgroundImage: `
           linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
