@@ -432,19 +432,24 @@ export default function LandingPage() {
             <div className="relative flex flex-col sm:flex-row items-center justify-between gap-6 max-w-2xl mx-auto">
               {/* Sources */}
               <div className="flex flex-row sm:flex-col gap-3">
-                {["Claude", "ChatGPT", "Gemini"].map((p) => (
-                  <div key={p} className="px-4 py-2 text-sm font-medium text-[#F5F5F5] w-28 text-center" style={{
+                {[
+                  { name: "Claude", color: "#CC785C" },
+                  { name: "ChatGPT", color: "#74AA9C" },
+                  { name: "Gemini", color: "#4285F4" }
+                ].map((p) => (
+                  <div key={p.name} className="px-4 py-2 text-sm font-medium w-28 text-center" style={{
                     background: "rgba(255,255,255,0.05)",
                     border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "6px"
-                  }}>{p}</div>
+                    borderRadius: "6px",
+                    color: p.color
+                  }}>{p.name}</div>
                 ))}
               </div>
               {/* Flow line left */}
               <div className="hidden sm:flex flex-col gap-4 flex-1 px-2 relative">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-px w-full relative" style={{
-                    background: "linear-gradient(90deg, rgba(0,255,136,0.5), rgba(99,102,241,0.5))"
+                  <div key={i} className="h-px w-full relative flow-line" style={{
+                    background: "rgba(0,255,136,0.15)"
                   }}>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-pulse" style={{ animationDelay: `${i * 0.5}s` }} />
                   </div>
@@ -454,7 +459,8 @@ export default function LandingPage() {
               <div className="rounded-2xl px-7 py-5 text-center shrink-0 relative overflow-hidden" style={{
                 border: "1px solid rgba(0,255,136,0.4)",
                 background: "#0A0F0A",
-                boxShadow: "0 0 30px rgba(0,255,136,0.1)"
+                boxShadow: "0 0 20px rgba(0,255,136,0.2)",
+                animation: "pulse-glow 2s ease-in-out infinite"
               }}>
                 <div className="absolute inset-0 bg-gradient-to-br from-[rgba(0,255,136,0.1)] to-transparent" />
                 <div className="relative z-10">
@@ -465,8 +471,8 @@ export default function LandingPage() {
               {/* Flow line right */}
               <div className="hidden sm:flex flex-col gap-4 flex-1 px-2 relative">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-px w-full relative" style={{
-                    background: "linear-gradient(90deg, rgba(99,102,241,0.5), rgba(0,255,136,0.5))"
+                  <div key={i} className="h-px w-full relative flow-line-reverse" style={{
+                    background: "rgba(0,255,136,0.15)"
                   }}>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-pulse" style={{ animationDelay: `${i * 0.5 + 0.2}s` }} />
                   </div>
@@ -474,12 +480,17 @@ export default function LandingPage() {
               </div>
               {/* Targets */}
               <div className="flex flex-row sm:flex-col gap-3">
-                {["Claude", "ChatGPT", "Gemini"].map((p) => (
-                  <div key={p} className="px-4 py-2 text-sm font-medium text-[#F5F5F5] w-28 text-center" style={{
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "6px"
-                  }}>{p}</div>
+                {[
+                  { name: "Claude", color: "#CC785C" },
+                  { name: "ChatGPT", color: "#74AA9C" },
+                  { name: "Gemini", color: "#4285F4" }
+                ].map((p) => (
+                  <div key={p.name} className="px-4 py-2 text-sm font-medium w-28 text-center" style={{
+                    background: "rgba(0,255,136,0.05)",
+                    border: "1px solid rgba(0,255,136,0.15)",
+                    borderRadius: "6px",
+                    color: p.color
+                  }}>{p.name}</div>
                 ))}
               </div>
             </div>
@@ -561,7 +572,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {[
               { icon: "⊟", title: "IDE Connection + MCP Server", soon: true,  body: "Bridge your editor to ContextMover via the MCP server. Your active files and workspace state flow into every migration automatically.", rotate: "-0.5deg" },
-              { icon: "⬡", title: "GitHub Repo Extraction",        soon: false, body: "Scan your repository and pull the relevant files into any session. Your codebase travels with your context, not just a description of it.", rotate: "0deg" },
+              { icon: "⬡", title: "GitHub Repo Extraction",        soon: true,  body: "Scan your repository and pull the relevant files into any session. Your codebase travels with your context, not just a description of it.", rotate: "0deg" },
               { icon: "◈", title: "Local Folder Context",          soon: false, body: "Read files directly from your machine. No upload, no cloud roundtrip. Your project stays local and private while your AI stays fully informed.", rotate: "0.5deg" },
             ].map((card, i) => (
               <div key={i} className={`reveal reveal-d${i + 1} card-hover rounded-2xl p-7 text-left relative overflow-hidden group transition-all duration-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.08)]`} style={{

@@ -92,6 +92,16 @@ body { overflow-x: hidden; }
   50%       { box-shadow: 0 0 0 5px rgba(0,255,136,0);   }
 }
 
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(0,255,136,0.2); }
+  50%       { box-shadow: 0 0 35px rgba(0,255,136,0.35); }
+}
+
+@keyframes flowPulse {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0);   }
@@ -244,17 +254,36 @@ body { overflow-x: hidden; }
                       linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
     background-size: 52px 52px;
   }
+
+  .flow-line {
+    background: linear-gradient(90deg,
+      transparent 0%,
+      transparent 40%,
+      rgba(0,255,136,0.6) 50%,
+      transparent 60%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: flowPulse 2s linear infinite;
+  }
+
+  .flow-line-reverse {
+    background: linear-gradient(90deg,
+      transparent 0%,
+      transparent 40%,
+      rgba(0,255,136,0.6) 50%,
+      transparent 60%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: flowPulse 2s linear infinite reverse;
+  }
 }
 
 /* ── Landing page: animated flow lines ── */
 @keyframes flow-shimmer {
   0%   { background-position: -200% center; }
   100% { background-position:  200% center; }
-}
-.flow-line {
-  background: linear-gradient(90deg, transparent 0%, #00FF88 50%, transparent 100%);
-  background-size: 60% 100%;
-  animation: flow-shimmer 2s linear infinite;
 }
 .flow-line-delay { animation-delay: 1s; }
 
