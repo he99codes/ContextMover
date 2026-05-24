@@ -515,6 +515,20 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create(REMOTE_CONFIG_ALARM, { periodInMinutes: REMOTE_CONFIG_PERIOD_MIN });
 });
 
+// Keep chrome.storage.local in sync whenever Supabase silently refreshes the token.
+supabase.auth.onAuthStateChange(async (event, session) => {
+  if (session?.access_token) {
+    await chrome.storage.local.set({
+      accessToken: session.access_token,
+      userId: session.user?.id,
+    });
+    console.log("[CM:auth] token refreshed, event:", event);
+  }
+  if (event === "SIGNED_OUT") {
+    await chrome.storage.local.remove(["accessToken", "userId"]);
+  }
+});
+
 // Periodic remote-config refresh — fires every 6 h while the browser is running.
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === REMOTE_CONFIG_ALARM) {
@@ -808,7 +822,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
         // ── Freemium gate ────────────────────────────────────────────────────
         const _tier = (msg.payload?.tier ?? 2) as 1 | 2 | 3;
-        const { accessToken } = await chrome.storage.local.get("accessToken");
+        // Always try to get fresh session first
+        let accessToken: string | undefined;
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            accessToken = session.access_token;
+            // Keep storage in sync
+            await chrome.storage.local.set({
+              accessToken: session.access_token,
+              userId: session.user?.id,
+            });
+          } else {
+            // Fallback to stored token
+            const stored = await chrome.storage.local.get("accessToken");
+            accessToken = stored.accessToken as string | undefined;
+          }
+        } catch {
+          const stored = await chrome.storage.local.get("accessToken");
+          accessToken = stored.accessToken as string | undefined;
+        }
 
         if (accessToken) {
           const usage = await checkMigrationAllowed(_tier, accessToken as string);

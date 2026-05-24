@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
 
   const admin = createAdminClient();
   const page = Math.max(1, Number(req.nextUrl.searchParams.get("page") ?? "1"));
-  const offset = (page - 1) * PAGE_SIZE;
 
   // List users from auth.users via admin API
   const { data: authData, error: authError } = await admin.auth.admin.listUsers({

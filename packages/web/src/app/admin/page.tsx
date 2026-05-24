@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+const supabase = createClient();
+
 interface Stats { total_users: number; pro_users: number; migrations_this_month: number; open_bug_reports: number; }
 interface AdminUser { id: string; email: string; created_at: string; plan: string; subscription_status: string | null; tier1_used: number; tier2_used: number; tier3_used: number; }
 interface BugReport { id: string; email: string | null; severity: string; description: string; version: string | null; created_at: string; }
@@ -253,7 +255,6 @@ function RefundsSection({ token }: { token: string }) {
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function AdminPage() {
-  const supabase = createClient();
   const [token, setToken] = useState<string | null>(null);
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setToken(session?.access_token ?? null));
