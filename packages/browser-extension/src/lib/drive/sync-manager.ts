@@ -360,6 +360,10 @@ class DriveSyncManager {
    *
    * Returns the number of sessions seeded from Drive.
    */
+  private bcast(msg: Record<string, unknown>): void {
+    try { chrome.runtime.sendMessage(msg, () => { void chrome.runtime.lastError; }); } catch { /* no listener */ }
+  }
+
   private async bootstrapInitialIndex(): Promise<number> {
     try {
       // Snapshot local sessions BEFORE seeding so we don't re-upload
@@ -367,13 +371,19 @@ class DriveSyncManager {
       const originalLocal = await db.getAllSessions();
       const localIdSet = new Set(originalLocal.map((s) => s.id));
 
-      // 6B: Seed — download Drive sessions absent from this profile.
+      // 6B: Seed — download Drive sessions absent from this profile (partial sync with progress).
       let seeded = 0;
       const seededIds: string[] = [];
       const remoteFiles = await driveClient.listSessionFiles();
-      for (const file of remoteFiles) {
-        const id = file.name.replace(/^session-/, "").replace(/\.json$/, "");
-        if (!id || localIdSet.has(id)) continue;
+      const toSeed = remoteFiles.filter((f) => {
+        const id = f.name.replace(/^session-/, "").replace(/\.json$/, "");
+        return id && !localIdSet.has(id);
+      });
+      if (toSeed.length > 0) {
+        this.bcast({ type: "PARTIAL_SYNC_PROGRESS", pct: 0, total: toSeed.length, done: 0, phase: "Importing from Drive..." });
+      }
+      for (let i = 0; i < toSeed.length; i++) {
+        const file = toSeed[i];
         try {
           const full = await driveClient.downloadSession(file.id);
           if (full) {
@@ -384,6 +394,14 @@ class DriveSyncManager {
         } catch (e) {
           console.warn("[drive-sync] bootstrap seed failed for", file.name, e);
         }
+        const pct = Math.round(((i + 1) / toSeed.length) * 100);
+        this.bcast({ type: "PARTIAL_SYNC_PROGRESS", pct, total: toSeed.length, done: i + 1, phase: "Importing from Drive..." });
+        if ((i + 1) % 5 === 0 || i + 1 === toSeed.length) {
+          this.bcast({ type: "SESSIONS_UPDATED" });
+        }
+      }
+      if (toSeed.length > 0) {
+        this.bcast({ type: "PARTIAL_SYNC_PROGRESS", pct: 100, total: toSeed.length, done: seeded, phase: "Done" });
       }
 
       // Upload originally-local sessions (seeded ones are already in Drive).

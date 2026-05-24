@@ -287,6 +287,7 @@ export default function Sidebar() {
     sourcedIds: string[];
   }>({ connected: false, lastSyncAt: null, lastSyncCount: null, sourcedIds: [] });
   const [driveBusy, setDriveBusy] = useState(false);
+  const [partialSync, setPartialSync] = useState<{ pct: number; done: number; total: number; phase: string } | null>(null);
   const driveSourcedSet = useMemo(() => new Set(driveStatus.sourcedIds), [driveStatus.sourcedIds]);
 
   const refreshDriveStatus = useCallback(() => {
@@ -387,8 +388,21 @@ export default function Sidebar() {
   }, []);
 
   // Keep handleMessageRef in sync with latest loadSessions closure every render.
-  handleMessageRef.current = (msg) => {
-    if (msg.type === "SESSIONS_UPDATED") loadSessions();
+  handleMessageRef.current = (msg: { type: string; pct?: number; done?: number; total?: number; phase?: string }) => {
+    if (msg.type === "SESSIONS_UPDATED") {
+      loadSessions();
+    }
+    if (msg.type === "PARTIAL_SYNC_PROGRESS") {
+      const pct   = typeof msg.pct   === "number" ? msg.pct   : 0;
+      const done  = typeof msg.done  === "number" ? msg.done  : 0;
+      const total = typeof msg.total === "number" ? msg.total : 0;
+      const phase = typeof msg.phase === "string" ? msg.phase : "Syncing...";
+      if (pct >= 100 || phase === "Done") {
+        setPartialSync(null);
+      } else {
+        setPartialSync({ pct, done, total, phase });
+      }
+    }
   };
 
   // ── One-time hardware detection + model warmup ──────────────────────────────
@@ -1146,6 +1160,18 @@ export default function Sidebar() {
             </div>
           )}
 
+          {partialSync && (
+            <div className="mt-1 rounded-[3px] border border-[#00FF88]/15 bg-[#00FF88]/5 px-2 py-1">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-[8px] uppercase tracking-widest" style={{ color: "#00FF88" }}>{partialSync.phase}</span>
+                <span className="text-[8px]" style={{ color: "#2A6A2A" }}>{partialSync.done}/{partialSync.total}</span>
+              </div>
+              <div className="h-[3px] w-full rounded-full bg-[#0D2A0D] overflow-hidden">
+                <div className="h-full rounded-full bg-[#00FF88] transition-all duration-300" style={{ width: `${partialSync.pct}%` }} />
+              </div>
+            </div>
+          )}
+
           {leadSession ? (
             <div className="mt-0.5 flex items-center gap-1">
               <span className="h-1 w-1 flex-shrink-0 rounded-full bg-[#00FF88] animate-pulse-green" style={{ boxShadow: "0 0 4px #00FF88" }} />
@@ -1363,6 +1389,14 @@ export default function Sidebar() {
               className="flex-1 rounded-[3px] border border-[#1A3A1A] bg-[#060606] py-0.5 text-[10px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
             >
               Upgrade ⚡
+            </button>
+            <button
+              type="button"
+              onClick={() => chrome.tabs.create({ url: "https://contextmover.com/support#bug-report" })}
+              title="Report a bug"
+              className="rounded-[3px] border border-[#1A3A1A] bg-[#060606] px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#EF4444]/30 hover:text-[#EF4444]"
+            >
+              Bug ⚠
             </button>
           </div>
         </div>

@@ -10,9 +10,9 @@
 import { useState } from "react";
 
 const FREE_FEATURES = [
-  { text: "10 Full Context migrations/month", soon: false },
-  { text: "10 Smart Summary migrations/month", soon: false },
-  { text: "50 Attention Engine migrations/month", soon: false },
+  { text: "8 Full Context migrations/month", soon: false },
+  { text: "5 Smart Summary migrations/month", soon: false },
+  { text: "3 Attention Engine migrations/month", soon: false },
   { text: "Basic session history", soon: false },
   { text: "Community support", soon: false },
 ];
@@ -33,7 +33,7 @@ export default function PricingSection() {
   const [isAnnual, setIsAnnual] = useState(true);
 
   return (
-    <section className="min-h-screen py-16 sm:py-24 px-4 sm:px-8 md:px-16" style={{ background: "#050505" }}>
+    <section className="min-h-screen py-16 sm:py-24 px-4 sm:px-8 lg:px-16" style={{ background: "#050505" }}>
       {/* Heading Block */}
       <div className="text-center">
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
@@ -75,7 +75,7 @@ export default function PricingSection() {
 
         {/* ── Card 1: Free ── */}
         <div
-          className="flex-1 flex flex-col rounded-2xl p-5 sm:p-8"
+          className="flex-1 flex flex-col rounded-2xl p-5 sm:p-8 w-full md:w-auto"
           style={{
             background: "#0f0f0f",
             border: "1px solid #1f1f1f",
@@ -111,7 +111,7 @@ export default function PricingSection() {
 
         {/* ── Card 2: Pro Early Bird (featured) ── */}
         <div
-          className="flex-1 flex flex-col rounded-2xl p-5 sm:p-8 relative md:-mt-2 md:-mb-2"
+          className="flex-1 flex flex-col rounded-2xl p-5 sm:p-8 relative md:-mt-2 md:-mb-2 w-full md:w-auto scale-100 sm:scale-105"
           style={{
             background: "#0a0a0f",
             border: "1.5px solid #7c3aed",
@@ -192,7 +192,7 @@ export default function PricingSection() {
 
         {/* ── Card 3: Pro ── */}
         <div
-          className="flex-1 flex flex-col rounded-2xl p-5 sm:p-8"
+          className="flex-1 flex flex-col rounded-2xl p-5 sm:p-8 w-full md:w-auto"
           style={{
             background: "#0f0f0f",
             border: "1px solid #1f1f1f",

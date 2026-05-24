@@ -19,22 +19,30 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  return NextResponse.json({ allowed: false, reason: "use_POST" }, { status: 405 });
+}
 
 export async function POST(req: NextRequest) {
   try {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL ||
       !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    const body = await req.json().catch(() => ({})) as { tier?: number };
-    return NextResponse.json({
-      allowed: true,
-      plan: 'free',
-      unlimited: false,
-      tier: body.tier ?? 1,
-      used: 0,
-      limit: 50,
-      remaining: 50,
-      _warning: 'Supabase env vars not configured',
-    });
+    if (process.env.NODE_ENV !== "production") {
+      const body = await req.json().catch(() => ({})) as { tier?: number };
+      return NextResponse.json({
+        allowed: true,
+        plan: 'free',
+        unlimited: false,
+        tier: body.tier ?? 1,
+        used: 0,
+        limit: 50,
+        remaining: 50,
+        dev: true,
+      });
+    }
+    return NextResponse.json({ allowed: false, reason: "not_configured" }, { status: 503 });
   }
 
   const user = await getAuthUserFromRequest(req);
@@ -113,8 +121,8 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     console.error('[CM:usage] check error:', err);
     return NextResponse.json(
-      { allowed: true, error: err instanceof Error ? err.message : String(err) },
-      { status: 200 }
+      { allowed: false, reason: "internal_error" },
+      { status: 500 }
     );
   }
 }

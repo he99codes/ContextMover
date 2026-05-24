@@ -7,7 +7,7 @@
 
 // packages/browser-extension/src/lib/usage-client.ts
 // Extension-side client for ContextMover usage-limit API.
-// FAILS OPEN on network errors — never blocks the user when the API is down.
+// FAILS CLOSED — any API or network error blocks the migration.
 
 const API_BASE = "https://contextmover.com";
 
@@ -67,7 +67,7 @@ export async function checkUsage(
     if (!res.ok || isRouteFailure) {
       const bodyPreview = await res.text().then((t) => t.slice(0, 200)).catch(() => "");
       console.error(
-        `[usage-client] checkUsage SKIPPED — Usage API: HTTP ${res.status}, ` +
+        `[usage-client] checkUsage BLOCKED — Usage API: HTTP ${res.status}, ` +
         `content-type: ${ct || "none"}. Body: ${bodyPreview}`
       );
       try {
@@ -78,7 +78,7 @@ export async function checkUsage(
         });
       } catch { /* storage may be unavailable in some contexts */ }
       return {
-        allowed: true,
+        allowed: false,
         plan: "unknown",
         unlimited: false,
         tier,
@@ -91,22 +91,32 @@ export async function checkUsage(
     }
 
     const data = (await res.json()) as UsageCheckResult;
-    // Successful response — clear any stale "skipped" flag so the sidebar
-    // stops nagging.
+    // Successful response — clear any stale "skipped" flag.
     try { await chrome.storage.local.remove(["usageCheckSkipped", "usageCheckSkippedAt", "usageCheckLastStatus"]); } catch { /* noop */ }
+
+    // Broadcast warning badge when running low
+    if (typeof data.remaining === "number" && data.remaining >= 0) {
+      if (data.remaining <= 3) {
+        try {
+          chrome.runtime.sendMessage({ type: "USAGE_WARNING", remaining: data.remaining });
+        } catch { /* noop — sidebar may not be open */ }
+      }
+    }
+    // Hard block at 0
+    if (data.remaining === 0) {
+      return { ...data, allowed: false, reason: "limit_reached" };
+    }
     return data;
   } catch (err) {
-    console.warn("[usage-client] checkUsage network failure, failing open:", err);
-    // Network failure (offline, DNS, CORS) — fail open so the user is
-    // never blocked when the API is unreachable.
+    console.warn("[usage-client] checkUsage network failure, failing closed:", err);
     return {
-      allowed: true,
+      allowed: false,
       plan: "unknown",
-      unlimited: true,
+      unlimited: false,
       tier,
       used: 0,
-      limit: -1,
-      remaining: -1,
+      limit: 0,
+      remaining: 0,
       fallback: true,
       reason: "network_error",
     };

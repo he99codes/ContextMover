@@ -328,7 +328,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ══════════════════════════ 2. HERO ══════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center pt-14 sm:pt-14 px-5 pb-16 overflow-hidden">
+      <section className="relative min-h-screen flex flex-col items-center justify-center pt-24 px-4 sm:px-8 lg:px-16 pb-16 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-[500px] bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(0,255,136,0.08),transparent)]" />
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:52px_52px]" />
@@ -338,11 +338,11 @@ export default function LandingPage() {
           <div className="inline-flex items-center gap-2 bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.25)] rounded-full px-3.5 py-1 text-xs text-[#00FF88] font-medium mb-8 animate-fade-in">
             ✦ &nbsp;Context Operating System for AI
           </div>
-          <h1 className="text-[2rem] sm:text-5xl lg:text-6xl xl:text-[4.5rem] font-bold text-[#F5F5F5] leading-[1.1] sm:leading-[1.07] tracking-tight mb-6 animate-slide-up" style={{ animationDelay: "80ms" }}>
+          <h1 className="text-3xl sm:text-5xl lg:text-7xl font-bold text-[#F5F5F5] leading-[1.1] sm:leading-[1.07] tracking-tight mb-6 animate-slide-up" style={{ animationDelay: "80ms" }}>
             Stop re-explaining<br />
             <span className="text-[#00FF88]">yourself</span> to every AI.
           </h1>
-          <p className="text-[15px] sm:text-base lg:text-lg text-[#6B6B6B] max-w-xl mx-auto mb-10 leading-relaxed animate-slide-up" style={{ animationDelay: "180ms" }}>
+          <p className="text-sm sm:text-base lg:text-xl text-[#6B6B6B] max-w-xl mx-auto mb-10 leading-relaxed animate-slide-up" style={{ animationDelay: "180ms" }}>
             ContextMover captures your AI conversations, intelligently compresses them, and migrates your full context to any AI platform&nbsp;— instantly.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6 animate-slide-up" style={{ animationDelay: "280ms" }}>
@@ -382,14 +382,14 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════ 3. PROBLEM ══════════════════════════ */}
-      <section className="py-14 sm:py-24 px-4 sm:px-8 md:px-16 relative overflow-hidden">
+      <section className="py-12 sm:py-20 lg:py-32 px-4 sm:px-8 lg:px-16 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-[#00ff88] blur-[80px] opacity-[0.04]" />
         </div>
         <div className="max-w-5xl mx-auto text-center relative z-10">
           <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>Every AI session starts from <span className="text-[#00ff88]">zero.</span></h2>
           <p className="reveal text-[#6B6B6B] mb-14">You&apos;ve been there. You know how frustrating it is.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 mb-14">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-14">
             {[
               { emoji: "⊘", title: "Context window full", body: "You hit the limit. Start over. Re-explain everything from scratch. Hours of work, reduced to a blank chat." },
               { emoji: "⇄", title: "Wrong model for the job", body: "Started in ChatGPT but Claude is better for this. No way to bring your context along. Pick a model and commit forever." },
@@ -416,7 +416,7 @@ export default function LandingPage() {
       <div className="w-full h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent)" }} />
 
       {/* ══════════════════════════ 4. SOLUTION ══════════════════════════ */}
-      <section className="py-14 sm:py-24 px-4 sm:px-8 md:px-16 relative overflow-hidden">
+      <section className="py-12 sm:py-20 lg:py-32 px-4 sm:px-8 lg:px-16 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl h-[500px] bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(0,255,136,0.04),transparent)]" />
         </div>
@@ -429,6 +429,18 @@ export default function LandingPage() {
             background: "rgba(255,255,255,0.02)",
             border: "1px solid rgba(255,255,255,0.06)"
           }}>
+            {/* Simplified mobile flow */}
+            <div className="block sm:hidden flex flex-col items-center gap-2 text-sm mb-4">
+              <span style={{ color: "#CC785C" }}>Claude</span>
+              <span className="text-[#00FF88]">→</span>
+              <span style={{ color: "#74AA9C" }}>ChatGPT</span>
+              <span className="text-[#00FF88]">→</span>
+              <span style={{ color: "#4285F4" }}>Gemini</span>
+              <span className="text-[#00FF88]">→</span>
+              <span className="text-[#00FF88] font-bold">▸ ContextMover</span>
+            </div>
+            {/* Full desktop flow */}
+            <div className="hidden sm:block">
             <div className="relative flex flex-col items-center justify-between gap-6 max-w-2xl mx-auto sm:flex-row">
               {/* Sources */}
               <div className="flex flex-row sm:flex-col gap-3">
@@ -494,6 +506,7 @@ export default function LandingPage() {
                 ))}
               </div>
             </div>
+            </div>{/* end hidden sm:block */}
             <p className="relative text-center text-xs text-[#00FF88] mt-8 font-medium tracking-wide">
               Your device. Our servers never involved.
             </p>
@@ -503,7 +516,7 @@ export default function LandingPage() {
       <div className="w-full h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent)" }} />
 
       {/* ══════════════════════════ 5. 3-TIER FEATURES ══════════════════════════ */}
-      <section id="tiers" className="py-14 sm:py-24 px-4 sm:px-8 md:px-16 relative overflow-hidden">
+      <section id="tiers" className="py-12 sm:py-20 lg:py-32 px-4 sm:px-8 lg:px-16 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-0 w-[400px] h-[400px] rounded-full bg-[#6366f1] blur-[80px] opacity-[0.05]" />
         </div>
@@ -561,7 +574,7 @@ export default function LandingPage() {
       <div className="w-full h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent)" }} />
 
       {/* ══════════════════════════ 5b. PROJECT FILES ════════════════════════ */}
-      <section id="project-files" className="py-14 sm:py-24 px-4 sm:px-8 md:px-16 relative overflow-hidden">
+      <section id="project-files" className="py-12 sm:py-20 lg:py-32 px-4 sm:px-8 lg:px-16 relative overflow-hidden">
         <div className="max-w-5xl mx-auto relative z-10">
           <div className="text-center mb-14">
             <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>Local folder <span className="text-[#00ff88]">context.</span></h2>
@@ -607,7 +620,7 @@ export default function LandingPage() {
       <div className="w-full h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent)" }} />
 
       {/* ══════════════════════════ 6. HOW IT WORKS ══════════════════════════ */}
-      <section id="how" className="py-14 sm:py-24 px-4 sm:px-8 md:px-16 relative overflow-hidden">
+      <section id="how" className="py-12 sm:py-20 lg:py-32 px-4 sm:px-8 lg:px-16 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl h-[500px] bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(0,255,136,0.03),transparent)]" />
         </div>
@@ -709,7 +722,7 @@ export default function LandingPage() {
       <div className="w-full h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent)" }} />
 
       {/* ══════════════════════════ 8. PLATFORM SUPPORT ══════════════════════════ */}
-      <section id="platforms" className="py-14 sm:py-24 px-4 sm:px-8 md:px-16 relative overflow-hidden">
+      <section id="platforms" className="py-12 sm:py-20 lg:py-32 px-4 sm:px-8 lg:px-16 relative overflow-hidden">
         <div className="max-w-5xl mx-auto text-center relative z-10">
           <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>Works where you <span className="text-[#00ff88]">work.</span></h2>
           <p className="reveal text-[#6B6B6B] mb-14">Every major AI platform. One extension.</p>
@@ -762,7 +775,7 @@ export default function LandingPage() {
       <div className="w-full h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent)" }} />
 
       {/* ══════════════════════════ 8b. SUPER MEMORY ════════════════════════ */}
-      <section id="super-memory" className="py-28 px-4 sm:px-8 md:px-16 relative overflow-hidden">
+      <section id="super-memory" className="py-28 px-4 sm:px-8 lg:px-16 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl h-[600px] bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(99,102,241,0.06),transparent)]" />
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.008)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.008)_1px,transparent_1px)] bg-[size:52px_52px] opacity-50" />
@@ -818,7 +831,7 @@ export default function LandingPage() {
       <div className="w-full h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent)" }} />
 
       {/* ══════════════════════════ 10. FAQ ══════════════════════════ */}
-      <section className="py-24 px-4 sm:px-8 md:px-16 bg-grid-pattern relative overflow-hidden">
+      <section className="py-24 px-4 sm:px-8 lg:px-16 bg-grid-pattern relative overflow-hidden">
         <div className="max-w-2xl mx-auto text-center relative z-10">
           <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-14" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}><span className="text-[#00ff88]">Questions.</span></h2>
           <FaqAccordion />
@@ -827,7 +840,7 @@ export default function LandingPage() {
       <div className="w-full h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent)" }} />
 
       {/* ═══════════════ TRUST BAR ═══════════════ */}
-      <div className="bg-[#050F05] bg-grid-pattern border-t border-[rgba(0,255,136,0.06)] py-3 px-4 sm:px-8 md:px-16 text-center">
+      <div className="bg-[#050F05] bg-grid-pattern border-t border-[rgba(0,255,136,0.06)] py-3 px-4 sm:px-8 lg:px-16 text-center">
         <p className="text-xs font-mono text-[#2A6A2A]">
           🔒 <strong className="text-[#00FF88]">Zero-knowledge.</strong>{" "}
           Data never touches our servers · Context stays on your machine · Vault syncs to your own Supabase · We cannot read or sell your conversations.
@@ -835,7 +848,7 @@ export default function LandingPage() {
       </div>
 
       {/* ══════════════════════════ 11. FOOTER ══════════════════════════ */}
-      <footer className="py-14 px-4 sm:px-8 md:px-16 bg-grid-pattern relative overflow-hidden" style={{
+      <footer className="py-14 px-4 sm:px-8 lg:px-16 bg-grid-pattern relative overflow-hidden" style={{
         background: "#010101",
         borderTop: "1px solid transparent",
         backgroundImage: "linear-gradient(90deg, transparent, rgba(0,255,136,0.2), transparent)",

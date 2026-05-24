@@ -185,6 +185,31 @@ export async function POST(req: NextRequest) {
         }
         break;
       }
+
+      case "payment.refunded": {
+        if (userId) {
+          const admin = createAdminClient();
+          await admin.from("refund_requests")
+            .update({ status: "approved" })
+            .eq("user_id", userId)
+            .eq("status", "pending");
+          console.log(`[CM:webhook:razorpay] Refund confirmed for user ${userId}`);
+        }
+        break;
+      }
+
+      case "payment.dispute.created": {
+        const admin = createAdminClient();
+        await admin.from("disputes").insert({
+          user_id:    userId ?? null,
+          payment_id: paymentEntity?.id ?? null,
+          dispute_id: null,
+          status:     "open",
+          evidence:   event.payload as Record<string, unknown>,
+        });
+        console.warn(`[CM:webhook:razorpay] Dispute opened for payment ${paymentEntity?.id}`);
+        break;
+      }
     }
   } catch (err) {
     console.error("[CM:webhook:razorpay] handler error:", err);

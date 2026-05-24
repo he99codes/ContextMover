@@ -7,6 +7,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import BugReportForm from "@/components/support/BugReportForm";
 
 export const metadata: Metadata = {
   title: "Support · ContextMover",
@@ -94,6 +95,17 @@ export default function SupportPage() {
               </a>
               . We respond within 24 hours.
             </p>
+          </section>
+
+          {/* Bug report form */}
+          <section>
+            <h2 className="font-bold text-[#F5F5F5] mb-3" style={{ fontSize: "17px" }}>
+              REPORT A BUG
+            </h2>
+            <p className="text-[#6B6B6B] mb-5" style={{ fontSize: "14px" }}>
+              Found something broken? Fill out the form and we&apos;ll look into it.
+            </p>
+            <BugReportForm />
           </section>
 
           {/* Legal links */}

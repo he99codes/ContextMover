@@ -13,11 +13,13 @@ import {
   getAuthUserFromRequest,
   getCurrentMonth,
   getTierKey,
+  getLimitKey,
   getUserPlan,
 } from "@/lib/usage/helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /*
 Run this in Supabase SQL Editor:
@@ -50,37 +52,53 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 */
 
 export async function POST(req: NextRequest) {
-  const user = await getAuthUserFromRequest(req);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const user = await getAuthUserFromRequest(req);
+    if (!user) {
+      return NextResponse.json({ allowed: false, reason: "unauthorized" }, { status: 401 });
+    }
+
+    const body = (await req.json()) as { tier?: number };
+    const tier = body.tier;
+    if (!tier || tier < 1 || tier > 3) {
+      return NextResponse.json({ allowed: false, reason: "invalid_tier" }, { status: 400 });
+    }
+
+    const admin = createAdminClient();
+    const userPlan = await getUserPlan(user.id);
+
+    // Pro users are unlimited — skip the atomic decrement
+    const { data: planLimits } = await admin
+      .from("plan_limits")
+      .select("is_unlimited, tier1_limit, tier2_limit, tier3_limit")
+      .eq("plan", userPlan)
+      .maybeSingle();
+
+    if (planLimits?.is_unlimited) {
+      return NextResponse.json({ allowed: true, remaining: -1, plan: userPlan });
+    }
+
+    const month    = getCurrentMonth();
+    const tierKey  = getTierKey(tier);
+    const limitKey = getLimitKey(tier);
+    const limit    = (planLimits as Record<string, number> | null)?.[limitKey] ?? 10;
+
+    const { data, error } = await admin.rpc("decrement_migration_safe_v2", {
+      p_user_id:     user.id,
+      p_month:       month,
+      p_tier_column: tierKey,
+      p_limit:       limit,
+    });
+
+    if (error) {
+      console.error("[CM:usage:increment] rpc error:", error);
+      return NextResponse.json({ allowed: false, reason: "rpc_error" }, { status: 500 });
+    }
+
+    // RPC returns jsonb — pass through with plan appended
+    return NextResponse.json({ ...(data as object), plan: userPlan });
+  } catch (err) {
+    console.error("[CM:usage:increment] unexpected error:", err);
+    return NextResponse.json({ allowed: false, reason: "internal_error" }, { status: 500 });
   }
-
-  const body = (await req.json()) as { tier?: number };
-  const tier = body.tier;
-  if (!tier || tier < 1 || tier > 3) {
-    return NextResponse.json({ error: "Invalid tier" }, { status: 400 });
-  }
-
-  const userPlan = await getUserPlan(user.id);
-  const admin = createAdminClient();
-  const { data: planLimits } = await admin
-    .from("plan_limits")
-    .select("is_unlimited")
-    .eq("plan", userPlan)
-    .maybeSingle();
-
-  if (planLimits?.is_unlimited) {
-    return NextResponse.json({ ok: true, incremented: false, reason: "unlimited" });
-  }
-
-  const month = getCurrentMonth();
-  const tierKey = getTierKey(tier);
-
-  await admin.rpc("increment_usage", {
-    p_user_id: user.id,
-    p_month: month,
-    p_tier_column: tierKey,
-  });
-
-  return NextResponse.json({ ok: true, incremented: true, tier });
 }

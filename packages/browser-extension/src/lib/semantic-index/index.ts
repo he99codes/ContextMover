@@ -192,10 +192,13 @@ async function offscreenEmbedQuery(
 type IndexJob = {
   session: ContextSession;
   onProgress?: (pct: number, stage: string) => void;
+  priority: "priority" | "background";
   resolve: () => void;
   reject: (err: unknown) => void;
 };
-const _indexQueue: IndexJob[] = [];
+const _priorityQueue:   IndexJob[] = [];
+const _backgroundQueue: IndexJob[] = [];
+const _BACKGROUND_QUEUE_CAP = 3;
 let _indexQueueRunning = false;
 
 function broadcastIndexStatus(status: {
@@ -280,12 +283,42 @@ export class SemanticIndex {
     }
 
     return new Promise<void>((resolve, reject) => {
-      _indexQueue.push({ session, onProgress, resolve, reject });
+      // Cap background queue — drop oldest on overflow
+      if (_backgroundQueue.length >= _BACKGROUND_QUEUE_CAP) {
+        const dropped = _backgroundQueue.shift()!;
+        dropped.reject(new Error("[CM:queue] Dropped: background queue overflow"));
+      }
+      _backgroundQueue.push({ session, onProgress, priority: "background", resolve, reject });
       broadcastIndexStatus({
         active: _indexQueueRunning,
-        queued: _indexQueue.length,
+        queued: _priorityQueue.length + _backgroundQueue.length,
         sessionId: session.id,
         stage: _indexQueueRunning ? "Queued" : "Starting",
+      });
+      void this._drainIndexQueue();
+    });
+  }
+
+  /**
+   * Priority-lane enqueue — user-triggered migrations go here.
+   * Runs before any background jobs currently in the queue.
+   */
+  async indexSessionPriority(
+    session: ContextSession,
+    onProgress?: (pct: number, stage: string) => void
+  ): Promise<void> {
+    if (!(await this.needsIndexing(session))) {
+      console.log(`[CM:index] Skip (unchanged): ${session.id}`);
+      return;
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      _priorityQueue.push({ session, onProgress, priority: "priority", resolve, reject });
+      broadcastIndexStatus({
+        active: _indexQueueRunning,
+        queued: _priorityQueue.length + _backgroundQueue.length,
+        sessionId: session.id,
+        stage: "Priority — starting soon",
       });
       void this._drainIndexQueue();
     });
@@ -296,15 +329,18 @@ export class SemanticIndex {
     _indexQueueRunning = true;
 
     try {
-      while (_indexQueue.length > 0) {
-        const job = _indexQueue.shift()!;
+      while (_priorityQueue.length > 0 || _backgroundQueue.length > 0) {
+        // Always drain priority lane first
+        const job = _priorityQueue.shift() ?? _backgroundQueue.shift()!;
+        console.log(`[CM:queue] dequeue ${job.priority} ${job.session.id}`,
+          { priority: _priorityQueue.length, background: _backgroundQueue.length });
         try {
           broadcastIndexStatus({
             active: true,
-            queued: _indexQueue.length,
+            queued: _priorityQueue.length + _backgroundQueue.length,
             sessionId: job.session.id,
             progress: 0,
-            stage: "Indexing in background...",
+            stage: job.priority === "priority" ? "Indexing (priority)..." : "Indexing in background...",
           });
           await this._runIndexJob(job);
           job.resolve();
@@ -312,19 +348,14 @@ export class SemanticIndex {
           job.reject(err);
         }
 
-        // Throttle on minimal-tier hardware so the UI thread can recover
-        // between back-to-back jobs. Skip the delay if we just drained.
-        if (_indexQueue.length > 0) {
-          const hw = await getHardwareProfile().catch(() => null);
-          if (hw?.tier === "minimal") {
-            await new Promise((r) => setTimeout(r, 2_000));
-          }
+        // 500ms yield between jobs to keep UI responsive
+        if (_priorityQueue.length > 0 || _backgroundQueue.length > 0) {
+          await new Promise((r) => setTimeout(r, 500));
         }
       }
     } finally {
       _indexQueueRunning = false;
       broadcastIndexStatus({ active: false, queued: 0 });
-      // Release offscreen-doc memory when nothing else is queued.
       void maybeCloseOffscreen();
     }
   }
@@ -337,7 +368,7 @@ export class SemanticIndex {
       onProgress?.(pct, stage);
       broadcastIndexStatus({
         active: true,
-        queued: _indexQueue.length,
+        queued: _priorityQueue.length + _backgroundQueue.length,
         sessionId: session.id,
         progress: pct,
         stage,

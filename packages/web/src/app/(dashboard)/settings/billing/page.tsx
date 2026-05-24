@@ -26,8 +26,12 @@ export default function BillingPage() {
   const supabase = createClient();
   const [data,        setData]     = useState<BillingPayload | null>(null);
   const [loading,     setLoading]  = useState(true);
-  const [cancelling,  setCancelling] = useState(false);
-  const [notice,      setNotice]    = useState<string | null>(null);
+  const [cancelling,     setCancelling]    = useState(false);
+  const [notice,         setNotice]         = useState<string | null>(null);
+  const [refundReason,   setRefundReason]   = useState("");
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [refundDone,     setRefundDone]     = useState(false);
+  const [showRefund,     setShowRefund]     = useState(false);
   const [confirm,     setConfirm]   = useState(false);
 
   const load = useCallback(async () => {
@@ -166,6 +170,57 @@ export default function BillingPage() {
       </section>
 
       {/* Cancel */}
+      {/* Refund request */}
+      {data.isPro && (
+        <section className="rounded-md border border-[#2A2A2A] bg-[#111] p-5 mt-4">
+          <h2 className="text-sm font-semibold mb-2">Request a refund</h2>
+          {refundDone ? (
+            <p className="text-xs text-[#00D26A]">Refund request received. We&apos;ll be in touch within 2 business days.</p>
+          ) : !showRefund ? (
+            <button
+              onClick={() => setShowRefund(true)}
+              className="text-xs text-[#6B6B6B] underline hover:text-[#F5F5F5]"
+            >
+              I&apos;d like to request a refund
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <textarea
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                rows={3}
+                placeholder="Tell us why you&apos;d like a refund…"
+                className="w-full rounded-md border border-[#2A2A2A] bg-[#0A0A0A] px-3 py-2 text-xs text-[#F5F5F5] placeholder-[#444] outline-none focus:border-[#00D26A]/40"
+              />
+              <div className="flex gap-2">
+                <button
+                  disabled={refundSubmitting || refundReason.trim().length < 5}
+                  onClick={async () => {
+                    setRefundSubmitting(true);
+                    try {
+                      const { data: { session } } = await supabase.auth.getSession();
+                      const r = await fetch("/api/payments/refund-request", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
+                        body: JSON.stringify({ reason: refundReason }),
+                      });
+                      if (!r.ok) { const j = await r.json().catch(() => ({})) as { error?: string }; throw new Error(j.error ?? `HTTP ${r.status}`); }
+                      setRefundDone(true);
+                    } catch (e) {
+                      setNotice(e instanceof Error ? e.message : "Submission failed.");
+                    } finally { setRefundSubmitting(false); }
+                  }}
+                  className="rounded-md bg-[#00D26A] px-4 py-1.5 text-xs font-bold text-black disabled:opacity-50 hover:bg-[#00B85C]"
+                >
+                  {refundSubmitting ? "Submitting…" : "Submit request"}
+                </button>
+                <button onClick={() => setShowRefund(false)} className="text-xs text-[#6B6B6B] underline">Cancel</button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
       {subscription.status !== "cancelled" && (
         <section className="rounded-md border border-[#2A2A2A] bg-[#111] p-5">
           {!confirm ? (

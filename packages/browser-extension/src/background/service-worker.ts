@@ -1326,6 +1326,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
+      case "USAGE_WARNING": {
+        const remaining = typeof msg.remaining === "number" ? msg.remaining : 0;
+        try {
+          const text  = remaining === 0 ? "0" : remaining.toString();
+          const color = remaining === 0 ? "#FF0000" : "#FF8800";
+          await chrome.action.setBadgeText({ text });
+          await chrome.action.setBadgeBackgroundColor({ color });
+        } catch (e) {
+          console.warn("[CM:sw] setBadge failed:", e);
+        }
+        sendResponse({ ok: true });
+        break;
+      }
+
       default:
         sendResponse({ error: `Unknown message type: ${msg.type}` });
     }
@@ -1728,7 +1742,7 @@ async function handleMigrateContext(
         const needsIndex = await semanticIndex.needsIndexing(session)
         if (needsIndex) {
           reportProgress(35, 'Indexing session...')
-          await semanticIndex.indexSession(session, (pct: number, stage: string) => {
+          await semanticIndex.indexSessionPriority(session, (pct: number, stage: string) => {
             reportProgress(35 + pct * 0.4, stage)
           })
         }
