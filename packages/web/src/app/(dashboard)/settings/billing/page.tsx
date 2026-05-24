@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Plan, Subscription, UsageData, UsageLimits } from "@/lib/payments/types";
+import { FREE_LIMITS } from "@/lib/payments/types";
 
 interface BillingPayload {
   subscription: Subscription;
@@ -297,12 +298,30 @@ function UsageRow({ label, used, total }: { label: string; used: number; total: 
 }
 
 function FreeSummary({ usage }: { usage: UsageData }) {
+  const t1limit = FREE_LIMITS.simpleMigrations    as number;
+  const t2limit = FREE_LIMITS.smartMigrations     as number;
+  const t3limit = FREE_LIMITS.attentionMigrations as number;
   return (
     <section className="rounded-md border border-[#2A2A2A] bg-[#111] p-5">
       <h2 className="text-sm font-semibold mb-3 text-[#F5F5F5]">Usage this month</h2>
-      <UsageRow label="Full Context"   used={usage.simpleMigrations}    total={50} />
-      <UsageRow label="Smart Summary"  used={usage.smartMigrations}     total={50} />
-      <UsageRow label="Attention"      used={usage.attentionMigrations} total={10} />
+      <div className="grid grid-cols-4 gap-x-2 pb-1 mb-1 border-b border-[#1A1A1A] text-[10px] font-mono uppercase tracking-widest text-[#3A3A3A]">
+        <span>Type</span><span className="text-right">Used</span><span className="text-right">Remaining</span><span className="text-right">Limit</span>
+      </div>
+      <FreeUsageRow label="Full Context"    used={usage.simpleMigrations}    limit={t1limit} />
+      <FreeUsageRow label="Smart Summary"   used={usage.smartMigrations}     limit={t2limit} />
+      <FreeUsageRow label="Attention Engine" used={usage.attentionMigrations} limit={t3limit} />
     </section>
+  );
+}
+
+function FreeUsageRow({ label, used, limit }: { label: string; used: number; limit: number }) {
+  const remaining = Math.max(0, limit - used);
+  return (
+    <div className="grid grid-cols-4 gap-x-2 py-1.5 text-sm border-b border-[#1A1A1A] last:border-b-0">
+      <span className="text-[#6B6B6B]">{label}</span>
+      <span className="text-right font-mono">{used}</span>
+      <span className="text-right font-mono">{remaining}</span>
+      <span className="text-right font-mono">{limit}</span>
+    </div>
   );
 }
