@@ -62,18 +62,16 @@ self.onmessage = async ({ data }: MessageEvent) => {
     if (type === "EMBED_BATCH") {
       if (!model) await loadModel("wasm");
       const texts: string[] = payload.texts;
+      const BATCH_SIZE = 32;
       const results: number[][] = [];
 
-      for (let i = 0; i < texts.length; i += 8) {
-        const batch = texts.slice(i, i + 8);
-        const outputs = await Promise.all(
-          batch.map((text: string) =>
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-            model(text, { pooling: "mean", normalize: true })
-          )
-        );
+      for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+        const batch = texts.slice(i, i + BATCH_SIZE);
+        // True array batching — pass all texts at once for single ONNX forward pass
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        results.push(...outputs.map((o: any) => Array.from(o.data) as number[]));
+        const output: any = await model(batch, { pooling: "mean", normalize: true });
+        const embeddings: number[][] = Array.isArray(output.tolist) ? output.tolist() : output.tolist?.() ?? [];
+        results.push(...embeddings);
 
         self.postMessage({
           id,

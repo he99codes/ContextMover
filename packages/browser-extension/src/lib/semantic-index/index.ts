@@ -348,9 +348,9 @@ export class SemanticIndex {
           job.reject(err);
         }
 
-        // 500ms yield between jobs to keep UI responsive
+        // 100ms yield between jobs to keep UI responsive
         if (_priorityQueue.length > 0 || _backgroundQueue.length > 0) {
-          await new Promise((r) => setTimeout(r, 500));
+          await new Promise((r) => setTimeout(r, 100));
         }
       }
     } finally {

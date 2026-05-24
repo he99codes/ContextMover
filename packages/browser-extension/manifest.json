@@ -135,14 +135,7 @@
         },
         {
             "matches": [
-                "https://claude.ai/*",
-                "https://chatgpt.com/*",
-                "https://chat.openai.com/*",
-                "https://gemini.google.com/*",
-                "https://grok.com/*",
-                "https://grok.x.ai/*",
-                "https://www.perplexity.ai/*",
-                "https://chat.deepseek.com/*"
+                "<all_urls>"
             ],
             "js": [
                 "src/content/sidebar-toggle/toggle.ts"

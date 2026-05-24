@@ -14,7 +14,7 @@
 // Bump this when summarizer extraction logic changes to invalidate cached
 // summaries in IndexedDB. Without this, stale (potentially broken) summaries
 // are served for up to 24 hours after a code change.
-export const SUMMARIZER_VERSION = 2;
+export const SUMMARIZER_VERSION = 3;
 
 import type { CodeBlock, ContextSession, ExtractedContext, Message } from "./types";
 import { attentionEngine } from "./attention-engine";
@@ -739,6 +739,115 @@ export interface IntelligentSummary {
   tail: Message[];
   originalCount: number;
   compressionRatio: number;
+  techStack?: string[];
+}
+
+// ── Hierarchical importance scorer (0–10) ────────────────────────────────────
+// Pure heuristics — no ML, no async.
+function scoreDecisionHierarchical(sentence: string): number {
+  let s = 0;
+  if (/\broot cause\b|\bcaused by\b|\bfixed by\b|\bresolved by\b/i.test(sentence)) s += 3;
+  if (/\bdecided\b|\bchose\b|\bopted for\b|\bwent with\b|\bgoing with\b/i.test(sentence)) s += 2;
+  if (/\binstead of\b|\brather than\b|\bswitching to\b|\bmigrating to\b/i.test(sentence)) s += 2;
+  if (/`[^`]+`|\b[A-Z][a-zA-Z]+Error\b/.test(sentence)) s += 2;
+  if (/\bthis works because\b|\bthe reason\b|\bbecause of\b/i.test(sentence)) s += 1;
+  s += Math.min(1, sentence.length / 400);
+  return Math.min(10, s);
+}
+
+function scoreBugHierarchical(sentence: string): number {
+  let s = 0;
+  if (/\broot cause\b|\bcaused by\b|\bfixed by\b|\bresolved by\b/i.test(sentence)) s += 4;
+  if (/\b[A-Z][a-zA-Z]+(?:Error|Exception)\b/.test(sentence)) s += 3;
+  if (/\brace condition\b|\bnull pointer\b|\bmemory leak\b|\bdeadlock\b/i.test(sentence)) s += 3;
+  if (/\bworkaround\b|\bhotfix\b|\bpatched\b/i.test(sentence)) s += 1;
+  s += Math.min(1, sentence.length / 400);
+  return Math.min(10, s);
+}
+
+// ── Context threading ────────────────────────────────────────────────────────
+// Prevent orphaned references — if a tail message refers to something from
+// earlier, pull in up to 2 preceding messages so the reference makes sense.
+const ORPHANED_REF_RE = [
+  /\bthat (?:error|bug|issue|fix|problem)\b/i,
+  /\bthe (?:same|previous|above|earlier) (?:error|bug|issue|approach|fix|solution)\b/i,
+  /\bas (?:mentioned|discussed|noted) (?:above|before|earlier)\b/i,
+  /\bsame (?:issue|problem|error|bug) as\b/i,
+  /\bthis (?:same|exact) (?:error|bug|issue)\b/i,
+];
+
+function threadContextualMessages(messages: Message[], tail: Message[]): Message[] {
+  const indexedSet = new Set(tail.map((m) => messages.indexOf(m)));
+  const extra: Message[] = [];
+  for (const msg of tail) {
+    const idx = messages.indexOf(msg);
+    if (idx <= 0) continue;
+    if (ORPHANED_REF_RE.some((re) => re.test(msg.content))) {
+      for (let back = 1; back <= 2 && idx - back >= 0; back++) {
+        const prevIdx = idx - back;
+        if (!indexedSet.has(prevIdx)) {
+          extra.push(messages[prevIdx]);
+          indexedSet.add(prevIdx);
+        }
+      }
+    }
+  }
+  return [...extra, ...tail].sort(
+    (a, b) => messages.indexOf(a) - messages.indexOf(b)
+  );
+}
+
+// ── Tech stack extraction ─────────────────────────────────────────────────────
+// Scans code block imports and language tags to surface the active tech stack.
+const TECH_MAP: [RegExp, string][] = [
+  [/\breact\b/i,                     "React"],
+  [/\bnext[/\s]|next\.config/i,      "Next.js"],
+  [/\bvite\b/i,                      "Vite"],
+  [/\bvue\b/i,                       "Vue"],
+  [/\bsvelte\b/i,                    "Svelte"],
+  [/\bangular\b/i,                   "Angular"],
+  [/\bexpress\b/i,                   "Express"],
+  [/\bfastapi\b|\bflask\b|\bdjango\b/i, "Python Web"],
+  [/\bprisma\b/i,                    "Prisma"],
+  [/\bsupabase\b/i,                  "Supabase"],
+  [/\bdrizzle\b/i,                   "Drizzle"],
+  [/\btailwind\b/i,                  "TailwindCSS"],
+  [/\btrpc\b/i,                      "tRPC"],
+  [/\bgraphql\b/i,                   "GraphQL"],
+  [/\bprisma\b/i,                    "Prisma"],
+  [/\bwebpack\b/i,                   "Webpack"],
+  [/\bdocker\b/i,                    "Docker"],
+  [/\bkubernetes\b|\bk8s\b/i,        "Kubernetes"],
+  [/\bpostgres\b|\bpg\b/i,           "PostgreSQL"],
+  [/\bmongodb\b|\bmongoose\b/i,      "MongoDB"],
+  [/\bredis\b/i,                     "Redis"],
+  [/\btypescript\b|\.tsx?\b/i,       "TypeScript"],
+  [/\bpython\b|import numpy|import pandas/i, "Python"],
+  [/\brust\b|\bcargo\b/i,            "Rust"],
+  [/\bgolang\b|\bgo\b/i,             "Go"],
+];
+
+function extractTechStack(messages: Message[]): string[] {
+  const detected = new Set<string>();
+  const codeRe = /```([\w-]*)[ \t]*\n([\s\S]*?)```/g;
+  for (const msg of messages) {
+    let m: RegExpExecArray | null;
+    codeRe.lastIndex = 0;
+    while ((m = codeRe.exec(msg.content)) !== null) {
+      const lang = m[1].trim().toLowerCase();
+      const body = m[2];
+      if (["typescript", "tsx", "ts"].includes(lang)) detected.add("TypeScript");
+      else if (["javascript", "jsx", "js"].includes(lang)) detected.add("JavaScript");
+      else if (lang === "python" || lang === "py") detected.add("Python");
+      else if (lang === "rust") detected.add("Rust");
+      else if (lang === "go") detected.add("Go");
+      else if (["css", "scss"].includes(lang)) detected.add("CSS");
+      for (const [re, label] of TECH_MAP) {
+        if (re.test(body)) detected.add(label);
+      }
+    }
+  }
+  return [...detected].slice(0, 12);
 }
 
 export function summarizeIntelligent(messages: Message[], task?: string): IntelligentSummary {
@@ -792,7 +901,10 @@ export function summarizeIntelligent(messages: Message[], task?: string): Intell
       if (TIER2_DECISION_RE.some((re) => re.test(s)) && !META_FILTER_RE.test(s)) rawDecisions.push(s);
     }
   }
-  let decisions = dedupe(rawDecisions).slice(0, 20);
+  const scoredDecisions = dedupe(rawDecisions)
+    .map((d) => ({ d, score: scoreDecisionHierarchical(d) }))
+    .sort((a, b) => b.score - a.score);
+  let decisions = scoredDecisions.map((x) => x.d).slice(0, 20);
 
   // ── 3. Bugs fixed — verbatim sentences from ALL messages ──────────────────
   const rawBugs: string[] = [];
@@ -805,7 +917,11 @@ export function summarizeIntelligent(messages: Message[], task?: string): Intell
       if (TIER2_BUG_RE.some((re) => re.test(s))) rawBugs.push(s);
     }
   }
-  const bugsFixed = dedupe(rawBugs).slice(0, 15);
+  const bugsFixed = dedupe(rawBugs)
+    .map((b) => ({ b, score: scoreBugHierarchical(b) }))
+    .sort((a, b) => b.score - a.score)
+    .map((x) => x.b)
+    .slice(0, 15);
 
   // ── 4. Code blocks — ALL ``` fences, 100% content, language + path ────────
   let codeBlocks: { language: string; path?: string; code: string }[] = [];
@@ -863,6 +979,9 @@ export function summarizeIntelligent(messages: Message[], task?: string): Intell
     }
   }
 
+  // ── 6a. Tech stack ────────────────────────────────────────────────────────
+  const techStack = extractTechStack(messages);
+
   // ── 6. Tail — verbatim recent messages. Size scales with conversation
   // length so short sessions don't get over-compressed:
   //   • ≤30 msgs  → include ALL messages verbatim (nothing to compress)
@@ -876,7 +995,8 @@ export function summarizeIntelligent(messages: Message[], task?: string): Intell
       : messages.length <= 80
         ? 12
         : MAX_VERBATIM_MESSAGES;
-  const tail = messages.slice(-tailSize);
+  const rawTail = messages.slice(-tailSize);
+  const tail = threadContextualMessages(messages, rawTail);
 
   // ── 7. Completed tasks — same COMPLETED_RE used by extractContext() ───────
   const rawCompleted: string[] = [];
@@ -933,6 +1053,7 @@ export function summarizeIntelligent(messages: Message[], task?: string): Intell
     tail,
     originalCount: messages.length,
     compressionRatio,
+    techStack,
   };
 }
 

@@ -909,6 +909,14 @@ function buildClaudePromptTier2(payload: MigrationPayload): string {
     `    </pending>`,
     `  </task_state>`,
     ``,
+    ...(is.techStack?.length
+      ? [
+          `  <tech_stack>`,
+          is.techStack.map((t) => `    <tech>${sanitizeForXml(t)}</tech>`).join("\n"),
+          `  </tech_stack>`,
+          ``,
+        ]
+      : []),
     `  <code>${codeXml}`,
     `  </code>`,
     ``,
@@ -980,6 +988,16 @@ function buildMarkdownPromptTier2(payload: MigrationPayload): string {
       ? is.pending.map((p) => `- 🔲 ${p}`).join("\n")
       : `_No pending items extracted_`,
     ``,
+    ...(is.techStack?.length
+      ? [
+          `---`,
+          ``,
+          `## Tech Stack`,
+          ``,
+          is.techStack.map((t) => `\`${t}\``).join(" · "),
+          ``,
+        ]
+      : []),
     `---`,
     ``,
     `## Code`,
@@ -1062,6 +1080,9 @@ function buildGeminiPromptTier2(payload: MigrationPayload): string {
       ? is.bugsFixed.map((b) => `  - ${b}`)
       : [`  (none)`]),
     ``,
+    ...(is.techStack?.length
+      ? [`[TECH STACK]`, is.techStack.join(", "), ``]
+      : []),
     `[CODE]`,
   ];
 

@@ -155,6 +155,10 @@ ${(summary.decisions ?? []).map((d: string, i: number) =>
 ${(summary.bugsFixed ?? []).map((b: string, i: number) =>
   `    <bug index="${i + 1}">${cdata(b)}</bug>`).join('\n')}
   </bugs_fixed>
+${summary.techStack?.length ? `
+  <tech_stack>
+${summary.techStack.map((t: string) => `    <tech>${t}</tech>`).join('\n')}
+  </tech_stack>` : ''}
 ${codeSection}
 
   <conversation_tail count="${summary.tail?.length ?? 0}">

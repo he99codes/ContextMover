@@ -335,8 +335,19 @@ export default function LandingPage() {
           <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0A0A0A] to-transparent" />
         </div>
         <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.25)] rounded-full px-3.5 py-1 text-xs text-[#00FF88] font-medium mb-8 animate-fade-in">
-            ✦ &nbsp;Context Operating System for AI
+          <div className="mb-8 animate-fade-in">
+            <span
+              className="inline-flex items-center gap-2 font-mono uppercase tracking-[0.22em] text-[11px] text-[#00FF88]/80 px-4 py-1.5 rounded-full border border-[rgba(0,255,136,0.22)] bg-[rgba(0,255,136,0.05)]"
+              style={{ animation: "cm-label-pulse 3s ease-in-out infinite" }}
+            >
+              ✦ &nbsp;Context Operating System for AI
+            </span>
+            <style>{`
+              @keyframes cm-label-pulse {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(0,255,136,0); opacity: 0.8; }
+                50%       { box-shadow: 0 0 14px 2px rgba(0,255,136,0.18); opacity: 1; }
+              }
+            `}</style>
           </div>
           <h1 className="text-3xl sm:text-5xl lg:text-7xl font-bold text-[#F5F5F5] leading-[1.1] sm:leading-[1.07] tracking-tight mb-6 animate-slide-up" style={{ animationDelay: "80ms" }}>
             Stop re-explaining<br />

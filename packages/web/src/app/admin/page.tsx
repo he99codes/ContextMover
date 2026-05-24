@@ -12,7 +12,13 @@ interface RefundRequest { id: string; email: string | null; payment_id: string |
 interface FoundUser { id: string; email: string; created_at: string; plan: string; status: string | null; tier1_count: number; tier2_count: number; tier3_count: number; }
 
 async function af(url: string, token: string, opts?: RequestInit) {
-  return fetch(url, { ...opts, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(opts?.headers as Record<string,string> | undefined) } });
+  const res = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(opts?.headers as Record<string,string> | undefined) } });
+  if (!res.ok) {
+    const clone = res.clone();
+    const body = await clone.text().catch(() => "");
+    console.error(`[admin] ${opts?.method ?? "GET"} ${url} → ${res.status}: ${body.slice(0, 200)}`);
+  }
+  return res;
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -33,7 +39,8 @@ function SmBtn({ children, onClick, disabled, danger }: { children: React.ReactN
 // ── Stats Bar ────────────────────────────────────────────────────────────────
 function StatsBar({ token }: { token: string }) {
   const [stats, setStats] = useState<Stats | null>(null);
-  useEffect(() => { af("/api/admin/stats", token).then(r => r.json()).then((d: Stats) => setStats(d)).catch(() => {}); }, [token]);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => { af("/api/admin/stats", token).then(r => r.json()).then((d: Stats) => { if (d.total_users !== undefined) setStats(d); else setError("Invalid response"); }).catch((e) => setError(String(e))); }, [token]);
   const cards: { label: string; key: keyof Stats }[] = [
     { label: "Total Users", key: "total_users" }, { label: "Pro Users", key: "pro_users" },
     { label: "Migrations This Month", key: "migrations_this_month" }, { label: "Bug Reports Open", key: "open_bug_reports" },
@@ -41,6 +48,7 @@ function StatsBar({ token }: { token: string }) {
   return (
     <section>
       <SectionTitle>Stats</SectionTitle>
+      {error && <p className="text-xs text-[#EF4444] mb-2">{error}</p>}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {cards.map(({ label, key }) => (
           <div key={key} className="bg-[#0A0A0A] border border-[#1A1A1A] rounded p-4">
@@ -64,7 +72,8 @@ function UsersSection({ token }: { token: string }) {
   const load = useCallback((p: number) => {
     setBusy(true);
     af(`/api/admin/users?page=${p}`, token).then(r => r.json())
-      .then((d: { users: AdminUser[]; total: number }) => { setUsers(d.users ?? []); setTotal(d.total ?? 0); })
+      .then((d: { users: AdminUser[]; total: number; error?: string }) => { if (d.error) setNotice(d.error); else { setUsers(d.users ?? []); setTotal(d.total ?? 0); } })
+      .catch((e) => setNotice(String(e)))
       .finally(() => setBusy(false));
   }, [token]);
 
@@ -72,9 +81,13 @@ function UsersSection({ token }: { token: string }) {
 
   async function action(userId: string, endpoint: string) {
     setNotice(null);
-    const r = await af(`/api/admin/${endpoint}`, token, { method: "POST", body: JSON.stringify({ userId }) });
-    const j = await r.json() as { success?: boolean; error?: string };
-    setNotice(j.success ? `${endpoint} OK` : (j.error ?? "Error"));
+    try {
+      const r = await af(`/api/admin/${endpoint}`, token, { method: "POST", body: JSON.stringify({ userId }) });
+      const j = await r.json() as { success?: boolean; error?: string };
+      setNotice(j.success ? `${endpoint} OK` : (j.error ?? `HTTP ${r.status}`));
+    } catch (e) {
+      setNotice(String(e));
+    }
     load(page);
   }
 
@@ -124,20 +137,24 @@ function UsageControlsSection({ token }: { token: string }) {
     setErr(null); setFound(null); setNotice(null); setBusy(true);
     try {
       const r = await af(`/api/admin/find-user?email=${encodeURIComponent(email)}`, token);
-      if (!r.ok) { const j = await r.json() as { error?: string }; setErr(j.error ?? "Not found"); return; }
-      setFound(await r.json() as FoundUser);
-    } finally { setBusy(false); }
+      const j = await r.json() as FoundUser & { error?: string };
+      if (!r.ok) { setErr(j.error ?? `HTTP ${r.status}`); return; }
+      setFound(j);
+    } catch (e) { setErr(String(e)); }
+    finally { setBusy(false); }
   }
 
   async function adjust(action: string) {
     if (!found) return;
     setNotice(null);
-    const r = await af("/api/admin/adjust-usage", token, { method: "POST", body: JSON.stringify({ userId: found.id, action }) });
-    const j = await r.json() as { success?: boolean; newCounts?: Record<string, number>; error?: string };
-    if (j.success && j.newCounts) {
-      setFound(f => f ? { ...f, tier1_count: j.newCounts!.tier1_count, tier2_count: j.newCounts!.tier2_count, tier3_count: j.newCounts!.tier3_count } : f);
-      setNotice("Updated");
-    } else { setNotice(j.error ?? "Error"); }
+    try {
+      const r = await af("/api/admin/adjust-usage", token, { method: "POST", body: JSON.stringify({ userId: found.id, action }) });
+      const j = await r.json() as { success?: boolean; newCounts?: Record<string, number>; error?: string };
+      if (j.success && j.newCounts) {
+        setFound(f => f ? { ...f, tier1_count: j.newCounts!.tier1_count, tier2_count: j.newCounts!.tier2_count, tier3_count: j.newCounts!.tier3_count } : f);
+        setNotice("Updated");
+      } else { setNotice(j.error ?? `HTTP ${r.status}`); }
+    } catch (e) { setNotice(String(e)); }
   }
 
   return (
@@ -177,12 +194,16 @@ const SEV: Record<string, string> = { critical: "#EF4444", high: "#F97316", medi
 
 function BugReportsSection({ token }: { token: string }) {
   const [reports, setReports] = useState<BugReport[]>([]);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    af("/api/admin/bug-reports", token).then(r => r.json()).then((d: { reports: BugReport[] }) => setReports(d.reports ?? [])).catch(() => {});
+    af("/api/admin/bug-reports", token).then(r => r.json())
+      .then((d: { reports: BugReport[]; error?: string }) => { if (d.error) setError(d.error); else setReports(d.reports ?? []); })
+      .catch((e) => setError(String(e)));
   }, [token]);
   return (
     <section>
       <SectionTitle>Bug Reports</SectionTitle>
+      {error && <p className="text-xs text-[#EF4444] mb-2">{error}</p>}
       <div className="overflow-x-auto rounded border border-[#1A1A1A]">
         <table className="w-full text-xs font-mono">
           <thead><tr className="border-b border-[#1A1A1A] text-[#3A3A3A] uppercase tracking-widest"><Th>Email</Th><Th>Severity</Th><Th>Description</Th><Th>Version</Th><Th>Date</Th></tr></thead>
@@ -212,15 +233,19 @@ function RefundsSection({ token }: { token: string }) {
   const [notice, setNotice]   = useState<string | null>(null);
 
   function load() {
-    af("/api/admin/refunds", token).then(r => r.json()).then((d: { refunds: RefundRequest[] }) => setRefunds(d.refunds ?? [])).catch(() => {});
+    af("/api/admin/refunds", token).then(r => r.json())
+      .then((d: { refunds: RefundRequest[]; error?: string }) => { if (d.error) setNotice(d.error); else setRefunds(d.refunds ?? []); })
+      .catch((e) => setNotice(String(e)));
   }
   useEffect(load, [token]);
 
   async function refundAction(requestId: string, action: "approved" | "rejected") {
     setNotice(null);
-    const r = await af("/api/admin/refund-action", token, { method: "POST", body: JSON.stringify({ requestId, action }) });
-    const j = await r.json() as { success?: boolean; error?: string };
-    setNotice(j.success ? `Marked ${action}` : (j.error ?? "Error"));
+    try {
+      const r = await af("/api/admin/refund-action", token, { method: "POST", body: JSON.stringify({ requestId, action }) });
+      const j = await r.json() as { success?: boolean; error?: string };
+      setNotice(j.success ? `Marked ${action}` : (j.error ?? `HTTP ${r.status}`));
+    } catch (e) { setNotice(String(e)); }
     load();
   }
 

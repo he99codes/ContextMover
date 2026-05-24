@@ -450,8 +450,12 @@ export class AttentionEngine {
     // Ensure session is indexed first.
     await this.indexSession(session);
 
-    // Embed the task query.
-    const taskEmb = await this.getEmbedding(task);
+    // Multi-query expansion: embed 3-5 task variants and average for richer retrieval.
+    const variants = this.expandQueryVariants(task);
+    const variantEmbs = await this.embedTexts(variants);
+    const taskEmb = variantEmbs.length > 0
+      ? this.averageEmbeddings(variantEmbs)
+      : await this.getEmbedding(task);
 
     // Load all indexed chunks for this session.
     const db = await this.openIdb();
@@ -460,7 +464,7 @@ export class AttentionEngine {
     ));
 
     console.log(
-      `${TAG} Scoring ${allChunks.length} chunk(s) against task embedding`
+      `${TAG} Scoring ${allChunks.length} chunk(s) against ${variants.length} query variant(s)`
     );
 
     // Score every chunk.
@@ -471,6 +475,24 @@ export class AttentionEngine {
           ? this.cosineSimilarity(taskEmb, chunk.embedding)
           : this.keywordScore(task, chunk.content),
     }));
+
+    // Context chain preservation: boost near-threshold neighbors of high-score chunks
+    // so setup/context messages are included alongside their payoff messages.
+    const chronological = [...scored].sort((a, b) => a.timestamp - b.timestamp);
+    for (let i = 0; i < chronological.length; i++) {
+      if (chronological[i].relevanceScore >= threshold) {
+        for (const delta of [-1, 1]) {
+          const neighbor = chronological[i + delta];
+          if (
+            neighbor &&
+            neighbor.relevanceScore < threshold &&
+            neighbor.relevanceScore >= threshold * 0.65
+          ) {
+            neighbor.relevanceScore = threshold;
+          }
+        }
+      }
+    }
 
     // Sort descending and apply threshold.
     scored.sort((a, b) => b.relevanceScore - a.relevanceScore);
@@ -975,6 +997,45 @@ export class AttentionEngine {
     return hits / tokens.length;
   }
 
+  // ─── Private: multi-query expansion ─────────────────────────────────────
+
+  private expandQueryVariants(task: string): string[] {
+    const variants: string[] = [task];
+    const stopWords = new Set([
+      "the","a","an","is","are","was","were","be","been","have","has","had",
+      "do","does","did","will","would","could","should","may","might","can",
+      "this","that","these","those","which","who","what","where","when","how",
+      "and","or","but","not","if","then","than","so","as","at","by","for",
+      "in","of","on","to","up","from","with","about","i","you","we","they",
+      "me","my",
+    ]);
+    const words = task.toLowerCase().split(/\W+/).filter(
+      (w) => w.length > 3 && !stopWords.has(w)
+    );
+    const keywords = words.slice(0, 6).join(" ");
+    if (keywords && keywords !== task.toLowerCase()) {
+      variants.push(keywords);
+      variants.push("implementing " + keywords);
+    }
+    if (/error|bug|fix|fail|issue|crash|broken/i.test(task)) {
+      variants.push("error debugging " + keywords);
+    } else {
+      variants.push("code for " + keywords);
+    }
+    return [...new Set(variants)].slice(0, 5);
+  }
+
+  private averageEmbeddings(embs: number[][]): number[] {
+    if (embs.length === 0) return [];
+    const dim = embs[0].length;
+    const avg = new Array<number>(dim).fill(0);
+    for (const emb of embs) {
+      for (let i = 0; i < dim; i++) avg[i] += emb[i];
+    }
+    for (let i = 0; i < dim; i++) avg[i] /= embs.length;
+    return avg;
+  }
+
   // ─── Private: worker management ─────────────────────────────────────────
 
   private getCacheKey(text: string): string {
@@ -1065,23 +1126,36 @@ export class AttentionEngine {
         });
       }
     } else {
-      // On-thread path (service-worker context): use direct extractor
+      // On-thread path (service-worker context): use direct extractor with batching
       if (this.extractor && this.modelAvailable) {
-        for (const { idx, text } of uncached) {
+        const BATCH_SIZE = 32;
+        const uncachedTexts = uncached.map((u) => u.text);
+        const allEmbeddings: number[][] = [];
+
+        for (let i = 0; i < uncachedTexts.length; i += BATCH_SIZE) {
+          const batch = uncachedTexts.slice(i, i + BATCH_SIZE);
           try {
-            const out = await this.extractor(text, { pooling: "mean", normalize: true });
-            const embedding = Array.from(out.data);
-            results[idx] = embedding;
-            const key = this.getCacheKey(text);
-            if (this.embeddingCache.size >= EMBEDDING_CACHE_MAX) {
-              const first = this.embeddingCache.keys().next().value;
-              if (first !== undefined) this.embeddingCache.delete(first);
-            }
-            this.embeddingCache.set(key, embedding);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const out: any = await this.extractor(batch, { pooling: "mean", normalize: true });
+            const embeddings: number[][] = Array.isArray(out.tolist) ? out.tolist() : out.tolist?.() ?? [];
+            allEmbeddings.push(...embeddings);
           } catch {
-            results[idx] = new Array(EMBEDDING_DIM).fill(0);
+            for (let j = 0; j < batch.length; j++) {
+              allEmbeddings.push(new Array(EMBEDDING_DIM).fill(0));
+            }
           }
         }
+
+        uncached.forEach(({ idx, text }, i) => {
+          const embedding = allEmbeddings[i] ?? new Array(EMBEDDING_DIM).fill(0);
+          results[idx] = embedding;
+          const key = this.getCacheKey(text);
+          if (this.embeddingCache.size >= EMBEDDING_CACHE_MAX) {
+            const first = this.embeddingCache.keys().next().value;
+            if (first !== undefined) this.embeddingCache.delete(first);
+          }
+          this.embeddingCache.set(key, embedding);
+        });
       } else {
         uncached.forEach(({ idx }) => { results[idx] = new Array(EMBEDDING_DIM).fill(0); });
       }
