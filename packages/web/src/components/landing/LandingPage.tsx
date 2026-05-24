@@ -225,7 +225,7 @@ export default function LandingPage() {
 
       {/* ══════════════════════════ 1. NAVBAR ══════════════════════════ */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-[#1A1A1A] bg-[#0A0A0A]/92 backdrop-blur-md transition-all">
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
+        <div className="relative max-w-6xl mx-auto px-5 sm:px-8 h-14 md:h-16 flex items-center justify-between">
           {/* Logo */}
           <a href="/" className="flex items-center gap-2.5 shrink-0">
             <Image src="/logo.png" alt="ContextMover" width={56} height={56} priority style={{ height: 32, width: "auto" }} />
@@ -275,7 +275,7 @@ export default function LandingPage() {
 
         {/* Mobile full-screen overlay menu */}
         {menuOpen && (
-          <div className="md:hidden fixed inset-0 z-[200] bg-[#0A0A0A] bg-grid-pattern flex flex-col" style={{ top: 0 }}>
+          <div className="md:hidden absolute top-full left-0 right-0 z-[200] bg-[#0A0A0A] bg-grid-pattern flex flex-col">
             {/* Overlay header */}
             <div className="flex items-center justify-between px-5 h-14 border-b border-[#1A1A1A] shrink-0">
               <a href="/" className="flex items-center gap-2.5">
