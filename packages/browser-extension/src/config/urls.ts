@@ -6,7 +6,7 @@
  */
 
 // Central URL config — import from here, never hardcode URLs.
-export const WEBAPP_URL    = "https://contextmover.com";
+export const WEBAPP_URL    = "https://www.contextmover.com";
 export const VAULT_URL     = `${WEBAPP_URL}/settings/vault`;
 export const DASHBOARD_URL = `${WEBAPP_URL}/dashboard`;
 export const PRICING_URL   = `${WEBAPP_URL}/pricing`;

@@ -13,7 +13,7 @@ interface AuthGateProps {
   children: (user: NonNullable<AuthUser>, signOut: () => void) => ReactNode;
 }
 
-const WEBAPP_URL = "https://contextmover.com";
+const WEBAPP_URL = "https://www.contextmover.com";
 
 export default function AuthGate({ children }: AuthGateProps) {
   const [loading, setLoading] = useState(true);

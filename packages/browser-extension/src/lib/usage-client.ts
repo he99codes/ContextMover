@@ -9,7 +9,7 @@
 // Extension-side client for ContextMover usage-limit API.
 // FAILS CLOSED — any API or network error blocks the migration.
 
-const API_BASE = "https://contextmover.com";
+const API_BASE = "https://www.contextmover.com";
 
 export interface UsageCheckResult {
   allowed: boolean;
@@ -44,6 +44,7 @@ export async function checkUsage(
   tier: 1 | 2 | 3,
   accessToken: string
 ): Promise<UsageCheckResult> {
+  console.log("[usage-client:debug] checkUsage called, token length:", accessToken?.length ?? 0, "token prefix:", typeof accessToken === "string" ? accessToken.slice(0, 20) : String(accessToken));
   try {
     const res = await fetch(`${API_BASE}/api/usage/check`, {
       method: "POST",
@@ -144,6 +145,7 @@ export async function incrementUsage(
 export async function getUsageStatus(
   accessToken: string
 ): Promise<UsageStatus | null> {
+  console.log("[usage-client:debug] getUsageStatus called, token length:", accessToken?.length ?? 0);
   try {
     const res = await fetch(`${API_BASE}/api/usage/status`, {
       method: "GET",

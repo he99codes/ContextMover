@@ -24,7 +24,7 @@ import type { Message } from "./types";
 import type { IntelligentSummary } from "./summarizer";
 import type { MigrationFile } from "./file-builder";
 
-const API_BASE = "https://contextmover.com";
+const API_BASE = "https://www.contextmover.com";
 
 // How long to wait before giving up and using the local fallback.
 const TIMEOUT_SCORE_MS = 4_000;
