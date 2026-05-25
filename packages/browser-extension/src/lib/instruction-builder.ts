@@ -37,7 +37,7 @@ export function buildInstructionPrompt(params: {
 
   if (targetPlatform === 'claude') {
     const cavemanXml = caveman
-      ? `\n<response_style><mode>caveman</mode><rules>No filler. No pleasantries. No hedging. Answer then stop. Code normal.</rules></response_style>`
+      ? `\n  <response_style><mode>caveman</mode><rules>No filler. No pleasantries. No hedging. Answer then stop. Code normal.</rules></response_style>`
       : ''
     return `<context_migration>
   <instruction>
