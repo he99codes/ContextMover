@@ -255,8 +255,8 @@ describe("1 · Summarizer pipeline", () => {
 // 2. TRANSLATOR PIPELINE
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Claude uses a multi-line XML block; all other platforms use a single-line markdown sentence.
-const CAVEMAN_CLAUDE = "Response style: Caveman mode.";
+// Claude uses an XML <response_style> block; all other platforms use a single-line markdown sentence.
+const CAVEMAN_CLAUDE = "<response_style>";
 const CAVEMAN_MD     = "Caveman mode. No filler. No pleasantries. No hedging.";
 // Universal absence-check: this substring never appears in any platform when caveman=false.
 const CAVEMAN_OFF    = "No filler. No pleasantries. No hedging.";
