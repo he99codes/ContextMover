@@ -34,6 +34,7 @@ const DEBUG = process.env.NODE_ENV === "development";
 
 // ── Attention-engine availability (set to false if model fetch blocked) ─────
 let attentionEngineAvailable = true;
+let activeMigrationInProgress = false;
 
 // ── In-memory migration file cache ────────────────────────────────────────────
 interface CachedMigrationFile {
@@ -1178,15 +1179,39 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           tabId: number; fileName: string; fileContent: string;
         };
         if (!injectTabId) { sendResponse({ ok: false, error: "no tabId" }); return; }
-        chrome.tabs.sendMessage(
-          injectTabId,
-          { type: "INJECT_FILE_AS_UPLOAD", fileName, fileContent: fileContentPayload },
-          (response) => {
-            void chrome.runtime.lastError;
-            sendResponse(response ?? { ok: false, error: "no response from content script" });
-          }
-        );
-        return true; // async response
+        // Wait up to 3 × 500 ms for the content script to be ready.
+        // For Tier-1 migrations the SW never pings the target tab beforehand,
+        // so the content script may not have initialised yet when the user
+        // clicks "Inject to chat" in the modal.
+        let fileScriptReady = false;
+        for (let _pi = 0; _pi < 3; _pi++) {
+          if (_pi > 0) await new Promise<void>((r) => setTimeout(r, 500));
+          const alive = await new Promise<boolean>((resolve) => {
+            try {
+              chrome.tabs.sendMessage(injectTabId, { type: "PING" }, (resp) => {
+                resolve(!chrome.runtime.lastError && !!resp);
+              });
+            } catch { resolve(false); }
+          });
+          if (alive) { fileScriptReady = true; break; }
+        }
+        if (!fileScriptReady) {
+          console.warn(`[CM:sw] INJECT_FILE_TO_TAB: content script not ready on tab ${injectTabId} after 3 pings`);
+          sendResponse({ ok: false, error: "Content script not ready — reload the target tab and try again" });
+          break;
+        }
+        const fileInjectResult = await new Promise<{ ok: boolean; error?: string }>((resolve) => {
+          chrome.tabs.sendMessage(
+            injectTabId,
+            { type: "INJECT_FILE_AS_UPLOAD", fileName, fileContent: fileContentPayload },
+            (response) => {
+              void chrome.runtime.lastError;
+              resolve(response ?? { ok: false, error: "no response from content script" });
+            }
+          );
+        });
+        sendResponse(fileInjectResult);
+        break;
       }
 
       case "SIDEBAR_CLOSED": {
@@ -1562,6 +1587,7 @@ async function handleCaptureSession(payload: {
  */
 async function backgroundIndex(session: ContextSession): Promise<void> {
   if (!attentionEngineAvailable) return;
+  if (activeMigrationInProgress) return;
   try {
     // Skip embedding-based indexing on minimal-tier hardware (no WebGPU,
     // ≤4 cores). Embedding hundreds of chunks at ~400ms/chunk on weak CPUs
@@ -1734,6 +1760,7 @@ async function handleMigrateContext(
     sendResponse({ success: false, error: 'Session not found' })
     return
   }
+  activeMigrationInProgress = true;
   reportProgress(10, 'Loading session...')
   const tier = (payload.tier ?? 2) as 1 | 2 | 3
   let migrationFile: MigrationFile
@@ -1777,11 +1804,30 @@ async function handleMigrateContext(
         : localFile
     } else {
       if (!attentionEngineAvailable) {
+        activeMigrationInProgress = false;
         sendResponse({ success: false, error: 'Attention Engine unavailable — model could not load on this device' });
         return;
       }
       reportProgress(30, 'Running attention engine...')
       try {
+        const hw3 = await getHardwareProfile().catch(() => null);
+        if (hw3?.tier === "minimal") {
+          console.log('[CM:sw] Minimal hardware — skipping Tier 3 indexing, falling back to Smart Summary');
+          reportProgress(35, 'Smart Summary (minimal hardware)...');
+          const localSummary3 = summarizeIntelligent(session.messages, payload.task);
+          const summary3 = accessToken
+            ? await fetchSummary(session.messages, payload.task, accessToken, localSummary3)
+            : localSummary3;
+          const localFile3 = buildTier2File(session, summary3, payload.task);
+          migrationFile = accessToken
+            ? await fetchMigrationBuild(
+                { tier: 2, platform: session.platform, sessionTitle: session.title,
+                  messages: session.messages, originalCount: session.messages.length,
+                  summary: summary3, task: payload.task },
+                accessToken, localFile3
+              )
+            : localFile3;
+        } else {
         const needsIndex = await semanticIndex.needsIndexing(session)
         if (needsIndex) {
           reportProgress(35, 'Indexing session...')
@@ -1826,12 +1872,14 @@ async function handleMigrateContext(
               )
             : localFile
         }
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes("Failed to fetch")) {
           attentionEngineAvailable = false;
           await chrome.storage.local.set({ attentionEngineAvailable: false });
           console.debug("[CM:sw] Model fetch blocked during migration — Attention tier unavailable");
+          activeMigrationInProgress = false;
           sendResponse({ success: false, error: 'Attention Engine unavailable — model could not load on this device' });
           return;
         }
@@ -1911,12 +1959,30 @@ async function handleMigrateContext(
     console.log('[CM:sw] Tier 1 file migration — skipping text injection (file carries full context)')
   } else {
     try {
-      // Phase 1+2: wait for tab load completion + content-script ping with exponential backoff.
-      // If all 3 pings fail we skip sendMessageToTab entirely — avoids 3 × 5 s timeouts.
+      // Phase 1+2: wait for tab load + content-script ping (8 × 1500ms).
+      // If all pings fail, try a direct executeScript injection as last resort.
       const ready = await waitForTabContentScript(payload.targetTabId);
       if (!ready) {
-        injectionError = `The ${payload.targetPlatform} tab did not respond to 3 pings (2 s / 4 s / 8 s) — make sure the page has finished loading and try again.`;
-        console.warn(`[CM:sw] Tab ${payload.targetTabId} content script not ready after 3 pings — skipping injection`);
+        console.warn(`[CM:sw] Tab ${payload.targetTabId} content script not ready after 8 pings — trying executeScript fallback`);
+        try {
+          const [execResult] = await chrome.scripting.executeScript({
+            target: { tabId: payload.targetTabId },
+            func: injectPromptInPage,
+            args: [instructionPrompt, payload.targetPlatform],
+          });
+          const execRes = execResult?.result as { ok: boolean; error?: string } | undefined;
+          if (execRes?.ok) {
+            injected = true;
+            console.log(`[CM:sw] Tab ${payload.targetTabId} executeScript fallback injection succeeded`);
+          } else {
+            injectionError = execRes?.error ?? `Content script did not respond after 8 pings and direct injection also failed — reload the ${payload.targetPlatform} tab and retry.`;
+            console.warn(`[CM:sw] Tab ${payload.targetTabId} executeScript fallback failed:`, injectionError);
+          }
+        } catch (scriptErr) {
+          const scriptMsg = scriptErr instanceof Error ? scriptErr.message : String(scriptErr);
+          injectionError = `Content script not ready after 8 pings; direct injection also failed: ${scriptMsg}. Reload the ${payload.targetPlatform} tab and retry.`;
+          console.warn(`[CM:sw] Tab ${payload.targetTabId} executeScript fallback threw:`, scriptErr);
+        }
       } else {
         const result = await sendMessageToTab(payload.targetTabId, {
           type: 'INJECT_CONTEXT',
@@ -1950,6 +2016,7 @@ async function handleMigrateContext(
   if (accessToken) {
     void incrementUsage(tier, accessToken);
   }
+  activeMigrationInProgress = false;
   sendResponse({
     success: true,
     injected,
@@ -2280,8 +2347,8 @@ function waitForTabComplete(tabId: number, timeoutMs = 15_000): Promise<boolean>
 /**
  * Two-phase readiness check before INJECT_CONTEXT:
  * Phase 1 — waits for tab.status === 'complete' (event-driven via onUpdated, 15 s cap).
- * Phase 2 — pings the content script with exponential backoff: 2 s → 4 s → 8 s.
- * Returns true when the script responds, false when all 3 pings are exhausted.
+ * Phase 2 — pings the content script 8 times at uniform 1500ms intervals.
+ * Returns true when the script responds, false when all 8 pings are exhausted.
  */
 async function waitForTabContentScript(tabId: number): Promise<boolean> {
   // Phase 1: wait for the tab to finish its initial navigation.
@@ -2292,10 +2359,12 @@ async function waitForTabContentScript(tabId: number): Promise<boolean> {
       : `[CM:sw] Tab ${tabId} did not reach 'complete' within 15 s — proceeding with pings`
   );
 
-  // Phase 2: ping with exponential backoff (delay runs BEFORE each attempt).
-  const PING_DELAYS_MS = [2_000, 4_000, 8_000];
-  for (let i = 0; i < PING_DELAYS_MS.length; i++) {
-    await new Promise<void>((r) => setTimeout(r, PING_DELAYS_MS[i]));
+  // Phase 2: ping at uniform 1500ms intervals (delay runs BEFORE each attempt).
+  const PING_RETRIES = 8;
+  const PING_DELAY_MS = 1_500;
+  for (let i = 0; i < PING_RETRIES; i++) {
+    await new Promise<void>((r) => setTimeout(r, PING_DELAY_MS));
+    console.log(`[CM:ping] Tab ${tabId} attempt ${i + 1}/${PING_RETRIES} (+${PING_DELAY_MS}ms)`);
     const alive = await new Promise<boolean>((resolve) => {
       try {
         chrome.tabs.sendMessage(tabId, { type: "PING" }, (resp) => {
@@ -2304,10 +2373,10 @@ async function waitForTabContentScript(tabId: number): Promise<boolean> {
       } catch { resolve(false); }
     });
     if (alive) {
-      console.log(`[CM:sw] Tab ${tabId} content script ready (attempt ${i + 1}/${PING_DELAYS_MS.length})`);
+      console.log(`[CM:sw] Tab ${tabId} content script ready (attempt ${i + 1}/${PING_RETRIES})`);
       return true;
     }
-    console.log(`[CM:sw] Tab ${tabId} ping ${i + 1}/${PING_DELAYS_MS.length} — no response`);
+    console.log(`[CM:sw] Tab ${tabId} ping ${i + 1}/${PING_RETRIES} — no response`);
   }
   return false;
 }

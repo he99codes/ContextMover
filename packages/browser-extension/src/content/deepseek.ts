@@ -214,20 +214,37 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true; // CRITICAL — keeps channel open for async response
   }
   if (msg.type === "INJECT_FILE_AS_UPLOAD") {
-    try {
-      const file = new File([msg.fileContent as string], msg.fileName as string, { type: "text/xml" });
-      const dt = new DataTransfer();
-      dt.items.add(file);
-      const input = document.querySelector<HTMLInputElement>("input[type='file']");
-      if (!input) { sendResponse({ ok: false, error: "File input not found on DeepSeek page" }); return; }
-      input.files = dt.files;
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-      sendResponse({ ok: true });
-    } catch (err) {
-      sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
-    }
-    return;
+    void (async () => {
+      try {
+        const file = new File([msg.fileContent as string], msg.fileName as string, { type: "text/xml" });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        let input = document.querySelector<HTMLInputElement>("input[type='file']");
+        if (!input) {
+          const attachBtn = document.querySelector<HTMLElement>(
+            '[aria-label*="Attach"], [aria-label*="attach"], ' +
+            '[aria-label*="Upload"], [aria-label*="upload"], ' +
+            'button[data-testid*="upload"], [class*="upload"], [class*="attach"]'
+          );
+          if (attachBtn) {
+            attachBtn.click();
+            for (let i = 0; i < 20; i++) {
+              await new Promise((r) => setTimeout(r, 100));
+              input = document.querySelector<HTMLInputElement>("input[type='file']");
+              if (input) break;
+            }
+          }
+        }
+        if (!input) { sendResponse({ ok: false, error: "File input not found on DeepSeek page" }); return; }
+        input.files = dt.files;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        sendResponse({ ok: true });
+      } catch (err) {
+        sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+      }
+    })();
+    return true;
   }
 });
 

@@ -1214,29 +1214,10 @@ export default function Sidebar() {
 
         {/* ── Free tier usage bar ── */}
         {planStatus.loaded && !planStatus.isPro && usageStatus && (
-          <div className="mx-2 mb-1 rounded border border-[#1A1A1A] bg-[#0A0A0A] px-3 py-2 space-y-1.5">
-            {([
-              { label: "Full Context",   t: usageStatus.usage.tier1 },
-              { label: "Smart Summary",  t: usageStatus.usage.tier2 },
-              { label: "Attention",      t: usageStatus.usage.tier3 },
-            ] as const).map(({ label, t }) => {
-              const pct = t.limit > 0 ? Math.min(100, Math.round((t.used / t.limit) * 100)) : 0;
-              const low = t.remaining <= 1;
-              return (
-                <div key={label}>
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: "#3A3A3A" }}>{label}</span>
-                    <span className="text-[10px] tabular-nums" style={{ color: "#6B6B6B" }}>{t.used}/{t.limit}</span>
-                  </div>
-                  <div className="h-1 w-full rounded-full bg-[#1A1A1A] overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-300"
-                      style={{ width: `${pct}%`, background: low ? "#EF4444" : "#00FF88" }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+          <div style={{ display: "flex", gap: "12px", padding: "4px 8px", fontSize: "10px", color: "#444", fontFamily: "monospace" }}>
+            <span>FC {usageStatus.usage.tier1.used}/{usageStatus.usage.tier1.limit}</span>
+            <span>SS {usageStatus.usage.tier2.used}/{usageStatus.usage.tier2.limit}</span>
+            <span>AT {usageStatus.usage.tier3.used}/{usageStatus.usage.tier3.limit}</span>
           </div>
         )}
 
