@@ -36,6 +36,9 @@ export function buildInstructionPrompt(params: {
     : ''
 
   if (targetPlatform === 'claude') {
+    const cavemanXml = caveman
+      ? `\n<response_style><mode>caveman</mode><rules>No filler. No pleasantries. No hedging. Answer then stop. Code normal.</rules></response_style>`
+      : ''
     return `<context_migration>
   <instruction>
     I am continuing a conversation from ${session.platform}.
@@ -58,8 +61,8 @@ export function buildInstructionPrompt(params: {
     I will now upload the file: ${filename}
     Once uploaded, continue from exactly where we left off.
     Do not re-explain what was already decided.
-    ${task ? `Current focus: ${task}` : ''}${caveatBlock}
-  </next_step>
+    ${task ? `Current focus: ${task}` : ''}
+  </next_step>${cavemanXml}
 </context_migration>`
   }
 

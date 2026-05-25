@@ -216,6 +216,16 @@ class DriveClient {
     } catch { /* swallow */ }
   }
 
+  async isTokenValid(): Promise<boolean> {
+    try {
+      const stored = await chrome.storage.local.get(["drive.flowToken", "drive.flowTokenAt"]);
+      const token = stored["drive.flowToken"];
+      const at = stored["drive.flowTokenAt"];
+      if (!token || !at) return false;
+      return Date.now() - Number(at) < FLOW_TOKEN_TTL_MS;
+    } catch { return false; }
+  }
+
   /** Pure connection check — never prompts the user. */
   async isConnected(): Promise<boolean> {
     const t = await this.getToken(false);

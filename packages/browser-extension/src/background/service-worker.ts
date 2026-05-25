@@ -500,7 +500,7 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
 });
 
-chrome.runtime.onStartup.addListener(() => {
+chrome.runtime.onStartup.addListener(async () => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
     .catch(() => {});
   // Warm remote selector cache after a browser restart (TTL may have expired).
@@ -508,11 +508,17 @@ chrome.runtime.onStartup.addListener(() => {
   // Re-register the periodic refresh alarm (alarms persist across SW restarts
   // but `create` with the same name is idempotent — safe to call every startup).
   chrome.alarms.create(REMOTE_CONFIG_ALARM, { periodInMinutes: REMOTE_CONFIG_PERIOD_MIN });
+  const driveValid = await driveClient.isTokenValid();
+  if (driveValid) {
+    void driveSyncManager.initialSync().catch(() => {});
+    chrome.alarms.create("drive-sync-periodic", { periodInMinutes: 5 });
+  }
 });
 
-// Ensure the periodic alarm exists on install/update too.
+// Ensure the periodic alarms exist on install/update too.
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create(REMOTE_CONFIG_ALARM, { periodInMinutes: REMOTE_CONFIG_PERIOD_MIN });
+  chrome.alarms.create("drive-sync-periodic", { periodInMinutes: 5 });
 });
 
 // Keep chrome.storage.local in sync whenever Supabase silently refreshes the token.

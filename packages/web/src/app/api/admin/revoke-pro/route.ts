@@ -16,8 +16,16 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { error } = await admin
     .from("subscriptions")
-    .update({ status: "cancelled", updated_at: new Date().toISOString() })
-    .eq("user_id", userId);
+    .upsert(
+      {
+        user_id:      userId,
+        plan:         "free",
+        status:       "cancelled",
+        cancelled_at: new Date().toISOString(),
+        updated_at:   new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });

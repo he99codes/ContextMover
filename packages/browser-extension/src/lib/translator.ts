@@ -221,14 +221,6 @@ function buildClaudePrompt(payload: MigrationPayload): string {
     ? `\n  <ide_context>\n${indent(ideContext, 4)}\n  </ide_context>`
     : "";
 
-  const caveatLine = payload.caveman
-    ? [
-        `    Response style: Caveman mode.`,
-        `    No filler. No pleasantries. No hedging.`,
-        `    Code write normal. Technical terms exact.`,
-        `    Answer then stop.`,
-      ].join("\n")
-    : "";
   const instructionsBlock = [
     `  <instructions>`,
     `    You are continuing a conversation migrated from ${sourceSession.platform}.`,
@@ -236,7 +228,7 @@ function buildClaudePrompt(payload: MigrationPayload): string {
     `    Pick up exactly where the conversation left off.`,
     `    Do not re-explain what was already decided.`,
     `    Treat all code and decisions above as shared context.`,
-    ...(caveatLine ? [caveatLine] : []),
+    ...(payload.caveman ? [`    <response_style><mode>caveman</mode><rules>No filler. No pleasantries. No hedging. Answer then stop. Code normal.</rules></response_style>`] : []),
     `  </instructions>`,
   ].join("\n");
 
@@ -864,15 +856,6 @@ function buildClaudePromptTier2(payload: MigrationPayload): string {
     ? `\n  <ide_context>\n${indent(ideContext, 4)}\n  </ide_context>`
     : "";
 
-  const caveatBlock = payload.caveman
-    ? [
-        `    Response style: Caveman mode.`,
-        `    No filler. No pleasantries. No hedging.`,
-        `    Code write normal. Technical terms exact.`,
-        `    Answer then stop.`,
-      ].join("\n")
-    : "";
-
   return [
     `<!-- ${ANTI_INJECTION_PREAMBLE} -->`,
     `<context_migration>`,
@@ -930,8 +913,8 @@ function buildClaudePromptTier2(payload: MigrationPayload): string {
       `    Current focus: ${sanitizeForXml(is.currentState)}`,
       `    Pick up exactly where left off.`,
       `    Do not re-explain what was already decided.`,
-      ...(caveatBlock ? [caveatBlock] : []),
-      `  </instructions>`,
+      ...(payload.caveman ? [`    <response_style><mode>caveman</mode><rules>No filler. No pleasantries. No hedging. Answer then stop. Code normal.</rules></response_style>`] : []),
+        `  </instructions>`,
     ].join("\n"),
     ``,
     `</context_migration>`,

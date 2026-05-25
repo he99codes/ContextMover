@@ -1,4 +1,3 @@
-// packages/web/src/app/api/admin/stats/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "../_guard";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -13,13 +12,14 @@ export async function GET(req: NextRequest) {
 
   const admin = createAdminClient();
 
+  const { data: authUsers } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const totalUsers = authUsers?.users?.length ?? 0;
+
   const [
-    { count: totalUsers },
     { count: proUsers },
     { data: migrationData },
     { count: openBugReports },
   ] = await Promise.all([
-    admin.from("profiles").select("id", { count: "exact", head: true }),
     admin
       .from("subscriptions")
       .select("id", { count: "exact", head: true })
@@ -43,9 +43,9 @@ export async function GET(req: NextRequest) {
   );
 
   return NextResponse.json({
-    total_users:          totalUsers ?? 0,
-    pro_users:            proUsers ?? 0,
+    total_users:           totalUsers,
+    pro_users:             proUsers ?? 0,
     migrations_this_month: migrationsThisMonth,
-    open_bug_reports:     openBugReports ?? 0,
+    open_bug_reports:      openBugReports ?? 0,
   });
 }
