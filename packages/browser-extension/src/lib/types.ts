@@ -96,6 +96,22 @@ export interface ScraperBrokenMessage {
   href: string;
 }
 
+/**
+ * Slim chunk descriptor sent to the ml-worker for scoring.
+ * Only `id` and `embedding` cross the IPC boundary — `.text` is never sent
+ * to the worker so the payload stays as small as possible.
+ */
+export interface OffscreenSearchChunk {
+  id: string;
+  embedding: number[];
+}
+
+/** Single scored result returned by the ml-worker after ranking. */
+export interface OffscreenSearchResult {
+  id: string;
+  score: number;
+}
+
 export interface MigrationPayload {
   summary: string;
   extracted?: ExtractedContext;

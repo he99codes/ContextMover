@@ -28,7 +28,7 @@
 //        { type: 'OFFSCREEN_EMBED_DONE', requestId, embedding }
 //        { type: 'OFFSCREEN_ERROR', requestId, error }
 
-import type { ContextSession } from "../lib/types";
+import type { ContextSession, OffscreenSearchChunk, OffscreenSearchResult } from "../lib/types";
 import type { HardwareProfile } from "../lib/attention-engine";
 import { chunkMessages, type Chunk } from "../lib/semantic-index/chunker";
 import { dexieDb, type ChunkEmbedding } from "../lib/db";
@@ -43,8 +43,9 @@ console.log("[CM:offscreen] booted — queue manager initialising");
 
 type WorkerResponse =
   | { type: "WORKER_READY" }
-  | { type: "OFFSCREEN_EMBED_DONE"; requestId: string; embedding: number[] }
-  | { type: "OFFSCREEN_ERROR";     requestId: string; error: string };
+  | { type: "OFFSCREEN_EMBED_DONE";  requestId: string; embedding: number[] }
+  | { type: "OFFSCREEN_SEARCH_DONE"; requestId: string; results: OffscreenSearchResult[] }
+  | { type: "OFFSCREEN_ERROR";       requestId: string; error: string };
 
 const worker = new (MLWorker as { new(): Worker })();
 let workerReady = false;
@@ -60,6 +61,11 @@ const pendingEmbeds = new Map<string, {
 // embedding travels ONLY back to the sender, never broadcast to all listeners.
 const pendingResponses = new Map<string, (response: unknown) => void>();
 
+// Pending sendResponse callbacks for OFFSCREEN_SEARCH_QUERY messages.
+// Search bypasses the job queue entirely (pure math, no model) and resolves
+// as soon as the worker finishes the cosine sort.
+const pendingSearches = new Map<string, (response: unknown) => void>();
+
 worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
   if (data.type === "WORKER_READY") {
     workerReady = true;
@@ -69,6 +75,15 @@ worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
     void drainLoop();
     return;
   }
+  if (data.type === "OFFSCREEN_SEARCH_DONE") {
+    const searchCb = pendingSearches.get(data.requestId);
+    if (searchCb) {
+      pendingSearches.delete(data.requestId);
+      searchCb({ ok: true, results: data.results });
+    }
+    return;
+  }
+
   const cb = pendingEmbeds.get(data.requestId);
   if (!cb) return;
   pendingEmbeds.delete(data.requestId);
@@ -86,7 +101,22 @@ worker.onerror = (ev: ErrorEvent) => {
     cb.reject(new Error(`worker error: ${ev.message}`));
     pendingEmbeds.delete(id);
   }
+  // Unblock any waiting searches with an error response.
+  for (const [id, cb] of pendingSearches) {
+    cb({ ok: false, error: `worker error: ${ev.message}` });
+    pendingSearches.delete(id);
+  }
 };
+
+/** Forward a search payload to the worker; results arrive via pendingSearches. */
+function searchViaWorker(
+  requestId: string,
+  queryEmbedding: number[],
+  chunks: OffscreenSearchChunk[],
+  topK: number,
+): void {
+  worker.postMessage({ type: "OFFSCREEN_SEARCH_QUERY", requestId, queryEmbedding, chunks, topK });
+}
 
 /** Send one text to the worker; returns a Promise that resolves with the embedding. */
 function embedViaWorker(text: string): Promise<number[]> {
@@ -295,6 +325,21 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     // ready. Do NOT call sendResponse here; return true to keep the port open.
     pendingResponses.set(requestId, sendResponse);
     enqueue({ kind: "embed", text, requestId, priority });
+    return true;
+  }
+
+  if (msg.type === "OFFSCREEN_SEARCH_QUERY") {
+    const { requestId, queryEmbedding, chunks, topK } = msg as {
+      requestId:      string;
+      queryEmbedding: number[];
+      chunks:         OffscreenSearchChunk[];
+      topK:           number;
+    };
+    // Store sendResponse then dispatch directly to the worker.
+    // Search bypasses the job queue — it is pure cosine math with no model I/O,
+    // so it finishes in microseconds once the worker is free.
+    pendingSearches.set(requestId, sendResponse);
+    searchViaWorker(requestId, queryEmbedding, chunks, topK);
     return true;
   }
 

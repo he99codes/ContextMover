@@ -11,6 +11,7 @@ import type { ContextSession, Platform } from "@/lib/types";
 import ExportMenu from "@/components/ExportMenu";
 import { PlatformBadge, PlatformLogo } from "@/components/PlatformLogo";
 import MigrationModal from "./MigrationModal";
+import KnowledgeSynthesizer from "./components/KnowledgeSynthesizer";
 import { QualityScoreCard } from "./QualityScoreCard";
 import type { QualityScore } from "@/lib/quality/migration-scorer";
 import { getUsageStatus, type UsageStatus } from "@/lib/usage-client";
@@ -339,6 +340,7 @@ export default function Sidebar() {
   const precomputedSummaries = useRef<Map<string, { cached: boolean }>>(new Map());
   const hardwareTierRef = useRef<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSynthesizer, setShowSynthesizer] = useState(false);
   const [indexStats, setIndexStats] = useState<IndexStats | null>(null);
   const [indexStatsLoading, setIndexStatsLoading] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
@@ -1193,7 +1195,18 @@ export default function Sidebar() {
                 MCP
               </button>
               <button
-                onClick={() => { const opening = !showSettings; setShowSettings(opening); if (opening) { loadIndexStats(); refreshQualityStats(); } }}
+                onClick={() => { setShowSynthesizer((s) => !s); setShowSettings(false); }}
+                title="Knowledge Synthesizer — Pro"
+                className={`flex h-5 w-5 items-center justify-center rounded-[3px] border transition-all duration-200 ${
+                  showSynthesizer
+                    ? 'border-purple-500/40 bg-purple-500/10 text-purple-400'
+                    : 'border-[#1A3A1A] bg-[#060606] text-[#2A2A4A] hover:border-purple-500/40 hover:text-purple-400'
+                }`}
+              >
+                <span className="text-[11px]">⚡</span>
+              </button>
+              <button
+                onClick={() => { const opening = !showSettings; setShowSettings(opening); if (opening) { setShowSynthesizer(false); loadIndexStats(); refreshQualityStats(); } }}
                 title="Semantic index settings"
                 className={`flex h-5 w-5 items-center justify-center rounded-[3px] border transition-all duration-200 ${
                   showSettings
@@ -1345,7 +1358,7 @@ export default function Sidebar() {
           })}
         </div>
 
-        {showSettings && (
+        {showSettings && !showSynthesizer && (
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
             <SemanticIndexPanel
               stats={indexStats}
@@ -1367,7 +1380,7 @@ export default function Sidebar() {
             />
           </div>
         )}
-        <div className={showSettings ? 'hidden' : 'flex-1 overflow-y-auto px-1.5 py-1 space-y-1'}>
+        <div className={(showSettings || showSynthesizer) ? 'hidden' : 'flex-1 overflow-y-auto px-1.5 py-1 space-y-1'}>
           {semanticSessions.length > 0 && (
             <div className="mb-1.5 space-y-1">
               <div className="pb-0.5 text-[7px] uppercase tracking-widest text-[#6366f1]">Semantic matches</div>
@@ -1442,6 +1455,12 @@ export default function Sidebar() {
             </div>
           )}
         </div>
+
+        {showSynthesizer && (
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <KnowledgeSynthesizer />
+          </div>
+        )}
 
         {/* ── MCP IDE bridge status (Add-on 6) ────────────────────────────── */}
         <MCPStatusPanel />

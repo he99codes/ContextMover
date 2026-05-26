@@ -12,12 +12,17 @@
 // document's event loop stays free to manage the priority queue.
 //
 // Message protocol (Worker ↔ Offscreen Document):
-//   IN:  { type: 'OFFSCREEN_EMBED_QUERY'; requestId: string; text: string }
+//   IN:  { type: 'OFFSCREEN_EMBED_QUERY';  requestId: string; text: string }
+//        { type: 'OFFSCREEN_SEARCH_QUERY'; requestId: string;
+//                queryEmbedding: number[]; chunks: OffscreenSearchChunk[]; topK: number }
 //   OUT: { type: 'WORKER_READY' }
-//        { type: 'OFFSCREEN_EMBED_DONE'; requestId: string; embedding: number[] }
-//        { type: 'OFFSCREEN_ERROR';      requestId: string; error: string }
+//        { type: 'OFFSCREEN_EMBED_DONE';  requestId: string; embedding: number[] }
+//        { type: 'OFFSCREEN_SEARCH_DONE'; requestId: string; results: OffscreenSearchResult[] }
+//        { type: 'OFFSCREEN_ERROR';       requestId: string; error: string }
 
 import { pipeline, env } from "@xenova/transformers";
+import { cosineSimilarity } from "../lib/math";
+import type { OffscreenSearchChunk, OffscreenSearchResult } from "../lib/types";
 
 // ── WASM / runtime configuration ─────────────────────────────────────────────
 // Mirror the exact settings from embedder.ts so ONNX uses the local SIMD file.
@@ -76,8 +81,43 @@ getExtractor()
   });
 
 // ── Message handler ───────────────────────────────────────────────────────────
-self.onmessage = async (event: MessageEvent<{ type: string; requestId: string; text: string }>) => {
-  const { requestId, text } = event.data;
+
+type WorkerInMessage =
+  | { type: "OFFSCREEN_EMBED_QUERY";  requestId: string; text: string }
+  | { type: "OFFSCREEN_SEARCH_QUERY"; requestId: string;
+      queryEmbedding: number[]; chunks: OffscreenSearchChunk[]; topK: number };
+
+self.onmessage = async (event: MessageEvent<WorkerInMessage>) => {
+  const msg = event.data;
+
+  // ── Semantic search — pure math, no model needed ──────────────────────────
+  if (msg.type === "OFFSCREEN_SEARCH_QUERY") {
+    const { requestId, queryEmbedding, chunks, topK } = msg;
+    const len = chunks.length;
+
+    // Score every chunk with cosine similarity using raw for-loops.
+    const scores = new Float32Array(len);
+    for (let i = 0; i < len; i++) {
+      scores[i] = cosineSimilarity(queryEmbedding, chunks[i].embedding);
+    }
+
+    // Sort a lightweight index array — avoids moving full chunk objects.
+    const indices = Array.from({ length: len }, (_, i) => i);
+    indices.sort((a, b) => scores[b] - scores[a]);
+
+    // Materialise top-K results (id + score only — text stays in caller).
+    const k = Math.min(topK, len);
+    const results: OffscreenSearchResult[] = new Array(k);
+    for (let i = 0; i < k; i++) {
+      const idx = indices[i];
+      results[i] = { id: chunks[idx].id, score: scores[idx] };
+    }
+    postMessage({ type: "OFFSCREEN_SEARCH_DONE", requestId, results });
+    return;
+  }
+
+  // ── Embedding — runs ONNX WASM pipeline ──────────────────────────────────
+  const { requestId, text } = msg;
   try {
     const extractor = await getExtractor();
     // Single-string inference. output is a Tensor2D [1 × 384].

@@ -547,32 +547,110 @@ export class AttentionEngine {
 
   /**
    * Search across ALL indexed sessions by semantic similarity to query.
-   * Falls back to keyword scoring when the model is not loaded.
+   *
+   * Offloads the O(N) cosine sort to the ml-worker so the main thread
+   * (sidebar UI) stays unblocked regardless of corpus size.
+   *
+   * @param query   - Natural-language search query.
+   * @param limit   - Maximum results to return (default 10).
+   * @param filters - Optional pre-filters applied *before* the IPC call to
+   *                  shrink the payload. Currently supports `language`.
    */
-  async semanticSearch(query: string, limit = 10): Promise<AttentionChunk[]> {
-    console.log(`${TAG} semanticSearch — limit=${limit}`);
-    const allChunks = await dexieDb.chunkEmbeddings.toArray();
+  async semanticSearch(
+    query: string,
+    limit = 10,
+    filters?: { language?: string },
+  ): Promise<AttentionChunk[]> {
+    console.log(`${TAG} semanticSearch — limit=${limit}` +
+      (filters?.language ? ` language=${filters.language}` : ""));
+
+    // ── 1. Fetch + pre-filter ──────────────────────────────────────────────
+    let allChunks = await dexieDb.chunkEmbeddings.toArray();
     if (allChunks.length === 0) return [];
 
+    if (filters?.language) {
+      allChunks = allChunks.filter((c) => c.language === filters.language);
+      if (allChunks.length === 0) return [];
+    }
+
+    // ── 2. Embed the query (routes through offscreen WASM pipeline) ────────
     const queryEmb = await this.getEmbedding(query);
 
-    const scored = allChunks.map((chunk) => ({
-      id: chunk.id,
-      sessionId: chunk.sessionId,
-      role: chunk.role,
-      content: chunk.text,
-      embedding: chunk.embedding,
-      relevanceScore:
-        queryEmb.some((v) => v !== 0) && chunk.embedding.length === EMBEDDING_DIM
-          ? this.cosineSimilarity(queryEmb, chunk.embedding)
-          : this.keywordScore(query, chunk.text),
-      type: (chunk.hasCode ? "code" : "message") as "message" | "code",
-      language: chunk.language,
-      timestamp: chunk.createdAt,
-    }));
+    // ── 3. Model-unavailable fallback (zero-vector → keyword scoring) ──────
+    if (!queryEmb.some((v) => v !== 0)) {
+      return allChunks
+        .map((chunk) => ({
+          id:             chunk.id,
+          sessionId:      chunk.sessionId,
+          role:           chunk.role,
+          content:        chunk.text,
+          embedding:      chunk.embedding,
+          relevanceScore: this.keywordScore(query, chunk.text),
+          type:           (chunk.hasCode ? "code" : "message") as "message" | "code",
+          language:       chunk.language,
+          timestamp:      chunk.createdAt,
+        }))
+        .sort((a, b) => b.relevanceScore - a.relevanceScore)
+        .slice(0, limit);
+    }
 
-    scored.sort((a, b) => b.relevanceScore - a.relevanceScore);
-    return scored.slice(0, limit);
+    // ── 4. Build the slim IPC payload — id + embedding only, never .text ──
+    const workerChunks = allChunks.map((c) => ({ id: c.id, embedding: c.embedding }));
+
+    // ── 5. Dispatch to ml-worker via offscreen doc ─────────────────────────
+    const requestId = crypto.randomUUID();
+    type SearchResponse = { ok: boolean; results?: { id: string; score: number }[]; error?: string };
+    let res: SearchResponse | undefined;
+    try {
+      res = await chrome.runtime.sendMessage<unknown, SearchResponse>({
+        type:          "OFFSCREEN_SEARCH_QUERY",
+        requestId,
+        queryEmbedding: queryEmb,
+        chunks:         workerChunks,
+        topK:           limit,
+      });
+    } catch (err) {
+      console.warn(`${TAG} semanticSearch: IPC error, falling back to main thread`, err);
+    }
+
+    // ── 6. Map winning IDs back to full objects (text never left the tab) ──
+    if (res?.ok && res.results && res.results.length > 0) {
+      const byId = new Map(allChunks.map((c) => [c.id, c]));
+      return res.results
+        .map(({ id, score }) => {
+          const chunk = byId.get(id);
+          if (!chunk) return null;
+          return {
+            id:             chunk.id,
+            sessionId:      chunk.sessionId,
+            role:           chunk.role,
+            content:        chunk.text,
+            embedding:      chunk.embedding,
+            relevanceScore: score,
+            type:           (chunk.hasCode ? "code" : "message") as "message" | "code",
+            language:       chunk.language,
+            timestamp:      chunk.createdAt,
+          } as AttentionChunk;
+        })
+        .filter((c): c is AttentionChunk => c !== null);
+    }
+
+    // ── 7. Main-thread fallback (worker failed / timed out) ────────────────
+    console.warn(`${TAG} semanticSearch: worker returned no results, scoring on main thread`);
+    return allChunks
+      .map((chunk) => ({
+        id:             chunk.id,
+        sessionId:      chunk.sessionId,
+        role:           chunk.role,
+        content:        chunk.text,
+        embedding:      chunk.embedding,
+        relevanceScore: this.cosineSimilarity(queryEmb, chunk.embedding),
+        type:           (chunk.hasCode ? "code" : "message") as "message" | "code",
+        language:       chunk.language,
+        timestamp:      chunk.createdAt,
+      }))
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice(0, limit);
   }
 
   // ─── clearIndex ───────────────────────────────────────────────────────────
