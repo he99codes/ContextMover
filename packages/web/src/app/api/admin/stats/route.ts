@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const admin = createAdminClient();
 
   const { data: authUsers } = await admin.auth.admin.listUsers({ perPage: 1000 });
-  const totalUsers = authUsers?.users?.length ?? 0;
+  const totalUsers = (authUsers as { total?: number } | null)?.total ?? authUsers?.users?.length ?? 0;
 
   const [
     { count: proUsers },

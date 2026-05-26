@@ -514,6 +514,9 @@ chrome.runtime.onStartup.addListener(async () => {
     void driveSyncManager.initialSync().catch(() => {});
     chrome.alarms.create("drive-sync-periodic", { periodInMinutes: 5 });
   }
+  void getHardwareProfile().then((hw) => {
+    chrome.storage.local.set({ hwTier: hw.tier }).catch(() => {});
+  }).catch(() => {});
 });
 
 // Ensure the periodic alarms exist on install/update too.
@@ -1226,6 +1229,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           tabId: number; fileName: string; fileContent: string;
         };
         if (!injectTabId) { sendResponse({ ok: false, error: "no tabId" }); return; }
+        // ── Gemini: bypass file-upload path; inject as text directly ──────────
+        // Gemini's Angular file input silently rejects uploads even when found.
+        // Text injection via injectPromptInPage (Gemini-specific path) is the
+        // only reliable path.
+        const injectTab = await chrome.tabs.get(injectTabId).catch(() => null);
+        if (injectTab?.url?.includes("gemini.google.com")) {
+          try {
+            const [execRes] = await chrome.scripting.executeScript({
+              target: { tabId: injectTabId },
+              func: injectPromptInPage,
+              args: [fileContentPayload, "gemini"],
+            });
+            sendResponse(execRes?.result ?? { ok: false, error: "no result from executeScript" });
+          } catch (err) {
+            sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+          }
+          break;
+        }
         // Wait up to 3 × 500 ms for the content script to be ready.
         // For Tier-1 migrations the SW never pings the target tab beforehand,
         // so the content script may not have initialised yet when the user
@@ -1292,6 +1313,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         if (!attentionEngineAvailable) {
           sendResponse({ ok: false, unavailable: true });
+          break;
+        }
+        const warmupHw = await getHardwareProfile().catch(() => null);
+        if (warmupHw?.tier === 'minimal') {
+          sendResponse({ ok: true, skipped: true, reason: 'minimal_hardware' });
           break;
         }
         void (async () => {
@@ -2288,6 +2314,7 @@ function injectPromptInPage(
       'textarea',
     ],
     gemini: [
+      'rich-textarea .ql-editor',
       '.ql-editor[contenteditable]',
       '[contenteditable="true"]',
     ],
@@ -2322,6 +2349,19 @@ function injectPromptInPage(
     input.dispatchEvent(new Event("input",  { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
     return { ok: input.value === text || input.value.length > 0 };
+  }
+
+  // ── Gemini (Quill / Angular contenteditable) ─────────────────────────────
+  if (platform === 'gemini' && input.isContentEditable) {
+    input.innerHTML = '';
+    const inserted = document.execCommand('insertText', false, text);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    if (inserted && (input.textContent?.trim().length ?? 0) > 0) return { ok: true };
+    input.textContent = text;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    return { ok: (input.textContent?.trim().length ?? 0) > 0 };
   }
 
   if (input.isContentEditable) {
