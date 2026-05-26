@@ -85,6 +85,17 @@ export interface ExtractedContext {
   messageCount: number;
 }
 
+/**
+ * Sent by content scripts when a CSS selector is not found in the DOM or when
+ * the zero-message retry gate is exhausted. Routed SW → sidebar via broadcastToViews.
+ */
+export interface ScraperBrokenMessage {
+  type: "SCRAPER_BROKEN";
+  platform: string;
+  reason: string;
+  href: string;
+}
+
 export interface MigrationPayload {
   summary: string;
   extracted?: ExtractedContext;

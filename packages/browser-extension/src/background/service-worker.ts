@@ -199,6 +199,42 @@ const writeTimers = new Map<string, ReturnType<typeof setTimeout>>();
 // simultaneously (e.g. content script + syncOpenTabs both firing at once).
 const captureInFlight = new Set<string>();
 
+// MetaPrompt rebuild guard — skip re-summarisation when message content hasn't
+// changed since the last build, or when the last build was < 30 s ago.
+const metaPromptLastHash = new Map<string, string>();
+const metaPromptLastBuiltAt = new Map<string, number>();
+const METAPROMPT_COOLDOWN_MS = 30_000;
+
+// SCRAPER_BROKEN refresh debounce — one remote-config fetch per 30 s is enough
+// even when multiple content scripts break simultaneously.
+let scraperBrokenRefreshAt = 0;
+const SCRAPER_BROKEN_REFRESH_COOLDOWN_MS = 30_000;
+
+/**
+ * Ensures the offscreen document is running before sending it a message.
+ * Lightweight version scoped to the SW — swallows "already exists" errors.
+ */
+async function ensureOffscreenDocumentLocal(): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const offscreen = (chrome as any).offscreen;
+  if (!offscreen) return;
+  try {
+    const has: boolean = await offscreen.hasDocument?.() ?? false;
+    if (has) return;
+    await offscreen.createDocument({
+      url: "src/offscreen/offscreen.html",
+      reasons: ["WORKERS"],
+      justification: "Run ML embedding pipeline for Tier 3 context retrieval",
+    });
+    console.log("[CM:sw] offscreen document created");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes("Only a single offscreen") && !msg.includes("already")) {
+      console.warn("[CM:sw] ensureOffscreenDocumentLocal failed:", msg);
+    }
+  }
+}
+
 // GET_SESSIONS result cache — coalesces rapid-fire sidebar polls within 500ms.
 let getSessionsCache: unknown = null;
 let getSessionsCacheAt = 0;
@@ -582,6 +618,27 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
+      case "SCRAPER_BROKEN": {
+        // Sent by content scripts when a selector is missing (platform DOM changed)
+        // or when the zero-message retry gate is exhausted after having prior messages.
+        if (!isFromPlatformTab(sender)) { sendResponse({ ok: false }); return; }
+        const brokenPlatform = typeof msg.platform === 'string' ? msg.platform : '?';
+        const brokenReason   = typeof msg.reason   === 'string' ? msg.reason   : '?';
+        console.warn(`[ContextMover] UI Update Detected! Scraper broken on ${brokenPlatform}: ${brokenReason}`);
+        // Self-healing: immediately fetch fresh selectors so the next page load
+        // picks up the hotfix. Debounced — one fetch per 30 s even if many scripts break at once.
+        const now = Date.now();
+        if (now - scraperBrokenRefreshAt > SCRAPER_BROKEN_REFRESH_COOLDOWN_MS) {
+          scraperBrokenRefreshAt = now;
+          void refreshRemoteConfig().then(() => {
+            console.log(`[CM:config] Selector config refreshed after SCRAPER_BROKEN (${brokenPlatform})`);
+          }).catch(() => {});
+        }
+        void broadcastToViews(msg);
+        sendResponse({ ok: true });
+        break;
+      }
+
       // ── Google Drive sync (additive layer over IndexedDB) ──────────────
       case "DRIVE_CONNECT": {
         if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
@@ -873,6 +930,35 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             });
             break;
           }
+        }
+
+        // ── Priority Tier 3 indexing ─────────────────────────────────────
+        // Fire-and-forget: kick off high-priority semantic indexing so the
+        // embedding pipeline is ready (or refreshed) by the time the migration
+        // prompt is injected. Runs in parallel with handleMigrateContext.
+        // Does NOT block or affect Tier 1 / Tier 2 logic.
+        if (msg.payload?.sessionId) {
+          void (async () => {
+            try {
+              await ensureOffscreenDocumentLocal();
+              const t3Session = await db.getSession(msg.payload.sessionId).catch(() => null);
+              if (t3Session) {
+                const hwStored = await chrome.storage.local.get("hwTier").catch(() => ({}));
+                const hwTier = (hwStored as Record<string, string>).hwTier ?? "standard";
+                const t3RequestId = `migrate-priority-${t3Session.id}-${Date.now()}`;
+                chrome.runtime.sendMessage({
+                  type: "OFFSCREEN_INDEX_SESSION",
+                  session:   t3Session,
+                  hardware:  { tier: hwTier },
+                  requestId: t3RequestId,
+                  priority:  true,
+                }).catch(() => {});
+                console.log(`[CM:sw] MIGRATE_CONTEXT — priority T3 index queued (${t3RequestId})`);
+              }
+            } catch (e) {
+              console.warn("[CM:sw] MIGRATE_CONTEXT priority index error:", e);
+            }
+          })();
         }
 
         try {
@@ -1544,8 +1630,10 @@ async function handleCaptureSession(payload: {
     return;
   }
   captureInFlight.add(payload.sessionId);
-  // Release lock after debounce window + buffer so rapid-fire pairs are absorbed.
-  setTimeout(() => captureInFlight.delete(payload.sessionId), 2_200);
+  // Release lock after the full staggered-capture window (0 / 100 / 500 / 1000 / 1500 ms
+  // + extraCaptureDelays up to 4 s) + a 1 s buffer so every burst from a single
+  // MutationObserver fire is absorbed by this single in-flight slot.
+  setTimeout(() => captureInFlight.delete(payload.sessionId), 5_000);
 
   // ── [CM:sw] received ────────────────────────────────────────────────────────
   const rxUser = payload.messages.filter(m => m.role === "user").length;
@@ -1715,6 +1803,21 @@ async function buildMetaPromptAsync(session: ContextSession): Promise<void> {
     console.log(`[CM:sw:metaPrompt] skipped (${totalChars} chars > ${METAPROMPT_MAX_CHARS} limit): ${session.id}`);
     return;
   }
+
+  // Skip re-summarisation when message content is identical to the last build,
+  // or when the last build ran less than METAPROMPT_COOLDOWN_MS ago.
+  const contentSig = `${session.messages.length}:${totalChars}:` +
+    (session.messages[session.messages.length - 1]?.content ?? '').slice(0, 200);
+  const prevSig = metaPromptLastHash.get(session.id);
+  const prevBuiltAt = metaPromptLastBuiltAt.get(session.id) ?? 0;
+  const nowMs = Date.now();
+  if (prevSig === contentSig && (nowMs - prevBuiltAt) < METAPROMPT_COOLDOWN_MS) {
+    console.log(`[CM:sw:metaPrompt] skipped (unchanged, ${Math.round((nowMs - prevBuiltAt) / 1000)}s since last): ${session.id}`);
+    return;
+  }
+  metaPromptLastHash.set(session.id, contentSig);
+  metaPromptLastBuiltAt.set(session.id, nowMs);
+
   const t0 = performance.now();
 
   // Quick tier-1 summary (fast, < 100ms)
@@ -1727,9 +1830,17 @@ async function buildMetaPromptAsync(session: ContextSession): Promise<void> {
     ? Math.round((1 - summaryResult.summaryTokenEstimate / summaryResult.originalTokenEstimate) * 100)
     : 0;
 
+  // Tier 2 produces ~440 chars of fixed XML scaffolding regardless of session size.
+  // For sessions with fewer than 10 messages OR under 500 total chars the output
+  // is larger than the input → negative compression. Skip Tier 2 pre-build for
+  // these cases; on-demand build at migration time will handle them.
+  const TIER2_MIN_MESSAGES = 10;
+  const TIER2_MIN_CHARS = 500;
+  const buildTier2 = session.messages.length >= TIER2_MIN_MESSAGES || totalChars >= TIER2_MIN_CHARS;
+
   // Build tier-2 intelligent summary
-  const tier2Result = summarizeIntelligent(session.messages);
-  const tier2Compression = tier2Result.compressionRatio;
+  const tier2Result = buildTier2 ? summarizeIntelligent(session.messages) : null;
+  const tier2Compression = tier2Result?.compressionRatio ?? 0;
 
   const targets: import("@/lib/types").Platform[] = ["claude", "chatgpt", "gemini", "grok", "deepseek", "perplexity"];
 
@@ -1755,26 +1866,28 @@ async function buildMetaPromptAsync(session: ContextSession): Promise<void> {
         messageCount: session.messages.length,
       });
 
-      // Tier 2 MetaPrompt (intelligent summary)
-      const tier2Prompt = buildMigrationPrompt({
-        summary: tier2Result.goal,
-        extracted: undefined,
-        intelligentSummary: tier2Result,
-        targetPlatform: target,
-        sourceSession: session,
-        tier: 2,
-        compressionRatio: tier2Compression,
-        metadata: session.metadata,
-      });
-      await db.saveMetaPrompt({
-        sessionId: session.id,
-        platform: target,
-        tier: 2,
-        prompt: tier2Prompt,
-        compressionRatio: tier2Compression,
-        builtAt: Date.now(),
-        messageCount: session.messages.length,
-      });
+      // Tier 2 MetaPrompt — only for sessions large enough to benefit from compression.
+      if (tier2Result) {
+        const tier2Prompt = buildMigrationPrompt({
+          summary: tier2Result.goal,
+          extracted: undefined,
+          intelligentSummary: tier2Result,
+          targetPlatform: target,
+          sourceSession: session,
+          tier: 2,
+          compressionRatio: tier2Compression,
+          metadata: session.metadata,
+        });
+        await db.saveMetaPrompt({
+          sessionId: session.id,
+          platform: target,
+          tier: 2,
+          prompt: tier2Prompt,
+          compressionRatio: tier2Compression,
+          builtAt: Date.now(),
+          messageCount: session.messages.length,
+        });
+      }
     } catch (err) {
       console.warn(`[CM:sw:metaPrompt] build failed for ${target}:`, err);
     }

@@ -62,11 +62,14 @@ function scrapeMessages(): Message[] {
 
 startSessionCapture({
   platform: "gemini",
-  selectorOrElement: "chat-window, main",
+  selectorOrElement: () => _remoteSelectors?.observerTarget ?? "chat-window, main",
   scrapeMessages: () => runCapturePipeline("gemini", scrapeMessages),
   requiresScrollBack: true,
   getScrollContainerSelector: () => _remoteSelectors?.scrollContainer,
-  extraCaptureDelays: [1500, 3000],
+  // Angular renders message shells first, then hydrates text content async.
+  // Extra 2 s / 4 s captures catch sessions that load after the initial mount.
+  extraCaptureDelays: [1500, 2000, 3000, 4000],
+  observerSettleMs: 150,
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {

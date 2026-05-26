@@ -258,7 +258,7 @@ function scrapeMessages(): Message[] {
 
 startSessionCapture({
   platform: "claude",
-  selectorOrElement: "main",
+  selectorOrElement: () => _remoteSelectors?.observerTarget ?? "main",
   scrapeMessages: () => runCapturePipeline("claude", scrapeMessages),
   // Claude's SPA can take 2–6s to render messages after route changes (lazy
   // virtual-scroll mount). The default capture schedule (immediate, 100,

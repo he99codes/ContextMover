@@ -29,9 +29,10 @@ export function debounce<T extends (...args: any[]) => void>(fn: T, ms: number):
 }
 
 export function createObserver(
-  selectorOrElement: string | Element,
+  selectorOrElement: string | Element | (() => string | Element),
   callback: () => void,
-  debounceMs = 150
+  debounceMs = 150,
+  platform = ""
 ): MutationObserver {
   // Debounce so streaming AI responses (one DOM mutation per token) don't
   // call scrapeMessages on every individual token.
@@ -43,23 +44,54 @@ export function createObserver(
 
   const observer = new MutationObserver(debouncedCallback);
 
-  function attach() {
-    const target =
-      typeof selectorOrElement === "string"
-        ? document.querySelector(selectorOrElement) ?? document.body
-        : selectorOrElement;
+  // Tracks whether the 1 s grace-period retry has already been scheduled so
+  // we don't queue it twice on rapid re-attach calls.
+  let retryScheduled = false;
 
-    // Guard: document.body is null at document_start — defer until DOM is ready
-    if (!target) {
-      document.addEventListener("DOMContentLoaded", attach, { once: true });
+  function attach() {
+    // Resolve getter — if selectorOrElement is a function, call it now so
+    // _remoteSelectors has had time to load on the 1 s retry path.
+    const resolved: string | Element =
+      typeof selectorOrElement === "function" ? selectorOrElement() : selectorOrElement;
+
+    if (typeof resolved !== "string") {
+      // Element reference — observe directly; defer if body not yet ready.
+      if (!resolved) {
+        document.addEventListener("DOMContentLoaded", attach, { once: true });
+        return;
+      }
+      observer.observe(resolved, { childList: true, subtree: true, characterData: true });
       return;
     }
 
-    observer.observe(target, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
+    // String selector path — never silently fall back to document.body.
+    const target = document.querySelector(resolved);
+    if (!target) {
+      if (document.readyState === "loading") {
+        // DOM not yet ready — retry once it is.
+        document.addEventListener("DOMContentLoaded", attach, { once: true });
+        return;
+      }
+      if (!retryScheduled) {
+        // First miss: _remoteSelectors may still be loading (async fetch).
+        // Wait 1 s so the getter can return the remote value, then try once more.
+        retryScheduled = true;
+        setTimeout(attach, 1_000);
+        return;
+      }
+      // Second miss — selector is genuinely absent. Platform likely updated their UI.
+      if (platform) {
+        chrome.runtime.sendMessage({
+          type: "SCRAPER_BROKEN",
+          platform,
+          reason: `Selector not found: ${resolved}`,
+          href: location.href,
+        }).catch(() => {});
+      }
+      return;
+    }
+
+    observer.observe(target, { childList: true, subtree: true, characterData: true });
   }
 
   attach();
@@ -123,7 +155,7 @@ function hashMessages(messages: Message[]): string {
 
 export function startSessionCapture(config: {
   platform: string;
-  selectorOrElement: string | Element;
+  selectorOrElement: string | Element | (() => string | Element);
   scrapeMessages: () => Message[];
   getTitle?: (messages: Message[]) => string;
   // Optional additional capture delays (ms after script load) layered on top
@@ -139,6 +171,10 @@ export function startSessionCapture(config: {
   // Lazy getter for the remote-config scrollContainer selector — evaluated when
   // autoScrollBackToTop runs so the async remote config has time to load.
   getScrollContainerSelector?: () => string | undefined;
+  // Override the MutationObserver debounce (default 150 ms). Platforms that
+  // render message shells before hydrating text (e.g. Gemini Angular) benefit
+  // from a longer settle window so the scrape fires after text is populated.
+  observerSettleMs?: number;
 }) {
   // Guard against the content script being loaded twice in the same page.
   // This happens when the service worker re-injects on install/reload while
@@ -167,6 +203,12 @@ export function startSessionCapture(config: {
   let lastHref = window.location.href;
   let lastUnchangedAt = 0;
   const UNCHANGED_COOLDOWN_MS = 5_000; // don't re-scrape if last result was unchanged < 5s ago
+
+  // Zero-scrape retry gate — when scrape returns 0 after previously having messages,
+  // retry 3× at 1 s intervals before clearing session state.
+  let zeroScrapeRetries = 0;
+  const MAX_ZERO_RETRIES = 3;
+  let zeroRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Double-capture guards:
   // captureInFlight — prevents concurrent executions of capture() overlapping on ensureSessionId().
@@ -233,10 +275,18 @@ export function startSessionCapture(config: {
     const currentHref = window.location.href;
     if (currentHref !== lastHref) {
       lastHref = currentHref;
-      sessionId = null;
-      lastMessageHash = "";
-      lastSentMessageCount = 0;
-      console.log(`[ContextMover] URL changed — re-resolving sessionId`);
+      // Only drop the session reference when we have NOT yet captured messages.
+      // If we had a 179-msg session and the SPA navigates (chat reload / URL
+      // normalisation), keep the existing sessionId so the next non-zero scrape
+      // updates the same record instead of minting a new orphaned session.
+      if (lastSentMessageCount === 0) {
+        sessionId = null;
+        lastMessageHash = "";
+      }
+      // Always reset the retry counter on any navigation.
+      zeroScrapeRetries = 0;
+      if (zeroRetryTimer !== null) { clearTimeout(zeroRetryTimer); zeroRetryTimer = null; }
+      console.log(`[ContextMover] URL changed — ${lastSentMessageCount > 0 ? 'keeping sessionId (had messages)' : 're-resolving sessionId'}`);
     }
 
     // ── Fetch-intercept fallback gate ──────────────────────────────────
@@ -304,10 +354,35 @@ export function startSessionCapture(config: {
     const messages = config.scrapeMessages();
     diag(`scraped: total=${messages.length} user=${messages.filter(m=>m.role==='user').length} asst=${messages.filter(m=>m.role==='assistant').length}`);
     if (!messages.length) {
+      // If we previously captured messages, don't immediately abandon — the
+      // DOM may not have re-rendered yet (SPA navigation, lazy hydration).
+      // Retry up to MAX_ZERO_RETRIES × 1 s before treating as truly empty.
+      if (lastSentMessageCount > 0 && zeroScrapeRetries < MAX_ZERO_RETRIES) {
+        zeroScrapeRetries++;
+        console.log(`[ContextMover] ${config.platform}: 0 messages after ${lastSentMessageCount} — retry ${zeroScrapeRetries}/${MAX_ZERO_RETRIES}`);
+        diag(`zero-scrape retry ${zeroScrapeRetries}/${MAX_ZERO_RETRIES}`);
+        if (zeroRetryTimer !== null) clearTimeout(zeroRetryTimer);
+        zeroRetryTimer = setTimeout(() => { zeroRetryTimer = null; void capture(); }, 1_000);
+        return;
+      }
+      // Retries exhausted (or no prior messages) — genuine empty page.
+      if (lastSentMessageCount > 0) {
+        // Had messages before, now zero after retries — selector likely broken.
+        chrome.runtime.sendMessage({
+          type: "SCRAPER_BROKEN",
+          platform: config.platform,
+          reason: "Zero messages found after retries.",
+          href: location.href,
+        }).catch(() => {});
+      }
+      zeroScrapeRetries = 0;
       console.log(`[ContextMover] No messages found, skipping capture`);
       diag("bail: 0 messages from scrape");
       return;
     }
+    // Non-zero scrape — reset the retry counter.
+    zeroScrapeRetries = 0;
+    if (zeroRetryTimer !== null) { clearTimeout(zeroRetryTimer); zeroRetryTimer = null; }
 
     // Skip transient states: user just sent a message, assistant still
     // generating (or still has [data-is-streaming]). Persisting user-only
@@ -399,7 +474,7 @@ export function startSessionCapture(config: {
     }
   });
 
-  createObserver(config.selectorOrElement, capture);
+  createObserver(config.selectorOrElement, capture, config.observerSettleMs, config.platform);
 
   // Staggered initial captures — catches lazy-rendered messages at each stage.
   void capture();
@@ -420,10 +495,13 @@ export function startSessionCapture(config: {
   // any partial viewport captures that may have already been sent.
   if (config.requiresScrollBack) {
     ;(async () => {
+      const _resolvedSO = typeof config.selectorOrElement === 'function'
+        ? config.selectorOrElement()
+        : config.selectorOrElement;
       const scopeEl: Element =
-        typeof config.selectorOrElement === 'string'
-          ? (document.querySelector(config.selectorOrElement) ?? document.body)
-          : config.selectorOrElement
+        typeof _resolvedSO === 'string'
+          ? (document.querySelector(_resolvedSO) ?? document.body)
+          : _resolvedSO
       try {
         console.log(`[CM:${config.platform}] scrollback: starting — loading lazy history`)
         const restore = await autoScrollBackToTop(scopeEl, config.getScrollContainerSelector)

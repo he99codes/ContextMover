@@ -42,6 +42,26 @@ interface SessionCardProps {
   onSelect: () => void;
 }
 
+// ── Engagement badge definitions ─────────────────────────────────────────────
+const BADGE_DEV: React.CSSProperties = {
+  padding: "1px 5px", borderRadius: "8px", fontSize: "7px",
+  fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase",
+  background: "rgba(168,85,247,0.14)", border: "1px solid rgba(168,85,247,0.35)",
+  color: "#C084FC",
+};
+const BADGE_MARATHON: React.CSSProperties = {
+  padding: "1px 5px", borderRadius: "8px", fontSize: "7px",
+  fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase",
+  background: "rgba(249,115,22,0.14)", border: "1px solid rgba(249,115,22,0.35)",
+  color: "#FB923C",
+};
+const BADGE_DEEP: React.CSSProperties = {
+  padding: "1px 5px", borderRadius: "8px", fontSize: "7px",
+  fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase",
+  background: "rgba(6,182,212,0.12)", border: "1px solid rgba(6,182,212,0.3)",
+  color: "#22D3EE",
+};
+
 const SessionCard = memo<SessionCardProps>(function SessionCard({
   session,
   vaultConnected,
@@ -49,7 +69,21 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
   driveSourced,
   onSelect,
 }) {
+  const [hovered, setHovered] = useState(false);
   const pColor = PLATFORM_COLORS[session.platform];
+
+  // ── Engagement metrics derived from session data ──────────────────────────
+  // Code blocks: count artifacts of type "code" + matched fence pairs in content.
+  const codeBlockCount = session.messages.reduce((sum, msg) => {
+    const fromArtifacts = msg.artifacts?.filter(a => a.type === "code").length ?? 0;
+    const fences = msg.content.match(/```/g)?.length ?? 0;
+    return sum + fromArtifacts + Math.floor(fences / 2);
+  }, 0);
+  const msgCount = session.messages.length;
+  const isDevSession = codeBlockCount > 5;
+  const isMarathon   = msgCount > 50;
+  const isDeepCtx    = !isMarathon && msgCount > 20;
+
   return (
     <div
       key={session.id}
@@ -57,42 +91,69 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
       tabIndex={0}
       onClick={onSelect}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(); } }}
-      className="stagger-item group relative block w-full cursor-pointer overflow-hidden rounded-[4px] border bg-[#0a0a0a] px-2 py-[4px] text-left transition-all duration-200 hover:bg-[#111111]"
-      style={{ borderColor: `${pColor}25`, boxShadow: `0 1px 0 ${pColor}10` }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="stagger-item relative block w-full cursor-pointer rounded-[4px] border bg-[#0a0a0a] px-2 py-[4px] text-left"
+      style={{
+        borderColor: hovered ? `${pColor}50` : `${pColor}25`,
+        boxShadow: hovered
+          ? `0 0 0 1px ${pColor}30, 0 4px 18px ${pColor}20, 0 1px 0 ${pColor}18`
+          : `0 1px 0 ${pColor}10`,
+        transform: hovered ? "translateY(-1px)" : "translateY(0)",
+        transition: "border-color 180ms ease, box-shadow 180ms ease, transform 150ms ease, background 150ms ease",
+        background: hovered ? "#111111" : "#0a0a0a",
+        overflow: "hidden",
+      }}
     >
       <span className="absolute inset-y-0 left-0 w-[2px]" style={{ background: pColor }} />
       <div className="flex items-center gap-1 pl-1">
         <div className="min-w-0 flex-1">
+          {/* ── Header row: platform badge + drive icon + engagement badges ── */}
           <div className="flex items-center gap-1">
             <PlatformBadge platform={session.platform} logoSize={8} />
             {driveSourced && (
               <span
                 title="Synced from Google Drive (captured on another profile)"
-                style={{
-                  fontSize: 9,
-                  color: '#5AA9FF',
-                  letterSpacing: '0.05em',
-                }}
+                style={{ fontSize: 9, color: "#5AA9FF", letterSpacing: "0.05em" }}
               >
                 ☁
               </span>
             )}
+            {isDevSession  && <span style={BADGE_DEV}>Dev Session</span>}
+            {isMarathon    && <span style={BADGE_MARATHON}>Marathon</span>}
+            {isDeepCtx     && <span style={BADGE_DEEP}>Deep Context</span>}
           </div>
           <InlineRename
             session={session}
-            displayClassName="truncate text-[11px] font-semibold text-[#F5F5F5] transition-colors group-hover:text-[#00FF88] cursor-text"
+            displayClassName="truncate text-[11px] font-semibold text-[#F5F5F5] cursor-text"
             inputClassName="w-full bg-transparent border-b border-[#00FF88] text-[11px] font-semibold text-[#F5F5F5] outline-none"
             onRename={(name) => chrome.runtime.sendMessage({ type: "RENAME_SESSION", sessionId: session.id, title: name })}
             stopPropagation
           />
+          {/* ── Meta row ── */}
           <div className="flex items-center gap-1 text-[8px] uppercase" style={{ letterSpacing: "0.08em", color: "#2A4A2A" }}>
-            <span>{session.messages.length} turns</span>
+            <span>{msgCount} turns</span>
             <span>·</span>
             <span>{formatRelativeTime(session.updatedAt)}</span>
             <span>·</span>
             <span style={{ fontSize: "8px", color: vaultConnected === true ? "#00AA55" : "#4A4A4A" }}>
               {vaultConnected === true ? "🔒 Vault" : "📱 Local"}
             </span>
+            {codeBlockCount > 0 && (
+              <>
+                <span>·</span>
+                <span
+                  title={`${codeBlockCount} code block${codeBlockCount !== 1 ? "s" : ""}`}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: "2px",
+                    color: "#6366F1", fontWeight: 700, fontSize: "8px",
+                  }}
+                >
+                  <span style={{ fontFamily: "monospace", fontSize: "9px", lineHeight: 1 }}>&lt;/&gt;</span>
+                  {codeBlockCount}
+                </span>
+              </>
+            )}
             {migrationTier && (
               <>
                 <span>·</span>
@@ -113,7 +174,10 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1 pt-0.5">
-          <span className="text-[#3A3A3A] transition-colors group-hover:text-[#00FF88]">›</span>
+          <span style={{
+            color: hovered ? "#00FF88" : "#3A3A3A",
+            transition: "color 150ms ease",
+          }}>›</span>
         </div>
       </div>
     </div>
@@ -388,9 +452,13 @@ export default function Sidebar() {
   }, []);
 
   // Keep handleMessageRef in sync with latest loadSessions closure every render.
-  handleMessageRef.current = (msg: { type: string; pct?: number; done?: number; total?: number; phase?: string }) => {
+  handleMessageRef.current = (msg: { type: string; pct?: number; done?: number; total?: number; phase?: string; platform?: string; reason?: string }) => {
     if (msg.type === "SESSIONS_UPDATED") {
       loadSessions();
+    }
+    if (msg.type === "SCRAPER_BROKEN") {
+      const p = msg.platform ?? "unknown";
+      setStatusMessage({ tone: "error", text: `[${p}] UI changed! Scraper broken. Update pending.` });
     }
     if (msg.type === "USAGE_WARNING") {
       chrome.storage.local.get("accessToken", ({ accessToken }) => {

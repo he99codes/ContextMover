@@ -7,16 +7,22 @@
 
 // packages/browser-extension/src/offscreen/offscreen.ts
 //
-// Hidden offscreen document. Runs chunking + embedding on its own thread
-// (the offscreen document IS already a separate process from the SW — no
-// nested worker needed). IndexedDB writes happen here where Dexie is stable.
+// Offscreen document — Preemptive Priority Queue Manager.
 //
-// Message protocol with SW:
-//   IN:  { type: 'OFFSCREEN_INDEX_SESSION', session, hardware, requestId }
-//        { type: 'OFFSCREEN_EMBED_QUERY',   text,    hardware, requestId }
+// Architecture: SW (Boss) → Offscreen (Queue Manager) → ml-worker (Heavy Lifter)
+//
+// The offscreen document's JS thread manages two queues and drip-feeds work
+// to the dedicated Web Worker (ml-worker.ts) that runs the WASM pipeline.
+// Yielding between chunks keeps this thread responsive to priority interrupts
+// from the SW (e.g. when the user clicks "Migrate").
+//
+// Message protocol with SW (unchanged — backward-compatible):
+//   IN:  { type: 'OFFSCREEN_INDEX_SESSION', session, hardware, requestId, priority? }
+//        { type: 'OFFSCREEN_EMBED_QUERY',   text,    requestId, priority? }
 //        { type: 'OFFSCREEN_WARMUP' }
 //        { type: 'OFFSCREEN_PING' }
-//   OUT: chrome.runtime.sendMessage (broadcast back to SW listeners)
+//   OUT: (chrome.runtime.sendMessage broadcasts back to SW listeners)
+//        { type: 'OFFSCREEN_READY' }
 //        { type: 'OFFSCREEN_PROGRESS', requestId, progress, stage }
 //        { type: 'OFFSCREEN_INDEX_DONE', requestId, chunkCount }
 //        { type: 'OFFSCREEN_EMBED_DONE', requestId, embedding }
@@ -25,127 +31,263 @@
 import type { ContextSession } from "../lib/types";
 import type { HardwareProfile } from "../lib/attention-engine";
 import { chunkMessages, type Chunk } from "../lib/semantic-index/chunker";
-import { embedText, embedTexts, warmup } from "../lib/inference/embedder";
 import { dexieDb, type ChunkEmbedding } from "../lib/db";
 import { hashMessages } from "../lib/semantic-index/hasher";
+// Vite ?worker syntax — @crxjs bundles this as an extension-origin worker chunk.
+// @ts-ignore — worker plugin injects the default export at build time
+import MLWorker from "./ml-worker?worker";
 
-console.log("[CM:offscreen] booted");
+console.log("[CM:offscreen] booted — queue manager initialising");
 
-// Pre-load the model so it's hot before the first real request arrives.
-// Signal OFFSCREEN_READY when done so the SW can release queued embed requests.
-warmup().then(() => {
-  chrome.runtime.sendMessage({ type: "OFFSCREEN_READY" }).catch(() => {});
-  console.log("[CM:offscreen] ready — embedder pipeline initialized");
-}).catch(() => {
-  // Warmup failed, but still signal ready to prevent the SW from blocking forever.
-  chrome.runtime.sendMessage({ type: "OFFSCREEN_READY" }).catch(() => {});
-  console.warn("[CM:offscreen] warmup failed — signalling ready to unblock embed queue");
-});
+// ── Web Worker setup ──────────────────────────────────────────────────────────
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+type WorkerResponse =
+  | { type: "WORKER_READY" }
+  | { type: "EMBED_RESULT"; requestId: string; embedding: number[] }
+  | { type: "EMBED_ERROR";  requestId: string; error: string };
 
-function progress(requestId: string, pct: number, stage: string) {
-  chrome.runtime.sendMessage({ type: "OFFSCREEN_PROGRESS", requestId, progress: pct, stage }).catch(() => {});
-}
+const worker = new (MLWorker as { new(): Worker })();
+let workerReady = false;
 
-// ── Indexing pipeline ──────────────────────────────────────────────────────
+// Pending embed callbacks keyed by requestId.
+const pendingEmbeds = new Map<string, {
+  resolve: (embedding: number[]) => void;
+  reject:  (err: Error) => void;
+}>();
 
-async function indexSession(
-  session: ContextSession,
-  hardware: HardwareProfile,
-  requestId: string
-): Promise<{ chunkCount: number }> {
-  progress(requestId, 10, "Chunking messages...");
-  const chunks: Chunk[] = chunkMessages(session.messages);
+worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
+  if (data.type === "WORKER_READY") {
+    workerReady = true;
+    console.log("[CM:offscreen] ml-worker ready — signalling SW");
+    chrome.runtime.sendMessage({ type: "OFFSCREEN_READY" }).catch(() => {});
+    // Start draining any jobs that were enqueued before the worker booted.
+    void drainLoop();
+    return;
+  }
+  const cb = pendingEmbeds.get(data.requestId);
+  if (!cb) return;
+  pendingEmbeds.delete(data.requestId);
+  if (data.type === "EMBED_RESULT") {
+    cb.resolve(data.embedding);
+  } else {
+    cb.reject(new Error((data as { error?: string }).error ?? "embed failed"));
+  }
+};
 
-  progress(requestId, 20, "Loading model...");
-  await warmup();
+worker.onerror = (ev: ErrorEvent) => {
+  console.error("[CM:offscreen] ml-worker error:", ev.message);
+  // Unblock any waiting embeds with a zero vector fallback.
+  for (const [id, cb] of pendingEmbeds) {
+    cb.reject(new Error(`worker error: ${ev.message}`));
+    pendingEmbeds.delete(id);
+  }
+};
 
-  progress(requestId, 70, `Embedding ${chunks.length} chunks...`);
-  const embeddings = await embedTexts(chunks.map((c) => c.text));
-
-  progress(requestId, 90, "Persisting to storage...");
-
-  // Delete stale chunks and write fresh ones
-  await dexieDb.chunkEmbeddings.where("sessionId").equals(session.id).delete();
-
-  const modelId = "Xenova/all-MiniLM-L6-v2";
-
-  const chunkRecords: ChunkEmbedding[] = chunks.map((chunk: Chunk, i: number) => ({
-    id: `${session.id}:${i}`,
-    sessionId: session.id,
-    chunkIndex: i,
-    text: chunk.text,
-    embedding: embeddings[i],
-    role: chunk.role,
-    messageIndex: chunk.messageIndex,
-    hasCode: chunk.hasCode,
-    language: chunk.language,
-    tokenCount: chunk.tokenCount,
-    createdAt: Date.now(),
-  }));
-  await dexieDb.chunkEmbeddings.bulkPut(chunkRecords);
-
-  await dexieDb.sessionHashes.put({
-    sessionId: session.id,
-    hash: hashMessages(session.messages),
-    chunkCount: chunks.length,
-    messageCount: session.messages.length,
-    model: modelId,
-    indexedAt: Date.now(),
+/** Send one text to the worker; returns a Promise that resolves with the embedding. */
+function embedViaWorker(text: string): Promise<number[]> {
+  const requestId = Math.random().toString(36).slice(2, 14);
+  return new Promise<number[]>((resolve, reject) => {
+    pendingEmbeds.set(requestId, { resolve, reject });
+    worker.postMessage({ requestId, text });
   });
-
-  return { chunkCount: chunks.length };
 }
 
-// ── chrome.runtime message router ─────────────────────────────────────────
+// ── Priority / Background job queues ─────────────────────────────────────────
+
+interface IndexJob {
+  kind: "index";
+  session: ContextSession;
+  hardware: HardwareProfile;
+  requestId: string;
+  priority: boolean;
+}
+
+interface EmbedJob {
+  kind: "embed";
+  text: string;
+  requestId: string;
+  priority: boolean;
+}
+
+type Job = IndexJob | EmbedJob;
+
+const priorityQueue:   Job[] = [];
+const backgroundQueue: Job[] = [];
+let loopRunning = false;
+
+/** Yield-to-event-loop primitive — lets the message pump process new chrome.runtime messages. */
+const yieldToEventLoop = (): Promise<void> => new Promise<void>((r) => setTimeout(r, 0));
+
+/**
+ * Enqueue a job. Always restarts the drain loop if it is not running.
+ * Priority jobs jump the background queue; they are also processed immediately
+ * within an in-progress background index (between chunk boundaries).
+ */
+function enqueue(job: Job): void {
+  if (job.priority) priorityQueue.push(job);
+  else              backgroundQueue.push(job);
+  if (!loopRunning && workerReady) void drainLoop();
+}
+
+/**
+ * Main drain loop — processes all queued jobs with priority-first ordering.
+ * After each job (and between chunks of an index job) the loop yields so that
+ * newly-arriving priority messages can be inserted before processing resumes.
+ */
+async function drainLoop(): Promise<void> {
+  if (loopRunning || !workerReady) return;
+  loopRunning = true;
+  try {
+    while (priorityQueue.length > 0 || backgroundQueue.length > 0) {
+      // Always consume all priority work before touching background queue.
+      const job = priorityQueue.shift() ?? backgroundQueue.shift()!;
+      if (job.kind === "index") await processIndexJob(job);
+      else                      await processEmbedJob(job);
+      // Yield after every job so new priority messages can be enqueued.
+      await yieldToEventLoop();
+    }
+  } finally {
+    loopRunning = false;
+  }
+}
+
+// ── Job processors ────────────────────────────────────────────────────────────
+
+async function processEmbedJob(job: EmbedJob): Promise<void> {
+  try {
+    const embedding = await embedViaWorker(job.text);
+    chrome.runtime.sendMessage({
+      type: "OFFSCREEN_EMBED_DONE",
+      requestId: job.requestId,
+      embedding,
+    }).catch(() => {});
+  } catch (err) {
+    chrome.runtime.sendMessage({
+      type: "OFFSCREEN_ERROR",
+      requestId: job.requestId,
+      error: err instanceof Error ? err.message : String(err),
+    }).catch(() => {});
+  }
+}
+
+async function processIndexJob(job: IndexJob): Promise<void> {
+  const { session, requestId } = job;
+  const MODEL_ID = "Xenova/all-MiniLM-L6-v2";
+
+  try {
+    progress(requestId, 10, "Chunking messages...");
+    // Extract text content from ContextSession.messages for embedding.
+    const chunks: Chunk[] = chunkMessages(session.messages);
+
+    progress(requestId, 20, `Embedding ${chunks.length} chunk(s)...`);
+    const embeddings: number[][] = [];
+
+    for (let i = 0; i < chunks.length; i++) {
+      // ── Drip-feed with priority interrupt ───────────────────────────────
+      // After every chunk: yield to let incoming chrome.runtime messages be
+      // processed. If a priority job arrived during that yield, flush all
+      // priority items BEFORE continuing with the next background chunk.
+      if (i > 0) {
+        await yieldToEventLoop();
+        while (priorityQueue.length > 0) {
+          const urgent = priorityQueue.shift()!;
+          if (urgent.kind === "index") await processIndexJob(urgent);
+          else                         await processEmbedJob(urgent);
+        }
+      }
+
+      const embedding = await embedViaWorker(chunks[i].text);
+      embeddings.push(embedding);
+
+      const pct = 20 + Math.round(((i + 1) / chunks.length) * 60);
+      progress(requestId, pct, `Embedding ${i + 1}/${chunks.length}`);
+    }
+
+    progress(requestId, 90, "Persisting to storage...");
+    // Replace stale chunks for this session with fresh embeddings.
+    await dexieDb.chunkEmbeddings.where("sessionId").equals(session.id).delete();
+
+    const chunkRecords: ChunkEmbedding[] = chunks.map((chunk, i) => ({
+      id:           `${session.id}:${i}`,
+      sessionId:    session.id,
+      chunkIndex:   i,
+      text:         chunk.text,
+      embedding:    embeddings[i],
+      role:         chunk.role,
+      messageIndex: chunk.messageIndex,
+      hasCode:      chunk.hasCode,
+      language:     chunk.language,
+      tokenCount:   chunk.tokenCount,
+      createdAt:    Date.now(),
+    }));
+    await dexieDb.chunkEmbeddings.bulkPut(chunkRecords);
+
+    await dexieDb.sessionHashes.put({
+      sessionId:    session.id,
+      hash:         hashMessages(session.messages),
+      chunkCount:   chunks.length,
+      messageCount: session.messages.length,
+      model:        MODEL_ID,
+      indexedAt:    Date.now(),
+    });
+
+    chrome.runtime.sendMessage({
+      type: "OFFSCREEN_INDEX_DONE",
+      requestId,
+      chunkCount: chunks.length,
+    }).catch(() => {});
+
+    console.log(`[CM:offscreen] indexed session ${session.id} — ${chunks.length} chunks`);
+  } catch (err) {
+    chrome.runtime.sendMessage({
+      type: "OFFSCREEN_ERROR",
+      requestId,
+      error: err instanceof Error ? err.message : String(err),
+    }).catch(() => {});
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function progress(requestId: string, pct: number, stage: string): void {
+  chrome.runtime.sendMessage({
+    type: "OFFSCREEN_PROGRESS",
+    requestId,
+    progress: pct,
+    stage,
+  }).catch(() => {});
+}
+
+// ── chrome.runtime message router ────────────────────────────────────────────
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (!msg || typeof msg !== "object") return;
+  if (!msg || typeof msg !== "object") return false;
 
   if (msg.type === "OFFSCREEN_INDEX_SESSION") {
-    const { session, hardware, requestId } = msg as {
-      session: ContextSession;
-      hardware: HardwareProfile;
+    const { session, hardware, requestId, priority = false } = msg as {
+      session:   ContextSession;
+      hardware:  HardwareProfile;
       requestId: string;
+      priority?: boolean;
     };
-    indexSession(session, hardware, requestId)
-      .then((res) => {
-        chrome.runtime.sendMessage({ type: "OFFSCREEN_INDEX_DONE", requestId, chunkCount: res.chunkCount }).catch(() => {});
-        sendResponse({ ok: true, chunkCount: res.chunkCount });
-      })
-      .catch((err: Error) => {
-        chrome.runtime.sendMessage({ type: "OFFSCREEN_ERROR", requestId, error: err.message }).catch(() => {});
-        sendResponse({ ok: false, error: err.message });
-      });
-    return true;
+    enqueue({ kind: "index", session, hardware, requestId, priority });
+    sendResponse({ ok: true, queued: true });
+    return false;
   }
 
   if (msg.type === "OFFSCREEN_EMBED_QUERY") {
-    const { text, requestId } = msg as { text: string; requestId: string };
-    embedText(text)
-      .then((embedding) => {
-        chrome.runtime.sendMessage({
-          type: "OFFSCREEN_EMBED_DONE",
-          requestId,
-          embedding
-        }).catch(() => {});
-        sendResponse({ ok: true, embedding });
-      })
-      .catch((err: Error) => {
-        chrome.runtime.sendMessage({
-          type: "OFFSCREEN_ERROR",
-          requestId,
-          error: err.message
-        }).catch(() => {});
-        sendResponse({ ok: false, error: err.message });
-      });
-    return true;
+    const { text, requestId, priority = false } = msg as {
+      text:      string;
+      requestId: string;
+      priority?: boolean;
+    };
+    enqueue({ kind: "embed", text, requestId, priority });
+    sendResponse({ ok: true, queued: true });
+    return false;
   }
 
   if (msg.type === "OFFSCREEN_WARMUP") {
-    // Pre-load model so it's hot when the user clicks Migrate
-    warmup().catch(() => {});
+    // Worker warms up automatically on boot; nothing extra needed here.
     sendResponse({ ok: true });
     return false;
   }

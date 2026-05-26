@@ -38,6 +38,8 @@ export interface PlatformSelectors {
   inputSelector?: string;
   /** Scope element selector — queries are run inside this element. */
   messageScope?: string;
+  /** Root selector passed to MutationObserver — overrides the hardcoded observer target. */
+  observerTarget?: string;
 }
 
 export interface RemoteConfig {

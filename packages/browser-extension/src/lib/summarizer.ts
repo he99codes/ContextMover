@@ -593,9 +593,18 @@ function extractAllCodeBlocks(messages: Message[]): CodeBlock[] {
     codeRe.lastIndex = 0;
     while ((match = codeRe.exec(msg.content)) !== null) {
       if (blocks.length >= MAX_CODE_BLOCKS) break;
-      const language = match[1].trim();
-      if (!language) continue; // Skip unlabeled fences — plain prose must never enter the code section
+      const rawLang = match[1].trim();
       const content = match[2]; // Full content — never truncated
+      // Accept unlabeled fences only when the body looks like code (has
+      // programming syntax chars + at least 2 non-empty lines). This captures
+      // Claude artifacts that omit the language tag while excluding plain-prose
+      // block-quote fences.
+      const CODE_SYNTAX_RE = /[{}()[\];=<>]|=>|\bfunction\b|\bconst\b|\blet\b|\bvar\b|\bdef\b|\bclass\b/;
+      if (!rawLang) {
+        const lines = content.split('\n').filter(l => l.trim().length > 0);
+        if (lines.length < 2 || !CODE_SYNTAX_RE.test(content)) continue;
+      }
+      const language = rawLang || 'text';
 
       // Detect file path from first-line comment: "// src/foo.ts" or "# path.py"
       const firstLine = content.split("\n")[0]?.trim() ?? "";
@@ -930,9 +939,14 @@ export function summarizeIntelligent(messages: Message[], task?: string): Intell
     let match: RegExpExecArray | null;
     codeRe.lastIndex = 0;
     while ((match = codeRe.exec(msg.content)) !== null) {
-      const language = match[1].trim();
-      if (!language) continue; // Skip unlabeled fences — plain prose must never enter the code section
+      const rawLang2 = match[1].trim();
       const code = match[2]; // Never truncated.
+      if (!rawLang2) {
+        const lines2 = code.split('\n').filter(l => l.trim().length > 0);
+        const hasSyntax2 = /[{}()[\];=<>]|=>|\bfunction\b|\bconst\b|\blet\b|\bvar\b|\bdef\b|\bclass\b/.test(code);
+        if (lines2.length < 2 || !hasSyntax2) continue;
+      }
+      const language = rawLang2 || 'text';
       const firstLine = code.split("\n")[0]?.trim() ?? "";
       const pathMatch =
         firstLine.match(/^(?:\/\/|#|--)\s+([\w./\\-]+\.\w+)\s*$/) ??
