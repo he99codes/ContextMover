@@ -28,6 +28,7 @@
 import { openDB, type IDBPDatabase } from "idb";
 import type { ContextSession, Message, CodeBlock } from "./types";
 import { dexieDb } from "./db";
+import { cosineSimilarity, searchContextChunks } from "./math";
 import {
   capabilityDetector,
   getTierConfig,
@@ -883,15 +884,7 @@ export class AttentionEngine {
   // ─── Private: cosine similarity ───────────────────────────────────────────
 
   private cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length || a.length === 0) return 0;
-    let dot = 0, magA = 0, magB = 0;
-    for (let i = 0; i < a.length; i++) {
-      dot  += a[i] * b[i];
-      magA += a[i] * a[i];
-      magB += b[i] * b[i];
-    }
-    const denom = Math.sqrt(magA) * Math.sqrt(magB);
-    return denom === 0 ? 0 : dot / denom;
+    return cosineSimilarity(a, b);
   }
 
   // ─── Private: keyword scoring (model fallback) ────────────────────────────
@@ -967,36 +960,46 @@ export class AttentionEngine {
 
     if (uncached.length > 0) {
       await ensureOffscreenDocument();
-      const embedPromises = uncached.map(({ text }) =>
-        new Promise<number[]>((resolve) => {
-          const requestId = crypto.randomUUID();
 
-          const listener = (response: { type?: string; requestId?: string; embedding?: number[] }) => {
-            if (
-              response.type === "OFFSCREEN_EMBED_DONE" &&
-              response.requestId === requestId
-            ) {
-              chrome.runtime.onMessage.removeListener(listener);
-              resolve(response.embedding ?? new Array(EMBEDDING_DIM).fill(0));
-            } else if (
-              response.type === "OFFSCREEN_ERROR" &&
-              response.requestId === requestId
-            ) {
-              chrome.runtime.onMessage.removeListener(listener);
-              resolve(new Array(EMBEDDING_DIM).fill(0));
-            }
-          };
+      // Process in fixed-size batches so we never flood the offscreen doc's
+      // serial drain loop with 100+ simultaneous queries. Each batch is
+      // awaited before the next begins, giving the event loop (and the drain
+      // loop's yieldToEventLoop()) room to breathe between batches.
+      // 8 is the sweet spot: enough parallelism to keep the worker busy,
+      // small enough to avoid queue flooding.
+      const EMBED_BATCH_SIZE = 8;
+      // Per-query timeout — if the offscreen doc is killed mid-batch the
+      // sendMessage channel closes; we fall back to a zero vector.
+      const EMBED_TIMEOUT_MS = 30_000;
 
-          chrome.runtime.onMessage.addListener(listener);
-          chrome.runtime.sendMessage({
-            type: "OFFSCREEN_EMBED_QUERY",
-            text,
-            requestId,
-          }).catch(() => resolve(new Array(EMBEDDING_DIM).fill(0)));
-        })
-      );
+      const zeroVec = () => new Array<number>(EMBEDDING_DIM).fill(0);
 
-      const freshEmbeddings = await Promise.all(embedPromises);
+      // offscreen.ts now stores the sendResponse callback and calls it with
+      // { ok, embedding } when the job completes. The embedding travels ONLY
+      // back to this sender — never broadcast over chrome.runtime — so the
+      // SW logger and all other extension contexts never see it.
+      const singleEmbed = (text: string): Promise<number[]> => {
+        const requestId = crypto.randomUUID();
+        const embedPromise = chrome.runtime
+          .sendMessage({ type: "OFFSCREEN_EMBED_QUERY", text, requestId })
+          .then((res: { ok?: boolean; embedding?: number[] } | undefined) =>
+            res?.ok && res.embedding ? res.embedding : zeroVec()
+          )
+          .catch(() => zeroVec());
+
+        const timeoutPromise = new Promise<number[]>((resolve) =>
+          setTimeout(() => resolve(zeroVec()), EMBED_TIMEOUT_MS)
+        );
+
+        return Promise.race([embedPromise, timeoutPromise]);
+      };
+
+      const freshEmbeddings: number[][] = [];
+      for (let b = 0; b < uncached.length; b += EMBED_BATCH_SIZE) {
+        const batch = uncached.slice(b, b + EMBED_BATCH_SIZE);
+        const batchResults = await Promise.all(batch.map(({ text }) => singleEmbed(text)));
+        freshEmbeddings.push(...batchResults);
+      }
 
       uncached.forEach(({ idx, text }, i) => {
         const embedding = freshEmbeddings[i] ?? new Array(EMBEDDING_DIM).fill(0);
@@ -1228,6 +1231,59 @@ export class AttentionEngine {
         endLine: lines.length - 1,
       };
     });
+  }
+
+  // ─── Public: getHighAttentionContext ──────────────────────────────────────
+
+  /**
+   * Semantic point-query retrieval for a single session.
+   *
+   * 1. Embeds `searchQuery` via the Offscreen Document (WASM pipeline).
+   * 2. Loads all pre-computed chunks for `sessionId` from IndexedDB.
+   * 3. Scores every chunk with cosine similarity and returns the top `topK`
+   *    joined into a single context string, ready to pass to the UI or an LLM.
+   *
+   * Falls back to keyword scoring when the embedding model is unavailable
+   * (zero-vector query), so the function always returns a useful result.
+   *
+   * @param sessionId   - The session whose indexed chunks are searched.
+   * @param searchQuery - Natural-language question or task description.
+   * @param topK        - Maximum number of chunks to include (default 10).
+   */
+  async getHighAttentionContext(
+    sessionId: string,
+    searchQuery: string,
+    topK = 10,
+  ): Promise<string> {
+    if (!searchQuery.trim()) return "";
+
+    const queryEmb = await this.getEmbedding(searchQuery);
+
+    const db = await this.openIdb();
+    const allChunks = (await (
+      db.getAllFromIndex(CHUNKS_STORE, "sessionId", sessionId) as Promise<AttentionChunk[]>
+    ));
+
+    if (allChunks.length === 0) return "";
+
+    // When the embedding model is unavailable, queryEmb is all-zero.
+    // Cosine similarity against zero vectors always returns 0, making ranking
+    // meaningless. Fall back to keyword scoring so the result stays useful.
+    const modelReady = queryEmb.some((v) => v !== 0);
+
+    let topChunks: Array<{ text: string; score: number }>;
+
+    if (modelReady) {
+      const input = allChunks.map((c) => ({ text: c.content, embedding: c.embedding }));
+      topChunks = searchContextChunks(queryEmb, input, topK);
+    } else {
+      topChunks = allChunks
+        .map((c) => ({ text: c.content, score: this.keywordScore(searchQuery, c.content) }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, topK);
+    }
+
+    return topChunks.map((c) => c.text).join("\n\n---\n\n");
   }
 
   // ─── Public: clear project index ────────────────────────────────────────────

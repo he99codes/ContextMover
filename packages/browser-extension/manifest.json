@@ -38,7 +38,8 @@
         "https://*.huggingface.co/*",
         "https://cdn.jsdelivr.net/*",
         "https://www.googleapis.com/*",
-        "https://accounts.google.com/*"
+        "https://accounts.google.com/*",
+        "https://*.supabase.co/*"
     ],
     "background": {
         "service_worker": "src/background/service-worker.ts",

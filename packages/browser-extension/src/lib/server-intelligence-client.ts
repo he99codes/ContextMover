@@ -64,6 +64,35 @@ async function apiFetch<T>(
   return res.json() as Promise<T>;
 }
 
+// ── Scraper-broken telemetry ──────────────────────────────────────────────────
+
+const TIMEOUT_TELEMETRY_MS = 5_000;
+
+/**
+ * Fire-and-forget ping to the backend when a content-script selector breaks.
+ * Lets the engineering team know which platform changed its DOM so they can
+ * push a hotfix to selectors.json. Never throws — safe to void-call from the SW.
+ */
+export async function reportScraperBroken(payload: {
+  platform: string;
+  reason:   string;
+  href:     string;
+  timestamp: number;
+}): Promise<void> {
+  try {
+    await withTimeout(
+      fetch(`${API_BASE}/api/telemetry/scraper-error`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }),
+      TIMEOUT_TELEMETRY_MS
+    );
+  } catch {
+    // Intentionally silent — telemetry must never crash the service worker.
+  }
+}
+
 // ── Attention Score ───────────────────────────────────────────────────────────
 
 export interface AttentionScoreResult {

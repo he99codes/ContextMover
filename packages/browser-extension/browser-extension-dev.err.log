@@ -1,0 +1,20 @@
+[2m9:35:41 pm[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "./Popup" from "src/popup/main.tsx". Does the file exist?
+[2m9:35:41 pm[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "./Popup" from "src/popup/main.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mC:/Users/VIP/Desktop/ContextForge/packages/browser-extension/src/popup/main.tsx[39m:3:18
+[33m  2  |  import React from "react";
+  3  |  import ReactDOM from "react-dom/client";
+  4  |  import Popup from "./Popup";
+     |                     ^
+  5  |  import "./index.css";
+  6  |  ReactDOM.createRoot(document.getElementById("root")).render([39m
+      at TransformPluginContext._formatError (file:///C:/Users/VIP/Desktop/ContextForge/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.39/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///C:/Users/VIP/Desktop/ContextForge/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.39/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///C:/Users/VIP/Desktop/ContextForge/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.39/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///C:/Users/VIP/Desktop/ContextForge/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.39/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 3)
+      at async TransformPluginContext.transform (file:///C:/Users/VIP/Desktop/ContextForge/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.39/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///C:/Users/VIP/Desktop/ContextForge/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.39/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/VIP/Desktop/ContextForge/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.39/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///C:/Users/VIP/Desktop/ContextForge/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.39/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)

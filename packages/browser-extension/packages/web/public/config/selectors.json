@@ -1,0 +1,39 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-05-19",
+  "platforms": {
+    "claude": {
+      "userSelector": "[data-testid=\"human-turn\"]",
+      "assistantSelector": "[data-testid=\"ai-turn\"]",
+      "inputSelector": ".ProseMirror[contenteditable=\"true\"]",
+      "messageScope": "main"
+    },
+    "chatgpt": {
+      "messageSelector": "[data-message-author-role]",
+      "contentSelector": ".markdown, .whitespace-pre-wrap",
+      "inputSelector": "#prompt-textarea"
+    },
+    "gemini": {
+      "userSelector": "user-query",
+      "assistantSelector": "model-response",
+      "inputSelector": "rich-textarea [contenteditable='true']"
+    },
+    "grok": {
+      "userSelector": "[class*=\"usermessage\"]",
+      "assistantSelector": "[class*=\"response-content-markdown\"]",
+      "inputSelector": "[data-testid=\"chat-input\"] [contenteditable=\"true\"]"
+    },
+    "perplexity": {
+      "messageSelector": "[data-message-role]",
+      "userSelector": "[class*=\"UserMessage\"]",
+      "assistantSelector": "[class*=\"AnswerText\"]",
+      "inputSelector": "textarea#ask"
+    },
+    "deepseek": {
+      "messageSelector": "[data-message-author-role]",
+      "userSelector": "[class*=\"userMessage\"]",
+      "assistantSelector": "[class*=\"ds-markdown\"]",
+      "inputSelector": "textarea[placeholder*=\"Message\"]"
+    }
+  }
+}

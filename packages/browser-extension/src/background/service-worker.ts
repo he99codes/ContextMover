@@ -24,7 +24,7 @@ import { buildTier1File, buildTier2File, buildTier3File, getMessagesFromChunks }
 import { buildInstructionPrompt } from "@/lib/instruction-builder"
 import { checkUsage, incrementUsage } from "@/lib/usage-client"
 import type { MigrationFile } from "@/lib/file-builder"
-import { fetchSummary, fetchMigrationBuild } from "@/lib/server-intelligence-client"
+import { fetchSummary, fetchMigrationBuild, reportScraperBroken } from "@/lib/server-intelligence-client"
 import { getRemoteConfig } from "@/lib/remote-config"
 // Drive sync — additive layer over IndexedDB. Independent of Supabase vault.
 import { driveClient } from "@/lib/drive/drive-client";
@@ -633,6 +633,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           void refreshRemoteConfig().then(() => {
             console.log(`[CM:config] Selector config refreshed after SCRAPER_BROKEN (${brokenPlatform})`);
           }).catch(() => {});
+          void reportScraperBroken({
+            platform:  brokenPlatform,
+            reason:    brokenReason,
+            href:      typeof msg.href === 'string' ? msg.href : '',
+            timestamp: now,
+          });
         }
         void broadcastToViews(msg);
         sendResponse({ ok: true });

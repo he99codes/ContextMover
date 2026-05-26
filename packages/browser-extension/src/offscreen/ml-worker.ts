@@ -12,10 +12,10 @@
 // document's event loop stays free to manage the priority queue.
 //
 // Message protocol (Worker ↔ Offscreen Document):
-//   IN:  { requestId: string; text: string }
+//   IN:  { type: 'OFFSCREEN_EMBED_QUERY'; requestId: string; text: string }
 //   OUT: { type: 'WORKER_READY' }
-//        { type: 'EMBED_RESULT'; requestId: string; embedding: number[] }
-//        { type: 'EMBED_ERROR';  requestId: string; error: string }
+//        { type: 'OFFSCREEN_EMBED_DONE'; requestId: string; embedding: number[] }
+//        { type: 'OFFSCREEN_ERROR';      requestId: string; error: string }
 
 import { pipeline, env } from "@xenova/transformers";
 
@@ -76,7 +76,7 @@ getExtractor()
   });
 
 // ── Message handler ───────────────────────────────────────────────────────────
-self.onmessage = async (event: MessageEvent<{ requestId: string; text: string }>) => {
+self.onmessage = async (event: MessageEvent<{ type: string; requestId: string; text: string }>) => {
   const { requestId, text } = event.data;
   try {
     const extractor = await getExtractor();
@@ -85,10 +85,10 @@ self.onmessage = async (event: MessageEvent<{ requestId: string; text: string }>
     const output: any = await extractor(text, { pooling: "mean", normalize: true });
     // Extract raw Float32Array and convert to transferable number[].
     const embedding: number[] = Array.from(output.data as Float32Array);
-    postMessage({ type: "EMBED_RESULT", requestId, embedding });
+    postMessage({ type: "OFFSCREEN_EMBED_DONE", requestId, embedding });
   } catch (err: unknown) {
     postMessage({
-      type: "EMBED_ERROR",
+      type: "OFFSCREEN_ERROR",
       requestId,
       error: err instanceof Error ? err.message : String(err),
     });

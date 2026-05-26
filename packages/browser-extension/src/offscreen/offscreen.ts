@@ -43,8 +43,8 @@ console.log("[CM:offscreen] booted — queue manager initialising");
 
 type WorkerResponse =
   | { type: "WORKER_READY" }
-  | { type: "EMBED_RESULT"; requestId: string; embedding: number[] }
-  | { type: "EMBED_ERROR";  requestId: string; error: string };
+  | { type: "OFFSCREEN_EMBED_DONE"; requestId: string; embedding: number[] }
+  | { type: "OFFSCREEN_ERROR";     requestId: string; error: string };
 
 const worker = new (MLWorker as { new(): Worker })();
 let workerReady = false;
@@ -54,6 +54,11 @@ const pendingEmbeds = new Map<string, {
   resolve: (embedding: number[]) => void;
   reject:  (err: Error) => void;
 }>();
+
+// Pending sendResponse callbacks for OFFSCREEN_EMBED_QUERY messages.
+// Keyed by job requestId — called instead of chrome.runtime.sendMessage so the
+// embedding travels ONLY back to the sender, never broadcast to all listeners.
+const pendingResponses = new Map<string, (response: unknown) => void>();
 
 worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
   if (data.type === "WORKER_READY") {
@@ -67,7 +72,7 @@ worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
   const cb = pendingEmbeds.get(data.requestId);
   if (!cb) return;
   pendingEmbeds.delete(data.requestId);
-  if (data.type === "EMBED_RESULT") {
+  if (data.type === "OFFSCREEN_EMBED_DONE") {
     cb.resolve(data.embedding);
   } else {
     cb.reject(new Error((data as { error?: string }).error ?? "embed failed"));
@@ -88,7 +93,9 @@ function embedViaWorker(text: string): Promise<number[]> {
   const requestId = Math.random().toString(36).slice(2, 14);
   return new Promise<number[]>((resolve, reject) => {
     pendingEmbeds.set(requestId, { resolve, reject });
-    worker.postMessage({ requestId, text });
+    // Native Worker.postMessage — stays strictly inside the Worker boundary,
+    // never touches chrome.runtime.
+    worker.postMessage({ type: "OFFSCREEN_EMBED_QUERY", requestId, text });
   });
 }
 
@@ -154,19 +161,18 @@ async function drainLoop(): Promise<void> {
 // ── Job processors ────────────────────────────────────────────────────────────
 
 async function processEmbedJob(job: EmbedJob): Promise<void> {
+  // Retrieve and consume the sendResponse callback that was stored when the
+  // OFFSCREEN_EMBED_QUERY message arrived. Replying via sendResponse keeps
+  // the embedding private to the original sender — it is NEVER broadcast
+  // over chrome.runtime, so the SW logger and all other extension contexts
+  // never see the Float32Array payload.
+  const respond = pendingResponses.get(job.requestId);
+  pendingResponses.delete(job.requestId);
   try {
     const embedding = await embedViaWorker(job.text);
-    chrome.runtime.sendMessage({
-      type: "OFFSCREEN_EMBED_DONE",
-      requestId: job.requestId,
-      embedding,
-    }).catch(() => {});
+    respond?.({ ok: true, embedding });
   } catch (err) {
-    chrome.runtime.sendMessage({
-      type: "OFFSCREEN_ERROR",
-      requestId: job.requestId,
-      error: err instanceof Error ? err.message : String(err),
-    }).catch(() => {});
+    respond?.({ ok: false, error: err instanceof Error ? err.message : String(err) });
   }
 }
 
@@ -189,10 +195,14 @@ async function processIndexJob(job: IndexJob): Promise<void> {
       // priority items BEFORE continuing with the next background chunk.
       if (i > 0) {
         await yieldToEventLoop();
+        // Flush all urgent jobs that arrived while processing the previous chunk.
+        // Yield after EACH priority job so the offscreen thread stays responsive
+        // and new chrome.runtime messages are processed between jobs.
         while (priorityQueue.length > 0) {
           const urgent = priorityQueue.shift()!;
           if (urgent.kind === "index") await processIndexJob(urgent);
           else                         await processEmbedJob(urgent);
+          await yieldToEventLoop();
         }
       }
 
@@ -281,9 +291,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       requestId: string;
       priority?: boolean;
     };
+    // Store sendResponse — processEmbedJob will call it when the embedding is
+    // ready. Do NOT call sendResponse here; return true to keep the port open.
+    pendingResponses.set(requestId, sendResponse);
     enqueue({ kind: "embed", text, requestId, priority });
-    sendResponse({ ok: true, queued: true });
-    return false;
+    return true;
   }
 
   if (msg.type === "OFFSCREEN_WARMUP") {
