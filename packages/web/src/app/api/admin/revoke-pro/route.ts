@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
         user_id:      userId,
         plan:         "free",
         status:       "cancelled",
+        gateway:      "manual",
         cancelled_at: new Date().toISOString(),
         updated_at:   new Date().toISOString(),
       },

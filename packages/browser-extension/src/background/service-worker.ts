@@ -872,7 +872,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           }
         }
 
-        await handleMigrateContext(msg.payload, sendResponse, accessToken as string | undefined);
+        try {
+          await handleMigrateContext(msg.payload, sendResponse, accessToken as string | undefined);
+        } finally {
+          activeMigrationInProgress = false;
+        }
         break;
       }
 
@@ -920,46 +924,89 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       case "AUTH_GOOGLE_SIGN_IN": {
         if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
-        const { idToken } = msg.payload as { idToken: string };
+        const payload = msg.payload as { code?: string; idToken?: string; accessToken?: string; refreshToken?: string };
         try {
-          const res = await fetch(`${WEBAPP_URL}/api/auth/extension-google-signin`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ idToken }),
-            signal: AbortSignal.timeout(10_000),
-          });
-          const data = (await res.json()) as {
-            error?: string;
-            message?: string;
-            signupUrl?: string;
-            access_token?: string;
-            refresh_token?: string;
-            user?: { id: string; email?: string };
-          };
-          if (!res.ok || data.error) {
-            sendResponse({
-              error: data.error ?? "signin_failed",
-              message: data.message,
-              signupUrl: data.signupUrl,
+          // ── Primary path: PKCE authorization-code exchange ──────────────────
+          // The sidebar calls supabase.auth.signInWithOAuth (which stores the
+          // PKCE code_verifier in chrome.storage.local), then uses
+          // launchWebAuthFlow to get the authorization code, then sends it here.
+          // exchangeCodeForSession reads the stored verifier and exchanges the
+          // code with Supabase — no custom backend endpoint required.
+          if (payload.code) {
+            const { data: sd, error: exchErr } = await supabase.auth.exchangeCodeForSession(payload.code);
+            if (exchErr || !sd?.session) {
+              console.error("[CM:auth] exchangeCodeForSession failed:", exchErr);
+              sendResponse({ error: exchErr?.message ?? "Failed to create session" });
+              break;
+            }
+            await chrome.storage.local.set({
+              accessToken: sd.session.access_token,
+              userId: sd.user?.id,
             });
+            sendResponse({ user: sd.user ? { id: sd.user.id, email: sd.user.email } : null });
+            void broadcastToViews({ type: "AUTH_STATE_CHANGED" });
             break;
           }
-          if (data.access_token && data.refresh_token) {
-            await supabase.auth.setSession({
-              access_token: data.access_token,
-              refresh_token: data.refresh_token,
+
+          // ── Implicit flow path: tokens from URL hash (Supabase implicit mode) ─
+          // When Supabase project flow type is "Implicit", the redirect URL
+          // contains #access_token=...&refresh_token=... instead of ?code=.
+          if (payload.accessToken) {
+            const { data: sd, error: sessErr } = await supabase.auth.setSession({
+              access_token: payload.accessToken,
+              refresh_token: payload.refreshToken ?? "",
             });
-          }
-          if (data.access_token) {
+            if (sessErr || !sd?.session) {
+              console.error("[CM:auth] setSession (implicit) failed:", sessErr);
+              sendResponse({ error: sessErr?.message ?? "Failed to create session" });
+              break;
+            }
             await chrome.storage.local.set({
-              accessToken: data.access_token,
-              userId: data.user?.id,
+              accessToken: sd.session.access_token,
+              userId: sd.user?.id,
             });
+            sendResponse({ user: sd.user ? { id: sd.user.id, email: sd.user.email } : null });
+            void broadcastToViews({ type: "AUTH_STATE_CHANGED" });
+            break;
           }
-          sendResponse({ user: data.user ?? null });
-          void broadcastToViews({ type: "AUTH_STATE_CHANGED" });
+
+          // ── Legacy path: id_token via custom backend (backward compat) ───────
+          // Kept for clients that still send idToken. Will be removed once the
+          // PKCE path is confirmed stable across all environments.
+          if (payload.idToken) {
+            const res = await fetch(`${WEBAPP_URL}/api/auth/extension-google-signin`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ idToken: payload.idToken }),
+              signal: AbortSignal.timeout(10_000),
+            });
+            const data = (await res.json()) as {
+              error?: string;
+              message?: string;
+              signupUrl?: string;
+              access_token?: string;
+              refresh_token?: string;
+              user?: { id: string; email?: string };
+            };
+            if (!res.ok || data.error) {
+              sendResponse({ error: data.error ?? "signin_failed", message: data.message, signupUrl: data.signupUrl });
+              break;
+            }
+            if (data.access_token && data.refresh_token) {
+              await supabase.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token });
+            }
+            if (data.access_token) {
+              await chrome.storage.local.set({ accessToken: data.access_token, userId: data.user?.id });
+            }
+            sendResponse({ user: data.user ?? null });
+            void broadcastToViews({ type: "AUTH_STATE_CHANGED" });
+            break;
+          }
+
+          sendResponse({ error: "Missing code or idToken in payload" });
         } catch (err) {
-          sendResponse({ error: "Google sign-in failed" });
+          console.error("[CM:auth] AUTH_GOOGLE_SIGN_IN error:", err);
+          sendResponse({ error: err instanceof Error ? err.message : "Google sign-in failed" });
         }
         break;
       }

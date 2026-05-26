@@ -5,11 +5,6 @@
  * Proprietary and confidential.
  */
 
-// packages/browser-extension/src/lib/semantic-index/model-constants.ts
-//
-// Pure constants — NO runtime dependencies (no @xenova/transformers, no DOM).
-// Safe to import from ANY extension context including the service worker.
-
 export type ModelTier = "tiny" | "full";
 
 export interface ModelConfig {

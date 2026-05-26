@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState, type ReactNode } from "react";
+import { supabase } from "@/lib/supabase";
 
 type AuthUser = { id: string; email?: string | null } | null;
 
@@ -54,37 +55,69 @@ export default function AuthGate({ children }: AuthGateProps) {
     setError(null);
     setInfo(null);
     try {
-      const manifest = chrome.runtime.getManifest() as chrome.runtime.Manifest & {
-        oauth2?: { client_id?: string; scopes?: string[] };
-      };
-      const clientId = manifest.oauth2?.client_id;
-      if (!clientId) { setError("OAuth not configured"); setGoogleLoading(false); return; }
+      // Step 1: Get the Supabase-generated OAuth URL (PKCE flow).
+      // This stores the code_verifier in chrome.storage.local so the
+      // service worker can exchange the code after launchWebAuthFlow.
+      const { data: oauthData, error: oauthErr } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: chrome.identity.getRedirectURL(),
+          skipBrowserRedirect: true,
+        },
+      });
+      if (oauthErr || !oauthData?.url) {
+        setError(oauthErr?.message ?? "Failed to start Google sign-in");
+        setGoogleLoading(false);
+        return;
+      }
 
-      const redirectUri = chrome.identity.getRedirectURL();
-      const scopes = ["openid", "email", "profile"];
-      const authUrl =
-        "https://accounts.google.com/o/oauth2/v2/auth" +
-        "?client_id=" + encodeURIComponent(clientId) +
-        "&response_type=id_token" +
-        "&redirect_uri=" + encodeURIComponent(redirectUri) +
-        "&scope=" + encodeURIComponent(scopes.join(" ")) +
-        "&nonce=" + Math.random().toString(36).slice(2) +
-        "&prompt=select_account";
-
+      // Step 2: Open the OAuth consent screen in a browser popup.
       const responseUrl = await new Promise<string | undefined>((resolve) => {
         chrome.identity.launchWebAuthFlow(
-          { url: authUrl, interactive: true },
+          { url: oauthData.url, interactive: true },
           (url) => { resolve(url); void chrome.runtime.lastError; }
         );
       });
-      if (!responseUrl) { setError("Google sign-in cancelled"); setGoogleLoading(false); return; }
+      if (!responseUrl) { setError("Google sign-in was cancelled"); setGoogleLoading(false); return; }
 
-      const idMatch = responseUrl.match(/[#&]id_token=([^&]+)/);
-      const idToken = idMatch?.[1];
-      if (!idToken) { setError("No id_token received"); setGoogleLoading(false); return; }
+      // Step 3: Check for explicit OAuth error returned in the redirect.
+      let respParams: URLSearchParams;
+      try {
+        respParams = new URL(responseUrl).searchParams;
+      } catch {
+        setError("Unexpected redirect URL from Google");
+        setGoogleLoading(false);
+        return;
+      }
+      const oauthError = respParams.get("error");
+      if (oauthError) {
+        setError(respParams.get("error_description") ?? oauthError);
+        setGoogleLoading(false);
+        return;
+      }
+
+      // Step 4: Extract tokens — Supabase can use either:
+      //   PKCE flow  → ?code=<auth_code> in query params (exchanged by SW)
+      //   Implicit   → #access_token=...&refresh_token=... in hash fragment
+      const code = respParams.get("code");
+
+      // Implicit flow: tokens arrive in the URL hash
+      const hashParams = new URLSearchParams(new URL(responseUrl).hash.slice(1));
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+
+      if (!code && !accessToken) {
+        setError("No authorization code received from Google");
+        setGoogleLoading(false);
+        return;
+      }
+
+      const payload = code
+        ? { code }
+        : { accessToken: accessToken!, refreshToken: refreshToken ?? undefined };
 
       chrome.runtime.sendMessage(
-        { type: "AUTH_GOOGLE_SIGN_IN", payload: { idToken } },
+        { type: "AUTH_GOOGLE_SIGN_IN", payload },
         (res) => {
           setGoogleLoading(false);
           if (res?.error) {
@@ -99,8 +132,8 @@ export default function AuthGate({ children }: AuthGateProps) {
           setUser(res?.user ?? null);
         }
       );
-    } catch {
-      setError("Google sign-in failed");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Google sign-in failed");
       setGoogleLoading(false);
     }
   }

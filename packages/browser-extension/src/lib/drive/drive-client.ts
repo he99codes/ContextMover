@@ -271,14 +271,19 @@ class DriveClient {
     let token = await this.getToken(false);
     if (!token) throw new Error("drive: no token");
 
-    const doFetch = (tok: string) =>
-      fetch(url, {
+    const doFetch = (tok: string) => {
+      console.debug(`[CM:drive] apiCall ${options.method ?? "GET"} ${url.slice(0, 80)} token.length=${tok.length}`);
+      return fetch(url, {
         ...options,
         headers: {
           ...(options.headers ?? {}),
           Authorization: `Bearer ${tok}`,
         },
+      }).catch((err: unknown) => {
+        console.error("[CM:drive] fetch failed — full error:", err, "url:", url);
+        throw err;
       });
+    };
 
     let res = await doFetch(token);
     if (res.status === 401) {

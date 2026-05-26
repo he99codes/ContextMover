@@ -15,7 +15,7 @@
 // keeps this worker stateless and crash-safe.
 
 import { chunkMessages, type Chunk } from "../semantic-index/chunker";
-import { modelRegistry } from "../semantic-index/model-registry";
+import { embedTexts, embedText, warmup } from "../inference/embedder";
 import type { HardwareProfile } from "../attention-engine";
 import type { ContextSession } from "../types";
 
@@ -46,14 +46,7 @@ self.onmessage = async (ev: MessageEvent<Incoming>) => {
       const chunks = chunkMessages(session.messages);
 
       self.postMessage({ id, type: "PROGRESS", progress: 20, stage: "Loading model..." });
-      await modelRegistry.initialize(hardware, (pct) => {
-        self.postMessage({
-          id,
-          type: "PROGRESS",
-          progress: 20 + pct * 0.5,
-          stage: "Loading AI model...",
-        });
-      });
+      await warmup();
 
       self.postMessage({
         id,
@@ -61,7 +54,7 @@ self.onmessage = async (ev: MessageEvent<Incoming>) => {
         progress: 70,
         stage: `Embedding ${chunks.length} chunks...`,
       });
-      const embeddings = await modelRegistry.embedBatch(chunks.map((c) => c.text));
+      const embeddings = await embedTexts(chunks.map((c) => c.text));
 
       const result: { id: string; type: "INDEX_DONE"; chunks: Chunk[]; embeddings: number[][] } = {
         id,
@@ -74,17 +67,15 @@ self.onmessage = async (ev: MessageEvent<Incoming>) => {
     }
 
     if (type === "EMBED_QUERY") {
-      const { text, hardware } = data.payload;
-      await modelRegistry.initialize(hardware);
-      const embedding = await modelRegistry.embed(text);
+      const { text } = data.payload;
+      await warmup();
+      const embedding = await embedText(text);
       self.postMessage({ id, type: "EMBED_DONE", embedding });
       return;
     }
 
     if ((data as { type: string }).type === "WARMUP") {
-      const { getHardwareProfile } = await import("../attention-engine");
-      const hw = await getHardwareProfile().catch(() => null);
-      if (hw) await modelRegistry.initialize(hw).catch(() => {});
+      await warmup().catch(() => {});
       self.postMessage({ id, type: "WARMUP_DONE" });
       return;
     }

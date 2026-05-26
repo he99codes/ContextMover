@@ -98,9 +98,7 @@ export async function checkUsage(
     // Broadcast warning badge when running low
     if (typeof data.remaining === "number" && data.remaining >= 0) {
       if (data.remaining <= 3) {
-        try {
-          chrome.runtime.sendMessage({ type: "USAGE_WARNING", remaining: data.remaining });
-        } catch { /* noop — sidebar may not be open */ }
+        chrome.runtime.sendMessage({ type: "USAGE_WARNING", remaining: data.remaining }).catch(() => { /* noop — sidebar may not be open */ });
       }
     }
     // Hard block at 0

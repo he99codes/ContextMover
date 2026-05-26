@@ -89,10 +89,6 @@ export interface AttentionMap {
 // Internal types
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Minimal typing for the @xenova/transformers pipeline callable.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Extractor = (input: any, options?: any) => Promise<{ data: Float32Array; dims: number[] }>;
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
@@ -114,6 +110,23 @@ const TAIL_SIZE = 6;
 const THRESHOLDS: Record<"light" | "strict", number> = { light: 0.4, strict: 0.7 };
 
 const TAG = "[ContextMover:attention-engine]";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Offscreen document helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function ensureOffscreenDocument(): Promise<void> {
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
+  });
+  if (existingContexts.length === 0) {
+    await chrome.offscreen.createDocument({
+      url: chrome.runtime.getURL("src/offscreen/offscreen.html"),
+      reasons: [chrome.offscreen.Reason.WORKERS],
+      justification: "Run embedding model inference via WASM",
+    });
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Grammar URL helper
@@ -149,17 +162,9 @@ function grammarUrl(lang: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export class AttentionEngine {
-  private extractor: Extractor | null = null;
   /** LRU-style cache: first 100 chars of text → Float32Array embedding. */
   private embeddingCache = new Map<string, number[]>();
 
-  // ── Worker infrastructure (used when running in sidebar/popup context) ──────
-  private worker: Worker | null = null;
-  private pendingRequests = new Map<string, {
-    resolve: (value: unknown) => void;
-    reject: (err: Error) => void;
-  }>();
-  private messageIdCounter = 0;
   private idb: IDBPDatabase | null = null;
   private appStructure: AppStructure | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -167,7 +172,7 @@ export class AttentionEngine {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private tsLanguages = new Map<string, any>();
   private treeSitterAvailable = false;
-  private modelAvailable = false;
+  private modelAvailable = true;
   initialized = false;
   /** In-flight init promise so concurrent callers await the same work. */
   private initPromise: Promise<void> | null = null;
@@ -228,20 +233,16 @@ export class AttentionEngine {
         this.appStructure = await this.loadAppStructure();
         onProgress?.(12);
 
-        // Minimal tier skips the model + tree-sitter entirely — it relies on the
-        // keyword scoring path and the regex code-block extractor.
+        // Minimal tier skips tree-sitter entirely — relies on regex code-block extractor.
+        // Embeddings are handled by the offscreen document via chrome.runtime messages.
         if (!this.tierConfig.useEmbeddings) {
-          this.modelAvailable = false;
           this.treeSitterAvailable = false;
           onProgress?.(100);
           this.initialized = true;
-          console.log(`${TAG} Ready (minimal tier — no model, regex only)`);
+          console.log(`${TAG} Ready (minimal tier — regex only)`);
           return;
         }
 
-        // Model download is the heavy step (~23 MB on first run).
-        // Progress is mapped into the 12–80 range.
-        await this.loadEmbeddingModel(onProgress);
         onProgress?.(80);
 
         if (this.tierConfig.useTreeSitter) {
@@ -277,8 +278,6 @@ export class AttentionEngine {
     console.warn(`${TAG} downgradeToMinimal: ${reason}`);
     this.tier = "minimal";
     this.tierConfig = getTierConfig("minimal");
-    this.extractor = null;
-    this.modelAvailable = false;
   }
 
   /** Currently active tier — read by callers for telemetry/UI. */
@@ -302,11 +301,6 @@ export class AttentionEngine {
       this.tierConfig.batchSize = Math.min(headroom.recommendedBatchSize, 64);
       this.tierConfig.maxWasmThreads = Math.min(headroom.recommendedThreads, 8);
       this.boosted = true;
-      if (headroom.gpuAvailable && this.tierConfig.device !== "webgpu") {
-        this.loadEmbeddingModel().catch(() => {
-          console.debug(`${TAG} GPU reload failed — keeping current device`);
-        });
-      }
       console.debug(
         `${TAG} Boosted: batch=${headroom.recommendedBatchSize} threads=${headroom.recommendedThreads} gpu=${headroom.gpuAvailable}`
       );
@@ -625,93 +619,6 @@ export class AttentionEngine {
       },
     });
     return this.idb;
-  }
-
-  // ─── Private: embedding model ─────────────────────────────────────────────
-
-  private async loadEmbeddingModel(
-    onProgress?: (progress: number) => void
-  ): Promise<void> {
-    const cfg = this.tierConfig;
-    const modelId = cfg.modelId || DEFAULT_MODEL_ID;
-
-    try {
-      // Load @xenova/transformers via the extension-local pre-built bundle.
-      // See model-registry.ts _doInit for the full root-cause explanation.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const isExt = typeof chrome !== "undefined" && typeof (chrome as any).runtime?.getURL === "function";
-      const tfUrl = isExt
-        ? chrome.runtime.getURL("transformers/transformers.min.js")
-        : "@xenova/transformers";
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformers = (await import(/* @vite-ignore */ tfUrl)) as any;
-
-      // ── ONNX runtime tuning ───────────────────────────────────────────────
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const envObj = (transformers as any).env;
-      if (envObj?.backends?.onnx?.wasm) {
-        // Disable blob: proxy worker — blocked in the Chrome extension sandbox.
-        envObj.backends.onnx.wasm.proxy = false;
-        // Point ONNX runtime at the local WASM copies emitted into dist/wasm/
-        // by the copy-onnx-wasm Vite plugin. Without this, onnxruntime-web
-        // tries to fetch from a CDN and is blocked by the extension CSP.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (typeof chrome !== "undefined" && (chrome as any).runtime?.getURL) {
-          envObj.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL("wasm/");
-        }
-        // Thread count comes from the active tier config, capped by the
-        // hardware concurrency reported by the browser.
-        const hasSharedBuffer = typeof SharedArrayBuffer !== "undefined";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const hwThreads = (navigator as any).hardwareConcurrency ?? 1;
-        const threads = hasSharedBuffer
-          ? Math.min(cfg.maxWasmThreads, hwThreads)
-          : 1;
-        envObj.backends.onnx.wasm.numThreads = threads;
-        console.log(`${TAG} ONNX WASM threads=${threads}/${hwThreads} (tier cap=${cfg.maxWasmThreads}) SAB=${hasSharedBuffer}`);
-      }
-
-      // ── Device selection — driven by tier config ─────────────────────────
-      // Full tier requests WebGPU; balanced tier stays on WASM for predictable
-      // memory + thermal behavior on mid-range laptops.
-      let device: string | undefined;
-      if (cfg.device === "webgpu") {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const gpu = typeof navigator !== "undefined" ? (navigator as any).gpu : null;
-        if (gpu?.requestAdapter) {
-          try {
-            const adapter = await gpu.requestAdapter();
-            if (adapter) {
-              device = "webgpu";
-              console.log(`${TAG} WebGPU adapter acquired — GPU inference enabled`);
-            }
-          } catch { /* WebGPU not available — fall back to wasm */ }
-        }
-      }
-
-      const pipelineFn = transformers.pipeline ?? (transformers as unknown as Record<string, unknown>).default;
-      if (typeof pipelineFn !== "function") throw new Error("pipeline not found in @xenova/transformers");
-
-      this.extractor = (await pipelineFn(
-        "feature-extraction",
-        modelId,
-        {
-          ...(device ? { device } : {}),
-          progress_callback: (info: { status: string; progress?: number }) => {
-            if (info.status === "progress" && typeof info.progress === "number") {
-              // Map model download 0–100 into overall range 12–78.
-              onProgress?.(Math.round(12 + info.progress * 0.66));
-            }
-          },
-        }
-      )) as Extractor;
-
-      this.modelAvailable = true;
-      console.log(`${TAG} Embedding model loaded (${modelId}) device=${device ?? "wasm"} tier=${this.tier}`);
-    } catch (err) {
-      console.warn(`${TAG} Model load failed — keyword fallback active:`, err);
-      this.modelAvailable = false;
-    }
   }
 
   // ─── Private: tree-sitter ─────────────────────────────────────────────────
@@ -1036,53 +943,10 @@ export class AttentionEngine {
     return avg;
   }
 
-  // ─── Private: worker management ─────────────────────────────────────────
+  // ─── Private: cache ──────────────────────────────────────────────────────
 
   private getCacheKey(text: string): string {
     return text.slice(0, 120);
-  }
-
-  private getWorker(): Worker | null {
-    // Worker is unavailable in the service-worker context (no DedicatedWorkerGlobalScope).
-    if (typeof Worker === "undefined") return null;
-    if (!this.worker) {
-      this.worker = new Worker(
-        new URL("./workers/embedding.worker.ts", import.meta.url),
-        { type: "module" }
-      );
-      this.worker.onmessage = ({ data }: MessageEvent) => {
-        const { id, type } = data as { id: string; type: string };
-        const pending = this.pendingRequests.get(id);
-        if (!pending) return;
-        if (type === "ERROR") {
-          pending.reject(new Error((data as { error: string }).error));
-          this.pendingRequests.delete(id);
-        } else if (["INIT_DONE", "EMBED_DONE", "EMBED_SINGLE_DONE"].includes(type)) {
-          pending.resolve(data);
-          this.pendingRequests.delete(id);
-        }
-        // PROGRESS — forward only, don't resolve
-      };
-      this.worker.onerror = (err) => {
-        console.error(`${TAG} Worker error:`, err);
-      };
-    }
-    return this.worker;
-  }
-
-  private sendToWorker(type: string, payload: unknown): Promise<unknown> {
-    return new Promise((resolve, reject) => {
-      const id = String(++this.messageIdCounter);
-      this.pendingRequests.set(id, { resolve, reject });
-      this.getWorker()!.postMessage({ type, payload, id });
-      // 30s timeout per request
-      setTimeout(() => {
-        if (this.pendingRequests.has(id)) {
-          this.pendingRequests.delete(id);
-          reject(new Error(`Worker timeout: ${type}`));
-        }
-      }, 30_000);
-    });
   }
 
   async embedTexts(texts: string[]): Promise<number[][]> {
@@ -1101,64 +965,49 @@ export class AttentionEngine {
 
     if (uncached.length === 0) return results as number[][];
 
-    const worker = this.getWorker();
-    if (worker) {
-      // Off-thread path: delegate to worker
-      try {
-        const response = await this.sendToWorker("EMBED_BATCH", {
-          texts: uncached.map((u) => u.text),
-        }) as { embeddings: number[][] };
+    if (uncached.length > 0) {
+      await ensureOffscreenDocument();
+      const embedPromises = uncached.map(({ text }) =>
+        new Promise<number[]>((resolve) => {
+          const requestId = crypto.randomUUID();
 
-        uncached.forEach(({ idx, text }, i) => {
-          const embedding = response.embeddings[i] ?? new Array(EMBEDDING_DIM).fill(0);
-          results[idx] = embedding;
-          const key = this.getCacheKey(text);
-          if (this.embeddingCache.size >= EMBEDDING_CACHE_MAX) {
-            const first = this.embeddingCache.keys().next().value;
-            if (first !== undefined) this.embeddingCache.delete(first);
-          }
-          this.embeddingCache.set(key, embedding);
-        });
-      } catch (err) {
-        console.warn(`${TAG} Worker embedTexts failed, using zero vectors:`, err);
-        uncached.forEach(({ idx }) => {
-          results[idx] = new Array(EMBEDDING_DIM).fill(0);
-        });
-      }
-    } else {
-      // On-thread path (service-worker context): use direct extractor with batching
-      if (this.extractor && this.modelAvailable) {
-        const BATCH_SIZE = 32;
-        const uncachedTexts = uncached.map((u) => u.text);
-        const allEmbeddings: number[][] = [];
-
-        for (let i = 0; i < uncachedTexts.length; i += BATCH_SIZE) {
-          const batch = uncachedTexts.slice(i, i + BATCH_SIZE);
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const out: any = await this.extractor(batch, { pooling: "mean", normalize: true });
-            const embeddings: number[][] = Array.isArray(out.tolist) ? out.tolist() : out.tolist?.() ?? [];
-            allEmbeddings.push(...embeddings);
-          } catch {
-            for (let j = 0; j < batch.length; j++) {
-              allEmbeddings.push(new Array(EMBEDDING_DIM).fill(0));
+          const listener = (response: { type?: string; requestId?: string; embedding?: number[] }) => {
+            if (
+              response.type === "OFFSCREEN_EMBED_DONE" &&
+              response.requestId === requestId
+            ) {
+              chrome.runtime.onMessage.removeListener(listener);
+              resolve(response.embedding ?? new Array(EMBEDDING_DIM).fill(0));
+            } else if (
+              response.type === "OFFSCREEN_ERROR" &&
+              response.requestId === requestId
+            ) {
+              chrome.runtime.onMessage.removeListener(listener);
+              resolve(new Array(EMBEDDING_DIM).fill(0));
             }
-          }
-        }
+          };
 
-        uncached.forEach(({ idx, text }, i) => {
-          const embedding = allEmbeddings[i] ?? new Array(EMBEDDING_DIM).fill(0);
-          results[idx] = embedding;
-          const key = this.getCacheKey(text);
-          if (this.embeddingCache.size >= EMBEDDING_CACHE_MAX) {
-            const first = this.embeddingCache.keys().next().value;
-            if (first !== undefined) this.embeddingCache.delete(first);
-          }
-          this.embeddingCache.set(key, embedding);
-        });
-      } else {
-        uncached.forEach(({ idx }) => { results[idx] = new Array(EMBEDDING_DIM).fill(0); });
-      }
+          chrome.runtime.onMessage.addListener(listener);
+          chrome.runtime.sendMessage({
+            type: "OFFSCREEN_EMBED_QUERY",
+            text,
+            requestId,
+          }).catch(() => resolve(new Array(EMBEDDING_DIM).fill(0)));
+        })
+      );
+
+      const freshEmbeddings = await Promise.all(embedPromises);
+
+      uncached.forEach(({ idx, text }, i) => {
+        const embedding = freshEmbeddings[i] ?? new Array(EMBEDDING_DIM).fill(0);
+        results[idx] = embedding;
+        const key = this.getCacheKey(text);
+        if (this.embeddingCache.size >= EMBEDDING_CACHE_MAX) {
+          const first = this.embeddingCache.keys().next().value;
+          if (first !== undefined) this.embeddingCache.delete(first);
+        }
+        this.embeddingCache.set(key, embedding);
+      });
     }
 
     return results as number[][];
@@ -1167,9 +1016,7 @@ export class AttentionEngine {
   // ─── Private: embedding generation ───────────────────────────────────────
 
   private async getEmbedding(text: string): Promise<number[]> {
-    if (!this.modelAvailable) {
-      return new Array(EMBEDDING_DIM).fill(0);
-    }
+    if (!this.modelAvailable) return new Array(EMBEDDING_DIM).fill(0);
     const results = await this.embedTexts([text]);
     return results[0] ?? new Array(EMBEDDING_DIM).fill(0);
   }

@@ -79,33 +79,74 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === "INJECT_FILE_AS_UPLOAD") {
     void (async () => {
       try {
-        const file = new File([msg.fileContent as string], msg.fileName as string, { type: "text/xml" });
+        // Use text/plain — Gemini's file input accept attribute typically allows
+        // plain text but blocks text/xml, causing silent rejection by Angular's
+        // component even when the file IS programmatically attached.
+        const file = new File([msg.fileContent as string], msg.fileName as string, { type: "text/plain" });
         const dt = new DataTransfer();
         dt.items.add(file);
-        let input = document.querySelector<HTMLInputElement>("input[type='file']");
-        // Gemini hides the file input until the attach/upload button is clicked.
-        // Try clicking the upload trigger, then wait for the input to materialize.
+
+        // Shadow-DOM-aware querySelector: Gemini's Angular components sometimes
+        // host the actual <input type="file"> inside a shadow root.
+        const findFileInput = (): HTMLInputElement | null => {
+          const light = document.querySelector<HTMLInputElement>("input[type='file']");
+          if (light) return light;
+          for (const host of document.querySelectorAll("*")) {
+            const sr = (host as Element & { shadowRoot?: ShadowRoot }).shadowRoot;
+            if (sr) {
+              const el = sr.querySelector<HTMLInputElement>("input[type='file']");
+              if (el) return el;
+            }
+          }
+          return null;
+        };
+
+        let input = findFileInput();
+
         if (!input) {
+          // Gemini-specific Angular Material upload button selectors.
+          // The button that reveals the hidden file input in Gemini's 2026 UI.
           const uploadBtn = document.querySelector<HTMLElement>(
-            '[aria-label*="Upload"], [aria-label*="upload"], [aria-label*="Attach"], ' +
-            'button[data-testid="file-upload"], [data-testid="attach-file-button"], ' +
+            'button[aria-label*="Upload"], button[aria-label*="upload"], ' +
+            'button[aria-label*="Add files"], button[aria-label*="Add image"], ' +
+            'button[aria-label*="Attach"], button[aria-label*="attach"], ' +
+            '[data-test-id*="upload"], [data-testid*="upload"], ' +
+            '.input-media-button button, input-media-button, ' +
+            '[class*="upload-btn"], [class*="upload-button"], ' +
+            '[class*="attach-btn"], [class*="file-picker"], ' +
             '.upload-button, [class*="upload"], [class*="attach"]'
           );
           if (uploadBtn) {
+            console.debug("[CM:gemini] clicking upload button:", uploadBtn.tagName, uploadBtn.getAttribute("aria-label"));
             uploadBtn.click();
-            // Wait up to 2s for the file input to appear in the DOM
             for (let i = 0; i < 20; i++) {
               await new Promise((r) => setTimeout(r, 100));
-              input = document.querySelector<HTMLInputElement>("input[type='file']");
+              input = findFileInput();
               if (input) break;
             }
           }
         }
-        if (!input) { sendResponse({ ok: false, error: "File input not found on Gemini page" }); return; }
-        input.files = dt.files;
-        input.dispatchEvent(new Event("change", { bubbles: true }));
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-        sendResponse({ ok: true });
+
+        if (input) {
+          // Remove accept restriction that may silently block XML / plain-text files.
+          const originalAccept = input.getAttribute("accept") ?? "";
+          if (originalAccept) {
+            console.debug("[CM:gemini] clearing accept attr:", originalAccept);
+            input.removeAttribute("accept");
+          }
+          input.files = dt.files;
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          console.debug("[CM:gemini] file attached via input element, files.length:", dt.files.length);
+          sendResponse({ ok: true });
+          return;
+        }
+
+        // Final fallback: inject the XML content as text into the Gemini
+        // text input. This succeeds even when no file input is reachable.
+        console.warn("[CM:gemini] INJECT_FILE_AS_UPLOAD: no file input found — falling back to text injection");
+        const textResult = await injectIntoGeminiInput(msg.fileContent as string);
+        sendResponse(textResult);
       } catch (err) {
         sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
       }
