@@ -1238,10 +1238,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           try {
             const [execRes] = await chrome.scripting.executeScript({
               target: { tabId: injectTabId },
-              func: injectPromptInPage,
-              args: [fileContentPayload, "gemini"],
+              func: injectIntoGeminiPage,
+              args: [fileContentPayload],
             });
-            sendResponse(execRes?.result ?? { ok: false, error: "no result from executeScript" });
+            const result = execRes?.result as { ok: boolean; selector?: string; length?: number; reason?: string } | undefined;
+            console.log('[CM:gemini] injection result:', result);
+            if (!result?.ok) {
+              console.warn('[CM:gemini] injection failed — reason:', result?.reason ?? 'unknown');
+            }
+            sendResponse(result ?? { ok: false, error: "no result from executeScript" });
           } catch (err) {
             sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
           }
@@ -2405,6 +2410,43 @@ function injectPromptInPage(
   }
 
   return { ok: false, error: "Unrecognised input type on target page." };
+}
+
+// Self-contained Gemini injector with retry — serialised and run in the page
+// via chrome.scripting.executeScript. Must have ZERO imports / outer-scope references.
+async function injectIntoGeminiPage(
+  text: string
+): Promise<{ ok: boolean; selector?: string; length?: number; reason?: string }> {
+  const GEMINI_SELECTORS = [
+    'rich-textarea .ql-editor[contenteditable="true"]',
+    '.ql-editor[contenteditable="true"]',
+    'div[contenteditable="true"][data-lexical-editor]',
+    'div[contenteditable="true"].ProseMirror',
+    'div[contenteditable="true"]',
+  ];
+
+  for (let attempt = 0; attempt < 5; attempt++) {
+    for (const selector of GEMINI_SELECTORS) {
+      const el = document.querySelector<HTMLElement>(selector);
+      if (el) {
+        el.focus();
+        el.innerHTML = '';
+        let success = false;
+        try { success = document.execCommand('insertText', false, text); } catch { /* noop */ }
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        if (!success || (el.textContent?.trim().length ?? 0) === 0) {
+          el.textContent = text;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        const inserted = el.textContent?.trim().length ?? 0;
+        return { ok: inserted > 0, selector, length: inserted };
+      }
+    }
+    await new Promise<void>((r) => setTimeout(r, 800));
+  }
+  return { ok: false, reason: 'no_input_found_after_retries' };
 }
 
 /**

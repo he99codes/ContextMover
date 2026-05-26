@@ -90,6 +90,12 @@ function cosineSimilarity(a: number[], b: number[]): number {
 
 const OFFSCREEN_DOC_URL = "src/offscreen/offscreen.html";
 
+let _offscreenReady = false;
+let _offscreenReadyPromise: Promise<void> | null = null;
+let _offscreenReadyResolve: (() => void) | null = null;
+let _pendingEmbedCount = 0;
+const EMBED_QUEUE_CAP = 50;
+
 async function ensureOffscreenDocument(): Promise<void> {
   // chrome.offscreen is only available in MV3 SW + extension pages.
   // Sidebar context can also call createDocument; if it errors with
@@ -110,11 +116,34 @@ async function ensureOffscreenDocument(): Promise<void> {
           resolve(!chrome.runtime.lastError && resp?.alive === true);
         });
       });
-      if (alive) return;
+      if (alive) {
+        // Doc already up — mark ready immediately (handles SW restart case)
+        _offscreenReady = true;
+        _offscreenReadyPromise = null;
+        return;
+      }
       console.warn("[CM:offscreen] document unresponsive — closing and recreating");
       await offscreen.closeDocument?.().catch(() => {});
     }
   } catch { /* fall through to createDocument */ }
+
+  // Creating (or recreating) the document — reset the readiness gate.
+  _offscreenReady = false;
+  if (!_offscreenReadyPromise) {
+    _offscreenReadyPromise = new Promise<void>((resolve) => {
+      _offscreenReadyResolve = resolve;
+    });
+    const readyListener = (msg: { type?: string }) => {
+      if (msg?.type === "OFFSCREEN_READY") {
+        _offscreenReady = true;
+        _offscreenReadyResolve?.();
+        _offscreenReadyResolve = null;
+        _offscreenReadyPromise = null;
+        chrome.runtime.onMessage.removeListener(readyListener);
+      }
+    };
+    chrome.runtime.onMessage.addListener(readyListener);
+  }
 
   try {
     await offscreen.createDocument({
@@ -171,15 +200,27 @@ async function offscreenEmbedQuery(
   hardware: HardwareProfile
 ): Promise<number[]> {
   await ensureOffscreenDocument();
-  const requestId = `q_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const res = await chrome.runtime.sendMessage<unknown, OffscreenEmbedResponse>({
-    type: "OFFSCREEN_EMBED_QUERY",
-    text,
-    hardware,
-    requestId,
-  });
-  if (!res?.ok || !res.embedding) throw new Error(res?.error ?? "Offscreen embed failed");
-  return res.embedding;
+  if (_pendingEmbedCount >= EMBED_QUEUE_CAP) {
+    console.warn(`[CM:offscreen] queue cap hit — dropping ${_pendingEmbedCount - EMBED_QUEUE_CAP + 1} stale queries`);
+    throw new Error(`Offscreen embed queue cap (${EMBED_QUEUE_CAP}) exceeded`);
+  }
+  _pendingEmbedCount++;
+  try {
+    if (!_offscreenReady && _offscreenReadyPromise) {
+      await _offscreenReadyPromise;
+    }
+    const requestId = `q_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const res = await chrome.runtime.sendMessage<unknown, OffscreenEmbedResponse>({
+      type: "OFFSCREEN_EMBED_QUERY",
+      text,
+      hardware,
+      requestId,
+    });
+    if (!res?.ok || !res.embedding) throw new Error(res?.error ?? "Offscreen embed failed");
+    return res.embedding;
+  } finally {
+    _pendingEmbedCount--;
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────

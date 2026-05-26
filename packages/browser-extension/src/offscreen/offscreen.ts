@@ -32,7 +32,15 @@ import { hashMessages } from "../lib/semantic-index/hasher";
 console.log("[CM:offscreen] booted");
 
 // Pre-load the model so it's hot before the first real request arrives.
-warmup().catch(() => {});
+// Signal OFFSCREEN_READY when done so the SW can release queued embed requests.
+warmup().then(() => {
+  chrome.runtime.sendMessage({ type: "OFFSCREEN_READY" }).catch(() => {});
+  console.log("[CM:offscreen] ready — embedder pipeline initialized");
+}).catch(() => {
+  // Warmup failed, but still signal ready to prevent the SW from blocking forever.
+  chrome.runtime.sendMessage({ type: "OFFSCREEN_READY" }).catch(() => {});
+  console.warn("[CM:offscreen] warmup failed — signalling ready to unblock embed queue");
+});
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
