@@ -114,11 +114,23 @@ export function isAssistantStreaming(platform: string): boolean {
           '.loading-indicator, [aria-label="Gemini is responding"]'
         );
       case "grok":
-        return !!document.querySelector('[data-streaming="true"], .streaming');
+        return !!document.querySelector(
+          '[data-streaming="true"], .streaming, ' +
+          'button[aria-label*="Stop" i], button[data-testid*="stop"], ' +
+          '[class*="streaming"], [class*="typing-indicator"]'
+        );
       case "deepseek":
-        return !!document.querySelector('.ds-loading, [data-generating]');
+        return !!document.querySelector(
+          '.ds-loading, [data-generating], ' +
+          'button[aria-label*="Stop" i], [class*="stop-generating"], ' +
+          '[class*="result-streaming"], [class*="generating"]'
+        );
       case "perplexity":
-        return !!document.querySelector('.generating, [data-state="loading"]');
+        return !!document.querySelector(
+          '.generating, [data-state="loading"], ' +
+          'button[aria-label*="Stop" i], [class*="animate-pulse"]:not(nav *), ' +
+          '[class*="streaming"], [data-is-streaming]'
+        );
       default:
         return false;
     }
@@ -175,6 +187,10 @@ export function startSessionCapture(config: {
   // render message shells before hydrating text (e.g. Gemini Angular) benefit
   // from a longer settle window so the scrape fires after text is populated.
   observerSettleMs?: number;
+  // 'jump' (default): set scrollTop=0 once and wait for DOM settle.
+  // 'step': scroll up in viewport-height chunks, dispatching scroll events
+  // between each step — required for Angular CDK virtual scroll (Gemini).
+  scrollBackStrategy?: 'jump' | 'step';
 }) {
   // Guard against the content script being loaded twice in the same page.
   // This happens when the service worker re-injects on install/reload while
@@ -504,7 +520,7 @@ export function startSessionCapture(config: {
           : _resolvedSO
       try {
         console.log(`[CM:${config.platform}] scrollback: starting — loading lazy history`)
-        const restore = await autoScrollBackToTop(scopeEl, config.getScrollContainerSelector)
+        const restore = await autoScrollBackToTop(scopeEl, config.getScrollContainerSelector, config.scrollBackStrategy)
         console.log(`[CM:${config.platform}] scrollback: DOM settled — running full capture`)
         await capture()
         restore()
@@ -713,7 +729,8 @@ export const sleep = (ms: number): Promise<void> => new Promise(r => setTimeout(
  */
 export async function autoScrollBackToTop(
   scope: Element,
-  getScrollContainerSelector?: () => string | undefined
+  getScrollContainerSelector?: () => string | undefined,
+  strategy: 'jump' | 'step' = 'jump'
 ): Promise<() => void> {
   const SETTLE_MS = 800
   const HARD_CAP_MS = 30_000
@@ -759,6 +776,21 @@ export async function autoScrollBackToTop(
   if (originalScrollTop === 0) return () => { /* already at top */ }
 
   const target = container
+
+  if (strategy === 'step') {
+    const stepPx = Math.max(400, (target instanceof HTMLElement ? target.clientHeight : 600))
+    const maxSteps = Math.ceil(HARD_CAP_MS / 400)
+    for (let i = 0; i < maxSteps && target.scrollTop > 0; i++) {
+      const prev = target.scrollTop
+      target.scrollTop = Math.max(0, target.scrollTop - stepPx)
+      target.dispatchEvent(new Event('scroll', { bubbles: true }))
+      await sleep(400)
+      if (target.scrollTop === prev) break
+    }
+    await sleep(SETTLE_MS)
+    return () => { target.scrollTop = originalScrollTop }
+  }
+
   await new Promise<void>((resolve) => {
     let settleTimer: ReturnType<typeof setTimeout> | null = null
     const done = () => {

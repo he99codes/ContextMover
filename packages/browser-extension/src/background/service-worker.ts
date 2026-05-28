@@ -31,6 +31,7 @@ import { driveClient } from "@/lib/drive/drive-client";
 import { driveSyncManager } from "@/lib/drive/sync-manager";
 
 const DEBUG = process.env.NODE_ENV === "development";
+const DEBUG_DIAG = false; // Set true to re-enable verbose diagnostic log mirroring
 
 // ── Attention-engine availability (set to false if model fetch blocked) ─────
 let attentionEngineAvailable = true;
@@ -51,6 +52,11 @@ interface CachedMigrationFile {
 
 const migrationFileCache = new Map<string, CachedMigrationFile>()
 const FILE_CACHE_TTL_MS = 30 * 60 * 1000  // 30 minutes
+
+// Pending tier-selection gates — keyed by pendingId (UUID).
+// When MIGRATE_CONTEXT arrives without an explicit tier, the SW pauses here
+// and waits for MIGRATION_TIER_CONFIRMED from the sidebar (60 s timeout → Tier 1).
+const pendingMigrations = new Map<string, { resolve: (tier: 1 | 2 | 3) => void }>()
 
 function makeCacheKey(sessionId: string, tier: number): string {
   return `${sessionId}-tier${tier}`
@@ -597,7 +603,7 @@ chrome.action.onClicked.addListener((tab) => {
 
 // ── Message Router ─────────────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  console.log(`[ContextMover ServiceWorker] Received message: ${msg.type}`);
+  if (DEBUG_DIAG) console.log(`[ContextMover ServiceWorker] Received message: ${msg.type}`);
   (async () => {
     try {
     // [SECURITY] Reject messages from any source that is not our own extension.
@@ -613,7 +619,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // see capture decisions without opening every page console.
         const platform = typeof msg.platform === 'string' ? msg.platform : '?';
         const reason = typeof msg.reason === 'string' ? msg.reason : '?';
-        console.log(`[CM:diag:${platform}] ${reason}  (tab=${sender.tab?.id ?? '?'})`);
+        if (DEBUG_DIAG) console.log(`[CM:diag:${platform}] ${reason}  (tab=${sender.tab?.id ?? '?'})`);
         sendResponse({ ok: true });
         break;
       }
@@ -773,6 +779,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       case "GET_SESSIONS": {
         if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
+        // Force-invalidate the in-memory cache on explicit user refresh.
+        if ((msg as { force?: boolean }).force) {
+          getSessionsCache = null;
+          sessionCache.invalidate();
+        }
         const now = Date.now();
         if (getSessionsCache !== null && now - getSessionsCacheAt < GET_SESSIONS_CACHE_MS) {
           sendResponse(getSessionsCache);
@@ -893,8 +904,38 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           break;
         }
 
+        // ── Migration tier decision gate ─────────────────────────────────
+        // If the caller did NOT pre-select a tier (tier === undefined / null),
+        // pause and ask the sidebar which tier to use.  The sidebar shows
+        // MigrationTierModal; auto-defaults to Tier 1 after 60 s.
+        let _tier: 1 | 2 | 3 = (msg.payload?.tier ?? 0) as 1 | 2 | 3;
+        if (_tier !== 1 && _tier !== 2 && _tier !== 3) {
+          const _pendingId = crypto.randomUUID();
+          const _modalSession = msg.payload?.sessionId
+            ? await db.getSession(msg.payload.sessionId).catch(() => null)
+            : null;
+          _tier = await new Promise<1 | 2 | 3>((resolve) => {
+            pendingMigrations.set(_pendingId, { resolve });
+            setTimeout(() => {
+              if (pendingMigrations.has(_pendingId)) {
+                pendingMigrations.delete(_pendingId);
+                resolve(1); // default: Full Context
+              }
+            }, 60_000);
+            void broadcastToViews({
+              type: "MIGRATION_TIER_REQUIRED",
+              pendingId: _pendingId,
+              sessionId: msg.payload?.sessionId ?? "",
+              sessionTitle:
+                _modalSession?.customName ??
+                _modalSession?.title ??
+                "Untitled",
+              targetPlatform: msg.payload?.targetPlatform ?? "",
+            });
+          });
+        }
+
         // ── Freemium gate ────────────────────────────────────────────────────
-        const _tier = (msg.payload?.tier ?? 2) as 1 | 2 | 3;
         // Always try to get fresh session first
         let accessToken: string | undefined;
         try {
@@ -968,10 +1009,31 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
 
         try {
-          await handleMigrateContext(msg.payload, sendResponse, accessToken as string | undefined);
+          await handleMigrateContext(
+            { ...msg.payload, tier: _tier },
+            sendResponse,
+            accessToken as string | undefined
+          );
         } finally {
           activeMigrationInProgress = false;
         }
+        break;
+      }
+
+      case "MIGRATION_TIER_CONFIRMED": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
+        const _confirmedPendingId = typeof msg.pendingId === "string" ? msg.pendingId : "";
+        const _confirmedTier = (msg.tier as 1 | 2 | 3 | undefined);
+        if (!_confirmedPendingId || _confirmedTier !== 1 && _confirmedTier !== 2 && _confirmedTier !== 3) {
+          sendResponse({ error: "pendingId and tier (1|2|3) required" });
+          break;
+        }
+        const _pending = pendingMigrations.get(_confirmedPendingId);
+        if (_pending) {
+          pendingMigrations.delete(_confirmedPendingId);
+          _pending.resolve(_confirmedTier);
+        }
+        sendResponse({ ok: true });
         break;
       }
 
@@ -2153,7 +2215,32 @@ async function handleMigrateContext(
   if (!payload.targetTabId) {
     console.warn('[CM:sw] No targetTabId — skipping injection')
   } else if (tier === 1) {
-    console.log('[CM:sw] Tier 1 file migration — skipping text injection (file carries full context)')
+    // Attempt file injection so platform-specific fallbacks can handle it.
+    // Gemini routes INJECT_FILE_AS_UPLOAD → injectIntoGeminiInput (text fallback).
+    // Platforms without an INJECT_FILE_AS_UPLOAD handler return no response →
+    // injected stays false → MigrationModal still shows the file download UI.
+    try {
+      const t1Ready = await waitForTabContentScript(payload.targetTabId!);
+      if (t1Ready) {
+        const t1Result = await new Promise<{ ok: boolean; error?: string }>((resolve) => {
+          chrome.tabs.sendMessage(
+            payload.targetTabId!,
+            { type: "INJECT_FILE_AS_UPLOAD", fileName: migrationFile.filename, fileContent: migrationFile.content },
+            (response) => {
+              void chrome.runtime.lastError;
+              resolve((response as { ok: boolean; error?: string } | null) ?? { ok: false, error: "no response from content script" });
+            }
+          );
+        });
+        injected = t1Result.ok;
+        if (!t1Result.ok) injectionError = t1Result.error;
+      } else {
+        console.warn(`[CM:sw] Tier 1 file injection: content script not ready on tab ${payload.targetTabId}`);
+      }
+    } catch (err) {
+      injectionError = err instanceof Error ? err.message : String(err);
+      console.warn('[CM:sw] Tier 1 file injection failed:', err);
+    }
   } else {
     try {
       // Phase 1+2: wait for tab load + content-script ping (8 × 1500ms).
@@ -2285,6 +2372,14 @@ function scrapeSessionFromPage(platform: string) {
     return text.replace(/\s+/g, " ").trim();
   }
 
+  // Helper: query outermost elements for a selector, filtering nested duplicates.
+  function outermost(sel: string): HTMLElement[] {
+    return [...document.querySelectorAll<HTMLElement>(sel)]
+      .filter((el) => !el.parentElement?.closest(sel));
+  }
+
+  type Entry = { el: HTMLElement; role: "user" | "assistant" };
+
   let messages: Array<{ role: "user" | "assistant"; content: string; timestamp: number }> = [];
 
   if (platform === "chatgpt") {
@@ -2298,7 +2393,6 @@ function scrapeSessionFromPage(platform: string) {
       })
       .filter(Boolean) as typeof messages;
   } else if (platform === "claude") {
-    type Entry = { el: HTMLElement; role: "user" | "assistant" };
     const collected: Entry[] = [];
     document.querySelectorAll<HTMLElement>('[data-testid="user-message"]').forEach((el) => {
       collected.push({ el, role: "user" });
@@ -2337,24 +2431,63 @@ function scrapeSessionFromPage(platform: string) {
       })
       .filter(Boolean) as typeof messages;
   } else if (platform === "grok") {
-    messages = Array.from(
-      document.querySelectorAll<HTMLElement>('[class*="UserMessage"], [class*="AssistantMessage"]')
-    )
-      .map((el) => {
-        const role = el.className.includes("User") ? "user" : "assistant";
+    // Multi-strategy: data-testid → class substrings → aria-label → legacy
+    const gCollected: Entry[] = [];
+    const hasGUser = () => gCollected.some((e) => e.role === "user");
+    const hasGAsst = () => gCollected.some((e) => e.role === "assistant");
+
+    // S1: data-testid
+    outermost('[data-testid*="user"], [data-testid*="human"]').forEach((el) => gCollected.push({ el, role: "user" }));
+    if (!hasGAsst()) outermost('[data-testid*="assistant"], [data-testid*="ai-turn"], [data-testid*="grok-response"]').forEach((el) => gCollected.push({ el, role: "assistant" }));
+
+    // S2: class substrings (human-turn / HumanTurn, response-content-markdown)
+    if (!hasGUser()) outermost('[class*="human-turn"], [class*="HumanTurn"], [class*="human_turn"]').forEach((el) => gCollected.push({ el, role: "user" }));
+    if (!hasGAsst()) outermost('[class*="response-content-markdown"], [class*="grok-response"], [class*="GrokResponse"]').forEach((el) => gCollected.push({ el, role: "assistant" }));
+
+    // S3: legacy class + data-role
+    if (!hasGUser()) outermost('[class*="user-message"], [class*="UserMessage"], [data-role="user"]').forEach((el) => gCollected.push({ el, role: "user" }));
+    if (!hasGAsst()) outermost('[class*="assistant-message"], [class*="AssistantMessage"], [data-role="assistant"]').forEach((el) => gCollected.push({ el, role: "assistant" }));
+
+    gCollected.sort((a, b) => {
+      const rel = a.el.compareDocumentPosition(b.el);
+      return rel & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    });
+    messages = gCollected
+      .map(({ el, role }) => {
         const content = el.innerText.trim();
         return content ? { role, content, timestamp: Date.now() } : null;
       })
       .filter(Boolean) as typeof messages;
   } else if (platform === "perplexity") {
-    type PEntry = { el: HTMLElement; role: "user" | "assistant" };
-    const pCollected: PEntry[] = [];
-    document.querySelectorAll<HTMLElement>(
-      '.user-query, [data-testid="user-message"], [class*="UserQuery"], [class*="user-message"]'
-    ).forEach((el) => pCollected.push({ el, role: "user" }));
-    document.querySelectorAll<HTMLElement>(
-      '.assistant-content, [data-testid="answer"], [class*="AnswerBody"], .prose, [class*="answer-content"]'
-    ).forEach((el) => pCollected.push({ el, role: "assistant" }));
+    // Multi-strategy: data-message-role → data-testid + class → thread structure
+    const pCollected: Entry[] = [];
+    const hasPUser = () => pCollected.some((e) => e.role === "user");
+    const hasPAsst = () => pCollected.some((e) => e.role === "assistant");
+
+    // A: data-message-role
+    outermost("[data-message-role]").forEach((el) => {
+      const role = (el as HTMLElement).dataset.messageRole as "user" | "assistant";
+      if (role === "user" || role === "assistant") pCollected.push({ el, role });
+    });
+
+    // B: data-testid + class substrings
+    if (!hasPAsst()) {
+      outermost('[class*="group/query"], [data-testid="user-message"], [data-testid*="user-query"], [data-testid*="user"], [class*="UserMessage"], [class*="user-query"], [class*="user-message"]')
+        .forEach((el) => pCollected.push({ el, role: "user" }));
+      outermost('[class*="prose"], [class*="AnswerText"], [class*="answer-text"], [data-testid*="answer"], [data-testid*="assistant"], [class*="assistant-message"], .answer-block, [class*="answer-block"]')
+        .forEach((el) => pCollected.push({ el, role: "assistant" }));
+    }
+
+    // C: thread-item structure
+    if (!hasPUser()) {
+      outermost('[class*="thread-item"], [class*="ThreadItem"], [class*="conversation-turn"]').forEach((turn) => {
+        const queryEl = turn.querySelector<HTMLElement>('[class*="query"], [class*="Query"], [class*="user"]');
+        const answerEl = turn.querySelector<HTMLElement>('[class*="answer"], [class*="Answer"], [class*="markdown"], .prose');
+        if (queryEl) pCollected.push({ el: queryEl, role: "user" });
+        if (!hasPAsst() && answerEl) pCollected.push({ el: answerEl, role: "assistant" });
+      });
+    }
+
     pCollected.sort((a, b) => {
       const rel = a.el.compareDocumentPosition(b.el);
       return rel & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
@@ -2366,14 +2499,35 @@ function scrapeSessionFromPage(platform: string) {
       })
       .filter(Boolean) as typeof messages;
   } else if (platform === "deepseek") {
-    type DEntry = { el: HTMLElement; role: "user" | "assistant" };
-    const dCollected: DEntry[] = [];
-    document.querySelectorAll<HTMLElement>(
-      '[class*="human-message"], [class*="user-message"], [data-role="user"], .fbb737a4'
-    ).forEach((el) => dCollected.push({ el, role: "user" }));
-    document.querySelectorAll<HTMLElement>(
-      '[class*="assistant-message"], [class*="ds-markdown"], [data-role="assistant"], .f9bf7997'
-    ).forEach((el) => dCollected.push({ el, role: "assistant" }));
+    // Multi-strategy: data-message-author-role → data-testid + class → data-role
+    const dCollected: Entry[] = [];
+    const hasDUser = () => dCollected.some((e) => e.role === "user");
+    const hasDAsst = () => dCollected.some((e) => e.role === "assistant");
+
+    // A: data-message-author-role
+    outermost("[data-message-author-role]").forEach((el) => {
+      const role = (el as HTMLElement).dataset.messageAuthorRole as "user" | "assistant";
+      if (role === "user" || role === "assistant") dCollected.push({ el, role });
+    });
+
+    // B: data-testid + class substrings (no obfuscated hashes)
+    if (!hasDAsst()) {
+      outermost('[class*="ds-message"]:not([class*="ds-assistant"]), [data-testid*="user"], [data-testid*="human"], [class*="user-message"], [class*="human-message"], [data-type="user"], [data-role="user"]')
+        .filter((el) => !el.querySelector('[class*="ds-markdown"], [class*="ds-assistant"]'))
+        .forEach((el) => dCollected.push({ el, role: "user" }));
+      outermost('[class*="ds-assistant-message-main-content"], [class*="ds-markdown"], [data-testid*="assistant"], [data-testid*="answer"], [class*="assistant-message"], [class*="model-response"]')
+        .forEach((el) => dCollected.push({ el, role: "assistant" }));
+    }
+
+    // C: data-role / role attributes
+    if (!hasDUser()) {
+      outermost("[data-role]").forEach((el) => {
+        const role = ((el as HTMLElement).dataset.role ?? "").toLowerCase();
+        if (role === "user" || role === "human") dCollected.push({ el, role: "user" });
+        else if (!hasDAsst() && (role === "assistant" || role === "ai" || role === "bot")) dCollected.push({ el, role: "assistant" });
+      });
+    }
+
     dCollected.sort((a, b) => {
       const rel = a.el.compareDocumentPosition(b.el);
       return rel & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;

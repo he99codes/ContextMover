@@ -6,7 +6,7 @@
  */
 
 // packages/browser-extension/src/content/gemini.ts
-import { extractContent, injectWithRetry, runCapturePipeline, startSessionCapture, waitForAnyElement } from "./shared";
+import { runCapturePipeline, startSessionCapture, waitForAnyElement } from "./shared";
 import type { Message } from "./shared";
 import { getPlatformSelectors, type PlatformSelectors } from "@/lib/remote-config";
 
@@ -17,18 +17,77 @@ getPlatformSelectors("gemini").then((s) => { _remoteSelectors = s; }).catch(() =
 // ── DIAGNOSTIC STAGE 1 ────────────────────────────────────────────────────────
 // Per-element streaming guard — skip messages still being generated.
 function isStreaming(el: Element): boolean {
-  return (
-    el.querySelector('.loading-indicator, [aria-label="Gemini is responding"]') !== null ||
-    el.closest('[class*="loading"]') !== null
-  )
+  // Only flag elements that explicitly contain a streaming indicator inside them.
+  // The previous el.closest('[class*="loading"]') ancestor check over-rejected in
+  // Gemini 2026 because Angular state classes containing "loading" sit high in the
+  // tree, causing every captured message to be dropped (selectorHits>0, msgs=0).
+  return el.querySelector('.loading-indicator, [aria-label="Gemini is responding"]') !== null;
+}
+
+function geminiExtractContent(el: Element): string {
+  // Prefer narrowly-scoped inner content nodes to avoid Angular wrapper boilerplate
+  // (action buttons, file carousels, source lists, regenerate, copy, etc.).
+  //   .query-text                  — user message text (Gemini 2026 user-query)
+  //   message-content .markdown    — assistant rendered markdown
+  //   .markdown                    — assistant markdown (looser)
+  //   message-content              — assistant container fallback
+  const PRIORITY = ['.query-text', 'message-content .markdown', '.markdown', 'message-content'];
+  const clean = (n: Element): string => {
+    const c = n.cloneNode(true) as Element;
+    c.querySelectorAll('script, template').forEach((x) => x.remove());
+    return c.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+  };
+  for (const sel of PRIORITY) {
+    const node = el.querySelector(sel);
+    if (node) {
+      const txt = clean(node);
+      if (txt.length > 0) return txt;
+    }
+  }
+  return clean(el);
 }
 
 function scrapeMessages(): Message[] {
   // Remote selectors override hardcoded defaults when present.
   // Gemini 2026: user-query-container, response-container-content, model-response-text, markdown
-  const userSel = _remoteSelectors?.userSelector ?? '[class*="user-query-container"], [class*="user-query-bubble"], user-query, .user-query, [class*="user-query"]'
-  const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="response-container-content"], [class*="model-response-text"], model-response, .model-response, [class*="model-response"]'
+  const userSel = _remoteSelectors?.userSelector ?? [
+    'user-query',
+    '[class*="user-query-container"]',
+    '[class*="user-query-bubble"]',
+    '.user-query',
+    'user-chunk',
+    '[class*="user-chunk"]',
+    'user-message',
+  ].join(', ')
+  const asstSel = _remoteSelectors?.assistantSelector ?? [
+    'model-response',
+    'ms-chat-turn[type="model"]',
+    '[class*="model-response-text"]',
+    '[class*="response-container"]',
+    'response-element',
+    '[class*="response-element"]',
+    '.model-response',
+    'message-content',
+  ].join(', ')
   const strategy = (_remoteSelectors?.userSelector || _remoteSelectors?.assistantSelector) ? 0 : 1
+
+  let _uHits = 0, _aHits = 0;
+  console.groupCollapsed('[CM:Debug] Scraper Search');
+  console.log('[CM:Debug] readyState:', document.readyState, '| strategy:', strategy === 0 ? '0 (remote)' : '1 (hardcoded)');
+  console.log('[CM:Debug] URL:', location.href.slice(0, 100));
+  console.groupCollapsed('[CM:Debug] User selectors');
+  for (const sel of userSel.split(',').map(s => s.trim()).filter(Boolean)) {
+    const n = document.querySelectorAll(sel).length; _uHits += n;
+    console.log((n > 0 ? '  \u2713' : '  \u2717') + ` [${n}]  ${sel}`);
+  }
+  console.groupEnd();
+  console.groupCollapsed('[CM:Debug] Assistant selectors');
+  for (const sel of asstSel.split(',').map(s => s.trim()).filter(Boolean)) {
+    const n = document.querySelectorAll(sel).length; _aHits += n;
+    console.log((n > 0 ? '  \u2713' : '  \u2717') + ` [${n}]  ${sel}`);
+  }
+  console.groupEnd();
+  console.groupEnd();
 
   const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
 
@@ -44,27 +103,72 @@ function scrapeMessages(): Message[] {
     found.push({ el, role: 'assistant' })
   })
 
+  // ── Structural fallback: activates when all primary selectors find nothing ──
+  if (found.length === 0) {
+    const STRUCT_FALLBACKS: Array<[string, string]> = [
+      ['.conversation-container',           'conversation-container'],
+      ['[class*="conversation-container"]', 'conversation-container-class'],
+      ['response-container',                'response-container-tag'],
+      ['[role="listitem"]',                 'listitem'],
+    ];
+    for (const [sel, label] of STRUCT_FALLBACKS) {
+      const candidates = document.querySelectorAll<HTMLElement>(sel);
+      if (candidates.length === 0) continue;
+      candidates.forEach(el => {
+        if (isStreaming(el)) return;
+        const isUser = !!el.querySelector('user-query, [class*="user-query"]');
+        const isAsst = !!el.querySelector('model-response, [class*="model-response"]');
+        if (isUser) found.push({ el, role: 'user' });
+        else if (isAsst) found.push({ el, role: 'assistant' });
+      });
+      if (found.length > 0) {
+        console.log(`[CM:gemini] fallback found ${found.length} messages via ${label}`);
+        break;
+      }
+    }
+  }
+
   found.sort((a, b) =>
     a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
   )
 
   const msgs = found.map(({ el, role }) => ({
     role,
-    content: extractContent(el),
+    content: geminiExtractContent(el),
     timestamp: Date.now()
   })).filter(m => m.content.trim().length > 0)
 
   const u = msgs.filter(m => m.role === 'user').length
   const a = msgs.filter(m => m.role === 'assistant').length
-  console.log(`[CM:diag:gemini] strategy=${strategy} user=${u} asst=${a}`)
+  console.log(`[CM:diag:gemini] strategy=${strategy} user=${u} asst=${a} selectorHits(u=${_uHits} a=${_aHits})`)
+
+  if (u === 0 && a === 0) {
+    if (_uHits === 0 && _aHits === 0) {
+      console.warn('[CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.');
+      try {
+        const mainEl = document.querySelector('main');
+        const snap = mainEl?.firstElementChild?.outerHTML.slice(0, 500)
+          ?? document.body?.firstElementChild?.outerHTML.slice(0, 500)
+          ?? '(no main/body element found)';
+        console.warn('[CM:Debug] DOM snippet (first 500 chars):\n', snap);
+        const kids = Array.from(mainEl?.children ?? document.body?.children ?? [])
+          .map(c => `<${c.tagName.toLowerCase()} class="${c.getAttribute('class') ?? ''}">`);
+        console.warn('[CM:Debug] main> direct children:', kids);
+      } catch (e) { console.warn('[CM:Debug] snapshot error:', e); }
+    } else {
+      console.warn('[CM:Debug] ZERO-SCRAPE: selectors hit nodes but all were filtered (isStreaming or empty extractContent).');
+    }
+  }
+
   return msgs
 }
 
 startSessionCapture({
   platform: "gemini",
-  selectorOrElement: () => _remoteSelectors?.observerTarget ?? "chat-window, main",
+  selectorOrElement: () => _remoteSelectors?.observerTarget ?? 'chat-window, main, [class*="chat-container"], [class*="conversation"]',
   scrapeMessages: () => runCapturePipeline("gemini", scrapeMessages),
   requiresScrollBack: true,
+  scrollBackStrategy: 'step',
   getScrollContainerSelector: () => _remoteSelectors?.scrollContainer,
   // Angular renders message shells first, then hydrates text content async.
   // Extra 2 s / 4 s captures catch sessions that load after the initial mount.
@@ -79,77 +183,15 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       .catch((err) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
     return true; // CRITICAL — keeps channel open for async response
   }
-  if (msg.type === "INJECT_FILE_AS_UPLOAD") {
+  if (msg.type === "INJECT_FILE_AS_UPLOAD" || msg.type === "INJECT_FILE_TO_TAB") {
     void (async () => {
       try {
-        // Use text/plain — Gemini's file input accept attribute typically allows
-        // plain text but blocks text/xml, causing silent rejection by Angular's
-        // component even when the file IS programmatically attached.
-        const file = new File([msg.fileContent as string], msg.fileName as string, { type: "text/plain" });
-        const dt = new DataTransfer();
-        dt.items.add(file);
-
-        // Shadow-DOM-aware querySelector: Gemini's Angular components sometimes
-        // host the actual <input type="file"> inside a shadow root.
-        const findFileInput = (): HTMLInputElement | null => {
-          const light = document.querySelector<HTMLInputElement>("input[type='file']");
-          if (light) return light;
-          for (const host of document.querySelectorAll("*")) {
-            const sr = (host as Element & { shadowRoot?: ShadowRoot }).shadowRoot;
-            if (sr) {
-              const el = sr.querySelector<HTMLInputElement>("input[type='file']");
-              if (el) return el;
-            }
-          }
-          return null;
-        };
-
-        let input = findFileInput();
-
-        if (!input) {
-          // Gemini-specific Angular Material upload button selectors.
-          // The button that reveals the hidden file input in Gemini's 2026 UI.
-          const uploadBtn = document.querySelector<HTMLElement>(
-            'button[aria-label*="Upload"], button[aria-label*="upload"], ' +
-            'button[aria-label*="Add files"], button[aria-label*="Add image"], ' +
-            'button[aria-label*="Attach"], button[aria-label*="attach"], ' +
-            '[data-test-id*="upload"], [data-testid*="upload"], ' +
-            '.input-media-button button, input-media-button, ' +
-            '[class*="upload-btn"], [class*="upload-button"], ' +
-            '[class*="attach-btn"], [class*="file-picker"], ' +
-            '.upload-button, [class*="upload"], [class*="attach"]'
-          );
-          if (uploadBtn) {
-            console.debug("[CM:gemini] clicking upload button:", uploadBtn.tagName, uploadBtn.getAttribute("aria-label"));
-            uploadBtn.click();
-            for (let i = 0; i < 20; i++) {
-              await new Promise((r) => setTimeout(r, 100));
-              input = findFileInput();
-              if (input) break;
-            }
-          }
-        }
-
-        if (input) {
-          // Remove accept restriction that may silently block XML / plain-text files.
-          const originalAccept = input.getAttribute("accept") ?? "";
-          if (originalAccept) {
-            console.debug("[CM:gemini] clearing accept attr:", originalAccept);
-            input.removeAttribute("accept");
-          }
-          input.files = dt.files;
-          input.dispatchEvent(new Event("change", { bubbles: true }));
-          input.dispatchEvent(new Event("input", { bubbles: true }));
-          console.debug("[CM:gemini] file attached via input element, files.length:", dt.files.length);
-          sendResponse({ ok: true });
-          return;
-        }
-
-        // Final fallback: inject the XML content as text into the Gemini
-        // text input. This succeeds even when no file input is reachable.
-        console.warn("[CM:gemini] INJECT_FILE_AS_UPLOAD: no file input found — falling back to text injection");
+        // Gemini 2026 has removed <input type="file"> from both light and shadow DOM.
+        // Skip the entire file-input search and route straight to text injection.
+        console.warn("[CM:gemini] INJECT_FILE_AS_UPLOAD: Gemini 2026 removes file inputs — routing directly to text injection");
         const textResult = await injectIntoGeminiInput(msg.fileContent as string);
         sendResponse(textResult);
+        return;
       } catch (err) {
         sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
       }
@@ -158,21 +200,49 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 });
 
+type _QuillInstance = { setText(t: string): void; setSelection(n: number): void };
+
 async function injectIntoGeminiInput(text: string) {
-  const input = await waitForAnyElement<HTMLElement>([
-    "rich-textarea [contenteditable='true']",     // Gemini Angular component
-    "rich-textarea p",                            // inner paragraph element
+  const found = await waitForAnyElement<HTMLElement>([
+    "rich-textarea .ql-editor",           // Quill editor inside rich-textarea
+    "rich-textarea [contenteditable]",    // any contenteditable in rich-textarea
+    "rich-textarea p",                    // paragraph inside Quill
     "[contenteditable='true'][role='textbox']",
-    "[contenteditable='true'][aria-label]",       // labelled contenteditable
-    "textarea:not([readonly])",
-    "[contenteditable='true']",                   // last-resort
+    "rich-textarea",                      // component itself as fallback
+    "[contenteditable='true']",
   ]);
 
-  if (!input) return { ok: false, error: "Gemini input box not found. Make sure a chat is open." };
+  if (!found) return { ok: false, error: "Gemini input box not found. Make sure a chat is open." };
 
-  if (!await injectWithRetry(input, text, "gemini")) {
-    return { ok: false, error: "Gemini input did not accept the text after 3 attempts. Context copied to clipboard — paste with Ctrl+V." };
+  // Unwrap to inner editable if we landed on the container element.
+  let useElement: HTMLElement = found;
+  if (found.tagName === 'RICH-TEXTAREA' || found.classList.contains('ql-container')) {
+    const inner = found.querySelector('.ql-editor') ?? found.querySelector('[contenteditable]');
+    if (inner) useElement = inner as HTMLElement;
   }
 
+  useElement.focus();
+  useElement.click();
+  await new Promise<void>((r) => setTimeout(r, 100));
+
+  // 1. Try Quill API first.
+  const quillContainer = useElement.closest('.ql-container') as (HTMLElement & { __quill?: _QuillInstance }) | null;
+  if (quillContainer?.__quill) {
+    quillContainer.__quill.setText(text);
+    quillContainer.__quill.setSelection(text.length);
+    useElement.dispatchEvent(new Event('change', { bubbles: true }));
+    return { ok: true };
+  }
+
+  // 2. execCommand path.
+  document.execCommand('selectAll', false, undefined);
+  const didInsert = document.execCommand('insertText', false, text);
+
+  // 3. Direct textContent fallback if execCommand failed.
+  if (!didInsert) {
+    useElement.textContent = text;
+    useElement.dispatchEvent(new InputEvent('input', { bubbles: true, data: text }));
+  }
+  useElement.dispatchEvent(new Event('change', { bubbles: true }));
   return { ok: true };
 }

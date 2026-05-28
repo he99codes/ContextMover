@@ -65,8 +65,8 @@ function scrapeMessages(): Message[] {
   // ── Strategy B: DeepSeek class patterns ─────────────────────────────────────
   if (!hasAsst()) {
     // DeepSeek 2026 uses ds-message / ds-markdown / ds-assistant-message-main-content.
-    const userSel = _remoteSelectors?.userSelector ?? '[class*="ds-message"]:not([class*="ds-assistant"]), [class*="userMessage"], [class*="user-message"], [class*="human-message"], [class*="UserMessage"], [class*="human_turn"], [class*="user_turn"], [class*="fz-user"], [data-type="user"], [data-role="user"]';
-    const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="ds-assistant-message-main-content"], [class*="ds-markdown"], [class*="markdown-content"], [class*="assistantMessage"], [class*="assistant-message"], [class*="AssistantMessage"], [class*="model-response"]';
+    const userSel = _remoteSelectors?.userSelector ?? '[class*="ds-message"]:not([class*="ds-assistant"]), [data-testid*="user"], [data-testid*="human"], [aria-label*="your message" i], [class*="userMessage"], [class*="user-message"], [class*="human-message"], [class*="UserMessage"], [class*="human_turn"], [class*="user_turn"], [data-type="user"], [data-role="user"]';
+    const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="ds-assistant-message-main-content"], [class*="ds-markdown"], [data-testid*="assistant"], [data-testid*="answer"], [aria-label*="DeepSeek" i], [class*="markdown-content"], [class*="assistantMessage"], [class*="assistant-message"], [class*="AssistantMessage"], [class*="model-response"]';
 
     const userEls = [...document.querySelectorAll<HTMLElement>(userSel)]
       .filter((el) => !el.parentElement?.closest(userSel) && !isStreaming(el));
@@ -102,8 +102,8 @@ function scrapeMessages(): Message[] {
   // by checking whether the child contains textarea/input (user) vs a markdown block.
   if (!hasUser()) {
     const msgEls = [...document.querySelectorAll<HTMLElement>(
-      '[class*="message"], [class*="chat-item"], [class*="turn"], [class*="bubble"]'
-    )].filter((el) => !el.parentElement?.closest('[class*="message"], [class*="chat-item"], [class*="turn"], [class*="bubble"]') && !isStreaming(el));
+      '[class*="message"], [class*="chat-item"], [class*="turn"], [class*="bubble"], [role="listitem"], [data-testid*="message"]'
+    )].filter((el) => !el.parentElement?.closest('[class*="message"], [class*="chat-item"], [class*="turn"], [class*="bubble"], [role="listitem"]') && !isStreaming(el));
 
     for (const el of msgEls) {
       const text = (el.textContent ?? "").trim();

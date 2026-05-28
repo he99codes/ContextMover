@@ -47,8 +47,8 @@ function scrapeMessages(): Message[] {
   // ── Strategy B: class substrings — UserMessage / AnswerText / answer-block ─
   if (!hasAsst()) {
     // Perplexity 2026: group/query for user, prose for assistant
-    const userSel = _remoteSelectors?.userSelector ?? '[class*="group/query"], [data-testid="user-message"], [data-testid*="user"], [class*="UserMessage"], [class*="user-query"], [class*="query-bubble"], [class*="user-message"]';
-    const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="prose"], [class*="AnswerText"], [class*="answer-text"], [class*="model-answer"], [class*="assistant-message"], .answer-block, [class*="answer-block"]';
+    const userSel = _remoteSelectors?.userSelector ?? '[class*="group/query"], [data-testid="user-message"], [data-testid*="user-query"], [data-testid*="user"], [aria-label*="your question" i], [aria-label*="you asked" i], [class*="UserMessage"], [class*="user-query"], [class*="query-bubble"], [class*="user-message"]';
+    const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="prose"], [class*="AnswerText"], [class*="answer-text"], [data-testid*="answer"], [data-testid*="assistant"], [aria-label*="answer" i], [class*="model-answer"], [class*="assistant-message"], .answer-block, [class*="answer-block"]';
 
     const userEls = [...document.querySelectorAll<HTMLElement>(userSel)]
       .filter((el) => !el.parentElement?.closest(userSel) && !isStreaming(el));
@@ -87,6 +87,21 @@ function scrapeMessages(): Message[] {
       if (text.length > 30) collected.push({ el, role: "assistant" });
     }
     console.log(`[ContextMover:perplexity] D prose/markdown: ${proseEls.length}`);
+  }
+
+  // ── Strategy E: ARIA labels + role attributes ────────────────────────
+  // Perplexity may annotate messages with aria-label or role attributes that
+  // survive class-name obfuscation and build-hash changes.
+  if (!hasUser()) {
+    const ariaUserEls = [...document.querySelectorAll<HTMLElement>(
+      '[aria-label*="query" i]:not(nav):not(button), [aria-label*="question" i]:not(nav):not(button), [data-role="user"], [role="listitem"][data-type="user"]'
+    )].filter((el) => !isStreaming(el));
+    const ariaAsstEls = [...document.querySelectorAll<HTMLElement>(
+      '[aria-label*="Perplexity" i]:not(nav):not(header):not(button), [aria-label*="answer" i]:not(button), [data-role="assistant"]'
+    )].filter((el) => !isStreaming(el));
+    for (const el of ariaUserEls) collected.push({ el, role: "user" });
+    if (!hasAsst()) for (const el of ariaAsstEls) collected.push({ el, role: "assistant" });
+    console.log(`[ContextMover:perplexity] E aria+role: user=${ariaUserEls.length} asst=${ariaAsstEls.length}`);
   }
 
   // ── Diagnostic if nothing found ──────────────────────────────────
@@ -165,6 +180,7 @@ startSessionCapture({
   platform: "perplexity",
   selectorOrElement: "main",
   scrapeMessages: () => runCapturePipeline("perplexity", scrapeMessages),
+  requiresScrollBack: true,
   extraCaptureDelays: [1500, 3000],
 });
 

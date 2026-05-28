@@ -41,6 +41,7 @@ interface SessionCardProps {
   migrationTier?: 1 | 2 | 3;
   driveSourced?: boolean;
   onSelect: () => void;
+  onRenaming?: (v: boolean) => void;
 }
 
 // ── Engagement badge definitions ─────────────────────────────────────────────
@@ -69,6 +70,7 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
   migrationTier,
   driveSourced,
   onSelect,
+  onRenaming,
 }) {
   const [hovered, setHovered] = useState(false);
   const pColor = PLATFORM_COLORS[session.platform];
@@ -130,6 +132,7 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
             inputClassName="w-full bg-transparent border-b border-[#00FF88] text-[11px] font-semibold text-[#F5F5F5] outline-none"
             onRename={(name) => chrome.runtime.sendMessage({ type: "RENAME_SESSION", sessionId: session.id, title: name })}
             stopPropagation
+            onEditingChange={onRenaming}
           />
           {/* ── Meta row ── */}
           <div className="flex items-center gap-1 text-[8px] uppercase" style={{ letterSpacing: "0.08em", color: "#2A4A2A" }}>
@@ -229,56 +232,114 @@ function InlineRename({
   inputClassName,
   onRename,
   stopPropagation = false,
+  onEditingChange,
 }: {
   session: ContextSession;
   displayClassName: string;
   inputClassName: string;
   onRename: (name: string) => void;
   stopPropagation?: boolean;
+  onEditingChange?: (editing: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState("");
+  const [hovered, setHovered] = useState(false);
   const display = getDisplayName(session);
+
+  const startEdit = () => {
+    setEditing(true);
+    setVal(display);
+    onEditingChange?.(true);
+  };
+
+  const confirmEdit = () => {
+    setEditing(false);
+    onEditingChange?.(false);
+    if (val.trim() && val.trim() !== display) {
+      onRename(val.trim());
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    onEditingChange?.(false);
+  };
 
   if (!editing) {
     return (
-      <span
-        className={displayClassName}
-        title="Click to rename"
-        onClick={stopPropagation
-          ? (e) => { e.stopPropagation(); setEditing(true); setVal(display); }
-          : () => { setEditing(true); setVal(display); }}
+      <div
+        className="flex items-center gap-1 min-w-0"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
-        {display}
-      </span>
+        <span
+          className={displayClassName}
+          title={display}
+          onClick={stopPropagation
+            ? (e) => { e.stopPropagation(); startEdit(); }
+            : startEdit}
+        >
+          {display}
+        </span>
+        {hovered && (
+          <button
+            title="Rename session"
+            onClick={stopPropagation
+              ? (e) => { e.stopPropagation(); startEdit(); }
+              : startEdit}
+            style={{
+              flexShrink: 0, color: "#4A6A4A", background: "none",
+              border: "none", cursor: "pointer", fontSize: 9, padding: 0,
+              lineHeight: 1,
+            }}
+          >
+            ✏
+          </button>
+        )}
+      </div>
     );
   }
 
   return (
-    <input
-      autoFocus
-      className={inputClassName}
-      value={val}
-      onChange={(e) => setVal(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          setEditing(false);
-          if (val.trim() && val.trim() !== display) {
-            onRename(val.trim());
-          }
-        } else if (e.key === "Escape") {
-          setEditing(false);
-        }
-      }}
-      onBlur={() => {
-        setEditing(false);
-        if (val.trim() && val.trim() !== display) {
-          onRename(val.trim());
-        }
-      }}
+    <div
+      className="flex items-center gap-1 min-w-0"
       onClick={stopPropagation ? (e) => e.stopPropagation() : undefined}
-    />
+    >
+      <input
+        autoFocus
+        className={inputClassName}
+        style={{ flex: 1, minWidth: 0 }}
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); confirmEdit(); }
+          else if (e.key === "Escape") { e.preventDefault(); cancelEdit(); }
+        }}
+        onBlur={confirmEdit}
+      />
+      <button
+        title="Confirm (Enter)"
+        onMouseDown={(e) => { e.preventDefault(); confirmEdit(); }}
+        style={{
+          flexShrink: 0, color: "#00FF88", background: "none",
+          border: "none", cursor: "pointer", fontSize: 10, padding: "0 2px",
+          lineHeight: 1,
+        }}
+      >
+        ✓
+      </button>
+      <button
+        title="Cancel (Esc)"
+        onMouseDown={(e) => { e.preventDefault(); cancelEdit(); }}
+        style={{
+          flexShrink: 0, color: "#6B6B6B", background: "none",
+          border: "none", cursor: "pointer", fontSize: 10, padding: "0 2px",
+          lineHeight: 1,
+        }}
+      >
+        ✕
+      </button>
+    </div>
   );
 }
 
@@ -288,6 +349,8 @@ type StatusTone = "info" | "success" | "error";
 export default function Sidebar() {
   const [sessions, setSessions] = useState<ContextSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshSuccess, setRefreshSuccess] = useState(false);
   const [selected, setSelected] = useState<ContextSession | null>(null);
   const [view, setView] = useState<View>("sessions");
   const [targetPlatform, setTargetPlatform] = useState<Platform>("claude");
@@ -300,6 +363,7 @@ export default function Sidebar() {
     null
   );
   const [tick, setTick] = useState(0);
+  const [isRenaming, setIsRenaming] = useState(false);
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [latestQualityScore, setLatestQualityScore] = useState<QualityScore | null>(null);
   const [qualityStats, setQualityStats] = useState<{ count: number; avgScore: number } | null>(null);
@@ -334,6 +398,8 @@ export default function Sidebar() {
   const loadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const semanticTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSubFetch = useRef<number>(0);
+  const activeRenameRef = useRef(false);
+  const lastRefreshRef = useRef(0);
   // Ref-stable message handler — avoids re-registering the listener on every render.
   const handleMessageRef = useRef<(msg: { type: string }) => void>();
   // Precomputed summaries — keyed by sessionId, populated on session card click.
@@ -395,6 +461,11 @@ export default function Sidebar() {
     });
   }, [refreshDriveStatus]);
 
+  const handleRenaming = useCallback((v: boolean) => {
+    activeRenameRef.current = v;
+    setIsRenaming(v);
+  }, []);
+
   useEffect(() => {
     refreshDriveStatus();
   }, [refreshDriveStatus]);
@@ -454,9 +525,9 @@ export default function Sidebar() {
   }, []);
 
   // Keep handleMessageRef in sync with latest loadSessions closure every render.
-  handleMessageRef.current = (msg: { type: string; pct?: number; done?: number; total?: number; phase?: string; platform?: string; reason?: string }) => {
+  handleMessageRef.current = (msg: { type: string; pct?: number; done?: number; total?: number; phase?: string; platform?: string; reason?: string; pendingId?: string; sessionTitle?: string; targetPlatform?: string }) => {
     if (msg.type === "SESSIONS_UPDATED") {
-      loadSessions();
+      if (!activeRenameRef.current) loadSessions();
     }
     if (msg.type === "SCRAPER_BROKEN") {
       const p = msg.platform ?? "unknown";
@@ -670,6 +741,26 @@ export default function Sidebar() {
         setSessionsLoading(false);
       });
     }, 250);
+  }
+
+  function handleRefreshClick() {
+    if (isRefreshing || activeRenameRef.current) return;
+    if (Date.now() - lastRefreshRef.current < 2000) return;
+    lastRefreshRef.current = Date.now();
+    setIsRefreshing(true);
+    if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
+    const timeout = setTimeout(() => setIsRefreshing(false), 5000);
+    chrome.runtime.sendMessage({ type: "GET_SESSIONS", force: true }, (res) => {
+      clearTimeout(timeout);
+      setSessions(Array.isArray(res) ? res : []);
+      setSessionsLoading(false);
+      setIsRefreshing(false);
+      setRefreshSuccess(true);
+      setTimeout(() => setRefreshSuccess(false), 600);
+    });
+    if (driveConnected) {
+      chrome.runtime.sendMessage({ type: "DRIVE_SYNC_NOW" }).catch(() => {});
+    }
   }
 
   // ── Precompute summaries in background when user selects a session ────────────
@@ -1096,7 +1187,7 @@ export default function Sidebar() {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-[#050505] text-[#F5F5F5] crt">
+    <div className="relative flex h-full flex-col overflow-hidden bg-[#050505] text-[#F5F5F5] crt">
       <div className="flex h-full flex-col">
         {/* ── Update available banner ── */}
         {updateAvailable && (
@@ -1152,11 +1243,16 @@ export default function Sidebar() {
             </div>
             <div className="flex items-center gap-1">
               <button
-                onClick={() => { void loadSessions(); }}
+                onClick={handleRefreshClick}
+                disabled={isRefreshing || isRenaming}
                 title="Refresh sessions"
-                className="flex h-5 w-5 items-center justify-center rounded-[3px] border border-[#1A3A1A] bg-[#060606] text-[#2A6A2A] transition-all duration-200 hover:border-[#00FF88]/50 hover:text-[#00FF88]"
+                className={`flex h-5 w-5 items-center justify-center rounded-[3px] border transition-all duration-200 ${
+                  refreshSuccess
+                    ? 'border-[#00FF88]/60 bg-[#00FF88]/10 text-[#00FF88]'
+                    : 'border-[#1A3A1A] bg-[#060606] text-[#2A6A2A] hover:border-[#00FF88]/50 hover:text-[#00FF88]'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                <span className="text-sm">↻</span>
+                <span className={`text-sm${isRefreshing ? ' animate-spin' : ''}`}>↻</span>
               </button>
               <button
                 onClick={() => void checkVault()}
@@ -1285,7 +1381,7 @@ export default function Sidebar() {
                 }}
                 title={PLATFORM_LABELS[platform]}
               >
-                <PlatformLogo platform={platform} size={14} className="mx-auto" />
+                <PlatformLogo platform={platform} size={4} className="mx-auto" />
                 <div className="text-[9px] font-black uppercase tabular-nums" style={{ color: count > 0 ? PLATFORM_COLORS[platform] : "#1A2A1A", textShadow: count > 0 ? `0 0 8px ${PLATFORM_COLORS[platform]}60` : "none" }}>{PLATFORM_SHORT[platform]}</div>
                 <div className="text-[13px] font-bold tabular-nums" style={{ color: count > 0 ? PLATFORM_COLORS[platform] : "#1A2A1A", textShadow: count > 0 ? `0 0 8px ${PLATFORM_COLORS[platform]}60` : "none" }}>{count}</div>
               </button>
@@ -1380,7 +1476,20 @@ export default function Sidebar() {
             />
           </div>
         )}
-        <div className={(showSettings || showSynthesizer) ? 'hidden' : 'flex-1 overflow-y-auto px-1.5 py-1 space-y-1'}>
+        <div className={(showSettings || showSynthesizer) ? 'hidden' : 'relative flex-1 overflow-y-auto px-1.5 py-1 space-y-1'}>
+          {isRefreshing && (
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "rgba(5,5,5,0.7)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              zIndex: 10,
+            }}>
+              <div className="animate-pulse" style={{
+                width: 6, height: 6, borderRadius: "50%",
+                background: "#00FF88",
+              }} />
+            </div>
+          )}
           {semanticSessions.length > 0 && (
             <div className="mb-1.5 space-y-1">
               <div className="pb-0.5 text-[7px] uppercase tracking-widest text-[#6366f1]">Semantic matches</div>
@@ -1450,6 +1559,7 @@ export default function Sidebar() {
                   migrationTier={migrationTiers[session.id]}
                   driveSourced={driveSourcedSet.has(session.id)}
                   onSelect={() => handleSessionSelect(session)}
+                  onRenaming={handleRenaming}
                 />
               ))}
             </div>
@@ -1465,31 +1575,31 @@ export default function Sidebar() {
         {/* ── MCP IDE bridge status (Add-on 6) ────────────────────────────── */}
         <MCPStatusPanel />
 
-        <div className="border-t border-[#0D2A0D] px-3 py-1 space-y-1">
+        <div className="border-t border-[#0D2A0D] px-2 py-0.5 space-y-0.5">
           <div
-            className="crucible-pulse flex cursor-default items-center justify-center rounded-[4px] border border-dashed py-1 transition-all hover:scale-[1.01]"
+            className="crucible-pulse flex cursor-default items-center justify-center rounded-[4px] border border-dashed py-0.5 transition-all hover:scale-[1.01]"
             style={{ borderColor: "rgba(0,255,136,0.2)", background: "rgba(0,255,136,0.018)" }}
           >
-            <div className="text-[7.5px] font-black uppercase tracking-[0.3em] text-[#00FF88]" style={{ textShadow: "0 0 8px rgba(0,255,136,0.5)" }}>
+            <div style={{ fontSize: "5px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.3em", color: "#00FF88", textShadow: "0 0 8px rgba(0,255,136,0.5)" }}>
               ⚗ THE CRUCIBLE
             </div>
-            <div className="ml-2 text-[7.5px] uppercase tracking-[0.14em]" style={{ color: "#1A3A1A" }}>
+            <div style={{ marginLeft: "6px", fontSize: "5px", textTransform: "uppercase", letterSpacing: "0.14em", color: "#1A3A1A" }}>
               Drop sessions to merge · Super Memory
             </div>
           </div>
           {/* Quick links */}
-          <div className="flex gap-1.5">
+          <div className="flex gap-1">
             <button
               type="button"
               onClick={() => chrome.tabs.create({ url: DASHBOARD_URL })}
-              className="flex-1 rounded-[3px] border border-[#1A3A1A] bg-[#060606] py-0.5 text-[10px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
+              className="flex-1 rounded-[3px] border border-[#1A3A1A] bg-[#060606] py-px text-[7px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
             >
               Dashboard ↗
             </button>
             <button
               type="button"
               onClick={() => chrome.tabs.create({ url: PRICING_URL })}
-              className="flex-1 rounded-[3px] border border-[#1A3A1A] bg-[#060606] py-0.5 text-[10px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
+              className="flex-1 rounded-[3px] border border-[#1A3A1A] bg-[#060606] py-px text-[7px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
             >
               Upgrade ⚡
             </button>
@@ -1497,7 +1607,7 @@ export default function Sidebar() {
               type="button"
               onClick={() => chrome.tabs.create({ url: "https://contextmover.com/support#bug-report" })}
               title="Report a bug"
-              className="rounded-[3px] border border-[#1A3A1A] bg-[#060606] px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#EF4444]/30 hover:text-[#EF4444]"
+              className="rounded-[3px] border border-[#1A3A1A] bg-[#060606] px-1.5 py-px text-[7px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#EF4444]/30 hover:text-[#EF4444]"
             >
               Bug ⚠
             </button>
@@ -1550,15 +1660,15 @@ function MCPStatusPanel() {
   const platforms = status?.platforms ?? {};
 
   return (
-    <div style={{ borderTop: "1px solid #0D2A0D", padding: "2px 8px", background: "#040404" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-        <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#3A3A3A", flexShrink: 0 }} />
-        <span style={{ fontSize: 8, fontWeight: 700, color: "#3A3A3A", textTransform: "uppercase", letterSpacing: "0.18em", flex: 1 }}>
+    <div style={{ borderTop: "1px solid #0D2A0D", padding: "1px 6px", background: "#040404" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+        <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#3A3A3A", flexShrink: 0 }} />
+        <span style={{ fontSize: 6, fontWeight: 700, color: "#3A3A3A", textTransform: "uppercase", letterSpacing: "0.18em", flex: 1 }}>
           IDE Bridge
         </span>
         <span style={{
-          fontSize: 8, fontWeight: 900, color: "#3A3A3A", textTransform: "uppercase",
-          letterSpacing: "0.14em", border: "1px solid #2A2A2A", borderRadius: 3, padding: "1px 5px",
+          fontSize: 6, fontWeight: 900, color: "#3A3A3A", textTransform: "uppercase",
+          letterSpacing: "0.14em", border: "1px solid #2A2A2A", borderRadius: 3, padding: "1px 3px",
         }}>
           Coming Soon
         </span>

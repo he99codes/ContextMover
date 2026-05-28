@@ -50,8 +50,8 @@ function scrapeMessages(): Message[] {
 
   // ── Strategy 1: data-testid role attributes — primary 2026 Grok pattern ─
   if (!hasUser()) {
-    const uS1 = '[data-testid="user-message"], [data-testid="human-turn"], [data-testid*="human-message"], [data-testid*="human"]'
-    const aS1 = '[data-testid="assistant-message"], [data-testid="ai-turn"], [data-testid*="ai-response"], [data-testid*="grok-response"]'
+    const uS1 = '[data-testid="user-message"], [data-testid="human-turn"], [data-testid*="human-message"], [data-testid*="human"], [data-testid*="user"]'
+    const aS1 = '[data-testid="assistant-message"], [data-testid="ai-turn"], [data-testid*="ai-response"], [data-testid*="grok-response"], [data-testid*="assistant"]'
     const uEls = queryOutermost(uS1)
     const aEls = queryOutermost(aS1)
     uEls.forEach(el => found.push({ el, role: 'user' }))
@@ -73,12 +73,25 @@ function scrapeMessages(): Message[] {
   // ── Strategy 3: legacy patterns + role / data-role attribute ────────────
   if (!hasUser()) {
     const uS3 = '[class*="usermessage"], [class*="user-message"], [class*="UserMessage"], [data-role="user"], [role="user"]'
-    const aS3 = '[class*="assistantmessage"], [class*="assistant-message"], [class*="AssistantMessage"]'
+    const aS3 = '[class*="assistantmessage"], [class*="assistant-message"], [class*="AssistantMessage"], [data-role="assistant"]'
     const uEls = queryOutermost(uS3)
     const aEls = queryOutermost(aS3)
     uEls.forEach(el => found.push({ el, role: 'user' }))
     if (!hasAsst()) aEls.forEach(el => found.push({ el, role: 'assistant' }))
     console.log(`[CM:diag:grok] S3 legacy+role: user=${uEls.length} asst=${aEls.length}`)
+  }
+
+  // ── Strategy 4: ARIA labels + structural message containers ────────────────
+  // Grok wraps messages in elements with aria-label attributes that survive
+  // class-name obfuscation across deployments.
+  if (!hasUser()) {
+    const uS4 = '[aria-label*="your message" i], [aria-label*="You said" i], [aria-label*="user" i]:not(nav):not(header)'
+    const aS4 = '[aria-label*="Grok" i]:not(nav):not(header):not(button), [aria-label*="response" i]:not(button)'
+    const uEls = queryOutermost(uS4)
+    const aEls = queryOutermost(aS4)
+    uEls.forEach(el => found.push({ el, role: 'user' }))
+    if (!hasAsst()) aEls.forEach(el => found.push({ el, role: 'assistant' }))
+    console.log(`[CM:diag:grok] S4 aria+structural: user=${uEls.length} asst=${aEls.length}`)
   }
 
   const u = found.filter(e => e.role === 'user').length
@@ -120,6 +133,7 @@ startSessionCapture({
   platform: "grok",
   selectorOrElement: "main",
   scrapeMessages: () => runCapturePipeline("grok", scrapeMessages),
+  requiresScrollBack: true,
   extraCaptureDelays: [1500, 3000],
 });
 

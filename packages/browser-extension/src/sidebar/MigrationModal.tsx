@@ -951,8 +951,8 @@ export default function MigrationModal({
           </div>
         )}
         {hw?.tier === "minimal" && (
-          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F59E0B", letterSpacing: "0.06em", lineHeight: "1" }}>
-            ⚠ Slow device — Smart Summary recommended. Attention Engine may take 2+ min.
+          <div style={{ marginBottom: "8px", padding: "4px 8px", background: "rgba(255,165,0,0.08)", border: "1px solid rgba(255,165,0,0.2)", borderRadius: "4px", fontSize: "8px", color: "#FFA500" }}>
+            ⚡ Attention Engine may be slow on your device
           </div>
         )}
         {/* ── Quality-warning toast (tier fallback) ── */}

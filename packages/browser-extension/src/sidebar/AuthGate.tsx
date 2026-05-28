@@ -148,7 +148,13 @@ export default function AuthGate({ children }: AuthGateProps) {
       { type: "AUTH_SIGN_IN", payload: { email: email.trim(), password } },
       (res) => {
         setSubmitting(false);
-        if (res?.error) { setError(res.error); return; }
+        if (res?.error) {
+          const m: string = res.error;
+          setError(m.toLowerCase().includes("invalid login credentials")
+            ? "Invalid email or password. If you signed up with Google, use the Google button below."
+            : m);
+          return;
+        }
         setUser(res?.user ?? null);
       }
     );

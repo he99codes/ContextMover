@@ -131,7 +131,12 @@ function AuthForm() {
         );
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const msg = err instanceof Error ? err.message : "An error occurred";
+      if (msg.toLowerCase().includes("invalid login credentials")) {
+        setError('Invalid email or password. If you signed up with Google, use "Continue with Google" below.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setIsLoading(false);
     }
