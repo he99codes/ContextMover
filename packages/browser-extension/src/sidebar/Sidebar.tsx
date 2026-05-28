@@ -513,13 +513,22 @@ export default function Sidebar() {
     };
     chrome.runtime.onMessage.addListener(stableListener);
 
+    // pagehide fires synchronously when the side panel is destroyed (Chrome X
+    // button). React's useEffect cleanup is async and may not deliver the message
+    // before the context is torn down. This ensures the SW always gets notified.
+    const onPageHide = () => {
+      chrome.runtime.sendMessage({ type: 'SIDEBAR_CLOSED' }).catch(() => {});
+    };
+    window.addEventListener('pagehide', onPageHide);
+
     return () => {
       window.clearInterval(clockInterval);
       window.clearInterval(mcpInterval);
       chrome.runtime.onMessage.removeListener(stableListener);
+      window.removeEventListener('pagehide', onPageHide);
       if (loadDebounceRef.current) clearTimeout(loadDebounceRef.current);
       if (semanticTimerRef.current) clearTimeout(semanticTimerRef.current);
-      // Notify toggle button that sidebar closed
+      // Notify toggle button that sidebar closed (covers cases other than unload)
       chrome.runtime.sendMessage({ type: 'SIDEBAR_CLOSED' }).catch(() => {});
     };
   }, []);
@@ -530,8 +539,10 @@ export default function Sidebar() {
       if (!activeRenameRef.current) loadSessions();
     }
     if (msg.type === "SCRAPER_BROKEN") {
+      // [CM-FIX-2] removed user-facing error: "[p] UI changed! Scraper broken. Update pending."
+      // Internal selector failure — irrelevant to users, devs can see it in DevTools.
       const p = msg.platform ?? "unknown";
-      setStatusMessage({ tone: "error", text: `[${p}] UI changed! Scraper broken. Update pending.` });
+      console.error(`[CM:sidebar] SCRAPER_BROKEN on ${p} — remote config will auto-refresh selectors`);
     }
     if (msg.type === "USAGE_WARNING") {
       chrome.storage.local.get("accessToken", ({ accessToken }) => {

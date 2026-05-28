@@ -14,12 +14,15 @@
 import type { Message } from "../types";
 
 const TARGET_CHUNK_TOKENS = 200;   // ~800 chars
-// Hard cap on chunks per session. Indexing N chunks costs ~400ms each on
-// minimal-tier hardware (no WebGPU); a 911-chunk session blocks the offscreen
-// doc for 6+ minutes, freezing semantic search and all other indexing jobs.
-// We retain the MOST RECENT chunks (most relevant for "what was I just
-// working on" retrieval). Older context falls back to keyword search.
-const MAX_CHUNKS_PER_SESSION = 250;
+// [CM-FIX-5] removed message truncation — now using full session.
+// The old cap of 250 caused all early/middle conversation history to be
+// invisible to semantic search (e.g. an 911-chunk session had chunks 1–661
+// completely dropped). The serialized indexing queue (in semantic-index/index.ts)
+// already prevents the simultaneous-job UI freeze that motivated the old cap,
+// so we can safely raise this to match the full-tier config (2000 chunks).
+// Sessions beyond 2000 chunks (~800 messages at typical density) are rare;
+// their oldest chunks still get keyword-search coverage via runKeywordSearch.
+const MAX_CHUNKS_PER_SESSION = 2000;
 // (CHUNK_OVERLAP_TOKENS reserved for future continuity-overlap logic)
 
 const STRIP_PATTERNS: RegExp[] = [
@@ -91,9 +94,9 @@ export function chunkMessages(messages: Message[]): Chunk[] {
     }
   }
 
-  // Cap to most recent N chunks. Older messages still appear in the session
-  // transcript; only their semantic embedding is skipped to keep indexing
-  // bounded. Retrieval falls back to keyword search across the full text.
+  // [CM-FIX-5] removed message truncation — now using full session.
+  // Retain the cap only as a safety upper bound (2000) for extremely large sessions.
+  // The serialized indexing queue ensures this never causes simultaneous freeze.
   if (chunks.length > MAX_CHUNKS_PER_SESSION) {
     return chunks.slice(chunks.length - MAX_CHUNKS_PER_SESSION);
   }

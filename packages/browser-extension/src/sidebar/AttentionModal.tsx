@@ -191,7 +191,9 @@ export default function AttentionModal({ session, targetPlatform, onClose, onSuc
       },
       (response) => {
         if (response?.error) {
-          setMigrateState({ status: "error", message: response.error });
+          // [CM-FIX-2] removed user-facing error: raw response.error from SW
+          console.error("[CM:attention] MIGRATE_CONTEXT failed:", response.error);
+          setMigrateState({ status: "error", message: "Migration failed — please try again." });
           return;
         }
         const ratio = preview.status === "done" ? preview.compressionRatio : 0;

@@ -81,6 +81,11 @@ setInterval(purgeStaleCacheEntries, 5 * 60 * 1000)
 // causing the toggle to always show as "closed". State is now derived live
 // from chrome.runtime.getContexts() which reflects the actual browser state.
 
+// Track which tab last had its sidebar opened so SIDEBAR_CLOSED can relay
+// the notification to the toggle content script even when the side panel
+// sends the message without a tab context (sender.tab === undefined).
+let lastSidebarTabId: number | null = null;
+
 // Broadcast a message to any OPEN extension view (sidebar, popup, options).
 // Using chrome.runtime.sendMessage with no open view rejects with "Receiving
 // end does not exist" which Chrome surfaces as an error in DevTools even when
@@ -1352,6 +1357,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           // Open the panel
           try {
             await chrome.sidePanel.open({ tabId });
+            lastSidebarTabId = tabId; // remember for SIDEBAR_CLOSED relay
             sendResponse({ isOpen: true });
           } catch (err) {
             sendResponse({ isOpen: false, error: String(err) });
@@ -1446,12 +1452,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // The sidebar panel sends this via chrome.runtime.sendMessage which
         // reaches the SW but NOT content scripts. Relay it to the toggle
         // content script on the associated tab so its icon reflects closed state.
-        if (sender.tab?.id != null) {
+        //
+        // CRITICAL FIX: Chrome side panels send messages with sender.tab === undefined
+        // because the panel is not "inside" a tab. The old guard (sender.tab?.id != null)
+        // therefore NEVER relayed the message when the user closed the panel via
+        // Chrome's X button, leaving the toggle button permanently stuck in open state.
+        // Fix: fall back to lastSidebarTabId which was recorded when the panel opened.
+        const relayTabId = sender.tab?.id ?? lastSidebarTabId;
+        if (relayTabId != null) {
           chrome.tabs.sendMessage(
-            sender.tab.id,
+            relayTabId,
             { type: "SIDEBAR_CLOSED" },
             () => { void chrome.runtime.lastError; }
           );
+          lastSidebarTabId = null; // clear after relay
         }
         sendResponse({});
         break;
@@ -2009,6 +2023,7 @@ async function handleMigrateContext(
     promptTemplateId?: string | null;
     promptTemplate?: { name: string; content: string; icon: string } | null;
     projectContext?: string | null;
+    skipAutoInject?: boolean;
   },
   sendResponse: (r: unknown) => void,
   accessToken?: string
@@ -2215,31 +2230,39 @@ async function handleMigrateContext(
   if (!payload.targetTabId) {
     console.warn('[CM:sw] No targetTabId — skipping injection')
   } else if (tier === 1) {
-    // Attempt file injection so platform-specific fallbacks can handle it.
-    // Gemini routes INJECT_FILE_AS_UPLOAD → injectIntoGeminiInput (text fallback).
-    // Platforms without an INJECT_FILE_AS_UPLOAD handler return no response →
-    // injected stays false → MigrationModal still shows the file download UI.
-    try {
-      const t1Ready = await waitForTabContentScript(payload.targetTabId!);
-      if (t1Ready) {
-        const t1Result = await new Promise<{ ok: boolean; error?: string }>((resolve) => {
-          chrome.tabs.sendMessage(
-            payload.targetTabId!,
-            { type: "INJECT_FILE_AS_UPLOAD", fileName: migrationFile.filename, fileContent: migrationFile.content },
-            (response) => {
-              void chrome.runtime.lastError;
-              resolve((response as { ok: boolean; error?: string } | null) ?? { ok: false, error: "no response from content script" });
-            }
-          );
-        });
-        injected = t1Result.ok;
-        if (!t1Result.ok) injectionError = t1Result.error;
-      } else {
-        console.warn(`[CM:sw] Tier 1 file injection: content script not ready on tab ${payload.targetTabId}`);
+    // [CM-FIX-4] removed auto-inject — now user-triggered only (MigrationModal path).
+    // When skipAutoInject=true (set by MigrationModal), the file is prepared and
+    // returned in the response; injection happens via the "Inject file into AI chat"
+    // button click in MigrationSuccess — exactly once, with a double-click guard.
+    //
+    // When skipAutoInject is absent (KnowledgeSynthesizer path), auto-inject is
+    // preserved: KnowledgeSynthesizer has no second inject button so there is no
+    // double-injection risk on that path.
+    if (!payload.skipAutoInject) {
+      try {
+        const t1Ready = await waitForTabContentScript(payload.targetTabId!);
+        if (t1Ready) {
+          const t1Result = await new Promise<{ ok: boolean; error?: string }>((resolve) => {
+            chrome.tabs.sendMessage(
+              payload.targetTabId!,
+              { type: "INJECT_FILE_AS_UPLOAD", fileName: migrationFile.filename, fileContent: migrationFile.content },
+              (response) => {
+                void chrome.runtime.lastError;
+                resolve((response as { ok: boolean; error?: string } | null) ?? { ok: false, error: "no response from content script" });
+              }
+            );
+          });
+          injected = t1Result.ok;
+          if (!t1Result.ok) injectionError = t1Result.error;
+        } else {
+          console.warn(`[CM:sw] Tier 1 file injection: content script not ready on tab ${payload.targetTabId}`);
+        }
+      } catch (err) {
+        injectionError = err instanceof Error ? err.message : String(err);
+        console.warn('[CM:sw] Tier 1 file injection failed:', err);
       }
-    } catch (err) {
-      injectionError = err instanceof Error ? err.message : String(err);
-      console.warn('[CM:sw] Tier 1 file injection failed:', err);
+    } else {
+      console.log('[CM:sw] Tier 1 skipAutoInject=true — injection deferred to MigrationModal button click');
     }
   } else {
     try {
@@ -2685,40 +2708,143 @@ function injectPromptInPage(
   return { ok: false, error: "Unrecognised input type on target page." };
 }
 
-// Self-contained Gemini injector with retry — serialised and run in the page
-// via chrome.scripting.executeScript. Must have ZERO imports / outer-scope references.
+// Self-contained Gemini injector with shadow-DOM piercing — serialised via
+// chrome.scripting.executeScript. ZERO imports / outer-scope references allowed.
+//
+// Root cause of previous failures: Gemini 2026 uses Angular ViewEncapsulation.ShadowDom
+// on <rich-textarea>, so document.querySelector("rich-textarea .ql-editor") silently
+// returns null — it cannot cross the shadow root boundary. All 5 attempts found nothing.
+//
+// Fix: pierce the shadow root explicitly before falling back to direct queries.
 async function injectIntoGeminiPage(
   text: string
 ): Promise<{ ok: boolean; selector?: string; length?: number; reason?: string }> {
-  const GEMINI_SELECTORS = [
-    'rich-textarea .ql-editor[contenteditable="true"]',
-    '.ql-editor[contenteditable="true"]',
-    'div[contenteditable="true"][data-lexical-editor]',
-    'div[contenteditable="true"].ProseMirror',
-    'div[contenteditable="true"]',
-  ];
+  // ── Inline helpers (must be inside the function for executeScript serialisation) ──
 
-  for (let attempt = 0; attempt < 5; attempt++) {
-    for (const selector of GEMINI_SELECTORS) {
-      const el = document.querySelector<HTMLElement>(selector);
-      if (el) {
-        el.focus();
-        el.innerHTML = '';
-        let success = false;
-        try { success = document.execCommand('insertText', false, text); } catch { /* noop */ }
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-        if (!success || (el.textContent?.trim().length ?? 0) === 0) {
-          el.textContent = text;
-          el.dispatchEvent(new Event('input', { bubbles: true }));
-          el.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        const inserted = el.textContent?.trim().length ?? 0;
-        return { ok: inserted > 0, selector, length: inserted };
+  // Recursively walk open shadow roots to find a matching element.
+  function shadowDeepQuery(root: Element | ShadowRoot, sels: string[]): HTMLElement | null {
+    for (const sel of sels) {
+      const el = root.querySelector<HTMLElement>(sel);
+      if (el) return el;
+    }
+    for (const child of Array.from(root.querySelectorAll('*'))) {
+      const sr = (child as Element & { shadowRoot?: ShadowRoot }).shadowRoot;
+      if (sr) {
+        const found = shadowDeepQuery(sr, sels);
+        if (found) return found;
       }
     }
-    await new Promise<void>((r) => setTimeout(r, 800));
+    return null;
   }
+
+  // Find the Gemini text input using three strategies (shadow first, then direct, then deep).
+  function findGeminiEl(): { el: HTMLElement; label: string } | null {
+    const SHADOW_INNER = [
+      '.ql-editor[contenteditable="true"]',
+      '.ql-editor',
+      '[contenteditable="true"]',
+    ];
+    const DIRECT = [
+      'rich-textarea .ql-editor[contenteditable="true"]',
+      'rich-textarea .ql-editor',
+      'rich-textarea [contenteditable]',
+      '.ql-editor[contenteditable="true"]',
+      'div[contenteditable="true"][data-lexical-editor]',
+      'div[contenteditable="true"].ProseMirror',
+      '[contenteditable="true"][role="textbox"]',
+      'div[contenteditable="true"]',
+    ];
+
+    // Strategy 1: pierce rich-textarea shadow root
+    for (const rt of Array.from(document.querySelectorAll('rich-textarea'))) {
+      const sr = (rt as Element & { shadowRoot?: ShadowRoot }).shadowRoot;
+      if (sr) {
+        for (const sel of SHADOW_INNER) {
+          const el = sr.querySelector<HTMLElement>(sel);
+          if (el) return { el, label: `rich-textarea>#shadow>${sel}` };
+        }
+      }
+    }
+
+    // Strategy 2: direct document query (catches non-shadow layouts)
+    for (const sel of DIRECT) {
+      const el = document.querySelector<HTMLElement>(sel);
+      if (el) return { el, label: sel };
+    }
+
+    // Strategy 3: deep recursive shadow walk (nested custom elements)
+    const deep = shadowDeepQuery(document.body, SHADOW_INNER);
+    if (deep) return { el: deep, label: 'deep-shadow-walk' };
+
+    return null;
+  }
+
+  // Inject text into a found element using 4 fallback strategies.
+  function doInject(el: HTMLElement): boolean {
+    el.focus();
+    el.click();
+
+    // A. Quill JS API on shadow host
+    type QuillLike = { setText(t: string): void; setSelection(n: number): void };
+    const rt = document.querySelector('rich-textarea') as (HTMLElement & { __quill?: QuillLike }) | null;
+    if (rt?.__quill) {
+      rt.__quill.setText(text);
+      rt.__quill.setSelection(text.length);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    }
+
+    // B. execCommand selectAll + insertText
+    el.innerHTML = '';
+    document.execCommand('selectAll', false, undefined);
+    let ok = false;
+    try { ok = document.execCommand('insertText', false, text); } catch { /* noop */ }
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    if (ok && (el.textContent?.trim().length ?? 0) > 0) return true;
+
+    // C. Synthetic beforeinput + InputEvent (Angular change-detection path)
+    try {
+      const ev = new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: text });
+      el.dispatchEvent(ev);
+      if (!ev.defaultPrevented) el.textContent = text;
+      el.dispatchEvent(new InputEvent('input', { bubbles: true, data: text, inputType: 'insertText' }));
+      if ((el.textContent?.trim().length ?? 0) > 0) return true;
+    } catch { /* noop */ }
+
+    // D. Direct textContent fallback
+    el.textContent = text;
+    el.dispatchEvent(new InputEvent('input', { bubbles: true, data: text }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    return (el.textContent?.trim().length ?? 0) > 0;
+  }
+
+  // ── Retry loop ──────────────────────────────────────────────────────────────
+  const ATTEMPT_DELAYS = [0, 300, 800, 1500, 2000];
+
+  for (let attempt = 0; attempt < ATTEMPT_DELAYS.length; attempt++) {
+    if (attempt > 0) await new Promise<void>((r) => setTimeout(r, ATTEMPT_DELAYS[attempt]));
+
+    console.log(`[CM] Gemini inject attempt ${attempt + 1}/${ATTEMPT_DELAYS.length} (delay=${ATTEMPT_DELAYS[attempt]}ms)`);
+
+    const found = findGeminiEl();
+    if (!found) {
+      console.warn(`[CM] Gemini inject attempt ${attempt + 1}: no input found`);
+      continue;
+    }
+
+    const { el, label } = found;
+    console.log(`[CM] Gemini inject attempt ${attempt + 1}: found via "${label}"`);
+
+    const injected = doInject(el);
+    const length = el.textContent?.trim().length ?? 0;
+    if (injected || length > 0) {
+      console.log(`[CM] Gemini inject succeeded (attempt ${attempt + 1}, length=${length})`);
+      return { ok: true, selector: label, length };
+    }
+    console.warn(`[CM] Gemini inject attempt ${attempt + 1}: element found but injection failed`);
+  }
+
   return { ok: false, reason: 'no_input_found_after_retries' };
 }
 

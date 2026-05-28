@@ -155,6 +155,8 @@ function MigrationSuccess({
   // ── Inject state machine ──────────────────────────────
   type InjectState = 'idle' | 'success' | 'failed'
   const [injectState, setInjectState] = useState<InjectState>('idle')
+  // [CM-FIX-4] guard against double-click: true while async sendMessage is in-flight
+  const [isInjecting, setIsInjecting] = useState(false)
 
   const fileRef = useRef<File | null>(null)
   const [fileReady, setFileReady] = useState(false)
@@ -162,6 +164,9 @@ function MigrationSuccess({
   const [error, setError] = useState<string | null>(null)
   const [fileContent, setFileContent] = useState<string | null>(null)
   const sizeKB = Math.round(migrationFile.charCount / 1024)
+
+  // [CM-FIX-2] Log injection failure for developer visibility — not shown in UI
+  if (injectionError) console.error("[CM:migration] Auto-inject failed:", injectionError);
 
   const platformKey = targetPlatform.toLowerCase() as Platform
   const uploadHint =
@@ -287,7 +292,8 @@ function MigrationSuccess({
               : injectTabId
               ? `Context file ready — click below to inject`
               : injectionError
-              ? injectionError
+              // [CM-FIX-2] removed user-facing error: raw injectionError string from SW
+              ? `Open ${targetPlatform} and paste the downloaded file`
               : `Open ${targetPlatform} and paste instructions`}
           </div>
         </div>
@@ -349,7 +355,8 @@ function MigrationSuccess({
       ) : (
         <>
           {/* ── Inject-to-chat button (primary option) ────────────────── */}
-          {injectState === 'success' ? (
+          {/* [CM-FIX-4] treat as already-done when SW already injected (e.g. KnowledgeSynthesizer path) */}
+          {injectState === 'success' || injected ? (
             <div style={{
               background: 'rgba(0,255,136,0.08)',
               border: '1px solid rgba(0,255,136,0.2)',
@@ -389,11 +396,13 @@ function MigrationSuccess({
           ) : (
             <button
               onClick={() => {
+                if (isInjecting) return // [CM-FIX-4] guard against double-click during async
                 if (!fileContent || !injectTabId) {
                   handleDownload()
                   setInjectState('failed')
                   return
                 }
+                setIsInjecting(true) // [CM-FIX-4] disable button immediately while in-flight
                 chrome.runtime.sendMessage(
                   {
                     type: 'INJECT_FILE_TO_TAB',
@@ -402,6 +411,7 @@ function MigrationSuccess({
                     fileContent,
                   },
                   (response) => {
+                    setIsInjecting(false)
                     if (response?.ok) {
                       setInjectState('success')
                       deleteCachedFile()
@@ -412,7 +422,7 @@ function MigrationSuccess({
                   }
                 )
               }}
-              disabled={!fileReady}
+              disabled={!fileReady || isInjecting}
               style={{
                 display: 'block',
                 width: '100%',
@@ -833,6 +843,7 @@ export default function MigrationModal({
           targetTabId: tab.id,
           tier,
           caveman,
+          skipAutoInject: true, // [CM-FIX-4] removed auto-inject — now user-triggered only
           promptTemplateId: promptTemplateId ?? undefined,
           promptTemplate: activeTemplate
             ? { name: activeTemplate.name, content: activeTemplate.content, icon: activeTemplate.icon }
@@ -860,7 +871,9 @@ export default function MigrationModal({
           return;
         }
         if (response?.error) {
-          setMigrateState({ status: "error", message: response.error });
+          // [CM-FIX-2] removed user-facing error: raw response.error from SW
+          console.error("[CM:migration] MIGRATE_CONTEXT failed:", response.error);
+          setMigrateState({ status: "error", message: "Migration failed — please try again." });
           return;
         }
         if (response?.success) {

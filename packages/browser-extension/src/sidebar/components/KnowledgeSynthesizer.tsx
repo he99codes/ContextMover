@@ -11,7 +11,7 @@ import { useState, useCallback } from "react";
 import ProGate from "../ProGate";
 import { attentionEngine, type AttentionChunk } from "@/lib/attention-engine";
 import { findTargetPlatformTab } from "@/lib/platform-tabs";
-import { db } from "@/lib/db";
+import { db, dexieDb } from "@/lib/db";
 import type { Platform, ContextSession } from "@/lib/types";
 
 const PLATFORMS: Platform[] = ["claude", "chatgpt", "gemini", "grok", "perplexity", "deepseek"];
@@ -104,6 +104,9 @@ export default function KnowledgeSynthesizer() {
   const [migrateResult,  setMigrateResult]  = useState<{ ok: boolean; msg: string } | null>(null);
   const [isFallback,     setIsFallback]     = useState(false);
   const [hasSearched,    setHasSearched]    = useState(false);
+  // [CM-FIX-5] tracks how many messages/chunks were searched so UI can show full scope
+  const [searchScope,    setSearchScope]    = useState<{ sessions: number; messages: number; chunks: number } | null>(null);
+  const [indexingQueued, setIndexingQueued] = useState(false);
 
   const handleSearch = useCallback(async () => {
     const q = query.trim();
@@ -112,7 +115,25 @@ export default function KnowledgeSynthesizer() {
     setChunks([]);
     setMigrateResult(null);
     setIsFallback(false);
+    setIndexingQueued(false);
     try {
+      // [CM-FIX-5] compute search scope so UI can show "Searching across N messages"
+      const allSessions = await db.sessions.toArray();
+      const totalMessages = allSessions.reduce((sum, s) => sum + (s.messages?.length ?? 0), 0);
+      const indexedChunks = await dexieDb.chunkEmbeddings.count();
+      setSearchScope({ sessions: allSessions.length, messages: totalMessages, chunks: indexedChunks });
+      console.log(`[KS] scope — sessions=${allSessions.length} messages=${totalMessages} indexed_chunks=${indexedChunks}`);
+
+      // [CM-FIX-5] if nothing is indexed yet, queue all sessions for background indexing
+      // so the NEXT search gets full semantic coverage (this search still keyword-falls-back)
+      if (indexedChunks === 0 && allSessions.length > 0) {
+        for (const s of allSessions) {
+          chrome.runtime.sendMessage({ type: "BACKGROUND_INDEX", sessionId: s.id }).catch(() => {});
+        }
+        setIndexingQueued(true);
+        console.log(`[KS] queued ${allSessions.length} session(s) for background indexing`);
+      }
+
       const results = await attentionEngine.semanticSearch(q, 15);
       console.log('[KS] semantic results:', results.length);
       if (results.length > 0) {
@@ -177,8 +198,10 @@ export default function KnowledgeSynthesizer() {
           void chrome.runtime.lastError;
           void db.sessions.delete(virtualId).catch(() => {});
           const isErr = response?.success === false || (typeof response?.error === "string" && response.error);
+          // [CM-FIX-2] removed user-facing error: raw response.error from SW
+          if (isErr) console.error("[CM:synthesizer] migration failed:", response?.error);
           setMigrateResult(isErr
-            ? { ok: false, msg: typeof response?.error === "string" ? response.error : "Migration failed — open a target tab and retry" }
+            ? { ok: false, msg: "Migration failed — open a target tab and retry" }
             : { ok: true,  msg: "✓ Context injected — switch to the target tab" }
           );
           setIsMigrating(false);
@@ -186,7 +209,9 @@ export default function KnowledgeSynthesizer() {
       );
     } catch (err) {
       void db.sessions.delete(virtualId).catch(() => {});
-      setMigrateResult({ ok: false, msg: err instanceof Error ? err.message : "Migration failed" });
+      // [CM-FIX-2] removed user-facing error: raw err.message from caught exception
+      console.error("[CM:synthesizer] migration exception:", err);
+      setMigrateResult({ ok: false, msg: "Migration failed — please try again." });
       setIsMigrating(false);
     }
   }, [isMigrating, chunks, targetPlatform, query]);
@@ -233,6 +258,22 @@ export default function KnowledgeSynthesizer() {
               >{isSearching ? "⟳" : "⏎"}</button>
             </div>
           </div>
+
+          {/* [CM-FIX-5] Search scope indicator — "Searching across N messages · M chunks indexed" */}
+          {searchScope && (
+            <div style={{ flexShrink: 0, padding: "0 8px 3px", display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap" as const }}>
+              <span style={{ fontSize: "6px", fontFamily: "monospace", color: "#2A2A4A" }}>
+                {`${searchScope.messages.toLocaleString()} msg across ${searchScope.sessions} session${searchScope.sessions !== 1 ? "s" : ""}`}
+              </span>
+              <span style={{ fontSize: "6px", color: "#1A1A2A" }}>·</span>
+              <span style={{ fontSize: "6px", fontFamily: "monospace", color: searchScope.chunks > 0 ? "#2A4A2A" : "#4A2A2A" }}>
+                {`${searchScope.chunks.toLocaleString()} chunks indexed`}
+              </span>
+              {indexingQueued && (
+                <span style={{ fontSize: "6px", fontFamily: "monospace", color: "#A0702A" }}>⟳ indexing in background…</span>
+              )}
+            </div>
+          )}
 
           {/* Platform selector */}
           <div style={{ flexShrink: 0, padding: "0 8px 6px" }}>
