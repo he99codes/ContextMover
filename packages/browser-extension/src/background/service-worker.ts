@@ -263,12 +263,18 @@ const DRIVE_PULL_FROM_LIST_COOLDOWN_MS = 60_000;
 const injectedTabs = new Set<number>();
 const injectedScripts = new Set<string>(); // "tabId:scriptFiles" composite key
 
+// [CM-PERF] tracks whether the ONNX model is already loaded in the offscreen doc.
+// Prevents repeated ~90s re-inits on rapid sidebar open/close cycles.
+let modelWarmed = false;
+
 // Clean up both sets when a tab closes so reloaded tabs can be re-injected.
 chrome.tabs.onRemoved.addListener((tabId) => {
   injectedTabs.delete(tabId);
   for (const k of injectedScripts) {
     if (k.startsWith(`${tabId}:`)) injectedScripts.delete(k);
   }
+  // [CM-PERF] offscreen doc may be destroyed when tab closes — reset warm flag
+  modelWarmed = false;
 });
 
 // ── Auto-close sidebar on tab/window switch ───────────────────────────────
@@ -1488,6 +1494,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sendResponse({ ok: false, unavailable: true });
           break;
         }
+        // [CM-PERF] idempotency guard — model already loaded, skip re-init
+        if (modelWarmed) { sendResponse({ ok: true, warmedUp: true, skipped: true }); break; }
         const warmupHw = await getHardwareProfile().catch(() => null);
         if (warmupHw?.tier === 'minimal') {
           sendResponse({ ok: true, skipped: true, reason: 'minimal_hardware' });
@@ -1496,6 +1504,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         void (async () => {
           try {
             await semanticIndex.warmup();
+            modelWarmed = true; // [CM-PERF] mark loaded so next sidebar open skips re-init
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
             if (msg.includes("Failed to fetch")) {

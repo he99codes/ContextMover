@@ -407,6 +407,8 @@ export default function Sidebar() {
   const hardwareTierRef = useRef<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showSynthesizer, setShowSynthesizer] = useState(false);
+  // [CM-PERF] set true when ONNX model warmup completes — drives the semantic-ready dot
+  const [searchReady, setSearchReady] = useState(false);
   const [indexStats, setIndexStats] = useState<IndexStats | null>(null);
   const [indexStatsLoading, setIndexStatsLoading] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
@@ -565,14 +567,20 @@ export default function Sidebar() {
   };
 
   // ── One-time hardware detection + model warmup ──────────────────────────────
+  // [CM-PERF] pre-warm ONNX model on sidebar open so first search/migration has zero wait.
   // Detect once, memoize in a ref, send WARMUP_MODEL if capable hardware.
+  // Uses a callback (not .catch()) so we can set searchReady when the model is loaded.
   useEffect(() => {
     capabilityDetector.getEffectiveTier()
       .then((tier) => {
         hardwareTierRef.current = tier;
-        if (tier !== 'minimal') {
-          chrome.runtime.sendMessage({ type: 'WARMUP_MODEL' }).catch(() => {});
-        }
+        if (tier === 'minimal') return; // minimal hardware: skip warmup, keyword-only search
+        console.log("[CM:sidebar] pre-warming ONNX model on sidebar open");
+        chrome.runtime.sendMessage({ type: 'WARMUP_MODEL' }, (res) => {
+          if (chrome.runtime.lastError || !res?.ok) return;
+          // skipped=true means model was already warm (idempotency) — still mark ready
+          setSearchReady(true);
+        });
       })
       .catch(() => {});
   }, []);
@@ -1433,12 +1441,18 @@ export default function Sidebar() {
             placeholder="Search sessions…"
             className="w-full rounded-[4px] border border-[#1A3A1A] bg-[#0a0a0a] px-2 py-1 text-[10px] font-mono text-[#F5F5F5] outline-none placeholder:text-[#2A4A2A] focus:border-[#00FF88] focus:shadow-[0_0_0_2px_rgba(0,255,136,0.1)] transition-all"
           />
-          <input
-            value={semanticQuery}
-            onChange={(e) => setSemanticQuery(e.target.value)}
-            placeholder="Search by meaning (semantic)…"
-            className="w-full rounded-[4px] border border-[#1A1A3A] bg-[#0a0a0a] px-2 py-1 text-[10px] font-mono text-[#F5F5F5] outline-none placeholder:text-[#2A2A4A] focus:border-[#6366f1] focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-all"
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              value={semanticQuery}
+              onChange={(e) => setSemanticQuery(e.target.value)}
+              placeholder="Search by meaning (semantic)…"
+              className="w-full rounded-[4px] border border-[#1A1A3A] bg-[#0a0a0a] px-2 py-1 text-[10px] font-mono text-[#F5F5F5] outline-none placeholder:text-[#2A2A4A] focus:border-[#6366f1] focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-all"
+            />
+            {/* [CM-PERF] semantic ready indicator — appears after ONNX model warms up */}
+            {searchReady && (
+              <span style={{ position: "absolute", right: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "10px", color: "#888", pointerEvents: "none" }}>● semantic ready</span>
+            )}
+          </div>
         </div>
 
         <div className="flex gap-1 overflow-x-auto border-b border-[#0D2A0D] px-3 py-0.5 scrollbar-none" style={{ background: "linear-gradient(to right, #050505, #081208, #050505)" }}>
