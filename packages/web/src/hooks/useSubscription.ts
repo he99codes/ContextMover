@@ -1,20 +1,9 @@
 "use client";
 
-/**
- * Copyright © 2026 ContextMover. All rights reserved.
- * Unauthorized copying, modification, distribution, or use
- * of this software, via any medium, is strictly prohibited.
- * Proprietary and confidential.
- */
-// packages/web/src/hooks/useSubscription.ts
-// Loads the authenticated user's subscription + usage + limits from
-// /api/payments/subscription. Refresh manually with the returned `refresh()`.
-
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   type Plan,
-  type UsageData,
   type UsageLimits,
   FREE_LIMITS,
   PRO_LIMITS,
@@ -23,7 +12,6 @@ import {
 interface SubscriptionState {
   plan:    Plan;
   isPro:   boolean;
-  usage:   UsageData | null;
   limits:  UsageLimits;
   loading: boolean;
   error:   string | null;
@@ -32,7 +20,6 @@ interface SubscriptionState {
 const INITIAL: SubscriptionState = {
   plan:    "free",
   isPro:   false,
-  usage:   null,
   limits:  FREE_LIMITS,
   loading: true,
   error:   null,
@@ -58,9 +45,8 @@ export function useSubscription(): SubscriptionState & { refresh: () => void } {
 
       const data = await res.json();
       setState({
-        plan:    data.subscription.plan,
-        isPro:   data.isPro,
-        usage:   data.usage,
+        plan:    (data.plan as Plan) ?? "free",
+        isPro:   data.isPro ?? false,
         limits:  data.isPro ? PRO_LIMITS : FREE_LIMITS,
         loading: false,
         error:   null,

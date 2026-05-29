@@ -1,213 +1,154 @@
-/**
- * Copyright © 2026 ContextMover. All rights reserved.
- * Unauthorized copying, modification, distribution, or use
- * of this software, via any medium, is strictly prohibited.
- * Proprietary and confidential.
- */
-
-// packages/web/src/app/api/webhooks/razorpay/route.ts
-// Razorpay webhook handler — updates subscription on payment events.
-// Always returns 200 (even on internal errors) to prevent gateway retry storms,
-// EXCEPT when signature verification fails (security boundary).
-
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
-import { upsertSubscription, logPaymentEvent, isDuplicateEvent } from "@/lib/payments/subscription";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail, SENDERS } from "@/lib/mailer";
-import {
-  proActivatedEmail,
-  proCancelledEmail,
-  paymentFailedEmail,
-} from "@/lib/emails/templates";
+import { proActivatedEmail, proCancelledEmail, paymentFailedEmail } from "@/lib/emails/templates";
 
 export const runtime = "nodejs";
 
+async function getUserEmail(userId: string | null): Promise<string | null> {
+  if (!userId) return null;
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin.auth.admin.getUserById(userId);
+    return data?.user?.email ?? null;
+  } catch { return null; }
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.text();
-
-  // ── Mock mode ─────────────────────────────────────────────────────────────
-  if (
-    !process.env.RAZORPAY_KEY_ID ||
-    process.env.RAZORPAY_KEY_ID === "rzp_test_placeholder"
-  ) {
-    console.log("[CM:webhook:razorpay] Not configured — ignoring");
-    return NextResponse.json({ received: true, mock: true });
-  }
-
-  // ── Signature verification ────────────────────────────────────────────────
-  // [SECURITY] Use a dedicated webhook secret (NOT the API key secret —
-  // Razorpay configures these separately in the dashboard).
-  // [SECURITY] Constant-time compare to prevent signature-timing oracle.
   const signature = req.headers.get("x-razorpay-signature") ?? "";
-  const secret    = process.env.RAZORPAY_WEBHOOK_SECRET ?? "";
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET ?? "";
 
   if (!secret) {
     if (process.env.NODE_ENV === "production") {
-      console.error("[CM:webhook:razorpay] FATAL: RAZORPAY_WEBHOOK_SECRET not set in production");
       return NextResponse.json({ error: "Misconfigured" }, { status: 503 });
     }
-    // dev/test: log and skip verification only
     console.warn("[CM:webhook:razorpay] RAZORPAY_WEBHOOK_SECRET not set — skipping verify (dev only)");
   }
 
-  const expected = crypto
-    .createHmac("sha256", secret)
-    .update(body)
-    .digest("hex");
-
-  const sigBuf = Buffer.from(signature, "utf8");
-  const expBuf = Buffer.from(expected,  "utf8");
-  if (
-    sigBuf.length !== expBuf.length ||
-    !crypto.timingSafeEqual(sigBuf, expBuf)
-  ) {
-    console.error("[CM:webhook:razorpay] Invalid signature");
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  if (secret) {
+    const expected = crypto.createHmac("sha256", secret).update(body).digest("hex");
+    const sigBuf = Buffer.from(signature, "utf8");
+    const expBuf = Buffer.from(expected, "utf8");
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      console.error("[CM:webhook:razorpay] Invalid signature");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let event: any;
-  try {
-    event = JSON.parse(body);
-  } catch {
+  try { event = JSON.parse(body); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const subEntity     = event?.payload?.subscription?.entity;
+  const admin = createAdminClient();
+  const eventId: string = event.id ?? crypto.randomUUID();
+
+  // Idempotency check
+  const { data: existing } = await admin.from("payment_events")
+    .select("id").eq("razorpay_event_id", eventId).maybeSingle();
+  if (existing) {
+    return NextResponse.json({ status: "already_processed" });
+  }
+
+  const subEntity = event?.payload?.subscription?.entity;
   const paymentEntity = event?.payload?.payment?.entity;
-  const userId =
-    subEntity?.notes?.userId ??
-    paymentEntity?.notes?.userId ??
-    null;
-  const eventId = paymentEntity?.id ?? subEntity?.id ?? event?.event
-    ?? `razorpay-unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const subId: string = subEntity?.id ?? paymentEntity?.subscription_id ?? "";
 
-  // [SECURITY] Idempotency — Razorpay retries failed webhooks up to 24h.
-  // Short-circuit if this (gateway,event_id) tuple was already processed.
-  if (await isDuplicateEvent("razorpay", eventId)) {
-    console.log("[CM:webhook:razorpay] Duplicate event ignored:", eventId);
-    return NextResponse.json({ received: true, duplicate: true });
-  }
-
-  // Audit log first
-  try {
-    await logPaymentEvent(userId, "razorpay", event.event, eventId, event.payload);
-  } catch (err) {
-    console.error("[CM:webhook:razorpay] logPaymentEvent failed:", err);
-  }
+  // Log event
+  await admin.from("payment_events").insert({
+    razorpay_event_id: eventId,
+    event_type: event.event,
+    razorpay_subscription_id: subId || null,
+    razorpay_payment_id: paymentEntity?.id ?? null,
+    payload: event,
+  });
 
   try {
     switch (event.event) {
       case "subscription.activated":
-      case "subscription.charged":
-      case "subscription.updated": {
-        if (!userId || !subEntity) break;
-        const planType = (subEntity.notes?.plan as "pro") ?? "pro";
-        const amount   = (subEntity.amount as number) ?? 29_900;
-        const currency = (subEntity.currency as string)?.toLowerCase() ?? "inr";
-        await upsertSubscription(userId, {
-          plan:                  planType,
-          status:                "active",
-          gateway:               "razorpay",
-          gatewayCustomerId:     subEntity.customer_id,
-          gatewaySubscriptionId: subEntity.id,
-          currency,
-          amount,
-          currentPeriodStart:    subEntity.current_start
-            ? new Date(subEntity.current_start * 1000)
-            : undefined,
-          currentPeriodEnd:      subEntity.current_end
-            ? new Date(subEntity.current_end * 1000)
-            : undefined,
-        });
-        console.log("[CM:webhook:razorpay] Activated:", userId);
-        // Send pro-activated email
-        const activatedEmail = await getUserEmail(userId);
-        if (activatedEmail) {
-          const tpl = proActivatedEmail(activatedEmail, "razorpay");
-          await sendEmail({ ...tpl, to: activatedEmail, from: SENDERS.support });
+      case "subscription.charged": {
+        if (!subEntity) break;
+        const planId = subEntity.plan_id ?? "";
+        const plan = planId === process.env.RAZORPAY_PRO_ANNUAL_PLAN_ID ||
+                     planId === process.env.RAZORPAY_PRO_ANNUAL_REGULAR_PLAN_ID
+          ? "annual" : "monthly";
+        const currentStart = subEntity.current_start ? new Date(subEntity.current_start * 1000).toISOString() : null;
+        const currentEnd = subEntity.current_end ? new Date(subEntity.current_end * 1000).toISOString() : null;
+
+        const { data: sub } = await admin.from("subscriptions")
+          .select("user_id").eq("razorpay_subscription_id", subId).maybeSingle();
+        const userId = sub?.user_id ?? subEntity.notes?.userId ?? null;
+
+        if (userId) {
+          await admin.from("subscriptions").upsert({
+            razorpay_subscription_id: subId,
+            user_id: userId,
+            razorpay_plan_id: planId,
+            plan,
+            status: "active",
+            current_start: currentStart,
+            current_end: currentEnd,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "razorpay_subscription_id" });
+
+          await admin.from("users").update({
+            is_pro: true, plan, subscription_status: "active", razorpay_subscription_id: subId,
+          }).eq("id", userId);
+
+          const email = await getUserEmail(userId);
+          if (email) {
+            const tpl = proActivatedEmail(email, "razorpay");
+            await sendEmail({ ...tpl, to: email, from: SENDERS.support });
+          }
         }
         break;
       }
 
       case "subscription.cancelled":
-      case "subscription.completed": {
-        if (!userId || !subEntity) break;
-        const planType = (subEntity.notes?.plan as "pro") ?? "pro";
-        await upsertSubscription(userId, {
-          plan:                  planType,
-          status:                "cancelled",
-          gateway:               "razorpay",
-          gatewayCustomerId:     subEntity.customer_id,
-          gatewaySubscriptionId: subEntity.id,
-          cancelledAt:           new Date(),
-        });
-        console.log("[CM:webhook:razorpay] Cancelled:", userId);
-        const cancelledEmail = await getUserEmail(userId);
-        if (cancelledEmail) {
-          const tpl = proCancelledEmail(cancelledEmail);
-          await sendEmail({ ...tpl, to: cancelledEmail, from: SENDERS.support });
+      case "subscription.completed":
+      case "subscription.expired": {
+        const { data: sub } = await admin.from("subscriptions")
+          .select("user_id").eq("razorpay_subscription_id", subId).maybeSingle();
+
+        await admin.from("subscriptions").upsert({
+          razorpay_subscription_id: subId,
+          status: event.event === "subscription.cancelled" ? "cancelled" : "completed",
+          ended_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "razorpay_subscription_id" });
+
+        if (sub?.user_id) {
+          await admin.from("users").update({
+            is_pro: false, plan: "free", subscription_status: "cancelled",
+          }).eq("id", sub.user_id);
+
+          const email = await getUserEmail(sub.user_id);
+          if (email) {
+            const tpl = proCancelledEmail(email);
+            await sendEmail({ ...tpl, to: email, from: SENDERS.support });
+          }
         }
         break;
       }
 
-      case "subscription.halted": {
-        if (!userId || !subEntity) break;
-        const planType = (subEntity.notes?.plan as "pro") ?? "pro";
-        await upsertSubscription(userId, {
-          plan:                  planType,
-          status:                "halted",
-          gateway:               "razorpay",
-          gatewayCustomerId:     subEntity.customer_id,
-          gatewaySubscriptionId: subEntity.id,
-        });
-        console.log("[CM:webhook:razorpay] Halted:", userId);
-        break;
-      }
-
-      case "subscription.payment.failed":
       case "payment.failed": {
-        if (!userId || !subEntity) break;
-        const planType = (subEntity.notes?.plan as "pro") ?? "pro";
-        await upsertSubscription(userId, {
-          plan:                  planType,
-          status:                "past_due",
-          gateway:               "razorpay",
-          gatewayCustomerId:     subEntity.customer_id,
-          gatewaySubscriptionId: subEntity.id,
-        });
-        console.log("[CM:webhook:razorpay] Payment failed:", userId);
-        const failEmail = paymentEntity?.email ?? await getUserEmail(userId);
-        if (failEmail) {
-          const tpl = paymentFailedEmail(failEmail);
-          await sendEmail({ ...tpl, to: failEmail, from: SENDERS.support });
-        }
-        break;
-      }
+        await admin.from("subscriptions").upsert({
+          razorpay_subscription_id: subId,
+          status: "paused",
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "razorpay_subscription_id" });
 
-      case "payment.refunded": {
-        if (userId) {
-          const admin = createAdminClient();
-          await admin.from("refund_requests")
-            .update({ status: "approved" })
-            .eq("user_id", userId)
-            .eq("status", "pending");
-          console.log(`[CM:webhook:razorpay] Refund confirmed for user ${userId}`);
+        const { data: sub } = await admin.from("subscriptions")
+          .select("user_id").eq("razorpay_subscription_id", subId).maybeSingle();
+        if (sub?.user_id) {
+          const email = paymentEntity?.email ?? await getUserEmail(sub.user_id);
+          if (email) {
+            const tpl = paymentFailedEmail(email);
+            await sendEmail({ ...tpl, to: email, from: SENDERS.support });
+          }
         }
-        break;
-      }
-
-      case "payment.dispute.created": {
-        const admin = createAdminClient();
-        await admin.from("disputes").insert({
-          user_id:    userId ?? null,
-          payment_id: paymentEntity?.id ?? null,
-          dispute_id: null,
-          status:     "open",
-          evidence:   event.payload as Record<string, unknown>,
-        });
-        console.warn(`[CM:webhook:razorpay] Dispute opened for payment ${paymentEntity?.id}`);
         break;
       }
     }
@@ -216,16 +157,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ received: true });
-}
-
-// ── Helper: fetch user email from Supabase auth ───────────────────────────────
-async function getUserEmail(userId: string | null): Promise<string | null> {
-  if (!userId) return null;
-  try {
-    const admin = createAdminClient();
-    const { data } = await admin.auth.admin.getUserById(userId);
-    return data?.user?.email ?? null;
-  } catch {
-    return null;
-  }
 }

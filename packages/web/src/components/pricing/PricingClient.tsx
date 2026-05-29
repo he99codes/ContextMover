@@ -1,12 +1,5 @@
 "use client";
 
-/**
- * Copyright © 2026 ContextMover. All rights reserved.
- * Unauthorized copying, modification, distribution, or use
- * of this software, via any medium, is strictly prohibited.
- * Proprietary and confidential.
- */
-// packages/web/src/components/pricing/PricingClient.tsx
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,8 +7,10 @@ import { Check, Zap, Shield, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import { UNIFIED_PRICING } from "@/lib/payments/geo-pricing";
-import { RazorpayCheckout } from "@/components/payments/RazorpayCheckout";
+import { useCurrency } from "@/hooks/useCurrency";
+import { RazorpaySubscription } from "@/components/payments/RazorpaySubscription";
+
+const EARLY_BIRD_LIMIT = 500;
 
 const FREE_FEATURES = [
   "Capture sessions on Claude, ChatGPT, Gemini, Grok, Perplexity, DeepSeek",
@@ -41,11 +36,17 @@ type BillingPeriod = "monthly" | "annual";
 
 export function PricingClient() {
   const router = useRouter();
-  const [billing, setBilling]   = useState<BillingPeriod>("monthly");
-  const [pricing]   = useState(UNIFIED_PRICING);
-  const [user,    setUser]      = useState<User | null>(null);
-  const [isPro,   setIsPro]     = useState(false);
-  const [loading, setLoading]   = useState(true);
+  // Default to monthly so the user doesn't see the annual price first
+  const [billing, setBilling] = useState<BillingPeriod>("monthly");
+  
+  const [user, setUser] = useState<User | null>(null);
+  const [isPro, setIsPro] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  const [spotsLeft, setSpotsLeft] = useState<number | null>(null);
+  const [isEarlyBird, setIsEarlyBird] = useState(false);
+
+  const currency = useCurrency();
 
   useEffect(() => {
     async function init() {
@@ -64,6 +65,18 @@ export function PricingClient() {
           const profile = data as { is_pro: boolean } | null;
           setIsPro(profile?.is_pro ?? false);
         }
+
+        // Fetch active subscriptions to determine Early Bird availability
+        const { count } = await supabase
+          .from("subscriptions")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "active");
+          
+        const spots = EARLY_BIRD_LIMIT - (count ?? 0);
+        const available = Math.max(0, spots);
+        setSpotsLeft(available);
+        setIsEarlyBird(available > 0);
+
       } finally {
         setLoading(false);
       }
@@ -71,11 +84,28 @@ export function PricingClient() {
     void init();
   }, []);
 
-  const proPrice = billing === "monthly"
-    ? pricing.pro.display
-    : pricing.pro.annualDisplay;
+  function displayPrice(inrAmount: number): string {
+    const converted = Math.round(inrAmount * currency.rate);
+    return `${currency.symbol}${converted.toLocaleString()}`;
+  }
 
-  const proPeriod = billing === "monthly" ? "/month" : "/year";
+  // Base INR prices
+  const earlyBirdMonthly = 299;
+  const earlyBirdAnnual  = 2399;
+  const regularMonthly   = 499;
+  const regularAnnual    = 3999;
+
+  const proInrAmount = billing === "annual"
+    ? (isEarlyBird ? earlyBirdAnnual : regularAnnual)
+    : (isEarlyBird ? earlyBirdMonthly : regularMonthly);
+
+  const proDisplayPrice = displayPrice(proInrAmount);
+  
+  const proOriginalPrice = billing === "annual" && isEarlyBird
+    ? displayPrice(regularAnnual)
+    : null;
+
+  const proPeriod = billing === "monthly" ? "/mo" : "/yr";
 
   function handleSuccess() {
     toast.success("🎉 Pro activated! Welcome to ContextMover Pro.");
@@ -83,14 +113,8 @@ export function PricingClient() {
     router.refresh();
   }
 
-  function handleFailure(error: string) {
-    toast.error(`Payment failed: ${error}`);
-  }
-
   function ProCTA() {
-    if (loading) return (
-      <div className="h-11 w-full animate-pulse rounded-[6px] bg-[#1A2A1A]" />
-    );
+    if (loading) return <div className="h-11 w-full animate-pulse rounded-[6px] bg-[#1A2A1A]" />;
 
     if (!user) return (
       <Link
@@ -111,24 +135,20 @@ export function PricingClient() {
     );
 
     return (
-      <RazorpayCheckout
-        plan="pro"
+      <RazorpaySubscription
         billing={billing}
+        earlyBird={isEarlyBird}
         onSuccess={handleSuccess}
-        onFailure={handleFailure}
       />
     );
   }
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#F5F5F5]">
-      <div className="max-w-4xl mx-auto px-6 py-16">
+      <div className="max-w-[960px] mx-auto px-6 py-16">
         {/* Back link */}
         <div className="mb-2 flex justify-center">
-          <Link
-            href="/"
-            className="text-xs font-mono text-[#6B6B6B] hover:text-[#00FF88] transition-colors"
-          >
+          <Link href="/" className="text-xs font-mono text-[#6B6B6B] hover:text-[#00FF88] transition-colors">
             ← ContextMover
           </Link>
         </div>
@@ -177,23 +197,22 @@ export function PricingClient() {
             }`}
           >
             Annual
-            {pricing && (
-              <span className="ml-1.5 rounded-full bg-[#00FF88]/20 px-1.5 py-0.5 text-[9px] font-black text-[#00FF88]">
-                {billing === "annual" ? "✓ " : ""}{pricing.pro.annualSavings}
-              </span>
-            )}
+            <span className="ml-1.5 rounded-full bg-[#00FF88]/20 px-1.5 py-0.5 text-[9px] font-black text-[#00FF88]">
+              {billing === "annual" ? "✓ " : ""}Save 33%
+            </span>
           </button>
         </div>
 
-        {/* Pricing cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Free */}
-          <div className="rounded-[10px] border border-[#2A2A2A] bg-[#111] p-7">
+        {/* Pricing cards flex container */}
+        <div className="flex flex-col md:flex-row justify-center items-stretch gap-4 max-w-[960px] mx-auto">
+          
+          {/* Free Card */}
+          <div className="flex-1 rounded-[10px] border border-[#2A2A2A] bg-[#111] p-7 md:min-w-[240px] md:max-w-[300px]">
             <div className="mb-5">
               <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#6B6B6B]">
                 Free forever
               </p>
-              <p className="mt-1 text-4xl font-black text-[#F5F5F5]">Free</p>
+              <p className="mt-1 text-4xl font-black text-[#F5F5F5]">{displayPrice(0)}</p>
               <p className="mt-0.5 text-xs text-[#6B6B6B]">No credit card required</p>
             </div>
             <ul className="mb-7 space-y-2.5">
@@ -204,54 +223,70 @@ export function PricingClient() {
                 </li>
               ))}
             </ul>
-            <Link
-              href={user ? "/analytics" : "/signup"}
-              className="flex w-full items-center justify-center gap-2 rounded-[6px] border border-[#2A2A2A] px-4 py-3 text-sm font-semibold text-[#F5F5F5] hover:border-[#3A3A3A] hover:bg-[#1A1A1A] transition-all"
-            >
-              {user ? "Your current plan" : "Get started free"}
-            </Link>
+            <div className="mt-auto pt-4">
+              <Link
+                href={user ? "/analytics" : "/signup"}
+                className="flex w-full items-center justify-center gap-2 rounded-[6px] border border-[#2A2A2A] px-4 py-3 text-sm font-semibold text-[#F5F5F5] hover:border-[#3A3A3A] hover:bg-[#1A1A1A] transition-all"
+              >
+                {user ? "Your current plan" : "Get started free"}
+              </Link>
+            </div>
           </div>
 
-          {/* Pro */}
+          {/* Pro Card */}
           <div
-            className="relative rounded-[10px] border border-[#00FF88]/30 bg-[#0D1A0D] p-7"
+            className="flex-1 relative rounded-[10px] border border-[#00FF88]/30 bg-[#0D1A0D] p-7 md:min-w-[240px] md:max-w-[320px] flex flex-col"
             style={{ boxShadow: "0 0 40px rgba(0,255,136,0.08)" }}
           >
-            <div className="absolute -top-3 right-5">
-              <span className="rounded-full border border-[#00FF88]/30 bg-[#00FF88]/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#00FF88]">
+            {/* Badges */}
+            <div className="absolute -top-3 left-0 right-0 flex justify-center gap-2">
+              <span className="rounded-full border border-[#00FF88]/30 bg-[#0D1A0D] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#00FF88]">
                 Most Popular
               </span>
+              {!loading && isEarlyBird && (
+                <span className="rounded-full border border-[#00FF88] bg-[#00FF88] text-black px-3 py-1 text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-[0_0_10px_rgba(0,255,136,0.5)]">
+                  ⚡ Early Bird — {spotsLeft} left
+                </span>
+              )}
             </div>
-            <div className="mb-5">
+
+            <div className="mb-5 mt-2">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#00FF88]">
                   Pro
                 </p>
-                {/* Geo badge — unified pricing for all */}
-                {!loading && (
+                {!loading && currency.isIndia && (
                   <span className="rounded-full bg-[#1A1A1A] border border-[#2A2A2A] px-2 py-0.5 text-[9px] font-mono text-[#6B6B6B]">
                     🇮🇳 India pricing
                   </span>
                 )}
               </div>
-              <div className="flex items-baseline gap-1 mt-1">
+              <div className="flex items-baseline gap-1 mt-1 flex-wrap">
                 <p className="text-4xl font-black text-[#F5F5F5]">
-                  {loading ? "—" : proPrice}
+                  {loading ? "—" : proDisplayPrice}
                 </p>
                 <p className="text-sm text-[#6B6B6B]">{proPeriod}</p>
               </div>
-              {billing === "annual" && pricing && (
-                <p className="mt-0.5 text-xs text-[#00FF88]">
-                  {pricing.pro.annualSavings}
-                </p>
+              
+              {!loading && (
+                <div className="h-4 mt-0.5">
+                  {proOriginalPrice && (
+                    <p className="text-xs text-[#6B6B6B]">
+                      <span className="line-through">{proOriginalPrice}</span>
+                      <span className="text-[#00FF88] ml-2">Save 40%</span>
+                    </p>
+                  )}
+                </div>
               )}
-              {billing === "monthly" && pricing && (
-                <p className="mt-0.5 text-xs text-[#6B6B6B]">
-                  or {pricing.pro.annualDisplay}/year
+
+              {!loading && !currency.isIndia && (
+                <p className="text-[11px] text-[#888] mt-2">
+                  Billed as ₹{proInrAmount.toLocaleString()}{proPeriod} · Checkout in INR
                 </p>
               )}
             </div>
-            <ul className="mb-7 space-y-2.5">
+
+            <ul className="mb-7 space-y-2.5 flex-grow">
               {PRO_FEATURES.map((f) => (
                 <li key={f} className="flex items-start gap-2.5">
                   <Check size={13} className="mt-0.5 shrink-0 text-[#00FF88]" />
@@ -259,7 +294,10 @@ export function PricingClient() {
                 </li>
               ))}
             </ul>
-            <ProCTA />
+
+            <div className="mt-auto pt-4">
+              <ProCTA />
+            </div>
           </div>
         </div>
 
