@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Loader2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import type { RazorpayOptions, RazorpayResponse, RazorpaySubscriptionResponse, RazorpayPaymentFailedResponse } from "@/types/razorpay";
 
 interface Props {
   billing: "monthly" | "annual";
@@ -57,9 +58,7 @@ export function RazorpaySubscription({ billing, earlyBird, onSuccess }: Props) {
       }
 
       // Step 3: Open Razorpay checkout modal
-      // We cast the options to any to bypass strict type limitations 
-      // in your local razorpay.d.ts which doesn't support subscription_id natively
-      const options: any = {
+      const options: RazorpayOptions = {
         key: data.keyId,
         subscription_id: data.subscriptionId,
         name: "ContextMover",
@@ -67,14 +66,14 @@ export function RazorpaySubscription({ billing, earlyBird, onSuccess }: Props) {
         prefill: { email: session.user.email ?? "" },
         theme: { color: "#00D26A" },
         modal: { ondismiss: () => setLoading(false) },
-        handler: async (response: any) => {
+        handler: async (response: RazorpayResponse | RazorpaySubscriptionResponse) => {
           // Step 4: Verify on backend
           const verifyRes = await fetch("/api/payments/razorpay/verify-subscription", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_subscription_id: response.razorpay_subscription_id,
+              razorpay_subscription_id: "razorpay_subscription_id" in response ? response.razorpay_subscription_id : undefined,
               razorpay_signature: response.razorpay_signature,
               userId: session.user.id,
             }),
@@ -92,8 +91,7 @@ export function RazorpaySubscription({ billing, earlyBird, onSuccess }: Props) {
 
       const rzp = new window.Razorpay(options);
 
-      // Cast rzp to any to access the 'on' method which might be missing in strict types
-      (rzp as any).on("payment.failed", (response: any) => {
+      rzp.on("payment.failed", (response: RazorpayPaymentFailedResponse) => {
         toast.error(response.error?.description ?? "Payment failed");
         setLoading(false);
       });

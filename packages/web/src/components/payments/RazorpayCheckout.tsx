@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { Zap, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import type { RazorpayResponse } from "@/types/razorpay";
+import type { RazorpayResponse, RazorpaySubscriptionResponse } from "@/types/razorpay";
 
 interface Props {
   plan:      "pro";
@@ -81,7 +81,7 @@ export function RazorpayCheckout({
         modal: {
           ondismiss: () => setLoading(false),
         },
-        handler: async (response: RazorpayResponse) => {
+        handler: async (response: RazorpayResponse | RazorpaySubscriptionResponse) => {
           // Verify payment server-side before updating Supabase.
           const verifyRes = await fetch("/api/payments/razorpay/verify", {
             method:  "POST",

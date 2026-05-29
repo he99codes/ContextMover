@@ -116,3 +116,51 @@
   opacity: 0.6;
   box-shadow: -2px 0 12px rgba(0, 255, 120, 0.15);
 }
+
+/* Left side positioning */
+.cf-toggle--left {
+  right: auto;
+  left: 0;
+  border-radius: 0 50% 50% 0;
+  box-shadow: 2px 0 12px rgba(0, 255, 120, 0.15);
+}
+
+.cf-toggle--left:hover {
+  box-shadow: 2px 0 20px rgba(0, 255, 120, 0.35);
+}
+
+.cf-toggle--open.cf-toggle--left {
+  box-shadow: 2px 0 24px rgba(0, 255, 120, 0.50);
+}
+
+.cf-toggle--open.cf-toggle--left:hover {
+  box-shadow: 2px 0 32px rgba(0, 255, 120, 0.65);
+}
+
+.cf-toggle--busy.cf-toggle--left:hover {
+  box-shadow: 2px 0 12px rgba(0, 255, 120, 0.15);
+}
+
+/* Overrides for left-side snapping */
+.cf-toggle--left {
+  right: auto;
+  left: 0;
+  border-radius: 0 50% 50% 0;
+  box-shadow: 2px 0 12px rgba(0, 255, 120, 0.15);
+}
+
+.cf-toggle--left:hover {
+  box-shadow: 2px 0 20px rgba(0, 255, 120, 0.35);
+}
+
+.cf-toggle--open.cf-toggle--left {
+  box-shadow: 2px 0 24px rgba(0, 255, 120, 0.50);
+}
+
+.cf-toggle--open.cf-toggle--left:hover {
+  box-shadow: 2px 0 32px rgba(0, 255, 120, 0.65);
+}
+
+.cf-toggle--busy.cf-toggle--left:hover {
+  box-shadow: 2px 0 12px rgba(0, 255, 120, 0.15);
+}

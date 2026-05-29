@@ -21,22 +21,36 @@ export interface RazorpayResponse {
   razorpay_signature:  string;
 }
 
+export interface RazorpaySubscriptionResponse {
+  razorpay_payment_id: string;
+  razorpay_subscription_id: string;
+  razorpay_signature: string;
+}
+
+export interface RazorpayPaymentFailedResponse {
+  error: {
+    description: string;
+  };
+}
+
 export interface RazorpayOptions {
   key:          string;
-  amount:       number;
-  currency:     string;
+  amount?:       number;
+  currency?:     string;
   name:         string;
   description?: string;
-  order_id:     string;
+  order_id?:     string;
+  subscription_id?: string;
   prefill?:     RazorpayPrefill;
   theme?:       RazorpayTheme;
   modal?:       RazorpayModal;
-  handler:      (response: RazorpayResponse) => void;
+  handler:      (response: RazorpayResponse | RazorpaySubscriptionResponse) => void;
 }
 
 interface RazorpayInstance {
   open():  void;
   close(): void;
+  on(event: "payment.failed", handler: (response: RazorpayPaymentFailedResponse) => void): void;
 }
 
 interface RazorpayConstructor {

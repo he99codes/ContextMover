@@ -12,13 +12,45 @@ const GUARD = "__cm_toggle_v2";
 const w = window as unknown as Record<string, unknown>;
 if (!w[GUARD]) { w[GUARD] = true; init(); }
 
+type TogglePosition = { side: "left" | "right"; top: number };
+
 function init(): void {
-  // ── State at init() scope — persists across SPA reinjects ─────────────────
-  // Previously these lived inside inject(), so every SPA navigation reset
-  // isOpen to false (desync) and registered duplicate listeners.
-  let isOpen        = false;
-  let busy          = false;
-  let currentShadow: ShadowRoot | null = null; // always points to latest shadow
+  let isOpen = false;
+  let busy = false;
+  let currentShadow: ShadowRoot | null = null;
+  
+  let position: TogglePosition = { side: "right", top: 72 };
+  let isDragging = false;
+  let dragThresholdMet = false;
+
+  // Load position
+  chrome.storage.local.get("cm_toggle_position", (res) => {
+    if (res.cm_toggle_position) {
+      position = res.cm_toggle_position;
+      applyPosition();
+    }
+  });
+
+  function applyPosition() {
+    const host = document.getElementById("cm-toggle-host");
+    if (!host) return;
+    const s = host.style;
+    s.setProperty("top", `${position.top}px`, "important");
+    if (position.side === "left") {
+      s.setProperty("left", "0", "important");
+      s.setProperty("right", "auto", "important");
+    } else {
+      s.setProperty("right", "0", "important");
+      s.setProperty("left", "auto", "important");
+    }
+
+    if (currentShadow) {
+      const btn = currentShadow.querySelector('.cf-toggle');
+      if (btn) {
+        btn.classList.toggle("cf-toggle--left", position.side === "left");
+      }
+    }
+  }
 
   function updateBtn(): void {
     if (!currentShadow) return;
@@ -39,34 +71,24 @@ function init(): void {
     );
   }
 
-  // ── onMessage registered ONCE — not re-registered on each inject ───────────
-  // The old code called addListener() inside inject(), accumulating duplicate
-  // listeners on every SPA nav (popstate / pushState). Now there is exactly
-  // one listener for the lifetime of the content script.
   chrome.runtime.onMessage.addListener((msg: { type: string; status?: string }) => {
     if (msg.type === "CAPTURE_STATUS_UPDATE") {
       if (!currentShadow) return;
       const dot = currentShadow.querySelector(".cf-dot");
       if (!dot) return;
-      dot.className = `cf-dot cf-dot--${
-        msg.status === "capturing" ? "active" : "idle"
-      }`;
+      dot.className = `cf-dot cf-dot--${msg.status === "capturing" ? "active" : "idle"}`;
     }
     if (msg.type === "SIDEBAR_CLOSED") {
-      // Also clear busy — prevents the button being permanently locked if
-      // the panel was force-closed while a click was in-flight.
-      busy   = false;
+      busy = false;
       isOpen = false;
       updateBtn();
     }
   });
 
-  // ── visibilitychange registered ONCE — not per inject ─────────────────────
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) syncState();
   }, { passive: true });
 
-  // ── inject() only rebuilds DOM; all state/listeners live above ────────────
   function ensureInjected(): void {
     const existing = document.getElementById("cm-toggle-host");
     if (existing?.isConnected) return;
@@ -74,18 +96,13 @@ function init(): void {
   }
 
   function inject(): void {
-    // Remove stale host if present
     document.getElementById("cm-toggle-host")?.remove();
 
     const host = document.createElement("div");
     host.id = "cm-toggle-host";
-    // Use setProperty with "important" so platform CSS (even !important rules)
-    // cannot hide or reposition the toggle host.
     const s = host.style;
     s.setProperty("position",       "fixed",      "important");
     s.setProperty("display",        "block",      "important");
-    s.setProperty("top",            "72px",       "important");
-    s.setProperty("right",          "0",          "important");
     s.setProperty("width",          "48px",       "important");
     s.setProperty("height",         "48px",       "important");
     s.setProperty("overflow",       "visible",    "important");
@@ -95,8 +112,6 @@ function init(): void {
     (document.documentElement ?? document.body).appendChild(host);
 
     const shadow = host.attachShadow({ mode: "closed" });
-    // Update the module-level ref so the shared listeners and updateBtn()
-    // always target the newly created shadow DOM on re-inject.
     currentShadow = shadow;
 
     const styleEl = document.createElement("style");
@@ -107,35 +122,102 @@ function init(): void {
     btn.className = "cf-toggle";
     btn.setAttribute("aria-label", "Toggle ContextMover sidebar");
     btn.innerHTML = `
-    <img
-      src="${logoUrl}"
-      alt="ContextMover"
-      style="width:36px;height:36px;border-radius:50%;object-fit:cover;display:block;pointer-events:none;"
-      aria-hidden="true"
-    />
-    <span class="cf-dot cf-dot--idle" aria-hidden="true"></span>
-  `;
+      <img src="${logoUrl}" alt="ContextMover" style="width:36px;height:36px;border-radius:50%;object-fit:cover;display:block;pointer-events:none;" aria-hidden="true" />
+      <span class="cf-dot cf-dot--idle" aria-hidden="true"></span>
+    `;
     shadow.appendChild(btn);
 
-    // Restore visual state immediately with current isOpen/busy, then confirm
-    // the real state from the SW (catches tab-switch or extension reload desync).
+    applyPosition();
     updateBtn();
     syncState();
 
+    // ── Drag Logic ─────────────────────────────────────────────────────────────
+    let startY = 0;
+    let startX = 0;
+    let startTop = 0;
+
+    function dragStart(e: MouseEvent | TouchEvent) {
+      if (e.type === "mousedown" && (e as MouseEvent).button !== 0) return;
+      isDragging = true;
+      dragThresholdMet = false;
+
+      const clientY = "touches" in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+      const clientX = "touches" in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+      
+      startY = clientY;
+      startX = clientX;
+      startTop = position.top;
+
+      window.addEventListener("mousemove", dragMove, true);
+      window.addEventListener("mouseup", dragEnd, true);
+      window.addEventListener("touchmove", dragMove, { passive: false, capture: true });
+      window.addEventListener("touchend", dragEnd, true);
+
+      btn.style.transition = "none";
+    }
+
+    function dragMove(e: MouseEvent | TouchEvent) {
+      if (!isDragging) return;
+      
+      const clientY = "touches" in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+      const clientX = "touches" in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+
+      const deltaY = clientY - startY;
+      const deltaX = clientX - startX;
+
+      if (!dragThresholdMet && (Math.abs(deltaY) > 5 || Math.abs(deltaX) > 5)) {
+        dragThresholdMet = true;
+      }
+
+      if (dragThresholdMet) {
+        if (e.cancelable) e.preventDefault();
+
+        let newTop = startTop + deltaY;
+        const maxTop = window.innerHeight - 48; // Button height is 48px
+        newTop = Math.max(0, Math.min(newTop, maxTop));
+        position.top = newTop;
+
+        const halfWidth = window.innerWidth / 2;
+        if (clientX < halfWidth) {
+          position.side = "left";
+        } else {
+          position.side = "right";
+        }
+
+        applyPosition();
+      }
+    }
+
+    function dragEnd(e: MouseEvent | TouchEvent) {
+      isDragging = false;
+      window.removeEventListener("mousemove", dragMove, true);
+      window.removeEventListener("mouseup", dragEnd, true);
+      window.removeEventListener("touchmove", dragMove, true);
+      window.removeEventListener("touchend", dragEnd, true);
+
+      btn.style.transition = "";
+
+      if (dragThresholdMet) {
+        chrome.storage.local.set({ cm_toggle_position: position });
+      }
+    }
+
+    btn.addEventListener("mousedown", dragStart);
+    btn.addEventListener("touchstart", dragStart, { passive: false });
+
+    // ── Click Logic ────────────────────────────────────────────────────────────
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       e.preventDefault();
 
-      // Prevent double-click
+      if (dragThresholdMet) return; // Ignore click if we dragged
       if (busy) return;
       busy = true;
       updateBtn();
 
-      // Optimistic update — feels instant
       isOpen = !isOpen;
       updateBtn();
 
-      // Safety — always clear busy after 2s in case SW callback never fires
       const safetyTimer = setTimeout(() => {
         busy = false;
         updateBtn();
@@ -145,10 +227,7 @@ function init(): void {
         { type: "TOGGLE_SIDEBAR", shouldOpen: isOpen },
         (res) => {
           clearTimeout(safetyTimer);
-
           if (chrome.runtime.lastError) {
-            // SW was sleeping — keep busy=true so the button stays locked during retry.
-            // A second click here would race the retry with an opposite shouldOpen value.
             console.warn("[CM:toggle] SW sleeping, retrying...");
             setTimeout(() => {
               chrome.runtime.sendMessage(
@@ -156,7 +235,6 @@ function init(): void {
                 (retryRes) => {
                   busy = false;
                   if (chrome.runtime.lastError) {
-                    // Both failed — revert optimistic update
                     isOpen = !isOpen;
                     updateBtn();
                     return;
@@ -165,12 +243,10 @@ function init(): void {
                   updateBtn();
                 }
               );
-            }, 150); // Short retry — SW wakes fast
+            }, 150);
             return;
           }
-
-          // Success — confirm actual state from SW and release the lock
-          busy   = false;
+          busy = false;
           isOpen = res?.isOpen ?? isOpen;
           updateBtn();
         }
@@ -179,16 +255,11 @@ function init(): void {
   }
 
   ensureInjected();
-
-  // Re-attach after SPA navigation
   window.addEventListener("popstate", ensureInjected);
 
   const _push = history.pushState.bind(history);
-  history.pushState = (
-    ...args: Parameters<typeof history.pushState>
-  ) => {
+  history.pushState = (...args: Parameters<typeof history.pushState>) => {
     _push(...args);
-    // Small delay — let SPA render first
     setTimeout(ensureInjected, 100);
   };
 }

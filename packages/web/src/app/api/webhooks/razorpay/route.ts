@@ -6,6 +6,31 @@ import { proActivatedEmail, proCancelledEmail, paymentFailedEmail } from "@/lib/
 
 export const runtime = "nodejs";
 
+interface RazorpayWebhookEvent {
+  id: string;
+  event: string;
+  payload: {
+    subscription?: {
+      entity: {
+        id: string;
+        plan_id: string;
+        current_start?: number;
+        current_end?: number;
+        notes?: {
+          userId?: string;
+        };
+      };
+    };
+    payment?: {
+      entity: {
+        id: string;
+        subscription_id?: string;
+        email?: string;
+      };
+    };
+  };
+}
+
 async function getUserEmail(userId: string | null): Promise<string | null> {
   if (!userId) return null;
   try {
@@ -37,9 +62,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  let event: any;
+  let event: RazorpayWebhookEvent;
   try { event = JSON.parse(body); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  if (!event || typeof event !== "object") {
+    return NextResponse.json({ error: "Invalid event" }, { status: 400 });
   }
 
   const admin = createAdminClient();
