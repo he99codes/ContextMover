@@ -106,7 +106,8 @@ export default function KnowledgeSynthesizer() {
   const [hasSearched,    setHasSearched]    = useState(false);
   // [CM-FIX-5] tracks how many messages/chunks were searched so UI can show full scope
   const [searchScope,    setSearchScope]    = useState<{ sessions: number; messages: number; chunks: number } | null>(null);
-  const [indexingQueued, setIndexingQueued] = useState(false);
+  // [CM-FIX-5] fixed incomplete index trigger — now tracks per-session queued count
+  const [indexingQueued, setIndexingQueued] = useState(0);
 
   const handleSearch = useCallback(async () => {
     const q = query.trim();
@@ -115,7 +116,7 @@ export default function KnowledgeSynthesizer() {
     setChunks([]);
     setMigrateResult(null);
     setIsFallback(false);
-    setIndexingQueued(false);
+    setIndexingQueued(0);
     try {
       // [CM-FIX-5] compute search scope so UI can show "Searching across N messages"
       const allSessions = await db.sessions.toArray();
@@ -124,14 +125,21 @@ export default function KnowledgeSynthesizer() {
       setSearchScope({ sessions: allSessions.length, messages: totalMessages, chunks: indexedChunks });
       console.log(`[KS] scope — sessions=${allSessions.length} messages=${totalMessages} indexed_chunks=${indexedChunks}`);
 
-      // [CM-FIX-5] if nothing is indexed yet, queue all sessions for background indexing
-      // so the NEXT search gets full semantic coverage (this search still keyword-falls-back)
-      if (indexedChunks === 0 && allSessions.length > 0) {
-        for (const s of allSessions) {
-          chrome.runtime.sendMessage({ type: "BACKGROUND_INDEX", sessionId: s.id }).catch(() => {});
+      // [CM-FIX-5] fixed incomplete index trigger — now checks per-session, not just empty table.
+      // Query sessionHashes for all known session IDs; any session missing an entry is un-indexed
+      // (new capture since last indexing run, or first-time use).
+      if (allSessions.length > 0) {
+        const indexedIds = new Set(
+          (await dexieDb.sessionHashes.toArray()).map((h) => h.sessionId)
+        );
+        const unindexed = allSessions.filter((s) => !indexedIds.has(s.id));
+        if (unindexed.length > 0) {
+          for (const s of unindexed) {
+            chrome.runtime.sendMessage({ type: "BACKGROUND_INDEX", sessionId: s.id }).catch(() => {});
+          }
+          setIndexingQueued(unindexed.length);
+          console.log(`[KS] queued ${unindexed.length}/${allSessions.length} session(s) for background indexing`);
         }
-        setIndexingQueued(true);
-        console.log(`[KS] queued ${allSessions.length} session(s) for background indexing`);
       }
 
       const results = await attentionEngine.semanticSearch(q, 15);
@@ -269,8 +277,8 @@ export default function KnowledgeSynthesizer() {
               <span style={{ fontSize: "6px", fontFamily: "monospace", color: searchScope.chunks > 0 ? "#2A4A2A" : "#4A2A2A" }}>
                 {`${searchScope.chunks.toLocaleString()} chunks indexed`}
               </span>
-              {indexingQueued && (
-                <span style={{ fontSize: "6px", fontFamily: "monospace", color: "#A0702A" }}>⟳ indexing in background…</span>
+              {indexingQueued > 0 && (
+                <span style={{ fontSize: "6px", fontFamily: "monospace", color: "#A0702A" }}>{`⟳ indexing ${indexingQueued} new session${indexingQueued !== 1 ? "s" : ""} in background…`}</span>
               )}
             </div>
           )}
