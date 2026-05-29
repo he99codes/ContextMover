@@ -133,7 +133,9 @@ export default function AuthGate({ children }: AuthGateProps) {
         }
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Google sign-in failed");
+      // [CM-FIX-2] removed user-facing raw error: err.message
+      console.error("[CM:auth] OAuth error:", err);
+      setError("Sign-in failed — please try again.");
       setGoogleLoading(false);
     }
   }

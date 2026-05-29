@@ -44,7 +44,7 @@ export async function checkUsage(
   tier: 1 | 2 | 3,
   accessToken: string
 ): Promise<UsageCheckResult> {
-  console.log("[usage-client:debug] checkUsage called, token length:", accessToken?.length ?? 0, "token prefix:", typeof accessToken === "string" ? accessToken.slice(0, 20) : String(accessToken));
+  // [CM-FIX-SEC] removed token prefix debug log
   try {
     const res = await fetch(`${API_BASE}/api/usage/check`, {
       method: "POST",
@@ -143,7 +143,7 @@ export async function incrementUsage(
 export async function getUsageStatus(
   accessToken: string
 ): Promise<UsageStatus | null> {
-  console.log("[usage-client:debug] getUsageStatus called, token length:", accessToken?.length ?? 0);
+  // [CM-FIX-SEC] removed token prefix debug log
   try {
     const res = await fetch(`${API_BASE}/api/usage/status`, {
       method: "GET",
