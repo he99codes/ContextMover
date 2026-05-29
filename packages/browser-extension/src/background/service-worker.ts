@@ -8,13 +8,13 @@
 // packages/browser-extension/src/background/service-worker.ts
 import { db, dexieDb, ensureDbReady, sessionCache } from "@/lib/db";
 import { migrateFromContextForge } from "@/lib/db-migration";
-import summarize, { summarizeIntelligent, type IntelligentSummary } from "@/lib/summarizer";
+import summarize, { summarizeIntelligent, buildTier2WithScoring, type IntelligentSummary } from "@/lib/summarizer";
 import buildMigrationPrompt from "@/lib/translator";
-import type { ContextSession, Message } from "@/lib/types";
+import type { ContextSession, Message, ScoredMessage } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { syncPromptTemplates, syncPromptAssignments, queueVaultSync } from "@/lib/cloud-sync";
 import { semanticIndex } from "@/lib/semantic-index/index";
-import { getHardwareProfile } from "@/lib/attention-engine";
+import { getHardwareProfile, attentionEngine } from "@/lib/attention-engine";
 import { scoreMigration, formatScoreReport, type QualityScore } from "@/lib/quality/migration-scorer";
 import { generateQualityReport } from "@/lib/quality/report-generator";
 import { userVault } from "@/lib/user-vault/connector";
@@ -2047,6 +2047,7 @@ async function handleMigrateContext(
   reportProgress(10, 'Loading session...')
   const tier = (payload.tier ?? 2) as 1 | 2 | 3
   let migrationFile: MigrationFile
+  let coverageStats: IntelligentSummary['coverageStats']
   reportProgress(20, 'Building context file...')
   try {
     if (tier === 1) {
@@ -2066,25 +2067,27 @@ async function handleMigrateContext(
       if (stored) {
         summary = JSON.parse(stored.content)
       } else {
-        const localSummary = summarizeIntelligent(session.messages, payload.task)
-        summary = accessToken
-          ? await fetchSummary(session.messages, payload.task, accessToken, localSummary)
-          : localSummary
+        let scoredMessages: ScoredMessage[] = []
+        try {
+          // [CM-T2-ENHANCE] transformer-scored extraction — same quality for all users
+          scoredMessages = await attentionEngine.scoreMessagesForSummarization(session)
+          console.log(`[CM:tier2] scored ${scoredMessages.length} messages for extraction`)
+        } catch (err) {
+          console.warn('[CM:tier2] scoring failed, using heuristic fallback:', err)
+        }
+
+        // [CM-T2-LOCAL] removed server call — Tier 2 is local-only for all users
+        summary = await buildTier2WithScoring(session, scoredMessages, payload.task)
+
         await semanticIndex.saveSummary(
           session.id, 2, payload.task ?? null,
           JSON.stringify(summary), summary.compressionRatio,
           session.messages.length
         )
       }
+      coverageStats = summary.coverageStats
       const localFile = buildTier2File(session, summary, payload.task)
-      migrationFile = accessToken
-        ? await fetchMigrationBuild(
-            { tier: 2, platform: session.platform, sessionTitle: session.title,
-              messages: session.messages, originalCount: session.messages.length,
-              summary, task: payload.task },
-            accessToken, localFile
-          )
-        : localFile
+      migrationFile = localFile
     } else {
       if (!attentionEngineAvailable) {
         activeMigrationInProgress = false;
@@ -2092,72 +2095,59 @@ async function handleMigrateContext(
         return;
       }
       reportProgress(30, 'Running attention engine...')
+      // [CM-TIER-FIX] removed auto-downgrade — user controls tier, not hardware detector
+      // If Tier 3 was requested, run it. Let it be slow. That is the user's choice.
+      // Do NOT change tier here under any circumstance.
+      const TIER3_TIMEOUT_MS = 120_000; // 2 minute timeout for Tier 3 operations
+      let tid: ReturnType<typeof setTimeout> | undefined;
+      const timeout = new Promise<never>((_, reject) => {
+        tid = setTimeout(() => reject(new Error('tier3_timeout')), TIER3_TIMEOUT_MS);
+      });
       try {
-        const hw3 = await getHardwareProfile().catch(() => null);
-        if (hw3?.tier === "minimal") {
-          console.log('[CM:sw] Minimal hardware — skipping Tier 3 indexing, falling back to Smart Summary');
-          reportProgress(35, 'Smart Summary (minimal hardware)...');
-          const localSummary3 = summarizeIntelligent(session.messages, payload.task);
-          const summary3 = accessToken
-            ? await fetchSummary(session.messages, payload.task, accessToken, localSummary3)
-            : localSummary3;
-          const localFile3 = buildTier2File(session, summary3, payload.task);
-          migrationFile = accessToken
-            ? await fetchMigrationBuild(
-                { tier: 2, platform: session.platform, sessionTitle: session.title,
-                  messages: session.messages, originalCount: session.messages.length,
-                  summary: summary3, task: payload.task },
-                accessToken, localFile3
-              )
-            : localFile3;
-        } else {
-        const needsIndex = await semanticIndex.needsIndexing(session)
+        const needsIndex = await Promise.race([
+          semanticIndex.needsIndexing(session),
+          timeout
+        ]);
         if (needsIndex) {
           reportProgress(35, 'Indexing session...')
-          await semanticIndex.indexSessionPriority(session, (pct: number, stage: string) => {
-            reportProgress(35 + pct * 0.4, stage)
-          })
+          await Promise.race([
+            semanticIndex.indexSessionPriority(session, (pct: number, stage: string) => {
+              reportProgress(35 + pct * 0.4, stage)
+            }),
+            timeout
+          ]);
         }
         reportProgress(75, 'Retrieving relevant chunks...')
-        const chunks = await semanticIndex.retrieve(
-          session.id, payload.task ?? null, 15
-        )
+        const chunks = await Promise.race([
+          semanticIndex.retrieve(session.id, payload.task ?? null, 15),
+          timeout
+        ]);
         if (chunks.length === 0) {
-          // Indexing produced no chunks (or session not yet indexed despite
-          // the needsIndexing check). Building a Tier 3 file with no chunks
-          // yields useless empty context. Fall back to Tier 2 (Smart Summary)
-          // which is pure-logic and always produces meaningful output.
-          console.warn('[CM:sw] Attention engine returned 0 chunks — falling back to tier 2')
-          reportProgress(78, 'Falling back to Smart Summary...')
-          const localSummary = summarizeIntelligent(session.messages, payload.task)
-          const summary = accessToken
-            ? await fetchSummary(session.messages, payload.task, accessToken, localSummary)
-            : localSummary
-          const localFile = buildTier2File(session, summary, payload.task)
-          migrationFile = accessToken
-            ? await fetchMigrationBuild(
-                { tier: 2, platform: session.platform, sessionTitle: session.title,
-                  messages: session.messages, originalCount: session.messages.length,
-                  summary, task: payload.task },
-                accessToken, localFile
-              )
-            : localFile
-        } else {
-          const selectedMessages = getMessagesFromChunks(chunks, session)
-          const task3 = payload.task ?? 'Continue from where we left off'
-          const localFile = buildTier3File(session, chunks, task3)
-          migrationFile = accessToken
-            ? await fetchMigrationBuild(
-                { tier: 3, platform: session.platform, sessionTitle: session.title,
-                  messages: session.messages, originalCount: session.messages.length,
-                  chunks: selectedMessages, task: task3 },
-                accessToken, localFile
-              )
-            : localFile
+          // [CM-TIER-FIX] 0 chunks — return error, never auto-downgrade
+          activeMigrationInProgress = false;
+          sendResponse({ success: false, error: 'tier3_no_chunks', requestedTier: 3, message: 'Attention engine returned no relevant chunks. Try again or switch to Smart Summary.' });
+          return;
         }
-        }
+        const selectedMessages = getMessagesFromChunks(chunks, session)
+        const task3 = payload.task ?? 'Continue from where we left off'
+        const localFile = buildTier3File(session, chunks, task3)
+        migrationFile = accessToken
+          ? await fetchMigrationBuild(
+              { tier: 3, platform: session.platform, sessionTitle: session.title,
+                messages: session.messages, originalCount: session.messages.length,
+                chunks: selectedMessages, task: task3 },
+              accessToken, localFile
+            )
+          : localFile;
       } catch (err) {
+        clearTimeout(tid);
         const msg = err instanceof Error ? err.message : String(err);
+        if (msg === 'tier3_timeout') {
+          // [CM-TIER-FIX] timeout — return error, never auto-downgrade
+          activeMigrationInProgress = false;
+          sendResponse({ success: false, error: 'tier3_timeout', requestedTier: 3, message: 'Attention engine timed out on this device. Try again, or switch to Smart Summary or Full Context.' });
+          return;
+        }
         if (msg.includes("Failed to fetch")) {
           attentionEngineAvailable = false;
           await chrome.storage.local.set({ attentionEngineAvailable: false });
@@ -2338,6 +2328,7 @@ async function handleMigrateContext(
     injected,
     injectionError,
     cacheKey,
+    coverageStats,
     migrationFile: {
       filename: migrationFile.filename,
       charCount: migrationFile.charCount,

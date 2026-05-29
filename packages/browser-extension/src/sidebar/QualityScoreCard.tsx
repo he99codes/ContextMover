@@ -48,10 +48,15 @@ const AUTO_DISMISS_MS = 8_000;
 
 interface QualityScoreCardProps {
   score: QualityScore;
+  coverageStats?: {
+    messagesUsed: number;
+    messagesScored: number;
+    categoryCounts: Record<string, number>;
+  };
   onDismiss: () => void;
 }
 
-export function QualityScoreCard({ score, onDismiss }: QualityScoreCardProps) {
+export function QualityScoreCard({ score, coverageStats, onDismiss }: QualityScoreCardProps) {
   const [pinned, setPinned] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -198,6 +203,19 @@ export function QualityScoreCard({ score, onDismiss }: QualityScoreCardProps) {
         {platform} · {tier} · {time}
         {pinned ? "" : "  · click to pin"}
       </div>
+      {score.meta.tier === 2 && coverageStats && (
+        <div style={{ marginTop: 6, fontSize: 11 }}>
+          {(() => {
+            const pct = Math.round((coverageStats.messagesUsed / score.meta.originalMessages) * 100) || 0;
+            const color = pct > 40 ? "var(--color-text-success, #00FF88)" : pct >= 20 ? "var(--color-text-warning, #F59E0B)" : "var(--color-text-danger, #EF4444)";
+            return (
+              <span style={{ color }}>
+                Coverage: {pct}% of session messages
+              </span>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 }

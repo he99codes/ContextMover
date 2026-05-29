@@ -26,7 +26,7 @@
 //               if grammars are absent or fail to load.
 
 import { openDB, type IDBPDatabase } from "idb";
-import type { ContextSession, Message, CodeBlock } from "./types";
+import type { ContextSession, Message, CodeBlock, ScoredMessage, ScoredMessageScores } from "./types";
 import { dexieDb } from "./db";
 import { cosineSimilarity, searchContextChunks } from "./math";
 import {
@@ -651,6 +651,101 @@ export class AttentionEngine {
       }))
       .sort((a, b) => b.relevanceScore - a.relevanceScore)
       .slice(0, limit);
+  }
+
+  // ─── scoreMessagesForSummarization ────────────────────────────────────────
+
+  /**
+   * [CM-T2-ENHANCE] Score every session message against 5 Tier 2 categories
+   * (goals, decisions, bugs, context, questions) using ONNX embeddings.
+   * Graceful degradation: minimal tier / ONNX down → all-zero scores.
+   * 8-second timeout → aborts, no speed regression.
+   */
+  async scoreMessagesForSummarization(
+    session: ContextSession,
+  ): Promise<ScoredMessage[]> {
+    if (this.tier === "minimal" || !this.modelAvailable) {
+      return this._zeroScoreFallback(session);
+    }
+    const SCORING_TIMEOUT_MS = 8_000;
+    let tid: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<ScoredMessage[]>((r) => {
+      tid = setTimeout(() => {
+        console.warn(`${TAG} scoring timed out — heuristic fallback`);
+        r(this._zeroScoreFallback(session));
+      }, SCORING_TIMEOUT_MS);
+    });
+    try {
+      const result = await Promise.race([this._scoreInternal(session), timeout]);
+      clearTimeout(tid);
+      return result;
+    } catch (e) {
+      clearTimeout(tid);
+      console.warn(`${TAG} scoring error:`, e);
+      return this._zeroScoreFallback(session);
+    }
+  }
+
+  /** [CM-T2-ENHANCE] Embed category queries + all messages, compute scores. */
+  private async _scoreInternal(session: ContextSession): Promise<ScoredMessage[]> {
+    const msgs = session.messages;
+    if (msgs.length === 0) return [];
+
+    const QUERIES: Record<keyof ScoredMessageScores, string> = {
+      goals: "project goal objective purpose aim target outcome",
+      decisions: "decided chose selected agreed will use going with picked",
+      bugs: "bug error issue broken fix problem crash exception failure",
+      context: "background context setup environment stack technology architecture",
+      questions: "open question unclear need to figure out unresolved uncertain",
+    };
+    const keys = Object.keys(QUERIES) as (keyof ScoredMessageScores)[];
+
+    const queryEmbs = await this.embedTexts(keys.map((k) => QUERIES[k]));
+    const msgTexts = msgs.map((m) => m.content);
+    const msgEmbs = await this.embedTexts(msgTexts);
+
+    const total = msgs.length;
+    const results: ScoredMessage[] = msgs.map((m, i) => {
+      const emb = msgEmbs[i] ?? new Array(EMBEDDING_DIM).fill(0);
+      const hasEmb = emb.some((v) => v !== 0);
+      const scores: ScoredMessageScores = {
+        goals: 0, decisions: 0, bugs: 0, context: 0, questions: 0,
+      };
+      if (hasEmb) {
+        for (let k = 0; k < keys.length; k++) {
+          const qEmb = queryEmbs[k];
+          if (qEmb && qEmb.some((v) => v !== 0)) {
+            scores[keys[k]] = this.cosineSimilarity(emb, qEmb);
+          }
+        }
+      }
+      return {
+        index: i,
+        role: m.role,
+        content: m.content,
+        scores,
+        recencyBoost: 1.0 + (i / Math.max(total, 1)) * 0.2,
+      };
+    });
+
+    results.sort((a, b) => {
+      const aMax = Math.max(...Object.values(a.scores));
+      const bMax = Math.max(...Object.values(b.scores));
+      return bMax - aMax;
+    });
+    return results;
+  }
+
+  /** [CM-T2-ENHANCE] All-zero score fallback — triggers heuristic path in summarizer. */
+  private _zeroScoreFallback(session: ContextSession): ScoredMessage[] {
+    const total = session.messages.length;
+    return session.messages.map((m, i) => ({
+      index: i,
+      role: m.role,
+      content: m.content,
+      scores: { goals: 0, decisions: 0, bugs: 0, context: 0, questions: 0 },
+      recencyBoost: 1.0 + (i / Math.max(total, 1)) * 0.2,
+    }));
   }
 
   // ─── clearIndex ───────────────────────────────────────────────────────────

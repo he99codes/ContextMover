@@ -366,6 +366,7 @@ export default function Sidebar() {
   const [isRenaming, setIsRenaming] = useState(false);
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [latestQualityScore, setLatestQualityScore] = useState<QualityScore | null>(null);
+  const [latestCoverageStats, setLatestCoverageStats] = useState<any>(null);
   const [qualityStats, setQualityStats] = useState<{ count: number; avgScore: number } | null>(null);
 
   const [planStatus, setPlanStatus] = useState<{
@@ -997,7 +998,8 @@ export default function Sidebar() {
             <div className="mx-3">
               <QualityScoreCard
                 score={latestQualityScore}
-                onDismiss={() => setLatestQualityScore(null)}
+                coverageStats={latestCoverageStats}
+                onDismiss={() => { setLatestQualityScore(null); setLatestCoverageStats(null); }}
               />
             </div>
           )}
@@ -1180,12 +1182,13 @@ export default function Sidebar() {
             attentionAvailable={attentionAvailable}
             isPro={planStatus.isPro}
             onClose={() => setShowMigrationModal(false)}
-            onSuccess={(tier, _compressionRatio, chars, qualityScore) => {
+            onSuccess={(tier, _compressionRatio, chars, qualityScore, coverageStats) => {
               setShowMigrationModal(false);
               setMigrationTiers((prev) => ({ ...prev, [selected.id]: tier }));
               const tierName = tier === 3 ? "Attention Engine" : tier === 2 ? "Smart Summary" : "Full Context";
               setStatusMessage({ tone: "success", text: `✅ Migrated via ${tierName} · Stayed in your browser` });
               if (qualityScore) setLatestQualityScore(qualityScore);
+              if (coverageStats) setLatestCoverageStats(coverageStats);
               void chars; // referenced to avoid unused-var lint
             }}
             onLimitReached={(info) => {
@@ -1309,17 +1312,36 @@ export default function Sidebar() {
                 <span className="inline-block h-1 w-1 rounded-full bg-[#3A3A3A]" />
                 MCP
               </button>
-              <button
-                onClick={() => { setShowSynthesizer((s) => !s); setShowSettings(false); }}
-                title="Knowledge Synthesizer — Pro"
-                className={`flex h-5 w-5 items-center justify-center rounded-[3px] border transition-all duration-200 ${
-                  showSynthesizer
-                    ? 'border-purple-500/40 bg-purple-500/10 text-purple-400'
-                    : 'border-[#1A3A1A] bg-[#060606] text-[#2A2A4A] hover:border-purple-500/40 hover:text-purple-400'
-                }`}
-              >
-                <span className="text-[11px]">⚡</span>
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                <button
+                  // [CM-KS-SNOOZE] coming soon — re-enable when KS ships
+                  // onClick={() => { setShowSynthesizer((s) => !s); setShowSettings(false); }}
+                  disabled
+                  title="Knowledge Synthesizer — Coming Soon"
+                  className={`flex h-5 w-5 items-center justify-center rounded-[3px] border transition-all duration-200 cursor-not-allowed opacity-50 ${
+                    showSynthesizer
+                      ? 'border-purple-500/40 bg-purple-500/10 text-purple-400'
+                      : 'border-[#1A3A1A] bg-[#060606] text-[#2A2A4A]'
+                  }`}
+                >
+                  <span className="text-[11px]">⚡</span>
+                </button>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '2px',
+                  padding: '1px 4px',
+                  borderRadius: '10px',
+                  fontSize: '7px',
+                  fontWeight: 500,
+                  background: 'var(--color-background-warning)',
+                  color: 'var(--color-text-warning)',
+                  opacity: 0.85,
+                  whiteSpace: 'nowrap'
+                }}>
+                  Coming Soon
+                </div>
+              </div>
               <button
                 onClick={() => { const opening = !showSettings; setShowSettings(opening); if (opening) { setShowSynthesizer(false); loadIndexStats(); refreshQualityStats(); } }}
                 title="Semantic index settings"

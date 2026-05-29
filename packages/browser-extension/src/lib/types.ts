@@ -112,6 +112,31 @@ export interface OffscreenSearchResult {
   score: number;
 }
 
+// [CM-T2-ENHANCE] Per-category ONNX relevance scores for transformer-enhanced Tier 2.
+export interface ScoredMessageScores {
+  goals: number;
+  decisions: number;
+  bugs: number;
+  context: number;
+  questions: number;
+}
+
+/**
+ * [CM-T2-ENHANCE] Session message augmented with ONNX per-category scores.
+ * Produced by AttentionEngine.scoreMessagesForSummarization().
+ * Lives in types.ts to avoid attention-engine ↔ summarizer import cycle.
+ */
+export interface ScoredMessage {
+  /** Original index in session.messages — used to restore chronological order. */
+  index: number;
+  role: "user" | "assistant";
+  content: string;
+  /** All zeros when ONNX unavailable → triggers heuristic fallback in summarizer. */
+  scores: ScoredMessageScores;
+  /** 1.0 + (index / total) * 0.2 — favours recent messages at equal score. */
+  recencyBoost: number;
+}
+
 export interface MigrationPayload {
   summary: string;
   extracted?: ExtractedContext;

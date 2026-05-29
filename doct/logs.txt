@@ -1,0 +1,444 @@
+﻿service-worker.ts-DnK5S\_s4.js:681 \[ContextMover\] Extension installed.  
+service-worker.ts-DnK5S\_s4.js:793 \[ContextMover\] Injected content script into tab 1434455953 (https://chat.deepseek.com/a/chat/s/07e2b642-0895-4616-abfb-03097b16eac8) --- 4 script(s): assets/src/content/fetch-interceptor-BWf582Jo.js | assets/interceptor-bridge.ts-loader-BwMzCt79.js | assets/deepseek.ts-loader-B5NCH5Xe.js | assets/src/content/sidebar-toggle/toggle-Bo2IjU--.js  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: deepseek deepseek-cd4af463d3  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified Object  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) Object  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 14 msgs → 7100 chars (0% compressed)  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier2\] 14 msgs → extracted:  
+goals=1 decisions=1 bugs=2 completed=0 pending=0 code\_blocks=0 → 7979 chars (-15% compressed) \[11ms\]  
+usage-client-OT9XeWFz.js:297 \[ContextMover:hw\] {"cores":8,"memoryGB":8,"hasWebGPU":false,"gpuRenderer":null,"tier":"balanced","recommendedMigrationTier":2}  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:queue\] dequeue background deepseek-cd4af463d3 Object  
+service-worker.ts-DnK5S\_s4.js:2930 \[CM:sw:metaPrompt\] built 12 prompts in 71ms  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:offscreen\] document created  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] deepseek-cd4af463d3: 0 chunks indexed in 42ms  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session deepseek-cd4af463d3 in 44ms  
+service-worker.ts-DnK5S\_s4.js:864 \[CM:auth\] token refreshed, event: TOKEN\_REFRESHED  
+service-worker.ts-DnK5S\_s4.js:864 \[CM:auth\] token refreshed, event: INITIAL\_SESSION  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on deepseek: Selector not found: main  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+service-worker.ts-DnK5S\_s4.js:634 \[CM:config\] Remote config refreshed, version 1.0.0  
+service-worker.ts-DnK5S\_s4.js:634 \[CM:config\] Remote config refreshed, version 1.0.0  
+service-worker.ts-DnK5S\_s4.js:1373 \[CM:config\] Selector config refreshed after SCRAPER\_BROKEN (deepseek)  
+service-worker.ts-DnK5S\_s4.js:372 \[CM:drive\] Falling back to launchWebAuthFlow. If this fails, ensure this redirect URL is registered on the OAuth client in Google Cloud Console:  
+https://cmidgaimkkipljfgkpbbegblbciiodag.chromiumapp.org/  
+callLaunchWebAuthFlow @ service-worker.ts-DnK5S\_s4.js:372  
+service-worker.ts-DnK5S\_s4.js:372 \[CM:drive\] using client\_id: 537316078537-hcpqdq1jsh3eh748071u0q4id7j1iivd.apps.googleusercontent.com  
+service-worker.ts-DnK5S\_s4.js:372 \[CM:drive\] full auth URL: https://accounts.google.com/o/oauth2/v2/auth?client\_id=537316078537-hcpqdq1jsh3eh748071u0q4id7j1iivd.apps.googleusercontent.com&response\_type=token&redirect\_uri=https%3A%2F%2Fcmidgaimkkipljfgkpbbegblbciiodag.chromiumapp.org%2F&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.appdata&prompt=consent  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:offscreen\] document created  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 14 msgs → 7100 chars (0% compressed)  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier2\] 14 msgs → extracted:  
+goals=1 decisions=1 bugs=2 completed=0 pending=0 code\_blocks=0 → 7979 chars (-15% compressed) \[2ms\]  
+service-worker.ts-DnK5S\_s4.js:1515 \[CM:sw\] PRECOMPUTE\_SUMMARY warmed summaries for session deepseek-cd4af463d3  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] Skip (unchanged): deepseek-cd4af463d3  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session deepseek-cd4af463d3 in 6ms  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: deepseek deepseek-cd4af463d3  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 20, user: 2, assistant: 18, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'deepseek-cd4af463d3', total: 20}  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 20 msgs → 13330 chars (0% compressed)  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier2\] 20 msgs → extracted:  
+goals=1 decisions=1 bugs=2 completed=1 pending=2 code\_blocks=0 → 14410 chars (-10% compressed) \[7ms\]  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:queue\] dequeue background deepseek-cd4af463d3 {priority: 0, background: 0}  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] deepseek-cd4af463d3: 0 chunks indexed in 13ms  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session deepseek-cd4af463d3 in 28ms  
+service-worker.ts-DnK5S\_s4.js:2930 \[CM:sw:metaPrompt\] built 12 prompts in 40ms  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:offscreen\] document created  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] Skip (unchanged): deepseek-cd4af463d3  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session deepseek-cd4af463d3 in 4ms  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 20 msgs → 13330 chars (0% compressed)  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier2\] 20 msgs → extracted:  
+goals=1 decisions=1 bugs=2 completed=1 pending=2 code\_blocks=0 → 14410 chars (-10% compressed) \[5ms\]  
+service-worker.ts-DnK5S\_s4.js:1515 \[CM:sw\] PRECOMPUTE\_SUMMARY warmed summaries for session deepseek-cd4af463d3  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 88 msgs → 157788 chars (7% compressed)  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier2\] 88 msgs → extracted:  
+goals=1 decisions=6 bugs=15 completed=6 pending=1 code\_blocks=15 → 57271 chars (66% compressed) \[36ms\]  
+service-worker.ts-DnK5S\_s4.js:1515 \[CM:sw\] PRECOMPUTE\_SUMMARY warmed summaries for session claude-7c98f3b0f5  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:queue\] dequeue background claude-7c98f3b0f5 {priority: 0, background: 0}  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] claude-7c98f3b0f5: 0 chunks indexed in 16ms  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session claude-7c98f3b0f5 in 93ms  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-claude-7c98f3b0f5-1779993350676)  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434455953 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434455953 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434455953 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier2\] 88 msgs → extracted:  
+goals=1 decisions=6 bugs=15 completed=6 pending=1 code\_blocks=15 → 57271 chars (66% compressed) \[45ms\]  
+service-worker.ts-DnK5S\_s4.js:465 \[CM:sw\] offscreen document created  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-claude-7c98f3b0f5-1779993451841)  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434455953 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434455953 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434455953 content script ready (attempt 1/8)  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 150 msgs → 760786 chars (13% compressed)  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier2\] 150 msgs → extracted:  
+goals=1 decisions=20 bugs=15 completed=12 pending=1 code\_blocks=0 → 39995 chars (95% compressed) \[33ms\]  
+service-worker.ts-DnK5S\_s4.js:1515 \[CM:sw\] PRECOMPUTE\_SUMMARY warmed summaries for session gemini-c338ffa219  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] Skip (unchanged): gemini-c338ffa219  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session gemini-c338ffa219 in 108ms  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779993637970)  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434455953 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434455953 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434455953 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] Skip (unchanged): gemini-c338ffa219  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session gemini-c338ffa219 in 16ms  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 150 msgs → 760786 chars (13% compressed)  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier2\] 150 msgs → extracted:  
+goals=1 decisions=20 bugs=15 completed=12 pending=1 code\_blocks=0 → 39995 chars (95% compressed) \[33ms\]  
+service-worker.ts-DnK5S\_s4.js:1515 \[CM:sw\] PRECOMPUTE\_SUMMARY warmed summaries for session gemini-c338ffa219  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779993691310)  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779993701354)  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] Retrieved 35/250 chunks (top-code=1 top-prose=14 recent=23) in 59318.3ms  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] Retrieved 35/250 chunks (top-code=1 top-prose=14 recent=23) in 49312.7ms  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434455953 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434455953 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434455953 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434455953 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434455953 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434455953 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1460 \[CM:sw\] CAPTURE\_SESSION from non-platform sender, rejected. url: chrome://newtab/  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1460  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: gemini gemini-9db04e4221  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 1, user: 0, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'gemini-9db04e4221', total: 1}  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 1 msgs → 146 chars (0% compressed)  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:queue\] dequeue background gemini-9db04e4221 {priority: 0, background: 0}  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] gemini-9db04e4221: 0 chunks indexed in 7ms  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session gemini-9db04e4221 in 11ms  
+service-worker.ts-DnK5S\_s4.js:2930 \[CM:sw:metaPrompt\] built 12 prompts in 13ms  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: gemini gemini-9db04e4221  
+service-worker.ts-DnK5S\_s4.js:2744 \[ContextMover:capture\] Skipped in-flight duplicate for session gemini-9db04e4221  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 150 msgs → 760786 chars (13% compressed)  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier2\] 150 msgs → extracted:  
+goals=1 decisions=20 bugs=15 completed=12 pending=1 code\_blocks=0 → 39995 chars (95% compressed) \[55ms\]  
+service-worker.ts-DnK5S\_s4.js:1515 \[CM:sw\] PRECOMPUTE\_SUMMARY warmed summaries for session gemini-c338ffa219  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] Skip (unchanged): gemini-c338ffa219  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session gemini-c338ffa219 in 149ms  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:465 \[CM:sw\] offscreen document created  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779993873616)  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456053 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456053 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456053 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779993933466)  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456053 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456053 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456053 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779993978991)  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] Retrieved 35/250 chunks (top-code=1 top-prose=14 recent=23) in 30337.0ms  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456053 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456053 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456053 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779994047483)  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456056 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456056 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456056 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: claude claude-08b672776a  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 3, user: 2, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'claude-08b672776a', total: 3}  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 3 msgs → 111 chars (0% compressed)  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:queue\] dequeue background claude-08b672776a {priority: 0, background: 0}  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] claude-08b672776a: 0 chunks indexed in 4ms  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session claude-08b672776a in 7ms  
+service-worker.ts-DnK5S\_s4.js:2930 \[CM:sw:metaPrompt\] built 12 prompts in 9ms  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779994069875)  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456056 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456056 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456056 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: claude claude-08b672776a  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 3, user: 2, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'claude-08b672776a', total: 3}  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 3 msgs → 1263 chars (0% compressed)  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier2\] 3 msgs → extracted:  
+goals=1 decisions=0 bugs=0 completed=0 pending=0 code\_blocks=0 → 1553 chars (-26% compressed) \[0ms\]  
+service-worker.ts-DnK5S\_s4.js:2930 \[CM:sw:metaPrompt\] built 12 prompts in 6ms  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779994084624)  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] Offscreen query embed failed --- using keyword fallback: Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received  
+retrieve @ service-worker.ts-DnK5S\_s4.js:17  
+await in retrieve  
+handleMigrateContext @ service-worker.ts-DnK5S\_s4.js:3116  
+await in handleMigrateContext  
+ovYnH @ service-worker.ts-DnK5S\_s4.js:1042  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1805  
+await in (anonymous)  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] Keyword fallback: 15/250 chunks in 6698.1ms  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456056 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456056 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456056 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: claude claude-08b672776a  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 3, user: 2, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'claude-08b672776a', total: 3}  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 3 msgs → 1168 chars (0% compressed)  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier2\] 3 msgs → extracted:  
+goals=1 decisions=0 bugs=0 completed=0 pending=0 code\_blocks=0 → 1458 chars (-28% compressed) \[0ms\]  
+service-worker.ts-DnK5S\_s4.js:2930 \[CM:sw:metaPrompt\] built 12 prompts in 13ms  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on chatgpt: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:634 \[CM:config\] Remote config refreshed, version 1.0.0  
+service-worker.ts-DnK5S\_s4.js:1373 \[CM:config\] Selector config refreshed after SCRAPER\_BROKEN (chatgpt)  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on chatgpt: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:465 \[CM:sw\] offscreen document created  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779994113935)  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456059 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456059 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456059 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on chatgpt: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779994124350)  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456059 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456059 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456059 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on chatgpt: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on chatgpt: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on chatgpt: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on chatgpt: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:634 \[CM:config\] Remote config refreshed, version 1.0.0  
+service-worker.ts-DnK5S\_s4.js:1373 \[CM:config\] Selector config refreshed after SCRAPER\_BROKEN (chatgpt)  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on chatgpt: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on chatgpt: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on chatgpt: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779994164252)  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] Retrieved 37/250 chunks (top-code=0 top-prose=15 recent=23) in 38415.9ms  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456059 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456059 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456059 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on chatgpt: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:634 \[CM:config\] Remote config refreshed, version 1.0.0  
+service-worker.ts-DnK5S\_s4.js:1373 \[CM:config\] Selector config refreshed after SCRAPER\_BROKEN (chatgpt)  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on chatgpt: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: gemini gemini-9db04e4221  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 1, user: 0, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'gemini-9db04e4221', total: 1}  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 1 msgs → 152 chars (0% compressed)  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:queue\] dequeue background gemini-9db04e4221 {priority: 0, background: 0}  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] gemini-9db04e4221: 0 chunks indexed in 3ms  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session gemini-9db04e4221 in 5ms  
+service-worker.ts-DnK5S\_s4.js:2930 \[CM:sw:metaPrompt\] built 12 prompts in 6ms  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779994232801)  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456062 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456062 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456062 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: gemini gemini-9db04e4221  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 1, user: 0, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'gemini-9db04e4221', total: 1}  
+service-worker.ts-DnK5S\_s4.js:2896 \[CM:sw:metaPrompt\] skipped (892170 chars \> 300000 limit): gemini-9db04e4221  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:queue\] dequeue background gemini-9db04e4221 {priority: 0, background: 0}  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] gemini-9db04e4221: 0 chunks indexed in 11ms  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session gemini-9db04e4221 in 14ms  
+service-worker.ts-DnK5S\_s4.js:2281 \[CM:gemini\] injection result: null  
+service-worker.ts-DnK5S\_s4.js:2281 \[CM:gemini\] injection failed --- reason: unknown  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2281  
+await in (anonymous)  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:465 \[CM:sw\] offscreen document created  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779994284211)  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456062 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456062 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456062 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: gemini gemini-9db04e4221  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 1, user: 0, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'gemini-9db04e4221', total: 1}  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 1 msgs → 3234 chars (0% compressed)  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier2\] 1 msgs → extracted:  
+goals=1 decisions=0 bugs=0 completed=0 pending=1 code\_blocks=0 → 4350 chars (-35% compressed) \[1ms\]  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:queue\] dequeue background gemini-9db04e4221 {priority: 0, background: 0}  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] gemini-9db04e4221: 0 chunks indexed in 3ms  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session gemini-9db04e4221 in 5ms  
+service-worker.ts-DnK5S\_s4.js:2930 \[CM:sw:metaPrompt\] built 12 prompts in 9ms  
+service-worker.ts-DnK5S\_s4.js:2281 \[CM:gemini\] injection result: null  
+service-worker.ts-DnK5S\_s4.js:2281 \[CM:gemini\] injection failed --- reason: unknown  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2281  
+await in (anonymous)  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779994304786)  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456065 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456065 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456065 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: grok grok-ed8d2f07ef  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 3, user: 2, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'grok-ed8d2f07ef', total: 3}  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 3 msgs → 120 chars (0% compressed)  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:queue\] dequeue background grok-ed8d2f07ef {priority: 0, background: 0}  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] grok-ed8d2f07ef: 0 chunks indexed in 4ms  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session grok-ed8d2f07ef in 5ms  
+service-worker.ts-DnK5S\_s4.js:2930 \[CM:sw:metaPrompt\] built 12 prompts in 7ms  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: grok grok-ed8d2f07ef  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 3, user: 2, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'grok-ed8d2f07ef', total: 3}  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 3 msgs → 115 chars (0% compressed)  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:queue\] dequeue background grok-ed8d2f07ef {priority: 0, background: 0}  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] grok-ed8d2f07ef: 0 chunks indexed in 4ms  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session grok-ed8d2f07ef in 6ms  
+service-worker.ts-DnK5S\_s4.js:2930 \[CM:sw:metaPrompt\] built 12 prompts in 7ms  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: grok grok-ed8d2f07ef  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 3, user: 2, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'grok-ed8d2f07ef', total: 3}  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 3 msgs → 120 chars (0% compressed)  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:queue\] dequeue background grok-ed8d2f07ef {priority: 0, background: 0}  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] grok-ed8d2f07ef: 0 chunks indexed in 5ms  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session grok-ed8d2f07ef in 6ms  
+service-worker.ts-DnK5S\_s4.js:2930 \[CM:sw:metaPrompt\] built 12 prompts in 8ms  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-gemini-c338ffa219-1779994332208)  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: grok grok-ed8d2f07ef  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 3, user: 2, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'grok-ed8d2f07ef', total: 3}  
+service-worker.ts-DnK5S\_s4.js:2902 \[CM:sw:metaPrompt\] skipped (unchanged, 8s since last): grok-ed8d2f07ef  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: grok grok-ed8d2f07ef  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 3, user: 2, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'grok-ed8d2f07ef', total: 3}  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 3 msgs → 115 chars (0% compressed)  
+service-worker.ts-DnK5S\_s4.js:2930 \[CM:sw:metaPrompt\] built 12 prompts in 5ms  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: grok grok-ed8d2f07ef  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 3, user: 2, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'grok-ed8d2f07ef', total: 3}  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 3 msgs → 120 chars (0% compressed)  
+service-worker.ts-DnK5S\_s4.js:2930 \[CM:sw:metaPrompt\] built 12 prompts in 5ms  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] Offscreen query embed failed --- using keyword fallback: Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received  
+retrieve @ service-worker.ts-DnK5S\_s4.js:17  
+await in retrieve  
+handleMigrateContext @ service-worker.ts-DnK5S\_s4.js:3116  
+await in handleMigrateContext  
+ovYnH @ service-worker.ts-DnK5S\_s4.js:1042  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1805  
+await in (anonymous)  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] Keyword fallback: 15/250 chunks in 28449.2ms  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456065 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: grok grok-ed8d2f07ef  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 3, user: 2, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'grok-ed8d2f07ef', total: 3}  
+service-worker.ts-DnK5S\_s4.js:2902 \[CM:sw:metaPrompt\] skipped (unchanged, 8s since last): grok-ed8d2f07ef  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456065 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456065 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:offscreen\] document created  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-custom-1779994418353-1779994419368)  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456073 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456073 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456073 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1742 \[CM:debug\] getSession result: {hasSession: true, hasToken: true, tokenLen: 1406}  
+service-worker.ts-DnK5S\_s4.js:1765 \[CM:debug\] final accessToken: string truthy: true len: 1406  
+usage-client-OT9XeWFz.js:21988 \[usage-client:debug\] checkUsage called, token length: 1406 token prefix: eyJhbGciOiJFUzI1NiIs  
+service-worker.ts-DnK5S\_s4.js:1789 \[CM:sw\] MIGRATE\_CONTEXT --- priority T3 index queued (migrate-priority-custom-1779994521753-1779994522712)  
+service-worker.ts-DnK5S\_s4.js:3564 \[CM:sw\] Tab 1434456073 reached 'complete' status  
+service-worker.ts-DnK5S\_s4.js:3568 \[CM:ping\] Tab 1434456073 attempt 1/8 (+1500ms)  
+service-worker.ts-DnK5S\_s4.js:3593 \[CM:sw\] Tab 1434456073 content script ready (attempt 1/8)  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: claude claude-08b672776a  
+service-worker.ts-DnK5S\_s4.js:2772 \[ContextMover\] Session stored locally only. No cloud sync unless user connects personal Supabase.  
+service-worker.ts-DnK5S\_s4.js:2784 \[CM:sw\] verified {total: 3, user: 2, assistant: 1, ok: true, pending: true}  
+service-worker.ts-DnK5S\_s4.js:2769 \[CM:sw\] saved (debounced) {session: 'claude-08b672776a', total: 3}  
+usage-client-OT9XeWFz.js:299 \[ContextMover:tier1\] 3 msgs → 111 chars (0% compressed)  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:queue\] dequeue background claude-08b672776a {priority: 0, background: 0}  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:index\] claude-08b672776a: 0 chunks indexed in 10ms  
+service-worker.ts-DnK5S\_s4.js:2824 \[CM:sw:bgIdx\] indexed session claude-08b672776a in 12ms  
+service-worker.ts-DnK5S\_s4.js:2930 \[CM:sw:metaPrompt\] built 12 prompts in 15ms  
+service-worker.ts-DnK5S\_s4.js:1482 \[CM:sw\] CAPTURE\_SESSION: claude claude-08b672776a  
+service-worker.ts-DnK5S\_s4.js:2744 \[ContextMover:capture\] Skipped in-flight duplicate for session claude-08b672776a  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on claude: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:634 \[CM:config\] Remote config refreshed, version 1.0.0  
+service-worker.ts-DnK5S\_s4.js:1373 \[CM:config\] Selector config refreshed after SCRAPER\_BROKEN (claude)  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on claude: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on claude: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:1351 \[ContextMover\] UI Update Detected! Scraper broken on claude: Zero messages found after retries.  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:1351  
+(anonymous) @ service-worker.ts-DnK5S\_s4.js:2709  
+service-worker.ts-DnK5S\_s4.js:634 \[CM:config\] Remote config refreshed, version 1.0.0  
+service-worker.ts-DnK5S\_s4.js:1373 \[CM:config\] Selector config refreshed after SCRAPER\_BROKEN (claude)  
+service-worker.ts-DnK5S\_s4.js:17 \[CM:offscreen\] document created

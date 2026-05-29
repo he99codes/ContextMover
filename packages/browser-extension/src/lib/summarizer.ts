@@ -16,7 +16,7 @@
 // are served for up to 24 hours after a code change.
 export const SUMMARIZER_VERSION = 3;
 
-import type { CodeBlock, ContextSession, ExtractedContext, Message } from "./types";
+import type { CodeBlock, ContextSession, ExtractedContext, Message, ScoredMessage } from "./types";
 import { attentionEngine } from "./attention-engine";
 import type { AttentionMap } from "./attention-engine";
 
@@ -749,6 +749,11 @@ export interface IntelligentSummary {
   originalCount: number;
   compressionRatio: number;
   techStack?: string[];
+  coverageStats?: {
+    messagesScored: number;
+    messagesUsed: number;
+    categoryCounts: Record<string, number>;
+  };
 }
 
 // ── Hierarchical importance scorer (0–10) ────────────────────────────────────
@@ -1171,4 +1176,127 @@ function stripLowScoreCode(content: string, highScoreCode: Set<string>): string 
     const inner = match.replace(/^```[\w-]*[ \t]*\n?/, "").replace(/\n?```$/, "").trim();
     return highScoreCode.has(inner) ? match : "";
   });
+}
+
+// [CM-T2-ENHANCE] Category thresholds, top-N, and minimum floors.
+const T2_SCORE_THRESHOLDS: Record<string, number> = {
+  goals: 0.25, decisions: 0.30, bugs: 0.32, context: 0.28, questions: 0.30,
+};
+const T2_TOP_N: Record<string, number> = {
+  goals: 6, decisions: 10, bugs: 12, context: 8, questions: 5,
+};
+const T2_MIN_FLOOR: Record<string, number> = {
+  goals: 2, decisions: 3, bugs: 3, context: 2, questions: 1,
+};
+
+function selectForCategory(scored: ScoredMessage[], cat: string): Message[] {
+  const th = T2_SCORE_THRESHOLDS[cat] ?? 0.30;
+  const topN = T2_TOP_N[cat] ?? 8;
+  const floor = T2_MIN_FLOOR[cat] ?? 2;
+  const filtered = scored.filter((m) => (m.scores as any)[cat] >= th);
+  if (filtered.length < floor) {
+    const by = [...scored].sort((a, b) => (b.scores as any)[cat] - (a.scores as any)[cat]);
+    return by.slice(0, floor).sort((a, b) => a.index - b.index).map(
+      (sm): Message => ({ role: sm.role, content: sm.content, timestamp: 0 }));
+  }
+  const w = filtered.map((m) => ({ m, w: (m.scores as any)[cat] * m.recencyBoost }));
+  w.sort((a, b) => b.w - a.w);
+  return w.slice(0, topN).sort((a, b) => a.m.index - b.m.index).map(
+    (x) => ({ role: x.m.role, content: x.m.content, timestamp: 0 }));
+}
+
+// Helper to run Tier 2's specific decision extraction loop on a subset
+function _extractDecisionsT2(msgs: Message[]): string[] {
+  const raw: string[] = [];
+  for (const msg of msgs) {
+    if (msg.role !== "assistant") continue;
+    const sentences = msg.content.split(/(?<=[.!?])\s+|\n+/).map(s => s.trim()).filter(s => s.length > 20);
+    for (const s of sentences) {
+      if (TIER2_DECISION_RE.some((re) => re.test(s)) && !META_FILTER_RE.test(s)) raw.push(s);
+    }
+  }
+  return dedupe(raw).map((d) => ({ d, score: scoreDecisionHierarchical(d) })).sort((a, b) => b.score - a.score).map((x) => x.d);
+}
+
+// Helper to run Tier 2's specific bug extraction loop on a subset
+function _extractBugsT2(msgs: Message[]): string[] {
+  const raw: string[] = [];
+  for (const msg of msgs) {
+    const sentences = msg.content.split(/(?<=[.!?])\s+|\n+/).map(s => s.trim()).filter(s => s.length > 20);
+    for (const s of sentences) {
+      if (TIER2_BUG_RE.some((re) => re.test(s))) raw.push(s);
+    }
+  }
+  return dedupe(raw).map((b) => ({ b, score: scoreBugHierarchical(b) })).sort((a, b) => b.score - a.score).map((x) => x.b);
+}
+
+/**
+ * [CM-T2-ENHANCE] Transformer-enhanced Tier 2 summary.
+ */
+export async function buildTier2WithScoring(
+  session: ContextSession,
+  scoredMessages: ScoredMessage[],
+  task?: string,
+  tokenBudget = 3800,
+): Promise<IntelligentSummary> {
+  const t0 = Date.now();
+  const hasScores = scoredMessages.some((m) => Object.values(m.scores).some((s) => s > 0));
+  if (!hasScores) return summarizeIntelligent(session.messages, task);
+
+  const base = summarizeIntelligent(session.messages, task);
+
+  const goalMsgs = selectForCategory(scoredMessages, "goals");
+  const goals: string[] = [];
+  for (const m of goalMsgs) {
+    const c = m.content.replace(/<context_migration>[\s\S]*?<\/context_migration>/g, "").trim();
+    if (c.length < 15) continue;
+    const s = c.split(/[.?!]\s+/)[0];
+    if (s && s.length >= 10 && s.length <= 600) goals.push(s.trim());
+  }
+  const enhancedGoal = goals.length > 0 ? goals.join(" | ") : base.goal;
+  const decMsgs = selectForCategory(scoredMessages, "decisions");
+  const enhancedDecisions = dedupe([..._extractDecisionsT2(decMsgs), ...base.decisions]).slice(0, 20);
+
+  const bugMsgs = selectForCategory(scoredMessages, "bugs");
+  const enhancedBugs = dedupe([..._extractBugsT2(bugMsgs), ...base.bugsFixed]).slice(0, 15);
+
+  const ctxMsgs = selectForCategory(scoredMessages, "context");
+  const ctx = ctxMsgs.map((m) => m.content.slice(0, 300)).join(" | ");
+  const qMsgs = selectForCategory(scoredMessages, "questions");
+  const q = qMsgs.map((m) => m.content.slice(0, 200)).join(" | ");
+
+  const goalFull = [
+    enhancedGoal,
+    ctx ? `[Context: ${ctx}]` : "",
+    q ? `[Open: ${q}]` : "",
+  ].filter(Boolean).join("\n");
+
+  let fDec = enhancedDecisions, fBugs = enhancedBugs, fPend = base.pending, fComp = base.completed;
+  const estTokens = estimateTokens(goalFull) + fDec.reduce((s, d) => s + estimateTokens(d), 0)
+    + fBugs.reduce((s, b) => s + estimateTokens(b), 0) + fComp.reduce((s, c) => s + estimateTokens(c), 0)
+    + fPend.reduce((s, p) => s + estimateTokens(p), 0)
+    + base.codeBlocks.reduce((s, cb) => s + estimateTokens(cb.code), 0)
+    + base.tail.reduce((s, t) => s + estimateTokens(t.content), 0);
+
+  if (estTokens > tokenBudget) {
+    let excess = estTokens - tokenBudget;
+    const trims = [{ a: fDec, f: 3 }, { a: fBugs, f: 3 }, { a: fPend, f: 1 }, { a: fComp, f: 2 }];
+    for (const t of trims) {
+      while (excess > 0 && t.a.length > t.f) {
+        excess -= estimateTokens(t.a.pop()!);
+      }
+    }
+  }
+
+  const cov = {
+    messagesScored: scoredMessages.length, messagesUsed: goals.length + fDec.length + fBugs.length,
+    categoryCounts: { goals: goals.length, decisions: fDec.length, bugs: fBugs.length, context: ctxMsgs.length, questions: qMsgs.length }
+  };
+  console.log("[CM:tier2] scored coverage:", cov);
+
+  return {
+    goal: goalFull, decisions: fDec, bugsFixed: fBugs, completed: fComp, pending: fPend,
+    codeBlocks: base.codeBlocks, techStack: base.techStack, tail: base.tail, currentState: base.currentState,
+    compressionRatio: base.compressionRatio, originalCount: session.messages.length,
+  };
 }

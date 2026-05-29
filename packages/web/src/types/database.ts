@@ -16,6 +16,68 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          razorpay_subscription_id: string;
+          razorpay_plan_id: string;
+          plan: 'monthly' | 'annual';
+          status: 'created' | 'authenticated' | 'active' | 'paused' | 'cancelled' | 'completed' | 'expired';
+          current_start: string | null;
+          current_end: string | null;
+          ended_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          razorpay_subscription_id: string;
+          razorpay_plan_id: string;
+          plan: 'monthly' | 'annual';
+          status?: 'created' | 'authenticated' | 'active' | 'paused' | 'cancelled' | 'completed' | 'expired';
+          current_start?: string | null;
+          current_end?: string | null;
+          ended_at?: string | null;
+        };
+        Update: {
+          user_id?: string;
+          razorpay_subscription_id?: string;
+          razorpay_plan_id?: string;
+          plan?: 'monthly' | 'annual';
+          status?: 'created' | 'authenticated' | 'active' | 'paused' | 'cancelled' | 'completed' | 'expired';
+          current_start?: string | null;
+          current_end?: string | null;
+          ended_at?: string | null;
+          updated_at?: string;
+        };
+      };
+      payment_events: {
+        Row: {
+          id: string;
+          razorpay_event_id: string;
+          event_type: string;
+          razorpay_subscription_id: string | null;
+          razorpay_payment_id: string | null;
+          payload: Json | null;
+          processed_at: string;
+        };
+        Insert: {
+          razorpay_event_id: string;
+          event_type: string;
+          razorpay_subscription_id?: string | null;
+          razorpay_payment_id?: string | null;
+          payload?: Json | null;
+        };
+        Update: {
+          razorpay_event_id?: string;
+          event_type?: string;
+          razorpay_subscription_id?: string | null;
+          razorpay_payment_id?: string | null;
+          payload?: Json | null;
+        };
+      };
+
       users: {
         Row: {
           id:              string;
@@ -27,6 +89,8 @@ export interface Database {
           subscription_id: string | null;
           payment_id:      string | null;
           created_at:      string;
+          razorpay_subscription_id?: string | null;
+          subscription_status?: string | null;
         };
         Insert: {
           id:              string;
@@ -38,6 +102,8 @@ export interface Database {
           subscription_id?: string | null;
           payment_id?:     string | null;
           created_at?:     string;
+          razorpay_subscription_id?: string | null;
+          subscription_status?: string | null;
         };
         Update: {
           id?:             string;
@@ -49,6 +115,8 @@ export interface Database {
           subscription_id?: string | null;
           payment_id?:     string | null;
           created_at?:     string;
+          razorpay_subscription_id?: string | null;
+          subscription_status?: string | null;
         };
       };
       payments: {

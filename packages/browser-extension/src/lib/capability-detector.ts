@@ -311,7 +311,14 @@ function selectTier(signals: {
   reasons.push(`bench=${signals.benchmarkOpsPerMs} ops/ms`);
   reasons.push(`webgpu=${signals.hasWebGpu}`);
   if (signals.deviceMemoryGb !== undefined) reasons.push(`ram=${signals.deviceMemoryGb}GB`);
-  return { tier: "balanced", reason: reasons.join(", ") };
+  // [CM-TIER-FIX] log reclassification to balanced for machines that would have been misclassified as minimal
+  const balancedResult = { tier: "balanced" as Tier, reason: reasons.join(", ") };
+  if (signals.cores >= 2 && signals.benchmarkOpsPerMs >= BENCH_WEAK &&
+      (signals.deviceMemoryGb === undefined || signals.deviceMemoryGb >= 4) &&
+      (signals.jsHeapLimitMb === undefined || signals.jsHeapLimitMb >= 1024)) {
+    console.log(`[CM:capability] Balanced tier selected (was misclassified as minimal before fix): cores=${signals.cores}, benchmark=${signals.benchmarkOpsPerMs} ops/ms, RAM=${signals.deviceMemoryGb}GB, heap=${signals.jsHeapLimitMb}MB`);
+  }
+  return balancedResult;
 }
 
 function downgradeOne(tier: Tier): Tier {
@@ -436,7 +443,9 @@ class CapabilityDetector {
     let reason = autoTier.reason;
     let overridden = false;
 
-    if (battery.onBattery === true && override !== "full") {
+    // [CM-TIER-FIX] battery rule: only downgrade full → balanced, never balanced → minimal
+    // User controls tier choice via UI, not battery state.
+    if (battery.onBattery === true && override !== "full" && tier === "full") {
       const downgraded = downgradeOne(tier);
       if (downgraded !== tier) {
         reason = `${reason}; on battery — downgraded ${tier}→${downgraded}`;
@@ -480,7 +489,9 @@ class CapabilityDetector {
     // Battery rule: if on battery and not manually forced to full, downgrade
     // one tier to preserve battery life.
     const override = await this.readOverride();
-    if (battery.onBattery === true && override !== "full") {
+    // [CM-TIER-FIX] battery rule: only downgrade full → balanced, never balanced → minimal
+    // User controls tier choice via UI, not battery state.
+    if (battery.onBattery === true && override !== "full" && tier === "full") {
       const downgraded = downgradeOne(tier);
       if (downgraded !== tier) {
         reason = `${reason}; on battery — downgraded ${tier}→${downgraded}`;

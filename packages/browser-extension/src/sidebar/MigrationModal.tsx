@@ -17,11 +17,13 @@ import { attentionEngine, getHardwareProfile } from "@/lib/attention-engine";
 import type { HardwareProfile } from "@/lib/attention-engine";
 import { capabilityDetector } from "@/lib/capability-detector";
 import { summarizeWithAttention } from "@/lib/summarizer";
-import { promptEngine } from "@/lib/prompt-engine/engine";
+// [CM-PROMPT-SNOOZE] coming soon — re-enable when prompt engine ships
+// import { promptEngine } from "@/lib/prompt-engine/engine";
 import { projectReader } from "@/lib/file-system/project-reader";
 import { fileContextBuilder } from "@/lib/file-system/context-builder";
 import type { ProjectFile, FileTreeNode } from "@/lib/file-system/project-reader";
-import type { PromptTemplate } from "@/lib/prompt-engine/types";
+// [CM-PROMPT-SNOOZE] coming soon — re-enable when prompt engine ships
+// import type { PromptTemplate } from "@/lib/prompt-engine/types";
 import type { ContextSession, Platform } from "@/lib/types";
 import type { QualityScore } from "@/lib/quality/migration-scorer";
 import { PROMPTS_URL } from "@/config/urls";
@@ -76,7 +78,12 @@ interface Props {
     tier: 1 | 2 | 3,
     compressionRatio: number,
     chars: number,
-    qualityScore?: QualityScore
+    qualityScore?: QualityScore,
+    coverageStats?: {
+      messagesScored: number
+      messagesUsed: number
+      categoryCounts: Record<string, number>
+    }
   ) => void;
   onLimitReached?: (info: {
     tier: number;
@@ -128,6 +135,7 @@ function MigrationSuccess({
   targetPlatform,
   injectTabId,
   isPro,
+  coverageStats,
   onClose
 }: {
   migrationFile: {
@@ -146,6 +154,11 @@ function MigrationSuccess({
   targetPlatform: string
   injectTabId?: number
   isPro?: boolean
+  coverageStats?: {
+    messagesScored: number
+    messagesUsed: number
+    categoryCounts: Record<string, number>
+  }
   onClose: () => void
 }) {
   // ── Download status ──────────────────────────────────────────────────────
@@ -296,6 +309,11 @@ function MigrationSuccess({
               ? `Open ${targetPlatform} and paste the downloaded file`
               : `Open ${targetPlatform} and paste instructions`}
           </div>
+          {migrationFile.tier === 2 && coverageStats && (
+            <div style={{ fontSize: '10px', color: 'var(--color-text-secondary, #888)', marginTop: '4px' }}>
+              Smart summary: {coverageStats.categoryCounts.goals || 0} goals · {coverageStats.categoryCounts.decisions || 0} decisions · {coverageStats.categoryCounts.bugs || 0} bugs · {coverageStats.messagesUsed}/{coverageStats.messagesScored} messages used
+            </div>
+          )}
         </div>
       </div>
 
@@ -563,6 +581,9 @@ export default function MigrationModal({
   const [qualityWarning, setQualityWarning] = useState<string | null>(null);
   const [migrationResult, setMigrationResult] = useState<any>(null);
   const [targetTabId, setTargetTabId] = useState<number | null>(null);
+  // [CM-TIER-FIX] low hardware pre-flight warning — user decides, not the extension
+  const [showHardwareWarning, setShowHardwareWarning] = useState(false);
+  const [warningAcknowledged, setWarningAcknowledged] = useState(false);
   const userHasManuallySelected = useRef(false);
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -570,10 +591,10 @@ export default function MigrationModal({
   // response callback (React state updates are async so the state value can
   // lag behind when the response handler fires).
   const qualityWarningRef = useRef<string | null>(null);
-  // Prompt Engine state
-  const [promptTemplateId, setPromptTemplateId] = useState<string | null>(null);
-  const [promptExpanded, setPromptExpanded] = useState(false);
-  const [allTemplates, setAllTemplates] = useState<{ system: PromptTemplate[]; user: PromptTemplate[] }>({ system: [], user: [] });
+  // [CM-PROMPT-SNOOZE] coming soon — re-enable when prompt engine ships
+  // const [promptTemplateId, setPromptTemplateId] = useState<string | null>(null);
+  // const [promptExpanded, setPromptExpanded] = useState(false);
+  // const [allTemplates, setAllTemplates] = useState<{ system: PromptTemplate[]; user: PromptTemplate[] }>({ system: [], user: [] });
   // Project files state
   const [projectFiles, setProjectFiles] = useState<ProjectFile[]>([]);
   const [projectContextIncluded, setProjectContextIncluded] = useState(true);
@@ -629,12 +650,13 @@ export default function MigrationModal({
     return () => chrome.runtime.onMessage.removeListener(handler);
   }, []);
 
+  // [CM-PROMPT-SNOOZE] coming soon — re-enable when prompt engine ships
   // ── Load prompt templates on mount ──────────────────────────────────────────
-  useEffect(() => {
-    promptEngine.getAllTemplates()
-      .then(setAllTemplates)
-      .catch((err) => console.warn("[MigrationModal] template load failed:", err));
-  }, []);
+  // useEffect(() => {
+  //   promptEngine.getAllTemplates()
+  //     .then(setAllTemplates)
+  //     .catch((err) => console.warn("[MigrationModal] template load failed:", err));
+  // }, []);
 
   // ── Snapshot project files when modal opens ─────────────────────────────────
   useEffect(() => {
@@ -718,6 +740,9 @@ export default function MigrationModal({
     try { localStorage.setItem(LAST_TIER_KEY, String(t)); } catch { /* ignore */ }
     setMigrateState({ status: "idle" });
     setPreview({ status: "idle" });
+    // [CM-TIER-FIX] reset warning on tier change so it can show again for new session
+    setWarningAcknowledged(false);
+    setShowHardwareWarning(false);
   }
 
   // ── Init attention engine when tier 3 is selected ──────────────────────────
@@ -785,6 +810,12 @@ export default function MigrationModal({
 
   // ── Migration handler ───────────────────────────────────────────────────────
   async function handleMigrate() {
+    // [CM-TIER-FIX] low hardware pre-flight warning — user decides, not the extension
+    if (tier === 3 && hw?.tier === 'minimal' && !warningAcknowledged) {
+      setShowHardwareWarning(true);
+      return; // do not start migration yet
+    }
+
     setMigrateState({ status: "migrating" });
     setMigrateProgress(0);
     setMigrateStage("");
@@ -828,11 +859,13 @@ export default function MigrationModal({
       );
     }
 
+    // [CM-PROMPT-SNOOZE] coming soon — re-enable when prompt engine ships
     // Resolve the active template object so the SW can attach it directly
     // (system templates live only in-memory and are never in IndexedDB)
-    const activeTemplate = promptTemplateId
-      ? ([...allTemplates.system, ...allTemplates.user].find((t) => t.id === promptTemplateId) ?? null)
-      : null;
+    // const activeTemplate = promptTemplateId
+    //   ? ([...allTemplates.system, ...allTemplates.user].find((t) => t.id === promptTemplateId) ?? null)
+    //   : null;
+    const activeTemplate = null;
 
     chrome.runtime.sendMessage(
       {
@@ -844,10 +877,11 @@ export default function MigrationModal({
           tier,
           caveman,
           skipAutoInject: true, // [CM-FIX-4] removed auto-inject — now user-triggered only
-          promptTemplateId: promptTemplateId ?? undefined,
-          promptTemplate: activeTemplate
-            ? { name: activeTemplate.name, content: activeTemplate.content, icon: activeTemplate.icon }
-            : undefined,
+          // [CM-PROMPT-SNOOZE] coming soon — re-enable when prompt engine ships
+          // promptTemplateId: promptTemplateId ?? undefined,
+          // promptTemplate: activeTemplate
+          //   ? { name: activeTemplate.name, content: activeTemplate.content, icon: activeTemplate.icon }
+          //   : undefined,
           projectContext,
           ...(tier === 3 && {
             useAttentionEngine: true,
@@ -870,6 +904,21 @@ export default function MigrationModal({
           onClose();
           return;
         }
+        // [CM-TIER-FIX] handle Tier 3 specific errors with user-friendly messages
+        if (response?.error === "tier3_timeout") {
+          setMigrateState({
+            status: "error",
+            message: response.message || "Attention engine timed out. Try again, or switch to Smart Summary or Full Context."
+          });
+          return;
+        }
+        if (response?.error === "tier3_no_chunks") {
+          setMigrateState({
+            status: "error",
+            message: response.message || "Attention engine returned no relevant chunks. Try again or switch to Smart Summary."
+          });
+          return;
+        }
         if (response?.error) {
           // [CM-FIX-2] removed user-facing error: raw response.error from SW
           console.error("[CM:migration] MIGRATE_CONTEXT failed:", response.error);
@@ -887,7 +936,7 @@ export default function MigrationModal({
             ? preview.compressionRatio
             : (response?.compressionRatio as number | undefined) ?? 0;
         setMigrateState({ status: "success", tier, chars, compressionRatio: ratio });
-        onSuccess?.(tier, ratio, chars, response?.qualityScore as QualityScore | undefined);
+        onSuccess?.(tier, ratio, chars, response?.qualityScore as QualityScore | undefined, response?.coverageStats);
       }
     );
   }
@@ -1189,98 +1238,23 @@ export default function MigrationModal({
           </div>
         )}
 
-        {/* ── Prompt Engine section ── */}
-        {(() => {
-          const selectedTemplate = promptTemplateId
-            ? ([...allTemplates.system, ...allTemplates.user].find((t) => t.id === promptTemplateId) ?? null)
-            : null;
-          return (
-            <div style={{ marginBottom: "6px" }}>
-              {/* Collapsed row */}
-              <button
-                onClick={() => setPromptExpanded((v) => !v)}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "4px 10px", height: "32px", borderRadius: "5px", cursor: "pointer",
-                  border: `1px solid ${selectedTemplate ? "rgba(0,255,136,0.35)" : "#222"}`,
-                  background: selectedTemplate ? "rgba(0,255,136,0.05)" : "#111",
-                  outline: "none", transition: "all 0.15s ease",
-                }}
-              >
-                <span style={{ fontSize: "9px", fontWeight: 900, color: selectedTemplate ? "#00FF88" : "#888", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                  ⚙ Prompt Engine
-                </span>
-                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                  <span style={{ fontSize: "9px", color: selectedTemplate ? "#00FF88" : "#555", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {selectedTemplate ? `${selectedTemplate.icon} ${selectedTemplate.name}` : "None"}
-                  </span>
-                  <span style={{ fontSize: "8px", color: "#444" }}>{promptExpanded ? "▲" : "▼"}</span>
-                </div>
-              </button>
-
-              {/* Expanded panel */}
-              {promptExpanded && (
-                <div style={{ marginTop: "4px", padding: "8px 10px", border: "1px solid #1A1A1A", borderRadius: "5px", background: "#0D0D0D" }}>
-                  <div style={{ fontSize: "9px", fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "5px" }}>Template</div>
-                  <select
-                    value={promptTemplateId ?? ""}
-                    onChange={(e) => {
-                      if (e.target.value === "__create") {
-                        chrome.tabs.create({ url: PROMPTS_URL });
-                        return;
-                      }
-                      setPromptTemplateId(e.target.value || null);
-                    }}
-                    style={{ width: "100%", padding: "4px 8px", background: "#111", border: "1px solid #2A2A2A", borderRadius: "4px", color: "#F5F5F5", fontSize: "10px", outline: "none", cursor: "pointer", fontFamily: "Inter, sans-serif" }}
-                  >
-                    <option value="">─── None ───</option>
-                    <optgroup label="─── System Templates ───">
-                      {allTemplates.system.map((t) => (
-                        <option key={t.id} value={t.id}>{t.icon} {t.name}</option>
-                      ))}
-                    </optgroup>
-                    {allTemplates.user.length > 0 && (
-                      <optgroup label="─── My Templates ───">
-                        {allTemplates.user.map((t) => (
-                          <option key={t.id} value={t.id}>{t.icon} {t.name}</option>
-                        ))}
-                      </optgroup>
-                    )}
-                    <option value="__create">+ Create template</option>
-                  </select>
-
-                  {/* Preview */}
-                  {selectedTemplate ? (
-                    <>
-                      <div style={{ marginTop: "5px", padding: "5px 8px", background: "#111", border: "1px solid #1A1A1A", borderRadius: "4px", fontSize: "9px", color: "#6B6B6B", fontStyle: "italic", lineHeight: 1.5 }}>
-                        {selectedTemplate.content.slice(0, 100)}&hellip;
-                      </div>
-                      {selectedTemplate.tags.length > 0 && (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "4px" }}>
-                          {selectedTemplate.tags.map((tag) => (
-                            <span key={tag} style={{ padding: "1px 5px", borderRadius: "3px", background: "#1A1A1A", border: "1px solid #2A2A2A", fontSize: "8px", color: "#555" }}>{tag}</span>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div style={{ marginTop: "5px", fontSize: "9px", color: "#444", fontStyle: "italic" }}>
-                      No prompt template — migrating context only
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => chrome.tabs.create({ url: PROMPTS_URL })}
-                    style={{ display: "block", marginTop: "6px", fontSize: "9px", color: "#00FF88", background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "none" }}
-                  >
-                    Manage templates →
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })()}
+        {/* ── [CM-PROMPT-SNOOZE] Prompt Engine section — coming soon ── */}
+        <div style={{ marginBottom: "6px" }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '3px 10px',
+            borderRadius: '20px',
+            fontSize: '11px',
+            fontWeight: 500,
+            background: 'var(--color-background-warning)',
+            color: 'var(--color-text-warning)',
+            opacity: 0.85,
+          }}>
+            Prompt Engine — Coming Soon
+          </div>
+        </div>
 
         {/* ── Caveman toggle — all tiers ── */}
         <div style={{ marginBottom: "6px" }}>
@@ -1482,6 +1456,38 @@ export default function MigrationModal({
           </div>
         )}
 
+        {/* ── [CM-TIER-FIX] low hardware pre-flight warning ── */}
+        {showHardwareWarning && (
+          <div style={{ marginBottom: "12px", padding: "12px 14px", background: "rgba(255,165,0,0.08)", border: "1px solid rgba(255,165,0,0.25)", borderRadius: "8px" }}>
+            <div style={{ fontSize: "11px", fontWeight: 900, color: "#FFA500", marginBottom: "8px", letterSpacing: "0.06em" }}>
+              ⚠️ Heads up
+            </div>
+            <div style={{ fontSize: "10px", color: "#C8C8C8", lineHeight: 1.5, marginBottom: "12px" }}>
+              Attention Migration is processing-heavy. On your current hardware this may take significantly longer than usual.
+            </div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                onClick={() => { setWarningAcknowledged(true); setShowHardwareWarning(false); setTier(1); }}
+                style={{ flex: 1, height: "28px", padding: "0 10px", background: "#111", border: "1px solid #333", borderRadius: "4px", color: "#888", cursor: "pointer", fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}
+              >
+                Switch to Tier 1
+              </button>
+              <button
+                onClick={() => { setWarningAcknowledged(true); setShowHardwareWarning(false); setTier(2); }}
+                style={{ flex: 1, height: "28px", padding: "0 10px", background: "#111", border: "1px solid #333", borderRadius: "4px", color: "#888", cursor: "pointer", fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}
+              >
+                Switch to Tier 2
+              </button>
+              <button
+                onClick={() => { setWarningAcknowledged(true); setShowHardwareWarning(false); handleMigrate(); }}
+                style={{ flex: 1, height: "28px", padding: "0 10px", background: "rgba(0,255,136,0.1)", border: "1px solid rgba(0,255,136,0.3)", borderRadius: "4px", color: "#00FF88", cursor: "pointer", fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}
+              >
+                Proceed anyway →
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── Migration result / success ── */}
         {migrationResult && (
           <MigrationSuccess
@@ -1494,6 +1500,7 @@ export default function MigrationModal({
             targetPlatform={targetPlatform}
             injectTabId={targetTabId ?? undefined}
             isPro={isPro}
+            coverageStats={migrationResult.coverageStats}
             onClose={() => { setMigrationResult(null); onClose() }}
           />
         )}

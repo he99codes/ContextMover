@@ -1,0 +1,2429 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<contextmover_migration tier="2" type="smart_summary">
+
+  <meta>
+    <source_platform>claude</source_platform>
+    <session_title><![CDATA[<context_migration> <instruction> I am continuing a conversation from c…]]></session_title>
+    <original_message_count>88</original_message_count>
+    <compression_ratio>46%</compression_ratio>
+    <exported_at>2026-05-28T18:37:34.681Z</exported_at>
+    <tier>Smart Summary — intelligently extracted</tier>
+    
+  </meta>
+
+  <instructions_for_ai>
+    This is an intelligently compressed context snapshot of a 88-message
+    conversation (46% compression).
+    You are resuming this session. Read every section before responding.
+    All decisions, bugs, and code below are from the original conversation.
+    Continue exactly where it left off. Do not re-explain what was established.
+    Honor every decision listed — do not revisit or second-guess them.
+    Your first response must be a direct continuation.
+  </instructions_for_ai>
+
+  <goal>
+    <primary><![CDATA[<context_migration>
+  <instruction>
+    I am continuing a conversation from claude.
+    The full context has been exported as: contextmover-full-claude-2026-05-]]></primary>
+    <current_state><![CDATA[```
+ATTACH:
+- packages/browser-extension/src/sidebar/ (ALL files — every component)
+- packages/browser-extension/src/sidebar/components/ (if separate)
+- packages/browser-extension/src/background/service-worker.ts
+- packages/browser-extension/src/background/semantic-index.ts
+
+READ ALL FILES FULLY bef]]></current_state>
+  </goal>
+
+  <key_decisions count="5">
+    <decision index="1"><![CDATA[This means the API route either:
+a) Doesn't exist at the URL being called, OR
+b) Is being called with wrong HTTP method (GET vs POST), OR
+c) The deployed web app doesn't have this route]]></decision>
+    <decision index="2"><![CDATA[instead of just dropping them all?]]></decision>
+    <decision index="3"><![CDATA[This means when Claude.ai changes their DOM at 2am —
+you update one JSON file via API call and ALL users
+get fixed selectors within 60 minutes.]]></decision>
+    <decision index="4"><![CDATA[This means migrations are missing all user questions — the target AI receives
+answers with no context of what was asked.]]></decision>
+    <decision index="5"><![CDATA[══════════════════════════════════════════════
+ARCHITECTURE CONTEXT — READ THIS FIRST
+══════════════════════════════════════════════]]></decision>
+  </key_decisions>
+
+  <bugs_fixed count="5">
+    <bug index="1"><![CDATA[checkUsage failed: Error: Usage API: HTTP 405, content-type: text/html]]></bug>
+    <bug index="2"><![CDATA[For each bug:
+- Show exact file + line where the bug is
+- Show the diff (not full rewrite)
+- For Bug 3 (indexing queue): show the new queue logic as a full]]></bug>
+    <bug index="3"><![CDATA[Error: Failed to resolve module specifier '@xenova/transformers']]></bug>
+    <bug index="4"><![CDATA[ReferenceError: document is not defined]]></bug>
+    <bug index="5"><![CDATA[Race condition: can CAPTURE_SESSION fire before the DOM is fully settled,]]></bug>
+  </bugs_fixed>
+
+  <completed_tasks count="8">
+    <task index="1"><![CDATA[Your job is to complete exactly what was started — nothing more, nothing less.]]></task>
+    <task index="2"><![CDATA[ok done 
+but i also want tot render this on the pricing 
+🔒 Zero-knowledge — your data never touches our servers · vault syncs only to your own Supabase]]></task>
+    <task index="3"><![CDATA[Summary
+Created
+PricingSection.tsx — self-contained, pure-UI component with:]]></task>
+    <task index="4"><![CDATA[globals.css:
+- Add: * { box-sizing: border-box; }
+- Add: img { max-width: 100%; height: auto; }
+- Ensure no fixed widths that break mobile]]></task>
+    <task index="5"><![CDATA[across all platforms or implemented differently per scraper?]]></task>
+    <task index="6"><![CDATA[producing a partial capture that overwrites a complete one?]]></task>
+    <task index="7"><![CDATA[or partially implemented?]]></task>
+    <task index="8"><![CDATA[PRE-LAUNCH BLOCKERS**
+List only the issues that MUST be resolved before public launch.]]></task>
+  </completed_tasks>
+
+  <pending_tasks count="2">
+    <task index="1"><![CDATA[Right now you need to do nothing.]]></task>
+    <task index="2"><![CDATA[check out this context i recently made these improvements 
+now improve the prompt because i have add new features and we need to inspectt all the features]]></task>
+  </pending_tasks>
+
+  <code_blocks count="12">
+
+    <code index="1" language="markdown">
+      <![CDATA[# CONTEXTMOVER — MASTER PROMPT LIBRARY
+Last updated: 2026-05-21
+Maintained by: Claude Sonnet 4.6
+
+---
+
+## HOW TO USE THIS FILE
+
+1. Pick a prompt from PENDING section
+2. Ask Claude: "Give me the Windsurf prompt for [PROMPT_ID]"
+3. Run it in Windsurf with the assigned model
+4. Move prompt to COMPLETED with date
+
+## MODEL ASSIGNMENT GUIDE
+
+| Task Type | Model | Thinking |
+|---|---|---|
+| Complex architecture, multi-file | Opus 4.6 | ON |
+| Logic bugs, audits | Sonnet 4.6 | ON |
+| Simple UI, text changes | Sonnet 4.6 | OFF |
+| Planning, docs, this file | Kimi K2 | — |
+| Security, critical fixes | Opus 4.6 | ON |
+
+---
+
+## PENDING PROMPTS
+
+---
+
+### [P001] CRITICAL — Fix @xenova/transformers broken on all platforms
+**Priority:** P0 — blocks semantic indexing entirely
+**Model:** Opus 4.6, Thinking ON
+**Files:** service-worker.ts, semantic-index.ts, offscreen.ts, offscreen.html, vite.config.ts
+**Problem:**
+- `Failed to resolve module specifier '@xenova/transformers'` on every session
+- `ReferenceError: document is not defined` in service worker
+- Semantic indexing (Tier 3) completely broken — falls back to Tier 1 always
+- 94% context compression on every migration
+**Fix needed:**
+- Bundle @xenova/transformers into offscreen chunk (not external specifier)
+- Remove all ML initialization from service worker context
+- Remove in-process fallback that calls document.* in SW
+- Replace with BM25 keyword fallback when offscreen fails
+- Verify WASM files copied to dist correctly
+**Status:** [ ] Pending
+
+---
+
+### [P002] HIGH — user=0 on Grok, Perplexity, DeepSeek
+**Priority:** P1 — migrations missing all user messages
+**Model:** Sonnet 4.6, Thinking ON
+**Files:** grok.ts, perplexity.ts, deepseek.ts
+**Problem:**
+- Grok: total=26, user=0, assistant=26
+- Perplexity: total=5, user=0, assistant=5
+- DeepSeek: total=2, user=0, assistant=2
+- User messages not captured → migrated context has answers with no questions
+**Fix needed:**
+- Fix user message selectors for all 3 platforms (3 fallback chain each)
+- Add MutationObserver retry if user=0 after first scrape
+- Add DOM inspection logging for future debugging
+**Status:** [ ] Pending
+
+---
+
+### [P003] HIGH — XML file migration broken on Gemini, Grok, Perplexity, DeepSeek
+**Priority:** P1 — core feature broken for 4 platforms
+**Model:** DeepSeek V3, Thinking ON
+**Files:** migrate-context.ts, gemini.ts, grok.ts, perplexity.ts, deepseek.ts, claude.ts (ref), chatgpt.ts (ref)
+**Problem:**
+- Single-click XML file injection fails on all 4 platforms
+- Download fallback may not be triggering correctly
+- Text migration (Tier 1/2) also broken on these platforms
+- No drag and drop (intentionally removed) — do not re-add
+**Architecture:**
+- Single click → attempt XML file injection via DataTransfer
+- On failure → auto-trigger XML download + show sidebar message
+- Text migration = separate path using summarized/attention output
+**Fix needed:**
+- Audit file injection vs working Claude/ChatGPT pattern
+- Fix per-platform: file input selector, DataTransfer injection, submit
+- Fix download fallback: auto-trigger + correct sidebar message
+- Fix text injection: correct selector + React-compatible method per platform
+**Status:** [ ] Pending
+
+---
+
+### [P004] HIGH — Migration injection timeout
+**Priority:** P1
+**Model:** Sonnet 4.6, Thinking ON
+**Files:** service-worker.ts, migrate-context.ts
+**Problem:**
+- `Tab injection attempt 1/3 failed: Injection timed out after 10s`
+- Target tab content script not ready when injection starts
+**Fix needed:**
+- Wait for tab.status === 'complete' before first attempt
+- Ping tab and wait for CM_DIAG script-loaded before injecting
+- Exponential backoff: 2s → 4s → 8s
+- On all 3 failures: show user "Tab not ready — please try again"
+**Status:** [ ] Pending
+
+---
+
+### [P005] MEDIUM — Claude always using fallback A selector
+**Priority:** P2
+**Model:** Sonnet 4.6, Thinking OFF
+**Files:** claude.ts
+**Problem:**
+- Primary Claude selector never matches — always fallback A (.font-claude-response)
+- One DOM update from total capture failure
+**Fix needed:**
+- Fix primary selector to [data-testid="assistant-message"]
+- Add third fallback: div[class*="prose"] inside message container
+- Add logging: "primary selector matched: X elements"
+**Status:** [ ] Pending
+
+---
+
+### [P006] MEDIUM — Summarization: hardcoded vs transformer audit
+**Priority:** P2
+**Model:** Opus 4.6, Thinking ON
+**Files:** summarizer.ts, attention-engine.ts, usage-client.ts, semantic-index.ts
+**Problem:**
+- Unknown whether summarization uses transformer embeddings or hardcoded patterns
+- Tier 1 hard limit: head=3/tail=6 (should be head=5/tail=10)
+- Middle messages dropped entirely — quality loss on long sessions
+- Need comparison: hardcoded regex extraction vs transformer-based scoring
+**Fix needed:**
+- Audit: is attention engine actually using embeddings from indexing?
+- Or is it using hardcoded signal patterns only (error/decision/code keywords)?
+- Compare output quality: run both on same session, measure what gets kept
+- If transformer not wired into attention: wire it in
+- Fix head/tail limits: head=5, tail=10
+- Use embedding similarity scores to select top middle messages (not just drop all)
+- Add logging: [CM:summarizer] method=transformer/hardcoded, kept=X/Y messages
+**Status:** [ ] Pending
+
+---
+
+### [P007] HIGH — Razorpay: remove all plans, keep only 3 clean plans
+**Priority:** P1 — billing must be clean before launch
+**Model:** Sonnet 4.6, Thinking ON
+**Files:** 
+- packages/web/src/lib/payments/ (all files)
+- packages/web/src/app/api/payments/ (all routes)
+- packages/web/src/app/(dashboard)/pricing/ (pricing page)
+- packages/browser-extension/src/sidebar/ (upgrade UI)
+- Any file referencing plan names, plan IDs, or Razorpay plan constants
+**Problem:**
+- Multiple old plans exist in codebase
+- Need to clean to exactly 3 plans only
+**New plan structure (ONLY these 3):**
+
+| Plan | Type | Price | Billing |
+|---|---|---|---|
+| Free | Free forever | ₹0 | — |
+| Pro Monthly | Auto-pay subscription | ₹299/month | Monthly recurring |
+| Pro Annual | Auto-pay subscription | ₹2399/year | Annual recurring |
+
+**Fix needed:**
+- Remove ALL other plan references from entire codebase
+- Create/update Razorpay plan IDs for Pro Monthly (₹299) and Pro Annual (₹2399)
+- Both paid plans must be AUTO-PAY subscriptions (not one-time payments)
+- Update pricing page to show exactly these 3 plans
+- Update subscription check logic to recognize new plan IDs only
+- Update sidebar upgrade prompts to reference correct plans
+- Update webhook handler to handle subscription events for these 2 plans
+- Add constants file: PLANS.ts with plan IDs, prices, names — single source of truth
+- Remove any hardcoded old prices (₹499, ₹999, any other amounts)
+**Razorpay access:** Full access confirmed — can create/modify plans directly
+**Status:** [ ] Pending
+
+---
+
+### [P008] LOW — Remote config: selectors.json setup
+**Priority:** P3
+**Model:** Sonnet 4.6, Thinking OFF
+**Files:** remote-config.ts, packages/web/public/config/selectors.json
+**Problem:**
+- Remote config architecture was designed but may not be fully wired
+- Need to verify content scripts actually read from remoteConfig first
+**Fix needed:**
+- Verify all content scripts use getSelectors() not hardcoded strings
+- Verify selectors.json is served correctly at /config/selectors.json
+- Verify 1-hour cache refresh works
+- Verify hot reload on CONFIG_UPDATED fires correctly
+**Status:** [ ] Pending
+
+---
+
+### [P009] LOW — Migration quality warning UI
+**Priority:** P3
+**Model:** Sonnet 4.6, Thinking OFF
+**Files:** sidebar migration component
+**Problem:**
+- When falling back to Tier 1 (Tier 3 broken), user gets 94% compressed 
+  context with no warning
+**Fix needed:**
+- Show badge in sidebar: "Context: Compressed (Tier 1)" when Tier 3 unavailable
+- Show badge: "Full Context (Tier 3)" when semantic indexing works
+**Status:** [ ] Pending
+
+---
+
+## COMPLETED PROMPTS
+
+---
+
+### [DONE-001] Copyright headers on all 181 files
+**Completed:** 2026-05-18
+**Model:** Sonnet 4.6
+**Result:** 181 files updated with © 2026 ContextMover header
+
+### [DONE-002] Build obfuscation (vite.config.ts)
+**Completed:** 2026-05-18
+**Model:** Sonnet 4.6
+**Result:** controlFlowFlattening, stringArray, base64 encoding — prod only
+
+### [DONE-003] Server-side IP protection
+**Completed:** 2026-05-18
+**Model:** Sonnet 4.6
+**Result:** /api/attention/score, /api/summarize, /api/migrate/build created
+
+### [DONE-004] Shadow DOM closed on sidebar
+**Completed:** 2026-05-18
+**Result:** attachShadow({ mode: 'closed' })
+
+### [DONE-005] Remove .env files from git + history purge
+**Completed:** 2026-05-21
+**Result:** filter-repo run, dist.pem/crx/zip untracked, .gitignore hardened
+
+### [DONE-006] Claude selector chain (fallback A working)
+**Completed:** 2026-05-18
+**Result:** 3-selector chain, pendingCaptureAfterStream retry
+
+### [DONE-007] Indexing queue (serial, no freeze)
+**Completed:** 2026-05-18
+**Result:** _indexQueue gate, 2s delay on minimal tier
+
+### [DONE-008] Drive OAuth — remove getAuthToken, use launchWebAuthFlow
+**Completed:** 2026-05-18
+**Result:** chrome.identity.getAuthToken fully removed
+
+### [DONE-009] Summarization head/tail fix
+**Completed:** 2026-05-18
+**Result:** head=5, tail=10 (was 3/6), signal-scored middle messages
+
+### [DONE-010] Support page
+**Completed:** 2026-05-18
+**Result:** /support page created, FAQ + contact + policy links
+
+---
+
+## WEEKLY EXECUTION PLAN
+
+### When Opus 4.6 quota available (best quality):
+Run in order: P001 → P006 → P007
+
+### When only Sonnet 4.6 available:
+Run in order: P002 → P004 → P005 → P007 → P008 → P009
+
+### When only DeepSeek V3 available:
+Run: P003
+
+### When only Kimi K2 available:
+- Update this file with new prompts
+- Ask Claude to generate prompt text for any new issue
+- Plan next sprint
+
+---
+
+## NOTES
+
+- Repo: github.com/he99codes/Context_flow (PRIVATE — confirmed)
+- Support: hey@contextmover.com
+- Production URL: https://contextmover.com
+- Razorpay: full access confirmed 2026-05-21
+- Chrome Store: not yet submitted (pending P001, P002, P003 fixes)
+- Do NOT submit to Chrome Store until P001 and P002 are resolved]]>
+    </code>
+    <code index="2" language="plaintext">
+      <![CDATA[You are continuing an incomplete implementation. A previous session was stopped mid-way. 
+Your job is to complete exactly what was started — nothing more, nothing less.
+Be strict, precise, minimal. No explanations unless asked.
+
+═══════════════════════════════════════════
+CONTEXT: ContextMover Chrome Extension + Next.js Web App
+═══════════════════════════════════════════
+
+READ ALL ATTACHED FILES BEFORE DOING ANYTHING.
+Do not assume. Do not hallucinate file paths or function names.
+If you are unsure about something — say so, do not guess.
+
+═══════════════════════════════════════════
+TASK 1 — SEMANTIC SEARCH FIX (Extension)
+═══════════════════════════════════════════
+
+ATTACH: 
+- packages/browser-extension/src/background/semantic-index.ts
+- packages/browser-extension/src/offscreen/offscreen.ts
+- packages/browser-extension/src/offscreen/offscreen.html
+- packages/browser-extension/vite.config.ts
+
+PROBLEM:
+Semantic search is not working in the extension sidebar.
+Root cause is @xenova/transformers failing to resolve as a module specifier
+in the offscreen document context.
+
+DO:
+1. Read the existing offscreen setup and identify exactly where it breaks
+2. Fix the vite bundle so @xenova/transformers is bundled INTO the offscreen 
+   chunk — not treated as an external module
+3. Ensure the offscreen document is the ONLY place ML runs
+4. Remove any document.* calls from service worker context
+5. If offscreen fails: fall back to BM25 keyword search silently
+6. Do not change anything outside these 4 files
+
+OUTPUT: Diffs only. Build must pass.
+
+═══════════════════════════════════════════
+TASK 2 — SESSION RENAME + DRIVE SYNC
+═══════════════════════════════════════════
+
+ATTACH:
+- packages/browser-extension/src/background/service-worker.ts
+- packages/browser-extension/src/background/drive-client.ts (if exists)
+- packages/browser-extension/src/sidebar/ (session list component)
+- packages/web/src/app/api/drive/ (if exists)
+
+PROBLEM:
+Sessions show random/hash names in the sessions list.
+Users with 4-5 Claude sessions cannot distinguish them.
+Need: editable session names that sync across all locations via Google Drive.
+
+DO:
+1. Add rename capability to session object:
+   - Add `customName?: string` field to session schema
+   - If customName exists: show it in session list
+   - If not: show auto-generated name (first user message, truncated to 40 chars)
+     NOT the random hash ID
+
+2. Inline rename in sidebar session list:
+   - Single click on session name → editable input
+   - On blur or Enter → save
+   - Escape → cancel
+
+3. Sync rename to Google Drive:
+   - When user renames → update IDB locally immediately
+   - Then push updated session metadata to Drive (appdata scope)
+   - Drive entry must include: sessionId, customName, updatedAt
+
+4. Sync rename FROM Drive:
+   - On sidebar open → pull latest session metadata from Drive
+   - Apply customName from Drive to local IDB if Drive version is newer
+   - This ensures name is visible on all devices/browsers
+
+5. If Drive not connected: rename works locally only, no sync
+
+OUTPUT: Diffs only. New fields must be backward compatible.
+Do not break existing session storage or capture logic.
+
+═══════════════════════════════════════════
+TASK 3 — INTERNATIONAL PAYMENTS (Currency)
+═══════════════════════════════════════════
+
+ATTACH:
+- packages/web/src/lib/payments/ (all files)
+- packages/web/src/app/api/payments/ (all routes)
+- packages/web/src/app/(dashboard)/pricing/ (pricing page)
+
+CONTEXT:
+- Base prices are FIXED: Free / ₹299 monthly / ₹2399 annually
+- International transactions are activated on Razorpay account
+- Users must be able to pay in their own currency
+- Razorpay handles currency conversion automatically when international is enabled
+
+DO:
+1. Verify the Razorpay order/subscription creation passes correct currency handling:
+   - For Indian users: INR, ₹299 / ₹2399
+   - For international users: let Razorpay convert automatically
+   - Check if currency field in order creation needs to be dynamic or 
+     if Razorpay handles it from account settings — read their API response
+
+2. On pricing page:
+   - Show base price in INR (₹299/₹2399) as the listed price
+   - Add small note: "Billed in your local currency at checkout"
+   - Do NOT try to do manual currency conversion in code — Razorpay does this
+
+3. Check Razorpay checkout config:
+   - Ensure `currency` is not hardcoded to "INR" if that blocks international cards
+   - If international is enabled on account, Razorpay accepts all major cards
+   - Verify the checkout modal does not reject non-Indian cards
+
+4. Check webhook handler:
+   - Subscription webhooks may come with different currency amounts for 
+     international users — ensure subscription status check does not 
+     break on non-INR amounts
+
+OUTPUT: Diffs only. Do not change plan prices. Do not add manual FX conversion.
+
+═══════════════════════════════════════════
+STRICT RULES FOR THIS SESSION
+═══════════════════════════════════════════
+
+- Diffs only — no full file rewrites unless a file is new
+- Cite exact file path + line number for every change
+- Do not add new npm dependencies without asking first
+- Do not touch files not listed above
+- Do not refactor working code
+- If something is already correctly implemented — say "already correct, no change needed"
+- Build must pass after all changes
+- Do Task 1, 2, 3 in order — complete each before starting next
+- If you stopped mid-task previously: state where you stopped and continue from there
+
+OUTPUT FORMAT:
+Task 1: [diffs]
+Task 2: [diffs]  
+Task 3: [diffs]
+Final: list every file changed + what changed in one line each]]>
+    </code>
+    <code index="3" language="plaintext">
+      <![CDATA[Remove the pricing section from the home page entirely.
+
+FILE TO ATTACH:
+- packages/web/src/app/page.tsx (or wherever the home page is)
+- packages/web/src/components/ (scan for any pricing component imported on home page)
+
+DO:
+1. Find where the pricing section is rendered on the home page
+2. Remove the import and the component render — nothing else
+3. Do not touch the actual pricing page at /pricing
+4. Do not touch any other section on the home page (hero, features, platforms, etc.)
+
+OUTPUT: Diff only. 2-3 lines max.]]>
+    </code>
+    <code index="4" language="plaintext">
+      <![CDATA[ATTACH: packages/web/src/app/pricing/page.tsx (or PricingSection.tsx)
+
+TASK:
+Find the bottom of the pricing section, after the last card and before the closing wrapper div.
+Add this exact block:
+
+<div className="text-center mt-12 space-y-2">
+  <p className="text-zinc-500 text-xs">
+    🔒 Zero-knowledge — your data never touches our servers · vault syncs only to your own Supabase
+  </p>
+  <p className="text-zinc-500 text-xs">
+    ❤️ Built by an indie developer. Every subscription directly supports the person writing the code, not a corporation.
+  </p>
+</div>
+
+RULES:
+- Diff only
+- Touch nothing else
+- Build must pass]]>
+    </code>
+    <code index="5" language="plaintext">
+      <![CDATA[You are a senior Next.js + Tailwind engineer working on ContextMover.
+
+ATTACH THESE FILES:
+- packages/web/src/app/(dashboard)/pricing/page.tsx
+- packages/web/src/components/pricing/PricingSection.tsx
+
+CONTEXT:
+- PricingSection.tsx already exists and renders correctly
+- page.tsx already imports and uses PricingSection
+- The bottom trust text currently exists but needs to be verified/updated
+- DO NOT recreate PricingSection.tsx — it already exists and works
+- DO NOT touch any payment logic (handleUpgrade, openRazorpayCheckout, 
+  openRazorpayOrderCheckout, activateMockPro)
+- DO NOT change any prices, plans, or card content
+
+TASK:
+Find the bottom of PricingSection.tsx — after the 3 cards, before closing </section>.
+Ensure EXACTLY this block exists there (add if missing, update if different):
+
+<div className="text-center mt-12 space-y-2 px-4">
+  <p className="text-zinc-500 text-xs">
+    🔒 Zero-knowledge — your data never touches our servers · vault syncs only to your own Supabase
+  </p>
+  <p className="text-zinc-500 text-xs">
+    ❤️ Built by an indie developer. Every subscription directly supports the person writing the code, not a corporation.
+  </p>
+</div>
+
+VERIFY:
+- Run tsc --noEmit after change
+- Confirm exit 0 before finishing
+
+OUTPUT:
+- Diff only for PricingSection.tsx
+- One line confirmation: "tsc exit 0 ✅"
+- Nothing else
+
+RULES:
+- Do not rewrite the file
+- Do not recreate any component
+- Do not touch page.tsx unless the import is broken
+- Do not change any payment logic
+- Do not add new dependencies
+- Smallest possible change]]>
+    </code>
+    <code index="6" language="plaintext">
+      <![CDATA[ATTACH: packages/web/src/components/pricing/PricingSection.tsx
+
+CONTEXT:
+- Screenshot shows bottom text is truncated to one line
+- Currently shows: "🔒 Zero-knowledge architecture · Your conversations never touch our servers"
+- Missing the second line about indie developer
+
+TASK:
+Find the bottom trust text block in PricingSection.tsx.
+Replace whatever is there with EXACTLY this:
+
+<div className="text-center mt-10 space-y-2 px-4 pb-4">
+  <p className="text-zinc-500 text-xs">
+    🔒 Zero-knowledge — your data never touches our servers · vault syncs only to your own Supabase
+  </p>
+  <p className="text-zinc-500 text-xs">
+    ❤️ Built by an indie developer. Every subscription directly supports the person writing the code, not a corporation.
+  </p>
+</div>
+
+VERIFY: tsc --noEmit exits 0
+
+OUTPUT: Diff only + "tsc exit 0 ✅"
+RULES: Touch nothing else.]]>
+    </code>
+    <code index="7" language="plaintext">
+      <![CDATA[ATTACH:
+- packages/web/src/app/build-with-me/page.tsx
+- packages/web/src/config/urls.ts
+- packages/web/next.config.ts (or next.config.mjs)
+- packages/web/package.json
+
+CONTEXT:
+- Path confirmed correct: src/app/build-with-me/page.tsx exists
+- URL contextmover.com/build-with-me renders completely blank
+- Navbar visible, content area is empty black
+- Routing is NOT the issue — file is in the right place
+- A crashed import is silently killing the page render
+
+TASK:
+1. Open urls.ts — verify CHROME_STORE_URL is exported
+   If missing: add export const CHROME_STORE_URL = "#"
+
+2. Open package.json — verify lucide-react is listed in dependencies
+   If missing: add it
+
+3. Open next.config — check for any redirect or rewrite blocking /build-with-me
+   If found: remove it
+
+4. Run: cd packages/web && npx tsc --noEmit
+   Fix every error shown
+
+OUTPUT:
+- One line: what was broken
+- Diff only
+- "tsc exit 0 ✅"
+
+RULES:
+- Do not touch component content or styles
+- Do not rewrite page.tsx
+- Fix imports and config only
+- Build must pass]]>
+    </code>
+    <code index="8" language="plaintext">
+      <![CDATA[ATTACH:
+- packages/web/src/app/globals.css
+- packages/web/src/app/layout.tsx
+- packages/web/tailwind.config.ts
+
+CONTEXT:
+- Screenshot 1 shows home page hero section with a subtle dark web/dot-grid 
+  background pattern — looks like a faint grid or mesh overlay on #020202/#0A0A0A
+- Screenshot 2 shows FAQ section with plain flat black — no pattern
+- Need: same subtle web/grid background pattern applied globally to ALL 
+  black background sections across the entire web app
+
+TASK:
+1. Identify the existing web/grid pattern on the home page:
+   - Check globals.css for any background-image, SVG pattern, or grid CSS
+   - Check if it's a radial-gradient, dot pattern, or CSS grid lines
+   - Find exactly what creates it
+
+2. Apply it globally via globals.css on the body or root element:
+   - Add the pattern as a CSS background on body or :root
+   - It must show on ALL pages: home, pricing, build-with-me, dashboard, auth
+   - Pattern must be subtle — dark, barely visible, not distracting
+   - Must work on top of existing bg-[#020202], bg-[#0A0A0A], bg-[#050505] 
+     backgrounds without clashing
+
+3. The pattern should be:
+   - A faint grid or dot mesh — matching what's already on the hero
+   - Color: rgba(255,255,255,0.03) or similar — barely visible
+   - Repeating background-image pattern
+   - Does NOT override any existing gradients or colored backgrounds
+
+VERIFY: tsc --noEmit exits 0
+
+OUTPUT:
+- What the existing pattern is (1 line)
+- Diff for globals.css only
+- "tsc exit 0 ✅"
+
+RULES:
+- globals.css change only — do not touch individual page files
+- Do not change any colors, layouts, or components
+- Pattern must be subtle — not visible on light backgrounds
+- Build must pass]]>
+    </code>
+    <code index="9" language="plaintext">
+      <![CDATA[--- a/packages/web/src/app/globals.css]]>
+    </code>
+    <code index="10" language="plaintext">
+      <![CDATA[ATTACH:
+- packages/web/src/components/landing/LandingPage.tsx
+- packages/web/src/app/(dashboard)/pricing/page.tsx
+- packages/web/src/components/pricing/PricingSection.tsx
+- packages/web/src/app/build-with-me/page.tsx
+- packages/web/src/app/globals.css
+
+CONTEXT:
+- Tech stack: Next.js + Tailwind CSS
+- Currently desktop-only design — breaks on mobile/tablet
+- No new dependencies allowed
+- Tailwind breakpoints: sm=640px, md=768px, lg=1024px, xl=1280px
+
+TASK:
+Make every attached file fully responsive using Tailwind responsive prefixes.
+Mobile first: base classes = mobile, then sm: md: lg: for larger screens.
+
+FILE BY FILE RULES:
+
+LandingPage.tsx:
+- Navbar: hamburger menu on mobile (already exists — verify it works)
+- Hero heading: text-4xl mobile → text-6xl lg
+- Hero buttons: stack vertically on mobile, side by side on md+
+- Feature cards: grid-cols-1 mobile → grid-cols-2 md → grid-cols-3 lg
+- LLM flow diagram: hide complex animation on mobile, show simplified 
+  stacked version (Claude → CM → Claude) vertically
+- All section padding: px-4 mobile → px-8 md → px-16 lg
+- Any horizontal scroll: fix with overflow-x-hidden
+
+PricingSection.tsx:
+- Toggle: stays centered, full width on mobile
+- 3 cards: flex-col mobile → flex-row md
+- Featured card (scale-105): remove scale on mobile to prevent overflow
+- Card padding: p-5 mobile → p-8 md
+- Prices: keep large but ensure they don't overflow
+
+build-with-me/page.tsx:
+- Already has some responsive classes — audit and fill gaps
+- Contact form: full width on all screens ✅
+- 3 FOR_CARDS: grid-cols-1 mobile → grid-cols-3 md ✅ verify
+- Skills grid: grid-cols-1 mobile → grid-cols-2 sm ✅ verify
+- Section padding: verify py-16 mobile → py-32 md
+
+globals.css:
+- Add: * { box-sizing: border-box; }
+- Add: img { max-width: 100%; height: auto; }
+- Ensure no fixed widths that break mobile
+
+WHAT NOT TO TOUCH:
+- Do not change any text content or copy
+- Do not change colors or visual design
+- Do not add new npm packages
+- Do not change any payment or auth logic
+- Do not touch service worker or extension files
+
+VERIFY:
+- tsc --noEmit exits 0
+- No horizontal scroll on 375px width (iPhone SE)
+- No horizontal scroll on 768px width (iPad)
+
+OUTPUT:
+- Diff per file
+- One line per file: what was changed
+- "tsc exit 0 ✅"
+
+RULES:
+- Tailwind only — no custom CSS for layout
+- Mobile first approach
+- Smallest possible changes — don't rewrite working sections
+- Build must pass]]>
+    </code>
+    <code index="11" language="plaintext">
+      <![CDATA[**System Role:** You are a Principal Engineer and Chief Systems Architect 
+with deep expertise in Chrome MV3 extensions, Angular DOM reverse engineering, 
+distributed state management, and production SaaS architecture.
+
+**Product Context:**
+ContextMover is a Chrome MV3 extension + Next.js web app (monorepo).
+
+Core capabilities:
+- Captures AI conversations from Claude, ChatGPT, Gemini, Grok, 
+  Perplexity, DeepSeek via DOM scraping + fetch interception
+- 3-tier intelligence compression:
+  Tier 1: Full Context (head+tail, hard limit)
+  Tier 2: Smart Summary (structured extraction — goals, decisions, bugs)
+  Tier 3: Attention Engine (semantic search via @xenova/transformers 
+  in offscreen document — currently broken)
+- Migrates context via XML file injection OR text injection into target LLM
+- Session rename with Google Drive sync (appdata scope)
+- Remote config: selectors.json served at /extension-config/selectors.json
+  for hot-patching DOM selectors without Chrome Store update
+- Semantic indexing: @xenova/transformers in offscreen document (WASM)
+- Local storage: IndexedDB via Dexie
+- Optional cloud sync: Google Drive appdata
+- Monetization: Razorpay subscriptions (Free / ₹299 monthly / ₹2399 annual)
+- Hosted: Vercel + Supabase, pre-launch
+
+Recent architectural changes (audit must cover these):
+- Gemini scraper: migrated from class-based selectors to Angular custom 
+  element selectors (user-query, model-response, ms-chat-turn)
+- Gemini injection: migrated from file input to Quill editor API injection
+  (rich-textarea → .ql-editor → __quill instance → execCommand fallback)
+- Fetch interceptor: added fetch_intercept captureMethod for Gemini
+- Remote config: selectors.json now drives all platform selectors with 
+  1-hour cache refresh and hot reload via CONFIG_UPDATED broadcast
+- Session rename: customName field added to session schema, 
+  synced via Google Drive appdata
+- Server-side IP: /api/attention/score, /api/summarize, /api/migrate/build
+  moved to Next.js API routes (Supabase JWT auth + 60 req/hour rate limit)
+- Migration fallback: XML file injection → auto-download fallback
+- Pricing: 3-plan Razorpay subscription system with international payments
+
+**ATTACH THESE FILES:**
+- packages/browser-extension/src/background/service-worker.ts
+- packages/browser-extension/src/background/semantic-index.ts
+- packages/browser-extension/src/background/attention-engine.ts
+- packages/browser-extension/src/background/usage-client.ts
+- packages/browser-extension/src/background/drive-client.ts
+- packages/browser-extension/src/background/remote-config.ts
+- packages/browser-extension/src/content/claude.ts
+- packages/browser-extension/src/content/chatgpt.ts
+- packages/browser-extension/src/content/gemini.ts
+- packages/browser-extension/src/content/grok.ts
+- packages/browser-extension/src/content/perplexity.ts
+- packages/browser-extension/src/content/deepseek.ts
+- packages/browser-extension/src/content/shared.ts
+- packages/browser-extension/src/offscreen/offscreen.ts
+- packages/browser-extension/public/extension-config/selectors.json
+- packages/browser-extension/manifest.json
+- packages/web/src/lib/payments/ (all files)
+- packages/web/src/app/api/ (all route files)
+- packages/web/src/lib/supabase/ (all files)
+- packages/web/public/extension-config/selectors.json
+
+---
+
+**OBJECTIVE:**
+Holistic architectural audit — not a bug hunt, not a code review.
+Focus on systemic design, structural integrity, failure modes, 
+and long-term maintainability at 10,000+ users and 2-year horizon.
+Be direct. Do not soften critical findings.
+
+---
+
+**AUDIT AREA 1 — Context Lifecycle & Data Integrity**
+
+Trace the full journey of a context unit:
+  Scrape → Capture → Compress → Index → Store → Retrieve → Migrate
+
+For each transition:
+- Is data validated before passing to the next stage?
+- Can data be silently corrupted, truncated, or lost?
+- What happens if this stage fails mid-execution?
+- Is failure detectable by the user or silently swallowed?
+
+Specific focus:
+- Message count drift: scraped=11 → 9 → 13 on same session —
+  is the scraper non-deterministic? Can a partial capture 
+  overwrite a complete one?
+- Fetch interceptor vs DOM scraper: Gemini now uses fetch_intercept.
+  Can both fire simultaneously on the same session? 
+  Is there a deduplication gate?
+- Compression fidelity: Tier 1 drops middle messages entirely —
+  does the system signal this loss to the user?
+- XML schema: is it versioned? What breaks on schema change?
+- Session rename sync: if customName is updated locally and Drive 
+  is unavailable, is the rename queued or silently lost?
+
+---
+
+**AUDIT AREA 2 — IPC Architecture & Message Bus**
+
+Evaluate the full communication layer:
+  Content Scripts ↔ Service Worker ↔ Offscreen Document 
+  ↔ Sidebar UI ↔ Remote Config ↔ Web App
+
+Answer:
+- Is there a single typed message schema or ad-hoc string matching?
+- What happens when a message fires to a dead listener?
+- Can CAPTURE_SESSION, BACKGROUND_INDEX, MIGRATE_CONTEXT, and 
+  CONFIG_UPDATED fire concurrently on the same session?
+- Does the remote config hot reload (CONFIG_UPDATED broadcast) 
+  reach all active content scripts reliably?
+- Is the offscreen document lifecycle correctly managed?
+  (create → use → release — does it leak between sessions?)
+- How many distinct message types exist total?
+  Is the message bus approaching unmanageable complexity?
+
+---
+
+**AUDIT AREA 3 — Capture Pipeline Resilience**
+
+Evaluate fault tolerance across all 6 platform scrapers + 
+the fetch interceptor:
+
+DOM Decay Risk:
+- Remote config selectors.json: is it actually the primary source 
+  for all scrapers or do hardcoded fallbacks dominate?
+- If selectors.json serves stale selectors, how long until 
+  capture silently breaks? Is there a health-check mechanism?
+- Gemini specifically: fetch_intercept vs DOM scrape — 
+  which wins? Is there a priority/fallback chain defined?
+
+Platform failure modes:
+- Virtual scroll: do any platforms lazy-load messages the scraper misses?
+- Streaming guard: is "bail: assistant streaming" consistent 
+  across all 6 platforms or inconsistently implemented?
+- Gemini Quill injection: 3-layer fallback 
+  (__quill API → execCommand → textContent). 
+  If all 3 fail, what does the user see?
+- Angular custom elements (Gemini): are the ms-chat-turn and 
+  user-query selectors stable or likely to change on next update?
+
+Single points of failure:
+- Service worker killed mid-migration: what state is left?
+- chrome.storage.local full: what happens to new captures?
+- Offscreen document crash: auto-recreated or silent failure?
+
+---
+
+**AUDIT AREA 4 — Remote Config Architecture**
+
+New subsystem — needs dedicated audit:
+
+- Is selectors.json the SINGLE source of truth or do content 
+  scripts still have hardcoded fallbacks that bypass it?
+- 1-hour cache: if Gemini changes their DOM, worst case is 
+  1 hour of broken capture — is this acceptable?
+- CONFIG_UPDATED broadcast: does it reach content scripts 
+  in already-open tabs or only newly injected ones?
+- Admin endpoint (/api/admin/config): is it secured?
+  What prevents a malicious actor from poisoning selectors.json?
+- Both copies (extension public/ and web public/) must stay in sync —
+  is there a deployment risk where they diverge?
+
+---
+
+**AUDIT AREA 5 — State Synchronization**
+
+Evaluate the consistency model:
+  IndexedDB (local) ↔ Google Drive appdata ↔ Supabase
+
+- Session rename sync: last-write-wins or timestamp-based merge?
+- Can a user lose a renamed session by opening two devices simultaneously?
+- Drive sync atomicity: what happens on mid-write failure?
+- Supabase usage API returning 405: system fails open —
+  is this an abuse vector for free tier bypassing?
+- IndexedDB unbounded growth: is there a cleanup/expiry policy?
+- Server-side API routes: do they receive raw conversation content?
+  If yes: this violates the zero-knowledge claim — flag CRITICAL
+
+---
+
+**AUDIT AREA 6 — Security & Privacy Architecture**
+
+Zero-knowledge claim audit:
+- Does ANY conversation content touch Vercel/Supabase servers?
+  Check: /api/attention/score, /api/summarize, /api/migrate/build
+  — do these receive raw messages or only metadata/scores?
+- Is the Supabase service role key ever reachable client-side?
+- Are Razorpay webhooks verified with constant-time signature comparison?
+- International payments enabled: any currency handling that 
+  could expose user location data server-side?
+- Extension permissions in manifest.json: are all declared 
+  permissions actually used? Unused = Chrome Store rejection risk
+- Session rename data: does customName ever leave the device 
+  unencrypted in transit to Drive?
+
+---
+
+**AUDIT AREA 7 — Scalability Ceiling**
+
+Extension side:
+- Max session size before IndexedDB degrades?
+- Semantic indexing: 206 seconds for 911 chunks on minimal hardware —
+  what is the architectural ceiling?
+- Concurrent tabs with active scrapers: safe limit before 
+  service worker becomes a bottleneck?
+- Remote config: 1-hour refresh × N active users = 
+  how many requests/hour to /extension-config/selectors.json at 1000 users?
+  Is Vercel free tier sufficient?
+
+Web/API side:
+- Which API routes have no rate limiting?
+- Razorpay webhook handler: is it idempotent?
+- What is the slowest Supabase query at 10,000 users?
+  Missing indexes on high-frequency queries?
+
+---
+
+**AUDIT AREA 8 — Architectural Health & Technical Debt**
+
+- Gemini fetch interceptor + DOM scraper: two capture methods 
+  on one platform — is this sustainable or a maintenance burden?
+- @xenova/transformers: completely broken. How much of the 
+  codebase assumes it works? What silently degrades without it?
+- Migration engine: unified abstraction or 6 separate 
+  implementations with duplicated logic?
+- Usage metering: enforced client-side or server-side?
+  Client-side = trivially bypassable
+- Attention engine: using real embeddings or hardcoded keyword 
+  patterns? Is the answer knowable from the code?
+- Session rename: is it stored in the session object schema 
+  or as a separate metadata table? Future migration risk?
+
+---
+
+**DELIVERABLES:**
+
+**1. SYSTEMIC HEALTH SCORECARD**
+Rate each subsystem 1–5 (1=critical risk, 5=production ready):
+- Capture pipeline (DOM)
+- Capture pipeline (fetch intercept)
+- Remote config / DOM adaptability
+- IPC message bus
+- State synchronization
+- Session rename + Drive sync
+- Security / privacy / zero-knowledge claims
+- Semantic indexing (Tier 3)
+- Migration engine
+- Payment / subscription system
+
+**2. ARCHITECTURAL RISK MATRIX**
+Per risk:
+- Risk name
+- Affected subsystem
+- Likelihood: High / Medium / Low
+- User impact: Critical / High / Medium / Low
+- Current mitigation (if any)
+- Recommended mitigation
+Sorted by: Likelihood × Impact descending
+
+**3. ZERO-KNOWLEDGE COMPLIANCE REPORT**
+Binary per data type:
+- Raw conversation content → server? Yes / No / Partial
+- Session metadata → server? Yes / No / Partial
+- customName (rename) → server? Yes / No / Partial
+- Is the zero-knowledge claim legally and technically defensible?
+
+**4. PRE-LAUNCH BLOCKERS**
+Only issues that MUST be resolved before public launch.
+Format: [BLOCKER-N] Description — Why it blocks launch
+
+**5. NEW FEATURE RISK ASSESSMENT**
+For each recently added feature, rate launch readiness:
+- Gemini fetch interceptor: Ready / Needs work / Blocks launch
+- Quill injection (3-layer fallback): Ready / Needs work / Blocks launch
+- Remote config hot reload: Ready / Needs work / Blocks launch
+- Session rename + Drive sync: Ready / Needs work / Blocks launch
+- Server-side IP protection: Ready / Needs work / Blocks launch
+- International Razorpay payments: Ready / Needs work / Blocks launch
+- XML download fallback for migration: Ready / Needs work / Blocks launch
+
+**6. REFACTORING ROADMAP**
+Phase 1 — Before launch (structural fixes)
+Phase 2 — First month (consolidation)
+Phase 3 — 3-month horizon (scale preparation)
+
+**7. ONE HONEST SENTENCE**
+After all analysis: one sentence on overall launch readiness.
+
+---
+
+**CONSTRAINTS:**
+- No line-level code suggestions unless proposing a structural pattern
+- Focus on WHY not HOW
+- Be direct — do not soften critical findings
+- If zero-knowledge claim is violated anywhere: flag CRITICAL immediately
+- If something blocks launch: say so explicitly
+- Do not conflate "working in dev" with "production ready"]]>
+    </code>
+    <code index="12" language="plaintext">
+      <![CDATA[ATTACH:
+- packages/browser-extension/src/sidebar/ (ALL files — every component)
+- packages/browser-extension/src/sidebar/components/ (if separate)
+- packages/browser-extension/src/background/service-worker.ts
+- packages/browser-extension/src/background/semantic-index.ts
+
+READ ALL FILES FULLY before changing anything.
+Do not guess component names — find them from the actual file structure.
+
+════════════════════════════════════════
+CONTEXT FROM SCREENSHOTS
+════════════════════════════════════════
+
+Screenshot 1 shows the sidebar in normal session list view:
+- LLM platform boxes (Claude, ChatGPT, Gemini, Grok, Perplexity, DeepSeek) 
+  with session counts — these logos/icons are TOO LARGE, squishing layout
+- Refresh button exists near top — reported as "sticky/not working"
+- Session list shows correctly but panel feels cramped
+
+Screenshot 2 shows Knowledge Synthesizer panel (Pro feature):
+- Panel is squished — content overflows or clips
+- "Synthesize topics across all sessions" input is cut off
+- "INJECT INTO" dropdown with Claude selector visible
+- Search icon/button at bottom — reported as not working
+- Overall panel layout broken on the narrow sidebar width (~390px)
+
+════════════════════════════════════════
+TASK 1 — LLM Platform Icons: reduce to 50% size
+════════════════════════════════════════
+
+Find the 6 platform stat boxes (Claude, ChatGPT, Gemini, Grok, 
+Perplexity, DeepSeek) in the sidebar component.
+
+Each box shows: icon/logo + platform name + session count.
+
+Reduce the icon/logo element to exactly 50% of its current size:
+- If using width/height props: halve the values
+- If using Tailwind: go from e.g. w-8 h-8 → w-4 h-4
+- If using font-size for icon: halve it
+- Keep the session count number the same size
+- Keep the platform name text the same size
+- Do NOT change the box dimensions or grid layout
+
+════════════════════════════════════════
+TASK 2 — Fix Refresh Button (sticky/not responding)
+════════════════════════════════════════
+
+Find the refresh button near the top of the sidebar 
+(near the "CMD CENTER V1" or session count area).
+
+Current bug: button appears stuck — clicking has no visible feedback 
+and may not trigger a re-fetch.
+
+Fix:
+1. Find the onClick handler for the refresh button
+2. Verify it calls the correct message to service worker:
+   chrome.runtime.sendMessage({ type: 'GET_SESSIONS' }) 
+   or equivalent
+3. Add loading state:
+   - On click: set isRefreshing = true, rotate the refresh icon 
+     (CSS: animate-spin for 1 second minimum)
+   - On response received: set isRefreshing = false, stop spin
+   - Disable button while isRefreshing = true (prevent double-click)
+4. Add visual feedback: brief green flash or opacity change on success
+5. If the handler is missing entirely: wire it up to GET_SESSIONS message
+
+════════════════════════════════════════
+TASK 3 — Fix Knowledge Synthesizer Panel Layout
+════════════════════════════════════════
+
+The Knowledge Synthesizer panel is squished inside the ~390px sidebar.
+
+Fix the layout so all elements fit without clipping:
+
+1. Panel container:
+   - max-width: 100% — never exceed sidebar width
+   - overflow-y: auto — allow scrolling if content is tall
+   - padding: 12px — consistent internal spacing
+
+2. Input field ("Synthesize topics across all sessions"):
+   - width: 100% — full width of panel
+   - min-height: 60px — enough for text entry
+   - Do not clip placeholder text
+
+3. "INJECT INTO" dropdown:
+   - width: 100%
+   - Ensure Claude/ChatGPT/Gemini options render correctly
+
+4. Search/synthesize button at bottom:
+   - Full width OR centered with adequate padding
+   - Must be clickable — verify onClick fires correctly
+
+5. Fix the synthesizer functionality:
+   Find the synthesize handler. It should:
+   a. Take the input text query
+   b. Send message to service worker: 
+      { type: 'SEMANTIC_SEARCH', query: inputText, crossSession: true }
+      OR equivalent message type used in your codebase
+   c. Display results in the panel
+   d. On "INJECT INTO" selection + button click:
+      send the synthesized result to the selected platform's 
+      active tab via INJECT_CONTEXT message
+   
+   If the handler exists but does nothing: find why and fix the 
+   message routing. If semantic search is broken (known @xenova issue):
+   fall back to keyword search and show results with a note 
+   "Semantic search unavailable — showing keyword results"
+
+════════════════════════════════════════
+VERIFICATION
+════════════════════════════════════════
+- tsc --noEmit exits 0
+- Sidebar renders at 390px width without horizontal scroll
+- LLM icons visibly smaller (50% reduction confirmed)
+- Refresh button spins on click and stops when data loads
+- Knowledge Synthesizer panel: all elements visible, no clipping
+- Synthesizer input accepts text and button is clickable
+
+OUTPUT:
+- Diff per file changed
+- One line per fix: what was wrong, what was changed
+- "tsc exit 0 ✅"
+
+RULES:
+- Do not change any colors or visual design beyond what is specified
+- Do not touch service-worker.ts capture or migration logic
+- Do not touch any content scripts
+- Do not add new npm packages
+- Tailwind only for layout fixes — no new CSS files
+- Build must pass]]>
+    </code>
+  </code_blocks>
+
+  <conversation_tail count="20">
+
+    <message index="1" role="user">
+      <![CDATA[ATTACH:
+- packages/web/src/app/build-with-me/page.tsx (if exists)
+- packages/web/src/app/build-with-me/ (entire folder)
+- packages/web/src/app/ (directory listing only — show folder structure)
+CONTEXT:
+- URL: contextmover.com/build-with-me
+- Page renders completely blank — navbar visible, content area empty
+- Component code exists and is correct (already verified)
+- This is a routing/file placement issue, not a component issue
+TASK:
+1. Check if the file exists at the correct path:
+   packages/web/src/app/build-with-me/page.tsx
+
+If file is missing or misnamed — create it at the correct path with 
+this exact content at the top:
+"use client";
+Then paste the full component (already provided above)
+
+If file exists but folder is wrong (e.g. build-with-me vs buildwithme) — 
+rename the folder to build-with-me
+
+Check for any runtime errors:
+
+Missing imports (CHROME_STORE_URL from @/config/urls — verify this exists)
+
+If CHROME_STORE_URL import fails — replace with a placeholder string "#"
+
+Run: npx tsc --noEmit
+Fix any TypeScript errors before finishing
+OUTPUT:
+
+State exactly what was wrong (1 line)
+
+Diff or new file
+
+"tsc exit 0 ✅"
+RULES:
+
+Do not redesign or rewrite the component
+
+Do not change any styles or content
+
+Fix routing/import issues only
+
+Build must pass
+ATTACH:
+
+packages/web/src/app/build-with-me/page.tsx
+
+packages/web/src/config/urls.ts (or wherever CHROME_STORE_URL is exported)
+CONTEXT:
+
+Path is correct: src/app/build-with-me/page.tsx exists
+
+URL contextmover.com/build-with-me renders completely blank
+
+Navbar shows, content area is empty black
+
+File path is NOT the issue — something inside the file is crashing silently
+TASK:
+
+Check CHROME_STORE_URL import:
+
+Does packages/web/src/config/urls.ts exist?
+
+Does it export CHROME_STORE_URL?
+
+If missing or not exported: add it with value "#" as placeholder
+
+Check for any other broken imports in page.tsx:
+
+lucide-react Check component — verify lucide-react is in package.json
+
+next/image — should be fine
+
+Fix any broken import
+
+Run: npx tsc --noEmit from packages/web
+
+Fix every TypeScript error shown
+
+Check next.config.ts/mjs:
+
+No redirects or rewrites blocking /build-with-me
+OUTPUT:
+
+What was broken (1 line)
+
+Diff only
+
+"tsc exit 0 ✅"
+RULES:
+
+Do not touch component content or styles
+
+Fix imports only
+
+Build must pass
+
+should i give this to swe 1.6]]>
+    </message>
+    <message index="2" role="assistant">
+      <![CDATA[Yes but merge them into one clean prompt — don't give two separate prompts:
+
+```
+ATTACH:
+- packages/web/src/app/build-with-me/page.tsx
+- packages/web/src/config/urls.ts
+- packages/web/next.config.ts (or next.config.mjs)
+- packages/web/package.json
+
+CONTEXT:
+- Path confirmed correct: src/app/build-with-me/page.tsx exists
+- URL contextmover.com/build-with-me renders completely blank
+- Navbar visible, content area is empty black
+- Routing is NOT the issue — file is in the right place
+- A crashed import is silently killing the page render
+
+TASK:
+1. Open urls.ts — verify CHROME_STORE_URL is exported
+   If missing: add export const CHROME_STORE_URL = "#"
+
+2. Open package.json — verify lucide-react is listed in dependencies
+   If missing: add it
+
+3. Open next.config — check for any redirect or rewrite blocking /build-with-me
+   If found: remove it
+
+4. Run: cd packages/web && npx tsc --noEmit
+   Fix every error shown
+
+OUTPUT:
+- One line: what was broken
+- Diff only
+- "tsc exit 0 ✅"
+
+RULES:
+- Do not touch component content or styles
+- Do not rewrite page.tsx
+- Fix imports and config only
+- Build must pass
+```
+
+SWE-1.6. Clean, no duplication.]]>
+    </message>
+    <message index="3" role="user">
+      <![CDATA[look at  this some part of the home page have this web like background --- i want this background to all th black back ground interfac in teh web]]>
+    </message>
+    <message index="4" role="assistant">
+      <![CDATA[Nice observation. You want the subtle web/grid background pattern applied globally to all black background sections across the entire web app.
+
+```
+ATTACH:
+- packages/web/src/app/globals.css
+- packages/web/src/app/layout.tsx
+- packages/web/tailwind.config.ts
+
+CONTEXT:
+- Screenshot 1 shows home page hero section with a subtle dark web/dot-grid 
+  background pattern — looks like a faint grid or mesh overlay on #020202/#0A0A0A
+- Screenshot 2 shows FAQ section with plain flat black — no pattern
+- Need: same subtle web/grid background pattern applied globally to ALL 
+  black background sections across the entire web app
+
+TASK:
+1. Identify the existing web/grid pattern on the home page:
+   - Check globals.css for any background-image, SVG pattern, or grid CSS
+   - Check if it's a radial-gradient, dot pattern, or CSS grid lines
+   - Find exactly what creates it
+
+2. Apply it globally via globals.css on the body or root element:
+   - Add the pattern as a CSS background on body or :root
+   - It must show on ALL pages: home, pricing, build-with-me, dashboard, auth
+   - Pattern must be subtle — dark, barely visible, not distracting
+   - Must work on top of existing bg-[#020202], bg-[#0A0A0A], bg-[#050505] 
+     backgrounds without clashing
+
+3. The pattern should be:
+   - A faint grid or dot mesh — matching what's already on the hero
+   - Color: rgba(255,255,255,0.03) or similar — barely visible
+   - Repeating background-image pattern
+   - Does NOT override any existing gradients or colored backgrounds
+
+VERIFY: tsc --noEmit exits 0
+
+OUTPUT:
+- What the existing pattern is (1 line)
+- Diff for globals.css only
+- "tsc exit 0 ✅"
+
+RULES:
+- globals.css change only — do not touch individual page files
+- Do not change any colors, layouts, or components
+- Pattern must be subtle — not visible on light backgrounds
+- Build must pass
+```
+
+SWE-1.6, Thinking OFF — pure CSS change.]]>
+    </message>
+    <message index="5" role="user">
+      <![CDATA[Searchedbackground-image|background.*url|radial-gradient.*grid|dot in packages/web/src/components/landing/LandingPage.tsx
+Searchedhero|Hero in packages/web/src/components/landing/LandingPage.tsx
+globals.css
++3
+background-color: #0A0A0A;
+background-image: linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
+linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
+background-size: 52px 52px;
+color: #F5F5F5;
+Command cd, npx in packages/web
+69 x 10
+Using legacy terminalConfigure
+Existing pattern: Subtle 52px grid using linear-gradient with rgba(255,255,255,0.012) lines
+
+```
+diff
+```
+
+```
+--- a/packages/web/src/app/globals.css
+```
+
++++ b/packages/web/src/app/globals.css
+@@ -53,6 +53,9 @@ body { overflow-x: hidden; }
+   body {
+     background-color: #0A0A0A;
++    background-image: linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
++                      linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
++    background-size: 52px 52px;
+     color: #F5F5F5;
+     font-family: "Inter", "system-ui", "-apple-system", sans-serif;
+     @apply antialiased;
+tsc exit 0 ✅
+
+this was the response]]>
+    </message>
+    <message index="6" role="assistant">
+      <![CDATA[Done. The grid pattern is now global.
+
+Check these pages to confirm it looks right:
+
+contextmover.com — hero (already had it, should look same)
+
+contextmover.com/pricing — was flat black before
+
+contextmover.com/build-with-me — was flat black before
+
+contextmover.com/auth — was flat black before
+
+If any page feels too busy with the pattern, just add bg-[#020202] or a solid background on that specific section — it'll override the body grid locally without touching globals.css.]]>
+    </message>
+    <message index="7" role="user">
+      <![CDATA[i want to improve the symbols of this interface and look in this "GitHub Repo Extraction"   --> "GitHub Repo Extraction   - coming soon "  like ide and mcp   
+
+and also "One click. Full context. Any AI."  under this there were anumation like flow which was like a current from from llm to llms         and also this columns looks straight grey -- need to make this more interesting and engaging]]>
+    </message>
+    <message index="8" role="assistant">
+      <![CDATA[Looking at both screenshots, 3 things to fix:
+
+```
+ATTACH:
+- packages/web/src/components/landing/LandingPage.tsx
+- packages/web/src/app/globals.css
+
+CONTEXT:
+- Screenshot 1: "Local folder context" section has 3 feature cards
+  - "IDE Connection + MCP Server" already has "COMING SOON" badge
+  - "GitHub Repo Extraction" is MISSING its "COMING SOON" badge
+  - "Local Folder Context" card needs better icon/visual treatment
+- Screenshot 2: "One click. Full context. Any AI." section
+  - The flow animation (current/electricity between LLMs) looks flat and grey
+  - Claude → ContextMover → Claude/ChatGPT/Gemini flow needs to be more 
+    vibrant, engaging, and animated
+
+TASK 1 — Add "COMING SOON" badge to GitHub Repo Extraction card:
+Find the GitHub Repo Extraction card in LandingPage.tsx.
+Add the same "COMING SOON" badge that exists on "IDE Connection + MCP Server".
+Copy the exact same badge style — do not invent a new one.
+
+TASK 2 — Improve the LLM flow animation section:
+Find the "One click. Full context. Any AI." flow diagram.
+Current: flat grey columns/lines connecting LLM boxes.
+Replace the static grey connector lines with animated flowing lines:
+
+The animated line style:
+- Base line color: rgba(0, 255, 136, 0.15) — dark green
+- Animated pulse/flow moving along the line left to right
+- Use CSS keyframe animation: a bright green dot/dash traveling along the path
+- The ContextMover center box: add a subtle green glow pulse
+  box-shadow: 0 0 20px rgba(0,255,136,0.2), animate opacity 2s infinite
+
+Animated flow line CSS (add to globals.css):
+@keyframes flowPulse {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.flow-line {
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    transparent 40%,
+    rgba(0,255,136,0.6) 50%, 
+    transparent 60%, 
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: flowPulse 2s linear infinite;
+}
+.flow-line-reverse {
+  animation: flowPulse 2s linear infinite reverse;
+}
+
+Apply .flow-line to left-side connector lines (input LLMs → ContextMover)
+Apply .flow-line-reverse to right-side connector lines (ContextMover → output LLMs)
+
+TASK 3 — Improve LLM box styling in the flow diagram:
+Current: plain grey bordered boxes — flat and uninteresting.
+Update the Claude, ChatGPT, Gemini boxes:
+- Input side (left): border: 1px solid rgba(255,255,255,0.1), subtle left glow
+- ContextMover center box: border: 1px solid rgba(0,255,136,0.4), 
+  green glow, slightly larger
+- Output side (right): border: 1px solid rgba(0,255,136,0.15), 
+  subtle green tint
+
+Also add platform-specific accent colors to the LLM name text:
+- Claude: text-[#CC785C] (orange)
+- ChatGPT: text-[#74AA9C] (teal)  
+- Gemini: text-[#4285F4] (blue)
+- Grok: text-white
+- DeepSeek: text-[#4D9BF5]
+
+VERIFY: tsc --noEmit exits 0
+
+OUTPUT:
+- Diffs for LandingPage.tsx and globals.css
+- "tsc exit 0 ✅"
+
+RULES:
+- Do not change any text content, headings, or copy
+- Do not add new npm packages
+- Do not change page layout or structure
+- Animation must be CSS only — no JS animation libraries
+- Build must pass
+```
+
+Sonnet 4.6, Thinking OFF — pure UI polish, no logic changes.]]>
+    </message>
+    <message index="9" role="user">
+      <![CDATA[swe 1.6?]]>
+    </message>
+    <message index="10" role="assistant">
+      <![CDATA[Yes, SWE-1.6 can handle this — it's all CSS + JSX edits, no logic.
+
+But one caution: the animated flow line part (Task 2) involves CSS keyframes + applying classes to specific JSX elements. SWE-1.6 is great at finding and editing but may misidentify which exact elements are the connector lines in the flow diagram.
+
+My recommendation:
+
+Task 1 (COMING SOON badge) → SWE-1.6 ✅ trivial
+
+Task 2 + 3 (animation + LLM box styling) → Sonnet 4.6 Thinking OFF is safer
+
+Or give all 3 to SWE-1.6 and if Task 2 looks wrong, fix just that part with Sonnet. SWE-1.6 is free so worth trying first.]]>
+    </message>
+    <message index="11" role="user">
+      <![CDATA[currently i am using supabase and versel fr hosting 
+but i also want to be prepared to host 1000+ usrs for web and all 
+
+how do i sacle and just for the context i hav'nt launched my product yet so ... still what should be my pla]]>
+    </message>
+    <message index="12" role="assistant">
+      <![CDATA[You're pre-launch so don't over-engineer. Here's the honest plan:
+
+Right now you need to do nothing.
+
+Vercel + Supabase will handle 1000+ users without any changes. That's what they're built for.
+
+Vercel free tier handles:
+
+100GB bandwidth/month
+
+Unlimited deployments
+
+Serverless functions scale automatically — zero config
+
+Supabase free tier handles:
+
+50,000 monthly active users
+
+500MB database
+
+2GB bandwidth
+
+You'll hit Supabase's free limits before Vercel's. When you do, their Pro plan is $25/month and handles hundreds of thousands of users.
+
+The only thing worth doing NOW before launch:
+
+Add these to your Supabase dashboard today — they're free and take 10 minutes:
+
+Enable Row Level Security on every table (you probably already have this)
+
+Set up database backups (Supabase Pro — worth it at $25/month when you launch)
+
+Add a Supabase connection pooler (PgBouncer) — already built in, just enable it
+
+Realistic scaling timeline:
+
+UsersAction neededCost
+
+0–1,000NothingFree
+
+1,000–10,000Upgrade Supabase Pro$25/month
+
+10,000–100,000Upgrade Vercel Pro + Supabase Pro$45/month total
+
+100,000+That's a good problem — deal with it then—
+
+The real bottleneck won't be infrastructure. It'll be Razorpay webhook handling and your usage-check API route getting hammered. Those are the two things worth stress-testing before launch — but even then, Vercel serverless handles bursts automatically.
+
+Ship first. Scale when you have the problem.]]>
+    </message>
+    <message index="13" role="user">
+      <![CDATA[i want to make the web RWD response web design can you pass on the prompt for swe 16]]>
+    </message>
+    <message index="14" role="assistant">
+      <![CDATA[```
+ATTACH:
+- packages/web/src/components/landing/LandingPage.tsx
+- packages/web/src/app/(dashboard)/pricing/page.tsx
+- packages/web/src/components/pricing/PricingSection.tsx
+- packages/web/src/app/build-with-me/page.tsx
+- packages/web/src/app/globals.css
+
+CONTEXT:
+- Tech stack: Next.js + Tailwind CSS
+- Currently desktop-only design — breaks on mobile/tablet
+- No new dependencies allowed
+- Tailwind breakpoints: sm=640px, md=768px, lg=1024px, xl=1280px
+
+TASK:
+Make every attached file fully responsive using Tailwind responsive prefixes.
+Mobile first: base classes = mobile, then sm: md: lg: for larger screens.
+
+FILE BY FILE RULES:
+
+LandingPage.tsx:
+- Navbar: hamburger menu on mobile (already exists — verify it works)
+- Hero heading: text-4xl mobile → text-6xl lg
+- Hero buttons: stack vertically on mobile, side by side on md+
+- Feature cards: grid-cols-1 mobile → grid-cols-2 md → grid-cols-3 lg
+- LLM flow diagram: hide complex animation on mobile, show simplified 
+  stacked version (Claude → CM → Claude) vertically
+- All section padding: px-4 mobile → px-8 md → px-16 lg
+- Any horizontal scroll: fix with overflow-x-hidden
+
+PricingSection.tsx:
+- Toggle: stays centered, full width on mobile
+- 3 cards: flex-col mobile → flex-row md
+- Featured card (scale-105): remove scale on mobile to prevent overflow
+- Card padding: p-5 mobile → p-8 md
+- Prices: keep large but ensure they don't overflow
+
+build-with-me/page.tsx:
+- Already has some responsive classes — audit and fill gaps
+- Contact form: full width on all screens ✅
+- 3 FOR_CARDS: grid-cols-1 mobile → grid-cols-3 md ✅ verify
+- Skills grid: grid-cols-1 mobile → grid-cols-2 sm ✅ verify
+- Section padding: verify py-16 mobile → py-32 md
+
+globals.css:
+- Add: * { box-sizing: border-box; }
+- Add: img { max-width: 100%; height: auto; }
+- Ensure no fixed widths that break mobile
+
+WHAT NOT TO TOUCH:
+- Do not change any text content or copy
+- Do not change colors or visual design
+- Do not add new npm packages
+- Do not change any payment or auth logic
+- Do not touch service worker or extension files
+
+VERIFY:
+- tsc --noEmit exits 0
+- No horizontal scroll on 375px width (iPhone SE)
+- No horizontal scroll on 768px width (iPad)
+
+OUTPUT:
+- Diff per file
+- One line per file: what was changed
+- "tsc exit 0 ✅"
+
+RULES:
+- Tailwind only — no custom CSS for layout
+- Mobile first approach
+- Smallest possible changes — don't rewrite working sections
+- Build must pass
+```
+
+SWE-1.6.
+
+After it runs, test on Chrome DevTools at 375px, 768px, and 1280px widths before pushing.]]>
+    </message>
+    <message index="15" role="user">
+      <![CDATA[i wan tto do deep inpect for the extention and whole features 
+this was the prompt 
+enhence it 
+**System Role:** Act as a Chief Systems Architect. You are to perform a holistic, end-to-end architectural audit of the ContextMover monorepo (covering both packages/browser-extension and packages/web).
+**Objective:** This is not a debugging session. Do not focus on specific bugs, lines of code, or syntax errors. Focus exclusively on systemic design, architectural cohesion, and long-term stability.
+**Audit Areas:**
+1. **Systemic Data Flow:** Analyze the lifecycle of a "context" unit from the moment it is scraped from a host (Gemini/Claude/etc.) to the moment it is retrieved for RAG synthesis. Identify structural points where data fragmentation or race conditions are likely to occur.
+2. **IPC & Communication Layer:** Evaluate the message-passing architecture between the Content Scripts, Service Worker, Offscreen Document, and Web App. Does this architecture scale, or is it creating bottlenecks that lead to context invalidation or excessive overhead?
+3. **Fault Tolerance Strategy:** Assess the resilience of the abstraction layers. How does the system handle "DOM decay" (sites changing their structure) or network-level disruptions (CORS/CSP blocks)? Identify the single points of failure in the current capture pipelines.
+4. **Synchronization Logic:** Evaluate the state-sync model between the local browser storage (IndexedDB/Dexie) and the remote persistent store (Supabase). Where is the system most vulnerable to state-drift or synchronization conflicts?
+5. **Architectural Health:** Identify which features or subsystems were built with "quick patches" vs. sustainable patterns. Highlight the areas that require a refactor to ensure the codebase remains maintainable as the product adds more integrations.
+**Deliverables:**
+- **Systemic Health Report:** A high-level assessment of the architecture's "ruggedness."
+- **Architectural Risk Matrix:** Rank the identified design risks by their potential to degrade user experience or cause system-wide instability.
+- **Refactoring Strategy:** Provide a high-level roadmap for consolidating redundant logic (e.g., merging conflicting capture methods) to improve overall stability.
+**Constraint:** Focus on the "Why." Do not suggest specific code changes unless they are structural refactors (e.g., implementing an event-bus or unified state manager). Keep the scope broad and systemic.]]>
+    </message>
+    <message index="16" role="assistant">
+      <![CDATA[```
+**System Role:** You are a Principal Engineer and Chief Systems Architect with deep expertise in Chrome MV3 extensions, distributed state management, and production SaaS architecture. You have reviewed hundreds of extension codebases and understand the failure modes of each layer intimately.
+
+**Product Context:**
+ContextMover is a Chrome MV3 extension + Next.js web app that:
+- Captures AI conversations from Claude, ChatGPT, Gemini, Grok, Perplexity, DeepSeek
+- Compresses context using 3-tier intelligence (Full Context → Smart Summary → Attention Engine)
+- Migrates context between AI platforms via XML file injection or text injection
+- Stores sessions locally in IndexedDB, optionally syncs to Google Drive (appdata scope)
+- Has a semantic search layer using @xenova/transformers in an offscreen document
+- Monetizes via Razorpay subscriptions (Free / Pro Monthly ₹299 / Pro Annual ₹2399)
+- Hosted on Vercel + Supabase, pre-launch stage
+
+**ATTACH THESE FILES:**
+- packages/browser-extension/src/background/service-worker.ts
+- packages/browser-extension/src/background/semantic-index.ts
+- packages/browser-extension/src/background/attention-engine.ts
+- packages/browser-extension/src/background/usage-client.ts
+- packages/browser-extension/src/background/drive-client.ts
+- packages/browser-extension/src/content/claude.ts
+- packages/browser-extension/src/content/chatgpt.ts
+- packages/browser-extension/src/content/gemini.ts
+- packages/browser-extension/src/content/grok.ts
+- packages/browser-extension/src/content/perplexity.ts
+- packages/browser-extension/src/content/deepseek.ts
+- packages/browser-extension/src/offscreen/offscreen.ts
+- packages/browser-extension/manifest.json
+- packages/web/src/lib/payments/ (all files)
+- packages/web/src/app/api/ (all route files)
+- packages/web/src/lib/supabase/ (all files)
+
+---
+
+**OBJECTIVE:**
+This is a holistic architectural audit — not a bug hunt. Do not focus on syntax, linting, or minor code issues. Focus on systemic design, structural integrity, failure modes, and long-term maintainability at scale. Think like an engineer preparing this codebase for 10,000+ users and a 2-year maintenance horizon.
+
+---
+
+**AUDIT AREA 1 — Context Lifecycle & Data Integrity**
+
+Trace the full journey of a "context unit" from birth to use:
+  Scrape → Capture → Compress → Index → Store → Retrieve → Migrate
+
+For each transition point, answer:
+- Is data validated before passing to the next stage?
+- Can data be silently corrupted, truncated, or lost at this point?
+- What happens if this stage fails mid-execution?
+- Is the failure detectable by the user or silently swallowed?
+
+Specific focus:
+- Message count drift: logs show scraped=11 then scraped=9 then scraped=13 
+  on the same session — is the scraper producing non-deterministic output?
+- Compression fidelity: Tier 1 drops middle messages (head+tail only) — 
+  does the system ever signal to the user that context was lossy?
+- XML generation: is the output schema versioned? What breaks if schema changes?
+
+---
+
+**AUDIT AREA 2 — IPC Architecture & Message Bus**
+
+Evaluate the communication layer between:
+  Content Scripts ↔ Service Worker ↔ Offscreen Document ↔ Sidebar UI ↔ Web App
+
+Answer:
+- Is there a single message schema/contract or ad-hoc string matching?
+- What happens when a message is sent to a dead/unregistered listener?
+- Are there race conditions between CAPTURE_SESSION, BACKGROUND_INDEX, 
+  and MIGRATE_CONTEXT firing concurrently on the same session?
+- Does the system guarantee message delivery or fire-and-forget?
+- How many distinct message types exist? Is this manageable or becoming 
+  a maintenance burden?
+- Is the offscreen document lifecycle correctly managed? 
+  (create → use → release cycle)
+
+Identify: which message paths have no error handling and what the 
+worst-case failure of each is.
+
+---
+
+**AUDIT AREA 3 — Capture Pipeline Resilience**
+
+Evaluate fault tolerance across all 6 platform scrapers:
+
+DOM Decay Risk:
+- Which platforms use the most fragile selectors (single class, no fallback)?
+- Is there a monitoring mechanism to detect when a scraper silently returns 0?
+- How long would it take to detect that Gemini capture broke after a DOM update?
+
+Platform-specific failure modes:
+- Virtual scroll: do any platforms lazy-load messages that the scraper misses?
+- Streaming guard: is the "bail: assistant streaming" logic consistent 
+  across all platforms or implemented differently per scraper?
+- Race condition: can CAPTURE_SESSION fire before the DOM is fully settled,
+  producing a partial capture that overwrites a complete one?
+
+Single points of failure:
+- If the service worker is killed mid-migration, what state is left?
+- If chrome.storage.local is full, what happens to new captures?
+- If the offscreen document crashes, is it automatically recreated?
+
+---
+
+**AUDIT AREA 4 — State Synchronization**
+
+Evaluate the consistency model between:
+  IndexedDB (local) ↔ Google Drive appdata (remote) ↔ Supabase (cloud)
+
+Answer:
+- What is the conflict resolution strategy when local and Drive have 
+  different versions of the same session?
+- Is there a vector clock, timestamp comparison, or last-write-wins?
+- Can a user lose data by opening the extension on two devices simultaneously?
+- Is the Drive sync atomic? What happens if it fails mid-write?
+- Supabase usage tracking: if the usage API returns 405 (known bug), 
+  the system "fails open" — is this a security/abuse risk?
+- Are there any unbounded growth risks in IndexedDB? 
+  (sessions accumulating forever with no cleanup policy)
+
+---
+
+**AUDIT AREA 5 — Security & Privacy Architecture**
+
+Given the product's zero-knowledge claims, audit:
+- Does ANY user conversation content ever touch Vercel/Supabase servers?
+  (check API routes — do any accept or log message content?)
+- Are the server-side API routes (/api/attention/score, /api/summarize, 
+  /api/migrate/build) receiving raw conversation data?
+  If yes: this contradicts the zero-knowledge claim — flag immediately
+- Is the Supabase service role key ever reachable from client-side code?
+- Are Razorpay webhook signatures verified with constant-time comparison?
+- Extension permissions audit: are all permissions in manifest.json 
+  actually used? Unused permissions = rejection risk on Chrome Store review
+
+---
+
+**AUDIT AREA 6 — Scalability & Performance Ceiling**
+
+Identify where the architecture breaks under load:
+
+Extension side:
+- What is the maximum session size before IndexedDB performance degrades?
+- The semantic indexing took 206 seconds for 911 chunks — 
+  is this acceptable? What is the ceiling?
+- How many concurrent tabs with active scrapers is safe before 
+  the service worker becomes a bottleneck?
+
+Web/API side:
+- Which API routes have no rate limiting and are abuse vectors?
+- Is the Razorpay subscription webhook handler idempotent? 
+  (can it safely receive the same event twice?)
+- What is the Supabase query that will be slowest at 10,000 users?
+  Is there an index missing on any high-frequency query?
+
+---
+
+**AUDIT AREA 7 — Architectural Health & Technical Debt**
+
+Identify which subsystems were built sustainably vs. patched:
+
+- Remote config (selectors.json): is it actually wired end-to-end 
+  or partially implemented?
+- Tier 3 semantic indexing: completely broken (@xenova/transformers) — 
+  how much of the codebase depends on it working? What degrades without it?
+- Migration strategy per platform: is there a unified abstraction or 
+  6 separate implementations with duplicated logic?
+- Attention engine: is it actually using embeddings or falling back to 
+  hardcoded keyword patterns? Is the answer even knowable from the code?
+- Usage metering: free tier limits are enforced client-side or server-side?
+  Client-side enforcement = trivially bypassable
+
+---
+
+**DELIVERABLES:**
+
+**1. SYSTEMIC HEALTH SCORECARD**
+Rate each subsystem 1-5 (1=critical risk, 5=production ready):
+- Capture pipeline
+- IPC message bus
+- State synchronization
+- Security/privacy claims
+- Semantic indexing
+- Payment/subscription system
+- Migration engine
+- Remote config / DOM adaptability
+
+**2. ARCHITECTURAL RISK MATRIX**
+For each identified risk:
+- Risk name
+- Affected subsystem
+- Likelihood (High/Medium/Low)
+- User impact if triggered (Critical/High/Medium/Low)
+- Current mitigation (if any)
+- Recommended mitigation
+
+Sort by: Likelihood × Impact descending.
+
+**3. ZERO-KNOWLEDGE COMPLIANCE REPORT**
+Binary answer per data type:
+- Does conversation content touch the server? (Yes/No/Partial)
+- Does session metadata touch the server? (Yes/No/Partial)
+- Is the zero-knowledge claim defensible legally and technically?
+
+**4. PRE-LAUNCH BLOCKERS**
+List only the issues that MUST be resolved before public launch.
+Format: [BLOCKER-N] Description — Why it blocks launch
+
+**5. REFACTORING ROADMAP**
+Three phases:
+- Phase 1 (Before launch): structural fixes that reduce launch risk
+- Phase 2 (First month): consolidation of duplicated logic
+- Phase 3 (3-month horizon): architectural improvements for scale
+
+For each item: what to change, why, and what it unlocks.
+
+**6. ONE HONEST SENTENCE**
+After all analysis: one sentence summarizing the overall architectural 
+readiness of this codebase for public launch.
+
+---
+
+**CONSTRAINTS:**
+- No line-level code suggestions unless proposing a structural pattern change
+- Focus on WHY not HOW
+- Be direct — do not soften critical findings
+- If something is a launch blocker, say so explicitly
+- If the zero-knowledge claim is violated anywhere, flag it as CRITICAL
+```
+
+Model: Opus 4.6, Thinking ON, attach all files.
+
+This will give you the most honest picture of where your product actually stands before launch. Don't run this with a weaker model — you want Opus thinking hard about the security and zero-knowledge sections specifically.]]>
+    </message>
+    <message index="17" role="user">
+      <![CDATA[check out this context i recently made these improvements 
+now improve the prompt because i have add new features and we need to inspectt all the features]]>
+    </message>
+    <message index="18" role="assistant">
+      <![CDATA[Viewed 2 files
+
+Done
+
+Got the full context. I can see what was added since the last audit prompt — Gemini DOM fixes, Quill injection, fetch-intercept capture method, remote config selectors.json, and the architectural patterns discussed. Here's the enhanced prompt:
+
+```
+**System Role:** You are a Principal Engineer and Chief Systems Architect 
+with deep expertise in Chrome MV3 extensions, Angular DOM reverse engineering, 
+distributed state management, and production SaaS architecture.
+
+**Product Context:**
+ContextMover is a Chrome MV3 extension + Next.js web app (monorepo).
+
+Core capabilities:
+- Captures AI conversations from Claude, ChatGPT, Gemini, Grok, 
+  Perplexity, DeepSeek via DOM scraping + fetch interception
+- 3-tier intelligence compression:
+  Tier 1: Full Context (head+tail, hard limit)
+  Tier 2: Smart Summary (structured extraction — goals, decisions, bugs)
+  Tier 3: Attention Engine (semantic search via @xenova/transformers 
+  in offscreen document — currently broken)
+- Migrates context via XML file injection OR text injection into target LLM
+- Session rename with Google Drive sync (appdata scope)
+- Remote config: selectors.json served at /extension-config/selectors.json
+  for hot-patching DOM selectors without Chrome Store update
+- Semantic indexing: @xenova/transformers in offscreen document (WASM)
+- Local storage: IndexedDB via Dexie
+- Optional cloud sync: Google Drive appdata
+- Monetization: Razorpay subscriptions (Free / ₹299 monthly / ₹2399 annual)
+- Hosted: Vercel + Supabase, pre-launch
+
+Recent architectural changes (audit must cover these):
+- Gemini scraper: migrated from class-based selectors to Angular custom 
+  element selectors (user-query, model-response, ms-chat-turn)
+- Gemini injection: migrated from file input to Quill editor API injection
+  (rich-textarea → .ql-editor → __quill instance → execCommand fallback)
+- Fetch interceptor: added fetch_intercept captureMethod for Gemini
+- Remote config: selectors.json now drives all platform selectors with 
+  1-hour cache refresh and hot reload via CONFIG_UPDATED broadcast
+- Session rename: customName field added to session schema, 
+  synced via Google Drive appdata
+- Server-side IP: /api/attention/score, /api/summarize, /api/migrate/build
+  moved to Next.js API routes (Supabase JWT auth + 60 req/hour rate limit)
+- Migration fallback: XML file injection → auto-download fallback
+- Pricing: 3-plan Razorpay subscription system with international payments
+
+**ATTACH THESE FILES:**
+- packages/browser-extension/src/background/service-worker.ts
+- packages/browser-extension/src/background/semantic-index.ts
+- packages/browser-extension/src/background/attention-engine.ts
+- packages/browser-extension/src/background/usage-client.ts
+- packages/browser-extension/src/background/drive-client.ts
+- packages/browser-extension/src/background/remote-config.ts
+- packages/browser-extension/src/content/claude.ts
+- packages/browser-extension/src/content/chatgpt.ts
+- packages/browser-extension/src/content/gemini.ts
+- packages/browser-extension/src/content/grok.ts
+- packages/browser-extension/src/content/perplexity.ts
+- packages/browser-extension/src/content/deepseek.ts
+- packages/browser-extension/src/content/shared.ts
+- packages/browser-extension/src/offscreen/offscreen.ts
+- packages/browser-extension/public/extension-config/selectors.json
+- packages/browser-extension/manifest.json
+- packages/web/src/lib/payments/ (all files)
+- packages/web/src/app/api/ (all route files)
+- packages/web/src/lib/supabase/ (all files)
+- packages/web/public/extension-config/selectors.json
+
+---
+
+**OBJECTIVE:**
+Holistic architectural audit — not a bug hunt, not a code review.
+Focus on systemic design, structural integrity, failure modes, 
+and long-term maintainability at 10,000+ users and 2-year horizon.
+Be direct. Do not soften critical findings.
+
+---
+
+**AUDIT AREA 1 — Context Lifecycle & Data Integrity**
+
+Trace the full journey of a context unit:
+  Scrape → Capture → Compress → Index → Store → Retrieve → Migrate
+
+For each transition:
+- Is data validated before passing to the next stage?
+- Can data be silently corrupted, truncated, or lost?
+- What happens if this stage fails mid-execution?
+- Is failure detectable by the user or silently swallowed?
+
+Specific focus:
+- Message count drift: scraped=11 → 9 → 13 on same session —
+  is the scraper non-deterministic? Can a partial capture 
+  overwrite a complete one?
+- Fetch interceptor vs DOM scraper: Gemini now uses fetch_intercept.
+  Can both fire simultaneously on the same session? 
+  Is there a deduplication gate?
+- Compression fidelity: Tier 1 drops middle messages entirely —
+  does the system signal this loss to the user?
+- XML schema: is it versioned? What breaks on schema change?
+- Session rename sync: if customName is updated locally and Drive 
+  is unavailable, is the rename queued or silently lost?
+
+---
+
+**AUDIT AREA 2 — IPC Architecture & Message Bus**
+
+Evaluate the full communication layer:
+  Content Scripts ↔ Service Worker ↔ Offscreen Document 
+  ↔ Sidebar UI ↔ Remote Config ↔ Web App
+
+Answer:
+- Is there a single typed message schema or ad-hoc string matching?
+- What happens when a message fires to a dead listener?
+- Can CAPTURE_SESSION, BACKGROUND_INDEX, MIGRATE_CONTEXT, and 
+  CONFIG_UPDATED fire concurrently on the same session?
+- Does the remote config hot reload (CONFIG_UPDATED broadcast) 
+  reach all active content scripts reliably?
+- Is the offscreen document lifecycle correctly managed?
+  (create → use → release — does it leak between sessions?)
+- How many distinct message types exist total?
+  Is the message bus approaching unmanageable complexity?
+
+---
+
+**AUDIT AREA 3 — Capture Pipeline Resilience**
+
+Evaluate fault tolerance across all 6 platform scrapers + 
+the fetch interceptor:
+
+DOM Decay Risk:
+- Remote config selectors.json: is it actually the primary source 
+  for all scrapers or do hardcoded fallbacks dominate?
+- If selectors.json serves stale selectors, how long until 
+  capture silently breaks? Is there a health-check mechanism?
+- Gemini specifically: fetch_intercept vs DOM scrape — 
+  which wins? Is there a priority/fallback chain defined?
+
+Platform failure modes:
+- Virtual scroll: do any platforms lazy-load messages the scraper misses?
+- Streaming guard: is "bail: assistant streaming" consistent 
+  across all 6 platforms or inconsistently implemented?
+- Gemini Quill injection: 3-layer fallback 
+  (__quill API → execCommand → textContent). 
+  If all 3 fail, what does the user see?
+- Angular custom elements (Gemini): are the ms-chat-turn and 
+  user-query selectors stable or likely to change on next update?
+
+Single points of failure:
+- Service worker killed mid-migration: what state is left?
+- chrome.storage.local full: what happens to new captures?
+- Offscreen document crash: auto-recreated or silent failure?
+
+---
+
+**AUDIT AREA 4 — Remote Config Architecture**
+
+New subsystem — needs dedicated audit:
+
+- Is selectors.json the SINGLE source of truth or do content 
+  scripts still have hardcoded fallbacks that bypass it?
+- 1-hour cache: if Gemini changes their DOM, worst case is 
+  1 hour of broken capture — is this acceptable?
+- CONFIG_UPDATED broadcast: does it reach content scripts 
+  in already-open tabs or only newly injected ones?
+- Admin endpoint (/api/admin/config): is it secured?
+  What prevents a malicious actor from poisoning selectors.json?
+- Both copies (extension public/ and web public/) must stay in sync —
+  is there a deployment risk where they diverge?
+
+---
+
+**AUDIT AREA 5 — State Synchronization**
+
+Evaluate the consistency model:
+  IndexedDB (local) ↔ Google Drive appdata ↔ Supabase
+
+- Session rename sync: last-write-wins or timestamp-based merge?
+- Can a user lose a renamed session by opening two devices simultaneously?
+- Drive sync atomicity: what happens on mid-write failure?
+- Supabase usage API returning 405: system fails open —
+  is this an abuse vector for free tier bypassing?
+- IndexedDB unbounded growth: is there a cleanup/expiry policy?
+- Server-side API routes: do they receive raw conversation content?
+  If yes: this violates the zero-knowledge claim — flag CRITICAL
+
+---
+
+**AUDIT AREA 6 — Security & Privacy Architecture**
+
+Zero-knowledge claim audit:
+- Does ANY conversation content touch Vercel/Supabase servers?
+  Check: /api/attention/score, /api/summarize, /api/migrate/build
+  — do these receive raw messages or only metadata/scores?
+- Is the Supabase service role key ever reachable client-side?
+- Are Razorpay webhooks verified with constant-time signature comparison?
+- International payments enabled: any currency handling that 
+  could expose user location data server-side?
+- Extension permissions in manifest.json: are all declared 
+  permissions actually used? Unused = Chrome Store rejection risk
+- Session rename data: does customName ever leave the device 
+  unencrypted in transit to Drive?
+
+---
+
+**AUDIT AREA 7 — Scalability Ceiling**
+
+Extension side:
+- Max session size before IndexedDB degrades?
+- Semantic indexing: 206 seconds for 911 chunks on minimal hardware —
+  what is the architectural ceiling?
+- Concurrent tabs with active scrapers: safe limit before 
+  service worker becomes a bottleneck?
+- Remote config: 1-hour refresh × N active users = 
+  how many requests/hour to /extension-config/selectors.json at 1000 users?
+  Is Vercel free tier sufficient?
+
+Web/API side:
+- Which API routes have no rate limiting?
+- Razorpay webhook handler: is it idempotent?
+- What is the slowest Supabase query at 10,000 users?
+  Missing indexes on high-frequency queries?
+
+---
+
+**AUDIT AREA 8 — Architectural Health & Technical Debt**
+
+- Gemini fetch interceptor + DOM scraper: two capture methods 
+  on one platform — is this sustainable or a maintenance burden?
+- @xenova/transformers: completely broken. How much of the 
+  codebase assumes it works? What silently degrades without it?
+- Migration engine: unified abstraction or 6 separate 
+  implementations with duplicated logic?
+- Usage metering: enforced client-side or server-side?
+  Client-side = trivially bypassable
+- Attention engine: using real embeddings or hardcoded keyword 
+  patterns? Is the answer knowable from the code?
+- Session rename: is it stored in the session object schema 
+  or as a separate metadata table? Future migration risk?
+
+---
+
+**DELIVERABLES:**
+
+**1. SYSTEMIC HEALTH SCORECARD**
+Rate each subsystem 1–5 (1=critical risk, 5=production ready):
+- Capture pipeline (DOM)
+- Capture pipeline (fetch intercept)
+- Remote config / DOM adaptability
+- IPC message bus
+- State synchronization
+- Session rename + Drive sync
+- Security / privacy / zero-knowledge claims
+- Semantic indexing (Tier 3)
+- Migration engine
+- Payment / subscription system
+
+**2. ARCHITECTURAL RISK MATRIX**
+Per risk:
+- Risk name
+- Affected subsystem
+- Likelihood: High / Medium / Low
+- User impact: Critical / High / Medium / Low
+- Current mitigation (if any)
+- Recommended mitigation
+Sorted by: Likelihood × Impact descending
+
+**3. ZERO-KNOWLEDGE COMPLIANCE REPORT**
+Binary per data type:
+- Raw conversation content → server? Yes / No / Partial
+- Session metadata → server? Yes / No / Partial
+- customName (rename) → server? Yes / No / Partial
+- Is the zero-knowledge claim legally and technically defensible?
+
+**4. PRE-LAUNCH BLOCKERS**
+Only issues that MUST be resolved before public launch.
+Format: [BLOCKER-N] Description — Why it blocks launch
+
+**5. NEW FEATURE RISK ASSESSMENT**
+For each recently added feature, rate launch readiness:
+- Gemini fetch interceptor: Ready / Needs work / Blocks launch
+- Quill injection (3-layer fallback): Ready / Needs work / Blocks launch
+- Remote config hot reload: Ready / Needs work / Blocks launch
+- Session rename + Drive sync: Ready / Needs work / Blocks launch
+- Server-side IP protection: Ready / Needs work / Blocks launch
+- International Razorpay payments: Ready / Needs work / Blocks launch
+- XML download fallback for migration: Ready / Needs work / Blocks launch
+
+**6. REFACTORING ROADMAP**
+Phase 1 — Before launch (structural fixes)
+Phase 2 — First month (consolidation)
+Phase 3 — 3-month horizon (scale preparation)
+
+**7. ONE HONEST SENTENCE**
+After all analysis: one sentence on overall launch readiness.
+
+---
+
+**CONSTRAINTS:**
+- No line-level code suggestions unless proposing a structural pattern
+- Focus on WHY not HOW
+- Be direct — do not soften critical findings
+- If zero-knowledge claim is violated anywhere: flag CRITICAL immediately
+- If something blocks launch: say so explicitly
+- Do not conflate "working in dev" with "production ready"
+```
+
+Model: Opus 4.6, Thinking ON, attach all files.
+
+The key additions over the previous prompt: Remote Config audit (Area 4), Gemini fetch interceptor dual-capture risk, session rename sync integrity, new feature risk assessment section, and the zero-knowledge compliance check now covers the server-side API routes specifically.]]>
+    </message>
+    <message index="19" role="user">
+      <![CDATA[web admin panel not working properly and refresh button is kinda stucky -- make it dynamic knowledge synthesizer panel is also not working properly and UI of this pnel is also squished 
+do 1 thing make the the logos od the llms half of ts current size              
+give me promtp]]>
+    </message>
+    <message index="20" role="assistant">
+      <![CDATA[```
+ATTACH:
+- packages/browser-extension/src/sidebar/ (ALL files — every component)
+- packages/browser-extension/src/sidebar/components/ (if separate)
+- packages/browser-extension/src/background/service-worker.ts
+- packages/browser-extension/src/background/semantic-index.ts
+
+READ ALL FILES FULLY before changing anything.
+Do not guess component names — find them from the actual file structure.
+
+════════════════════════════════════════
+CONTEXT FROM SCREENSHOTS
+════════════════════════════════════════
+
+Screenshot 1 shows the sidebar in normal session list view:
+- LLM platform boxes (Claude, ChatGPT, Gemini, Grok, Perplexity, DeepSeek) 
+  with session counts — these logos/icons are TOO LARGE, squishing layout
+- Refresh button exists near top — reported as "sticky/not working"
+- Session list shows correctly but panel feels cramped
+
+Screenshot 2 shows Knowledge Synthesizer panel (Pro feature):
+- Panel is squished — content overflows or clips
+- "Synthesize topics across all sessions" input is cut off
+- "INJECT INTO" dropdown with Claude selector visible
+- Search icon/button at bottom — reported as not working
+- Overall panel layout broken on the narrow sidebar width (~390px)
+
+════════════════════════════════════════
+TASK 1 — LLM Platform Icons: reduce to 50% size
+════════════════════════════════════════
+
+Find the 6 platform stat boxes (Claude, ChatGPT, Gemini, Grok, 
+Perplexity, DeepSeek) in the sidebar component.
+
+Each box shows: icon/logo + platform name + session count.
+
+Reduce the icon/logo element to exactly 50% of its current size:
+- If using width/height props: halve the values
+- If using Tailwind: go from e.g. w-8 h-8 → w-4 h-4
+- If using font-size for icon: halve it
+- Keep the session count number the same size
+- Keep the platform name text the same size
+- Do NOT change the box dimensions or grid layout
+
+════════════════════════════════════════
+TASK 2 — Fix Refresh Button (sticky/not responding)
+════════════════════════════════════════
+
+Find the refresh button near the top of the sidebar 
+(near the "CMD CENTER V1" or session count area).
+
+Current bug: button appears stuck — clicking has no visible feedback 
+and may not trigger a re-fetch.
+
+Fix:
+1. Find the onClick handler for the refresh button
+2. Verify it calls the correct message to service worker:
+   chrome.runtime.sendMessage({ type: 'GET_SESSIONS' }) 
+   or equivalent
+3. Add loading state:
+   - On click: set isRefreshing = true, rotate the refresh icon 
+     (CSS: animate-spin for 1 second minimum)
+   - On response received: set isRefreshing = false, stop spin
+   - Disable button while isRefreshing = true (prevent double-click)
+4. Add visual feedback: brief green flash or opacity change on success
+5. If the handler is missing entirely: wire it up to GET_SESSIONS message
+
+════════════════════════════════════════
+TASK 3 — Fix Knowledge Synthesizer Panel Layout
+════════════════════════════════════════
+
+The Knowledge Synthesizer panel is squished inside the ~390px sidebar.
+
+Fix the layout so all elements fit without clipping:
+
+1. Panel container:
+   - max-width: 100% — never exceed sidebar width
+   - overflow-y: auto — allow scrolling if content is tall
+   - padding: 12px — consistent internal spacing
+
+2. Input field ("Synthesize topics across all sessions"):
+   - width: 100% — full width of panel
+   - min-height: 60px — enough for text entry
+   - Do not clip placeholder text
+
+3. "INJECT INTO" dropdown:
+   - width: 100%
+   - Ensure Claude/ChatGPT/Gemini options render correctly
+
+4. Search/synthesize button at bottom:
+   - Full width OR centered with adequate padding
+   - Must be clickable — verify onClick fires correctly
+
+5. Fix the synthesizer functionality:
+   Find the synthesize handler. It should:
+   a. Take the input text query
+   b. Send message to service worker: 
+      { type: 'SEMANTIC_SEARCH', query: inputText, crossSession: true }
+      OR equivalent message type used in your codebase
+   c. Display results in the panel
+   d. On "INJECT INTO" selection + button click:
+      send the synthesized result to the selected platform's 
+      active tab via INJECT_CONTEXT message
+   
+   If the handler exists but does nothing: find why and fix the 
+   message routing. If semantic search is broken (known @xenova issue):
+   fall back to keyword search and show results with a note 
+   "Semantic search unavailable — showing keyword results"
+
+════════════════════════════════════════
+VERIFICATION
+════════════════════════════════════════
+- tsc --noEmit exits 0
+- Sidebar renders at 390px width without horizontal scroll
+- LLM icons visibly smaller (50% reduction confirmed)
+- Refresh button spins on click and stops when data loads
+- Knowledge Synthesizer panel: all elements visible, no clipping
+- Synthesizer input accepts text and button is clickable
+
+OUTPUT:
+- Diff per file changed
+- One line per fix: what was wrong, what was changed
+- "tsc exit 0 ✅"
+
+RULES:
+- Do not change any colors or visual design beyond what is specified
+- Do not touch service-worker.ts capture or migration logic
+- Do not touch any content scripts
+- Do not add new npm packages
+- Tailwind only for layout fixes — no new CSS files
+- Build must pass
+```
+
+Model: Sonnet 4.6, Thinking ON.
+
+The Knowledge Synthesizer fix depends on whether semantic search (@xenova) is working — it's currently broken. The prompt handles that with a keyword fallback so the panel at least does something useful even without embeddings.]]>
+    </message>
+  </conversation_tail>
+
+</contextmover_migration>
