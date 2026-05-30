@@ -9,7 +9,7 @@ export async function GET() {
     const { count } = await admin
       .from("subscriptions")
       .select("*", { count: "exact", head: true })
-      .eq("status", "active");
+      .in("status", ["created", "authenticated", "active"]);
     return NextResponse.json({ activeCount: count ?? 0 });
   } catch (err) {
     console.error("[CM:api:subscription-count] error:", err);

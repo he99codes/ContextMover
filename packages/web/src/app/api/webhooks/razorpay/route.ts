@@ -100,9 +100,9 @@ export async function POST(req: NextRequest) {
       case "subscription.charged": {
         if (!subEntity) break;
         const planId = subEntity.plan_id ?? "";
-        const plan = planId === process.env.RAZORPAY_PRO_ANNUAL_PLAN_ID ||
+        const interval = planId === process.env.RAZORPAY_PRO_ANNUAL_PLAN_ID ||
                      planId === process.env.RAZORPAY_PRO_ANNUAL_REGULAR_PLAN_ID
-          ? "annual" : "monthly";
+          ? "annual" : "monthly";   // [CM-RZP-FIX] plan='pro' always; interval stores billing period
         const currentStart = subEntity.current_start ? new Date(subEntity.current_start * 1000).toISOString() : null;
         const currentEnd = subEntity.current_end ? new Date(subEntity.current_end * 1000).toISOString() : null;
 
@@ -115,7 +115,8 @@ export async function POST(req: NextRequest) {
             razorpay_subscription_id: subId,
             user_id: userId,
             razorpay_plan_id: planId,
-            plan,
+            plan: "pro",              // [CM-RZP-FIX] plan='pro' always; interval stores billing period
+            interval,
             status: "active",
             current_start: currentStart,
             current_end: currentEnd,
@@ -123,7 +124,7 @@ export async function POST(req: NextRequest) {
           }, { onConflict: "razorpay_subscription_id" });
 
           await admin.from("users").update({
-            is_pro: true, plan, subscription_status: "active", razorpay_subscription_id: subId,
+            is_pro: true, plan: "pro", subscription_status: "active", razorpay_subscription_id: subId,
           }).eq("id", userId);
 
           const email = await getUserEmail(userId);

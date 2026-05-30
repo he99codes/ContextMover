@@ -13,7 +13,6 @@ import {
   getAuthUserFromRequest,
   getCurrentMonth,
   getTierKey,
-  getLimitKey,
   getUserPlan,
 } from "@/lib/usage/helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -67,21 +66,16 @@ export async function POST(req: NextRequest) {
     const admin = createAdminClient();
     const userPlan = await getUserPlan(user.id);
 
-    // Pro users are unlimited — skip the atomic decrement
-    const { data: planLimits } = await admin
-      .from("plan_limits")
-      .select("is_unlimited, tier1_limit, tier2_limit, tier3_limit")
-      .eq("plan", userPlan)
-      .maybeSingle();
-
-    if (planLimits?.is_unlimited) {
-      return NextResponse.json({ allowed: true, remaining: -1, plan: userPlan });
+    if (userPlan.isUnlimited) {
+      return NextResponse.json({ allowed: true, remaining: -1, plan: userPlan.plan });
     }
 
-    const month    = getCurrentMonth();
-    const tierKey  = getTierKey(tier);
-    const limitKey = getLimitKey(tier);
-    const limit    = (planLimits as Record<string, number> | null)?.[limitKey] ?? 10;
+    const month   = getCurrentMonth();
+    const tierKey = getTierKey(tier);
+    const limit   =
+      tier === 1 ? userPlan.tier1Limit :
+      tier === 2 ? userPlan.tier2Limit :
+      userPlan.tier3Limit;
 
     const { data, error } = await admin.rpc("decrement_migration_safe_v2", {
       p_user_id:     user.id,

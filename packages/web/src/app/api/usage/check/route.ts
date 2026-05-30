@@ -13,7 +13,6 @@ import {
   getAuthUserFromRequest,
   getCurrentMonth,
   getTierKey,
-  getLimitKey,
   getUserPlan,
 } from "@/lib/usage/helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -59,17 +58,10 @@ export async function POST(req: NextRequest) {
   const month = getCurrentMonth();
   const userPlan = await getUserPlan(user.id);
 
-  const admin = createAdminClient();
-  const { data: planLimits } = await admin
-    .from("plan_limits")
-    .select("tier1_limit, tier2_limit, tier3_limit, is_unlimited")
-    .eq("plan", userPlan)
-    .maybeSingle();
-
-  if (planLimits?.is_unlimited) {
+  if (userPlan.isUnlimited) {
     return NextResponse.json({
       allowed: true,
-      plan: userPlan,
+      plan: userPlan.plan,
       unlimited: true,
       used: 0,
       limit: -1,
@@ -86,7 +78,9 @@ export async function POST(req: NextRequest) {
 
   const count = (usageRow?.[getTierKey(tier)] as number | undefined) ?? 0;
   const limit =
-    (planLimits?.[getLimitKey(tier)] as number | undefined) ?? 0;
+    tier === 1 ? userPlan.tier1Limit :
+    tier === 2 ? userPlan.tier2Limit :
+    userPlan.tier3Limit;
 
   if (count >= limit) {
     const now = new Date();
@@ -98,7 +92,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       allowed: false,
       reason: "limit_reached",
-      plan: userPlan,
+      plan: userPlan.plan,
       tier,
       used: count,
       limit,
@@ -111,7 +105,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     allowed: true,
-    plan: userPlan,
+    plan: userPlan.plan,
     unlimited: false,
     tier,
     used: count,

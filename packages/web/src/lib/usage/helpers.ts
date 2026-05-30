@@ -31,24 +31,43 @@ export function getLimitKey(
   return "tier3_limit";
 }
 
-export async function getUserPlan(userId: string): Promise<string> {
+export interface UserPlanResult {
+  plan: string;
+  interval: string | null;
+  isUnlimited: boolean;
+  tier1Limit: number;
+  tier2Limit: number;
+  tier3Limit: number;
+}
+
+export async function getUserPlan(userId: string): Promise<UserPlanResult> {
+  // [CM-RZP-FIX] query by plan='pro' which matches plan_limits table
   const admin = createAdminClient();
   const { data } = await admin
     .from("subscriptions")
-    .select("plan, status, current_period_end")
+    .select("plan, status, interval, current_end")
     .eq("user_id", userId)
+    .in("status", ["active", "authenticated"])
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  const now = new Date().toISOString();
-  if (
-    data &&
-    data.status === "active" &&
-    data.current_period_end &&
-    data.current_period_end > now
-  ) {
-    return data.plan;
-  }
-  return "free";
+  const planName = data?.plan ?? "free";
+
+  const { data: planLimits } = await admin
+    .from("plan_limits")
+    .select("tier1_limit, tier2_limit, tier3_limit, is_unlimited")
+    .eq("plan", planName)
+    .maybeSingle();
+
+  return {
+    plan: planName,
+    interval: data?.interval ?? null,
+    isUnlimited: planLimits?.is_unlimited ?? false,
+    tier1Limit: planLimits?.tier1_limit ?? 8,
+    tier2Limit: planLimits?.tier2_limit ?? 3,
+    tier3Limit: planLimits?.tier3_limit ?? 3,
+  };
 }
 
 export async function getAuthUserFromRequest(

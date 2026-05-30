@@ -25,12 +25,6 @@ export async function GET(req: NextRequest) {
 
   const admin = createAdminClient();
 
-  const { data: planLimits } = await admin
-    .from("plan_limits")
-    .select("tier1_limit, tier2_limit, tier3_limit, is_unlimited")
-    .eq("plan", userPlan)
-    .maybeSingle();
-
   const { data: usageRow } = await admin
     .from("usage_counters")
     .select("tier1_count, tier2_count, tier3_count")
@@ -38,7 +32,7 @@ export async function GET(req: NextRequest) {
     .eq("month", month)
     .maybeSingle();
 
-  const unlimited = Boolean(planLimits?.is_unlimited);
+  const unlimited = userPlan.isUnlimited;
 
   const tierUsed = (n: 1 | 2 | 3): number => {
     const key = `tier${n}_count` as "tier1_count" | "tier2_count" | "tier3_count";
@@ -46,8 +40,7 @@ export async function GET(req: NextRequest) {
   };
   const tierLimit = (n: 1 | 2 | 3): number => {
     if (unlimited) return -1;
-    const key = `tier${n}_limit` as "tier1_limit" | "tier2_limit" | "tier3_limit";
-    return (planLimits?.[key] as number | undefined) ?? 0;
+    return n === 1 ? userPlan.tier1Limit : n === 2 ? userPlan.tier2Limit : userPlan.tier3Limit;
   };
   const tierRemaining = (n: 1 | 2 | 3): number =>
     unlimited ? -1 : Math.max(0, tierLimit(n) - tierUsed(n));
@@ -59,7 +52,7 @@ export async function GET(req: NextRequest) {
   );
 
   return NextResponse.json({
-    plan: userPlan,
+    plan: userPlan.plan,
     unlimited,
     month,
     resetDate: resetDate.toISOString(),

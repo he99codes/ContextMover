@@ -28,15 +28,41 @@ export async function POST(req: NextRequest) {
     }
 
     const admin = createAdminClient();
+    const { data: sub } = await admin
+      .from("subscriptions")
+      .select("interval")
+      .eq("razorpay_subscription_id", razorpay_subscription_id)
+      .single();
+
+    const interval = sub?.interval ?? "monthly";
+    const periodEnd = new Date();
+    if (interval === "annual") {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    } else {
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+    }
+
     await admin.from("subscriptions")
-      .update({ status: "authenticated", updated_at: new Date().toISOString() })
+      .update({
+        status: "active",
+        plan: "pro",
+        current_start: new Date().toISOString(),
+        current_end: periodEnd.toISOString(),
+        updated_at: new Date().toISOString(),
+      })
       .eq("razorpay_subscription_id", razorpay_subscription_id);
 
     await admin.from("users")
-      .update({ razorpay_subscription_id, subscription_status: "authenticated" })
+      .update({
+        is_pro: true,
+        plan: "pro",
+        subscription_status: "active",
+        razorpay_subscription_id,
+        pro_since: new Date().toISOString(),
+      })
       .eq("id", userId);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, isPro: true, plan: "pro" });
   } catch (err) {
     console.error("[verify-subscription]", err);
     const message = err instanceof Error ? err.message : "Verification failed";

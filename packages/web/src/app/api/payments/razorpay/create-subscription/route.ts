@@ -59,7 +59,13 @@ export async function POST(req: NextRequest) {
       user_id: userId,
       razorpay_subscription_id: subscription.id,
       razorpay_plan_id: planId,
-      plan: billing,
+      plan: "pro",                    // [CM-RZP-FIX] plan='pro' for plan_limits lookup; interval stores billing period
+      interval: billing,
+      amount: billing === "annual"
+        ? (earlyBird ? 239_900 : 399_900)
+        : (earlyBird ? 29_900 : 49_900),
+      currency: "inr",
+      gateway: "razorpay",
       status: "created",
     }, { onConflict: "razorpay_subscription_id" });
 
