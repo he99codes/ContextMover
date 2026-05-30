@@ -56,16 +56,6 @@ export function PricingClient() {
         const { data: { user: u } } = await supabase.auth.getUser();
         setUser(u);
 
-        if (u) {
-          const { data } = await supabase
-            .from("users")
-            .select("is_pro")
-            .eq("id", u.id)
-            .single();
-          const profile = data as { is_pro: boolean } | null;
-          setIsPro(profile?.is_pro ?? false);
-        }
-
         // Fetch active subscriptions to determine Early Bird availability
         try {
           const countRes = await fetch("/api/payments/subscription-count");
