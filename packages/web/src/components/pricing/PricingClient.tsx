@@ -67,15 +67,17 @@ export function PricingClient() {
         }
 
         // Fetch active subscriptions to determine Early Bird availability
-        const { count } = await supabase
-          .from("subscriptions")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "active");
-          
-        const spots = EARLY_BIRD_LIMIT - (count ?? 0);
-        const available = Math.max(0, spots);
-        setSpotsLeft(available);
-        setIsEarlyBird(available > 0);
+        try {
+          const countRes = await fetch("/api/payments/subscription-count");
+          const countData = await countRes.json();
+          const spots = EARLY_BIRD_LIMIT - (countData.activeCount ?? 0);
+          const available = Math.max(0, spots);
+          setSpotsLeft(available);
+          setIsEarlyBird(available > 0);
+        } catch {
+          setSpotsLeft(EARLY_BIRD_LIMIT);
+          setIsEarlyBird(true);
+        }
 
       } finally {
         setLoading(false);

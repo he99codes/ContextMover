@@ -14,20 +14,12 @@
 import { useEffect, useState } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { createClient } from "@/lib/supabase/client";
-import PricingSection from "@/components/pricing/PricingSection";
+import { PricingClient } from "@/components/pricing/PricingClient";
 
-
-// Razorpay subscription-mode constructor (different option shape from the
-// one-shot order constructor declared globally in `types/razorpay.d.ts`).
-// We cast `window.Razorpay` to this loose shape at call site.
-interface SubscriptionRazorpayCtor {
-  new (options: Record<string, unknown>): { open: () => void };
-}
 
 export default function PricingPage() {
   const { isPro } = useSubscription();
   const supabase = createClient();
-  const [, setCheckoutLoading] = useState<"pro" | null>(null);
   const [mockNotice, setMockNotice] = useState<string | null>(null);
 
   // Clear mock-mode notice after a few seconds.
@@ -37,137 +29,6 @@ export default function PricingPage() {
     return () => clearTimeout(t);
   }, [mockNotice]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async function handleUpgrade(planType: "pro") {
-    setCheckoutLoading(planType);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        window.location.href = "/login?redirect=/pricing";
-        return;
-      }
-
-      const res = await fetch("/api/payments/subscription", {
-        method:  "POST",
-        headers: {
-          "Content-Type":  "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ plan: planType }),
-      });
-
-      const data = await res.json();
-
-      if (data.mock) {
-        setMockNotice(
-          `[Mock mode] Would start ${data.gateway ?? "payment"} checkout for ${planType} · ${data.amount ?? ""}`
-        );
-        return;
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else if (data.subscriptionId) {
-        // Razorpay subscription modal.
-        openRazorpayCheckout(data);
-      } else if (data.orderId) {
-        // Razorpay Standard Checkout (no subscription plan configured).
-        openRazorpayOrderCheckout({ ...data, plan: planType });
-      } else if (data.error) {
-        setMockNotice(`Checkout error: ${data.error}`);
-      }
-    } catch (err) {
-      console.error("Checkout failed:", err);
-      setMockNotice("Checkout failed — please try again.");
-    } finally {
-      setCheckoutLoading(null);
-    }
-  }
-
-  function openRazorpayCheckout(data: {
-    keyId?:          string;
-    subscriptionId?: string;
-  }) {
-    // The global `window.Razorpay` type in types/razorpay.d.ts is for one-shot
-    // ORDER checkouts (requires amount/order_id). For SUBSCRIPTION checkouts
-    // we use a different option shape, so we cast through unknown.
-    const Ctor = (window as unknown as { Razorpay?: SubscriptionRazorpayCtor }).Razorpay;
-    if (!Ctor) {
-      setMockNotice("Razorpay SDK not loaded yet — refresh and try again.");
-      return;
-    }
-    const options: Record<string, unknown> = {
-      key:             data.keyId,
-      subscription_id: data.subscriptionId,
-      name:            "ContextMover",
-      description:     "Pro Plan — Unlimited AI context migration",
-      image:           "/icon128.png",
-      theme:           { color: "#00FF88" },
-      handler:         () => { window.location.href = "/settings?payment=success"; },
-    };
-    new Ctor(options).open();
-  }
-
-  function openRazorpayOrderCheckout(data: {
-    keyId?:    string;
-    orderId?:  string;
-    amount?:   number;
-    currency?: string;
-    plan?:     string;
-  }) {
-    const Ctor = (window as unknown as { Razorpay?: SubscriptionRazorpayCtor }).Razorpay;
-    if (!Ctor) {
-      setMockNotice("Razorpay SDK not loaded yet — refresh and try again.");
-      return;
-    }
-    const planLabel = (data.plan ?? "pro");
-    const options: Record<string, unknown> = {
-      key:         data.keyId,
-      amount:      data.amount,
-      currency:    data.currency ?? "INR",
-      name:        "ContextMover",
-      description: `${planLabel.charAt(0).toUpperCase() + planLabel.slice(1)} Plan — Unlimited AI context migration`,
-      order_id:    data.orderId,
-      image:       "/icon128.png",
-      theme:       { color: "#00FF88" },
-      modal: {
-        ondismiss: () => setCheckoutLoading(null),
-        confirm_close: true,
-        escape: true,
-        backdropclose: true,
-      },
-      "payment.failed": (response: { error: { description: string; code?: string } }) => {
-        setMockNotice(`Payment failed: ${response.error.description}`);
-        setCheckoutLoading(null);
-      },
-      handler: async (response: {
-        razorpay_payment_id: string;
-        razorpay_order_id:   string;
-        razorpay_signature:  string;
-      }) => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          const verifyRes = await fetch("/api/payments/razorpay/verify", {
-            method:  "POST",
-            headers: {
-              "Content-Type":  "application/json",
-              ...(session ? { "Authorization": `Bearer ${session.access_token}` } : {}),
-            },
-            body: JSON.stringify({ ...response, plan: data.plan ?? "pro" }),
-          });
-          if (verifyRes.ok) {
-            window.location.href = "/settings?payment=success";
-          } else {
-            const err = (await verifyRes.json()) as { error?: string };
-            setMockNotice(`Payment verification failed: ${err.error ?? "unknown"}`);
-          }
-        } catch {
-          setMockNotice("Payment verification failed — please contact support.");
-        }
-      },
-    };
-    new Ctor(options).open();
-  }
 
   async function activateMockPro() {
     try {
@@ -220,7 +81,7 @@ export default function PricingPage() {
         </div>
       )}
 
-      <PricingSection />
+      <PricingClient />
 
       {/* Dev-only mock upgrade — never shipped to production builds */}
       {isDev && !isPro && (

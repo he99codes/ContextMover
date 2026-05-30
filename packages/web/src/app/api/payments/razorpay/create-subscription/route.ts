@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,25 @@ export async function POST(req: NextRequest) {
     const { billing, userId, userEmail, earlyBird } = await req.json();
     if (!billing || !userId || !["monthly", "annual"].includes(billing)) {
       return NextResponse.json({ error: "billing (monthly|annual) and userId required" }, { status: 400 });
+    }
+
+    // ── Auth validation ──────────────────────────────────────────────────
+    const authHeader = req.headers.get("authorization") ?? "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const supabaseAuth = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: { user }, error: authErr } = await supabaseAuth.auth.getUser(token);
+    if (authErr || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (user.id !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const planId = billing === "annual"
@@ -30,7 +50,7 @@ export async function POST(req: NextRequest) {
       plan_id: planId,
       customer_notify: 1,
       quantity: 1,
-      total_count: billing === "annual" ? 12 : 120,
+      total_count: billing === "annual" ? 12 : 12,
       notes: { userId, userEmail: userEmail ?? "", billing, earlyBird: String(earlyBird) },
     });
 
