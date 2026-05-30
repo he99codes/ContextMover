@@ -93,6 +93,24 @@ export async function reportScraperBroken(payload: {
   }
 }
 
+export async function reportInjectionError(payload: { platform: string; reason: string; href?: string; timestamp?: number; tier?: number; strategy?: string }): Promise<void> {
+  try {
+    await withTimeout(
+      fetch(`${API_BASE}/api/telemetry/injection-error`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+      TIMEOUT_TELEMETRY_MS
+    );
+  } catch { /* silent */ }
+}
+
+export async function reportExtensionEvent(payload: { event: string; platform?: string; detail?: string; timestamp?: number; tier?: number; sessionMessageCount?: number }): Promise<void> {
+  try {
+    await withTimeout(
+      fetch(`${API_BASE}/api/telemetry/extension-event`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+      TIMEOUT_TELEMETRY_MS
+    );
+  } catch { /* silent */ }
+}
+
 // ── Attention Score ───────────────────────────────────────────────────────────
 
 export interface AttentionScoreResult {

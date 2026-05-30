@@ -24,7 +24,7 @@ import { buildTier1File, buildTier2File, buildTier3File, getMessagesFromChunks }
 import { buildInstructionPrompt } from "@/lib/instruction-builder"
 import { checkUsage, incrementUsage } from "@/lib/usage-client"
 import type { MigrationFile } from "@/lib/file-builder"
-import { fetchSummary, fetchMigrationBuild, reportScraperBroken } from "@/lib/server-intelligence-client"
+import { fetchSummary, fetchMigrationBuild, reportScraperBroken, reportInjectionError, reportExtensionEvent } from "@/lib/server-intelligence-client"
 import { getRemoteConfig } from "@/lib/remote-config"
 // Drive sync — additive layer over IndexedDB. Independent of Supabase vault.
 import { driveClient } from "@/lib/drive/drive-client";
@@ -2046,6 +2046,7 @@ async function handleMigrateContext(
   activeMigrationInProgress = true;
   reportProgress(10, 'Loading session...')
   const tier = (payload.tier ?? 2) as 1 | 2 | 3
+  void reportExtensionEvent({ event: 'migration_start', platform: session.platform, tier, sessionMessageCount: session.messages.length, timestamp: Date.now() });
   let migrationFile: MigrationFile
   let coverageStats: IntelligentSummary['coverageStats']
   reportProgress(20, 'Building context file...')
@@ -2161,6 +2162,7 @@ async function handleMigrateContext(
     }
   } catch (err: any) {
     console.warn('[CM:sw] File build failed, falling back to tier 1:', err)
+    void reportExtensionEvent({ event: 'migration_fallback', platform: session.platform, tier, detail: String(err instanceof Error ? err.message : err).slice(0, 200), timestamp: Date.now() });
     migrationFile = buildTier1File(session)
     // Notify sidebar so the user knows the context was compressed.
     void broadcastToViews({
@@ -2259,6 +2261,7 @@ async function handleMigrateContext(
       } catch (err) {
         injectionError = err instanceof Error ? err.message : String(err);
         console.warn('[CM:sw] Tier 1 file injection failed:', err);
+        void reportInjectionError({ platform: payload.targetPlatform, reason: `t1_${injectionError.slice(0,200)}`, timestamp: Date.now(), tier: 1 });
       }
     } else {
       console.log('[CM:sw] Tier 1 skipAutoInject=true — injection deferred to MigrationModal button click');
@@ -2283,11 +2286,13 @@ async function handleMigrateContext(
           } else {
             injectionError = execRes?.error ?? `Content script did not respond after 8 pings and direct injection also failed — reload the ${payload.targetPlatform} tab and retry.`;
             console.warn(`[CM:sw] Tab ${payload.targetTabId} executeScript fallback failed:`, injectionError);
+            void reportInjectionError({ platform: payload.targetPlatform, reason: `exec_${injectionError.slice(0,200)}`, timestamp: Date.now(), tier, strategy: 'executeScript' });
           }
         } catch (scriptErr) {
           const scriptMsg = scriptErr instanceof Error ? scriptErr.message : String(scriptErr);
           injectionError = `Content script not ready after 8 pings; direct injection also failed: ${scriptMsg}. Reload the ${payload.targetPlatform} tab and retry.`;
           console.warn(`[CM:sw] Tab ${payload.targetTabId} executeScript fallback threw:`, scriptErr);
+          void reportInjectionError({ platform: payload.targetPlatform, reason: `scriptErr_${injectionError.slice(0,200)}`, timestamp: Date.now(), tier, strategy: 'executeScript' });
         }
       } else {
         const result = await sendMessageToTab(payload.targetTabId, {
@@ -2296,11 +2301,15 @@ async function handleMigrateContext(
           platform: payload.targetPlatform
         })
         injected = result?.ok ?? false
-        if (!result.ok) injectionError = result.error;
+        if (!result.ok) {
+          injectionError = result.error;
+          void reportInjectionError({ platform: payload.targetPlatform, reason: `cs_${injectionError.slice(0,200)}`, timestamp: Date.now(), tier, strategy: 'contentScript' });
+        }
       }
     } catch (err) {
       injectionError = err instanceof Error ? err.message : String(err);
       console.warn('[CM:sw] Injection failed (non-fatal):', err)
+      void reportInjectionError({ platform: payload.targetPlatform, reason: `general_${injectionError.slice(0,200)}`, timestamp: Date.now(), tier });
     }
   }
   const elapsed = performance.now() - t0
@@ -2323,6 +2332,7 @@ async function handleMigrateContext(
     void incrementUsage(tier, accessToken);
   }
   activeMigrationInProgress = false;
+  void reportExtensionEvent({ event: 'migration_success', platform: session.platform, tier, detail: injected ? 'injected' : 'prepared', timestamp: Date.now() });
   sendResponse({
     success: true,
     injected,
@@ -2376,6 +2386,8 @@ async function syncOpenTabs() {
         });
       } catch (error) {
         console.warn("[ContextMover] Tab sync failed:", platform, tab.id, error);
+        const tabUrl = tab.url ?? "";
+        void reportScraperBroken({ platform, reason: String(error).slice(0, 200), href: tabUrl, timestamp: Date.now() });
       }
     }
   }

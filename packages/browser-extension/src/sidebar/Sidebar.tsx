@@ -15,6 +15,7 @@ import KnowledgeSynthesizer from "./components/KnowledgeSynthesizer";
 import { QualityScoreCard } from "./QualityScoreCard";
 import type { QualityScore } from "@/lib/quality/migration-scorer";
 import { getUsageStatus, type UsageStatus } from "@/lib/usage-client";
+import { getRemoteUpdateInfo } from "@/lib/remote-config";
 import { attentionEngine } from "@/lib/attention-engine";
 import { capabilityDetector } from "@/lib/capability-detector";
 import { projectReader } from "@/lib/file-system/project-reader";
@@ -413,6 +414,7 @@ export default function Sidebar() {
   const [indexStats, setIndexStats] = useState<IndexStats | null>(null);
   const [indexStatsLoading, setIndexStatsLoading] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
+  const [remoteUpdateMessage, setRemoteUpdateMessage] = useState<string | null>(null);
 
   // ── Drive sync state — fetched on mount + when settings panel opens ────────
   const [driveStatus, setDriveStatus] = useState<{
@@ -476,7 +478,7 @@ export default function Sidebar() {
     if (showSettings) refreshDriveStatus();
   }, [showSettings, refreshDriveStatus]);
 
-  // ── Update check — compare manifest version vs hosted extension-version.json ──
+  // ── Update check — compare manifest version vs hosted extension-version.json + remote config ──
   useEffect(() => {
     const current = chrome.runtime.getManifest().version;
     fetch("https://contextmover.com/extension-version.json", { cache: "no-store" })
@@ -487,6 +489,12 @@ export default function Sidebar() {
         }
       })
       .catch(() => {});
+
+    getRemoteUpdateInfo().then((info) => {
+      if (info?.forceUpdate && info.message) {
+        setRemoteUpdateMessage(info.message);
+      }
+    }).catch(() => {});
   }, []);
 
 
@@ -1219,6 +1227,16 @@ export default function Sidebar() {
             <button
               onClick={() => setUpdateAvailable(null)}
               style={{ flexShrink: 0, background: "none", border: "none", color: "#00D26A", cursor: "pointer", fontSize: 11, lineHeight: 1, padding: 0 }}
+            >×</button>
+          </div>
+        )}
+        {remoteUpdateMessage && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", background: "rgba(255,170,0,0.07)", borderBottom: "1px solid rgba(255,170,0,0.2)", fontSize: 9, color: "#FFAA00", lineHeight: 1.4 }}>
+            <span style={{ flexShrink: 0 }}>⚡</span>
+            <span style={{ flex: 1 }}>{remoteUpdateMessage}</span>
+            <button
+              onClick={() => setRemoteUpdateMessage(null)}
+              style={{ flexShrink: 0, background: "none", border: "none", color: "#FFAA00", cursor: "pointer", fontSize: 11, lineHeight: 1, padding: 0 }}
             >×</button>
           </div>
         )}

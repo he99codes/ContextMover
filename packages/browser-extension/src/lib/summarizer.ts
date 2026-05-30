@@ -1028,9 +1028,10 @@ export function summarizeIntelligent(messages: Message[], task?: string): Intell
   }
   const completed = dedupe(rawCompleted).slice(0, 12);
 
-  // ── 8. Pending tasks — same PENDING_RE, last 20 messages ─────────────────
+  // ── 8. Pending tasks — same PENDING_RE, last 40 messages ─────────────────
+  // [CM-FIX] expanded pending scan window from 20 to 40 messages
   const rawPending: string[] = [];
-  for (const msg of messages.slice(-20)) {
+  for (const msg of messages.slice(-40)) {
     if (!PENDING_RE.some((re) => re.test(msg.content))) continue;
     const sentences = msg.content.split(/[.!?\n]/).filter((s) => s.trim().length > 15);
     for (const sentence of sentences) {
