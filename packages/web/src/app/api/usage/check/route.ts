@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
 
   const month = getCurrentMonth();
   const userPlan = await getUserPlan(user.id);
+  const admin = createAdminClient();
 
   if (userPlan.isUnlimited) {
     return NextResponse.json({
