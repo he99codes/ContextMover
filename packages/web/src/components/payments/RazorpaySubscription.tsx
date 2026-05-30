@@ -30,7 +30,10 @@ export function RazorpaySubscription({ billing, earlyBird, onSuccess }: Props) {
       // Step 1: Create subscription server-side
       const res = await fetch("/api/payments/razorpay/create-subscription", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           billing,
           userId: session.user.id,
@@ -70,7 +73,10 @@ export function RazorpaySubscription({ billing, earlyBird, onSuccess }: Props) {
           // Step 4: Verify on backend
           const verifyRes = await fetch("/api/payments/razorpay/verify-subscription", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`,
+            },
             body: JSON.stringify({
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_subscription_id: "razorpay_subscription_id" in response ? response.razorpay_subscription_id : undefined,
