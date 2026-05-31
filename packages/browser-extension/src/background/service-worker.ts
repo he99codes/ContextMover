@@ -434,7 +434,7 @@ async function refreshRemoteConfig(): Promise<void> {
     await chrome.storage.local.remove("remoteConfigTs");
     const cfg = await getRemoteConfig();
     if (cfg) {
-      console.log(`[CM:config] Remote config refreshed, version ${cfg.version}`);
+      console.log(`[CM:config] Remote config refreshed.`);
     } else {
       console.log("[CM:config] Remote config fetch failed, using defaults");
     }

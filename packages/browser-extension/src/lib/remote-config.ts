@@ -85,8 +85,8 @@ export async function getPlatformSelectors(platform: string): Promise<PlatformSe
 }
 
 export async function getInjectionStrategy(platform: string): Promise<InjectionStrategy | null> {
-  const config = await getRemoteConfig();
-  return config?.injectionStrategies?.[platform] ?? null;
+  // This function is no longer supported with the new remote config structure.
+  return null;
 }
 
 // This function is no longer supported with the new remote config structure.
