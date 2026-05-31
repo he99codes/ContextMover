@@ -7,7 +7,7 @@ const ADMIN_EMAIL = "priyanshu2164@gmail.com";
 
 export async function requireAdmin(
   req: NextRequest
-): Promise<{ userId: string } | NextResponse> {
+): Promise<{ userId: string; email: string } | NextResponse> {
   const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
@@ -17,5 +17,5 @@ export async function requireAdmin(
   if (data.user.email !== ADMIN_EMAIL)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  return { userId: data.user.id };
+  return { userId: data.user.id, email: data.user.email };
 }

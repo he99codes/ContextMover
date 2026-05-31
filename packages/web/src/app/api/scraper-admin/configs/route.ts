@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // GET all platform configs
-export async function GET(req: NextRequest) {
+export async function GET() {
   // NOTE: This endpoint is public for the extension to fetch, so no admin guard here.
   // A separate admin-only endpoint will handle writes.
   const supabase = createAdminClient();
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   const { platform_id, selectors, is_enabled } = (await req.json()) as {
     platform_id: string;
-    selectors: any;
+    selectors: Record<string, string | undefined>;
     is_enabled: boolean;
   };
 

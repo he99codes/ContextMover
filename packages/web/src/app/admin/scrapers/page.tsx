@@ -4,10 +4,14 @@
 import { useEffect, useState } from 'react';
 
 // Define types to match the backend
+interface PlatformSelectors {
+  [key: string]: string | undefined;
+}
+
 interface PlatformConfig {
   platform_id: string;
   is_enabled: boolean;
-  selectors: any;
+  selectors: PlatformSelectors;
   last_updated_at: string;
   updated_by: string;
 }
