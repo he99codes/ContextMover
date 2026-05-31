@@ -2384,7 +2384,7 @@ async function handleMigrateContext(
     } else {
       console.log('[CM:sw] Tier 1 skipAutoInject=true — injection deferred to MigrationModal button click');
     }
-  } else {
+  } else if (!payload.skipAutoInject) {
     try {
       // Phase 1+2: wait for tab load + content-script ping (8 × 1500ms).
       // If all pings fail, try a direct executeScript injection as last resort.
@@ -2429,6 +2429,8 @@ async function handleMigrateContext(
       console.warn('[CM:sw] Injection failed (non-fatal):', err)
       void reportInjectionError({ platform: payload.targetPlatform, reason: `general_${injectionError.slice(0,200)}`, timestamp: Date.now(), tier });
     }
+  } else {
+    console.log(`[CM:sw] Tier ${tier} skipAutoInject=true — injection deferred to MigrationModal button click`);
   }
   const elapsed = performance.now() - t0
   reportProgress(100, 'Done')

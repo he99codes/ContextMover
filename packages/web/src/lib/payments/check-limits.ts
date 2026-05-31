@@ -10,7 +10,7 @@
 // Uses the admin client so it works in API routes + webhooks.
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type LimitedFeature = "migrations" | "summarizations" | "attention_engine";
+export type MigrationTier = 1 | 2 | 3;
 
 export interface LimitResult {
   allowed:   boolean;
@@ -20,10 +20,10 @@ export interface LimitResult {
 }
 
 // Free-tier monthly limits per feature.
-const FREE_LIMITS: Record<LimitedFeature, number> = {
-  migrations:       50,
-  summarizations:   50,
-  attention_engine: 10,
+const FREE_LIMITS: Record<MigrationTier, number> = {
+  1: 50, // Tier 1: Full Context
+  2: 50, // Tier 2: Smart Summary
+  3: 10, // Tier 3: Attention Engine
 };
 
 // Returns the current UTC month key, e.g. '2026-05'.
@@ -33,15 +33,16 @@ function currentMonth(): string {
 }
 
 /**
- * Check whether `userId` is allowed to use `feature` this month.
+ * Check whether `userId` is allowed to use `tier` this month.
  * Pro users bypass all limits.
  */
 export async function checkLimit(
   userId:  string,
-  feature: LimitedFeature
+  tier: MigrationTier
 ): Promise<LimitResult> {
   const supabase = createAdminClient();
-  const limit    = FREE_LIMITS[feature];
+  const limit    = FREE_LIMITS[tier];
+  const tierColumn = `tier${tier}_count` as const;
 
     // Pro users have no limits.
   const { data: profileRaw } = await supabase
@@ -58,15 +59,14 @@ export async function checkLimit(
   // Read current usage.
   const month = currentMonth();
   const { data: usageRaw } = await supabase
-    .from("usage")
-    .select("count")
+    .from("usage_counters")
+    .select(tierColumn)
     .eq("user_id", userId)
-    .eq("feature",  feature)
     .eq("month",    month)
     .single();
 
-  const usageRow = usageRaw as { count: number } | null;
-  const used     = usageRow?.count ?? 0;
+  const usageRow = usageRaw as { [key: string]: number } | null;
+  const used     = usageRow?.[tierColumn] ?? 0;
   const remaining = Math.max(0, limit - used);
 
   return {
@@ -84,23 +84,31 @@ export async function checkLimit(
  */
 export async function incrementUsage(
   userId:  string,
-  feature: LimitedFeature
+  tier: 1 | 2 | 3
 ): Promise<void> {
   const supabase = createAdminClient();
   const month    = currentMonth();
+  const tierColumn = `tier${tier}_count` as const;
 
+  // Increment the monthly usage counter for the user
   const { data: existing } = await supabase
-    .from("usage")
-    .select("count")
+    .from("usage_counters")
+    .select(tierColumn)
     .eq("user_id", userId)
-    .eq("feature",  feature)
     .eq("month",    month)
     .single();
 
-  const currentCount = (existing as { count: number } | null)?.count ?? 0;
+  const currentCount = (existing as { [key: string]: number } | null)?.[tierColumn] ?? 0;
 
-  await supabase.from("usage").upsert(
-    { user_id: userId, feature, month, count: currentCount + 1 },
-    { onConflict: "user_id,feature,month" }
+  await supabase.from("usage_counters").upsert(
+    {
+      user_id: userId,
+      month,
+      [tierColumn]: currentCount + 1
+    },
+    { onConflict: "user_id,month" }
   );
+
+  // Also increment the global total migrations counter
+  await supabase.rpc('increment_total_migrations', { increment_value: 1 });
 }

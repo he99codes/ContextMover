@@ -8,7 +8,7 @@
 // so broken platform selectors and injection methods can be patched without a
 // Chrome Store resubmission.
 
-const CONFIG_URL = "https://contextmover.com/api/config/selectors";
+const CONFIG_URL = "https://contextmover.com/api/scraper-admin/configs";
 const CACHE_KEY = "remoteConfig";
 const CACHE_TS_KEY = "remoteConfigTs";
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
@@ -30,29 +30,21 @@ export interface InjectionStrategy {
   scrollContainer?: string;
 }
 
-export interface RemoteConfig {
-  version: string;
-  updatedAt: string;
-  platforms: Record<string, PlatformSelectors>;
-  injectionStrategies?: Record<string, InjectionStrategy>;
-  forceUpdate?: boolean;
-  updateMessage?: string;
-  minVersion?: string;
-}
+export type RemoteConfig = Array<{
+  platform_id: string;
+  is_enabled: boolean;
+  selectors: PlatformSelectors;
+  last_updated_at: string;
+  updated_by: string;
+}>;
 
 function isValidConfig(v: unknown): v is RemoteConfig {
-  if (typeof v !== "object" || v === null) return false;
-  const obj = v as Record<string, unknown>;
-  if (typeof obj["version"] !== "string") return false;
-  if (typeof obj["updatedAt"] !== "string") return false;
-  if (typeof obj["platforms"] !== "object" || obj["platforms"] === null) return false;
-  const platforms = obj["platforms"] as Record<string, unknown>;
-  for (const key of Object.keys(platforms)) {
-    const p = platforms[key];
-    if (typeof p !== "object" || p === null) return false;
-    for (const [, val] of Object.entries(p as object)) {
-      if (val !== undefined && typeof val !== "string") return false;
-    }
+  if (!Array.isArray(v)) return false;
+  for (const item of v) {
+    if (typeof item !== "object" || item === null) return false;
+    if (typeof item.platform_id !== "string") return false;
+    if (typeof item.is_enabled !== "boolean") return false;
+    if (typeof item.selectors !== "object" || item.selectors === null) return false;
   }
   return true;
 }
@@ -87,7 +79,9 @@ export async function getRemoteConfig(): Promise<RemoteConfig | null> {
 
 export async function getPlatformSelectors(platform: string): Promise<PlatformSelectors | null> {
   const config = await getRemoteConfig();
-  return config?.platforms[platform] ?? null;
+  const platformConfig = config?.find(p => p.platform_id === platform);
+  if (!platformConfig || !platformConfig.is_enabled) return null;
+  return platformConfig.selectors;
 }
 
 export async function getInjectionStrategy(platform: string): Promise<InjectionStrategy | null> {
@@ -95,14 +89,9 @@ export async function getInjectionStrategy(platform: string): Promise<InjectionS
   return config?.injectionStrategies?.[platform] ?? null;
 }
 
+// This function is no longer supported with the new remote config structure.
 export async function getRemoteUpdateInfo(): Promise<{ forceUpdate: boolean; message?: string; minVersion?: string } | null> {
-  const config = await getRemoteConfig();
-  if (!config) return null;
-  return {
-    forceUpdate: config.forceUpdate ?? false,
-    message: config.updateMessage,
-    minVersion: config.minVersion,
-  };
+  return null;
 }
 
 async function fetchConfig(): Promise<RemoteConfig | null> {

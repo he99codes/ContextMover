@@ -80,11 +80,17 @@ export async function reportScraperBroken(payload: {
   timestamp: number;
 }): Promise<void> {
   try {
+    const { userId } = await chrome.storage.local.get("userId");
     await withTimeout(
-      fetch(`${API_BASE}/api/telemetry/scraper-error`, {
+      fetch(`${API_BASE}/api/scraper-admin/bug-reports`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          platform_id: payload.platform,
+          error_message: payload.reason,
+          href: payload.href,
+          user_id: userId as string | undefined,
+        }),
       }),
       TIMEOUT_TELEMETRY_MS
     );

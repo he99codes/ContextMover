@@ -42,9 +42,16 @@ export async function GET(req: NextRequest) {
     0
   );
 
+  const { data: globalStats } = await admin
+    .from("global_stats")
+    .select("total_migrations")
+    .eq("id", 1)
+    .single();
+
   return NextResponse.json({
     total_users:           totalUsers,
     pro_users:             proUsers ?? 0,
+    total_migrations:      (globalStats as { total_migrations: number } | null)?.total_migrations ?? 0,
     migrations_this_month: migrationsThisMonth,
     open_bug_reports:      openBugReports ?? 0,
   });
