@@ -94,8 +94,9 @@ export async function reportScraperBroken(payload: {
       }),
       TIMEOUT_TELEMETRY_MS
     );
-  } catch {
-    // Intentionally silent — telemetry must never crash the service worker.
+  } catch (err) {
+    // Intentionally nearly-silent — telemetry must never crash the service worker.
+    console.warn('[CM:sic] Failed to send scraper bug report:', err);
   }
 }
 
