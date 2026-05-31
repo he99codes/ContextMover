@@ -10,10 +10,22 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   // NOTE: This endpoint is public for the extension to fetch, so no admin guard here.
   // A separate admin-only endpoint will handle writes.
-  const supabase = createAdminClient();
-  const { data, error } = await supabase.from("platform_configs").select("*");
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase.from("platform_configs").select("*");
+    if (error) {
+      console.error("Error fetching platform_configs:", error);
+      // If the table doesn't exist, return an empty array instead of a 500 error.
+      if (error.code === '42P01') {
+        return NextResponse.json([]);
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json(data);
+  } catch (e) {
+    console.error("Unexpected error in /api/scraper-admin/configs:", e);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }
 
 // POST to update a platform config

@@ -107,22 +107,25 @@ export default function ScraperAdminPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [configsRes, reportsRes] = await Promise.all([
-          fetch('/api/scraper-admin/configs'),
-          fetch('/api/scraper-admin/bug-reports'),
-        ]);
+        // Always fetch configs, as this is a public endpoint
+        const configsRes = await fetch('/api/scraper-admin/configs');
+        if (!configsRes.ok) {
+          const errText = await configsRes.text();
+          throw new Error(`Failed to fetch configs: ${errText}`);
+        }
+        const configsData = await configsRes.json();
+        setConfigs(configsData);
 
-        if (!configsRes.ok || !reportsRes.ok) {
-          throw new Error('Failed to fetch data');
+        // Only fetch reports if we think we're an admin
+        const reportsRes = await fetch('/api/scraper-admin/bug-reports');
+        if (reportsRes.ok) {
+          const reportsData = await reportsRes.json();
+          setReports(reportsData);
+        } else {
+          // A 403 is expected if not logged in as admin, not a true error.
+          console.warn(`Could not fetch bug reports: ${reportsRes.status}`);
         }
 
-        const [configsData, reportsData] = await Promise.all([
-          configsRes.json(),
-          reportsRes.json(),
-        ]);
-
-        setConfigs(configsData);
-        setReports(reportsData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
       } finally {
