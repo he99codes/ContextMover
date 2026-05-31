@@ -9,6 +9,12 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Allow public access to the scraper config API route
+  if (pathname === '/api/scraper-admin/configs' && request.method === 'GET') {
+    return NextResponse.next();
+  }
   // Skip auth checks if env vars aren't configured yet
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -72,12 +78,13 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Exclude /api/* — API routes authenticate via Bearer token in
-    // getAuthUserFromRequest(), not via Supabase session cookies. Running
-    // them through this middleware caused unauthenticated POST requests
-    // (e.g. from the browser extension) to be 307-redirected to /auth,
-    // which is a page route → returned HTTP 405 + HTML, breaking
-    // checkUsage / incrementUsage / status fetches.
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - any other static assets (e.g., svg, png, jpg, etc.)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

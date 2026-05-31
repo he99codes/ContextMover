@@ -15,6 +15,8 @@
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
+    "dotenv": "^17.4.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.4.5"
   },
   "engines": {
@@ -22,6 +24,13 @@
     "pnpm": ">=9.0.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "keytar", "protobufjs", "sharp", "@vscode/vsce-sign", "unrs-resolver"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "keytar",
+      "protobufjs",
+      "sharp",
+      "@vscode/vsce-sign",
+      "unrs-resolver"
+    ]
   }
 }

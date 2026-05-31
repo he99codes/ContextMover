@@ -1,6 +1,10 @@
 // packages/web/scripts/seed-platform-configs.ts
 import { createClient } from '@supabase/supabase-js';
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Explicitly load the .env file from the packages/web directory
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const hardcodedSelectors = {
   chatgpt: {
