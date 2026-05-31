@@ -108,7 +108,7 @@ const EMBEDDING_CACHE_MAX = 500;
 const SEARCH_TOP_K = 100;
 const TAIL_SIZE = 6;
 
-const THRESHOLDS: Record<"light" | "strict", number> = { light: 0.4, strict: 0.7 };
+const THRESHOLDS: Record<"light" | "balanced" | "strict", number> = { light: 0.4, balanced: 0.55, strict: 0.7 };
 
 const TAG = "[ContextMover:attention-engine]";
 
@@ -436,7 +436,7 @@ export class AttentionEngine {
   async buildAttentionMap(
     session: ContextSession,
     task: string,
-    strength: "light" | "strict"
+    strength: "light" | "balanced" | "strict"
   ): Promise<AttentionMap> {
     console.log(`${TAG} buildAttentionMap — strength=${strength}`);
 
@@ -1602,13 +1602,16 @@ export async function detectHardware(): Promise<HardwareProfile> {
   }
 
   let tier: HardwareProfile["tier"];
-  if (hasWebGPU && cores >= 8) {
+  // [CM-TIER-FIX] fixed over-aggressive minimal classification
+  // performance: high-end with GPU; balanced: mid-range (WebGPU not required)
+  if (hasWebGPU && cores >= 6 && memoryGB >= 12) {
     tier = "full";
-  } else if (hasWebGPU || cores >= 6) {
+  } else if (cores >= 3 && memoryGB >= 6) {
     tier = "balanced";
   } else {
     tier = "minimal";
   }
+  console.log(`[CM:hw] reclassified: cores=${cores} mem=${memoryGB}GB webgpu=${hasWebGPU} -> tier=${tier}`);
 
   const recommendedMigrationTier: 1 | 2 | 3 =
     tier === "full" ? 3 : tier === "balanced" ? 2 : 1;

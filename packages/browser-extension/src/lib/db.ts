@@ -98,6 +98,15 @@ export interface MigrationQualityRecord {
   createdAt: number;
 }
 
+// [CM-PERSIST-FIX] persistent queue survives SW restart + Chrome close
+export interface PendingIndexJob {
+  sessionId: string;          // primary key
+  createdAt: number;          // Date.now() when enqueued
+  priority: 'background' | 'foreground';
+  retryCount: number;         // incremented on each failed attempt
+  lastAttemptAt?: number;     // Date.now() of last attempt
+}
+
 export interface RetrievalCache {
   id: string;                  // "{sessionId}:{queryHash}:{platform}:{tier}:{templateId}"
   sessionId: string;
@@ -177,6 +186,9 @@ class ContextMoverDB extends Dexie {
   // Pre-built MetaPrompt store (v5) — per-session per-platform per-tier
   metaPrompts!: Table<MetaPrompt, string>;
 
+  // [CM-PERSIST-FIX] persistent queue for interrupted background index jobs
+  pendingIndex!: Table<PendingIndexJob, string>;
+
   constructor() {
     super("contextmover");
 
@@ -245,6 +257,21 @@ class ContextMoverDB extends Dexie {
       retrievalCache: "id, sessionId, builtAt",
       migrationQuality: "id, sessionId, platform, tier, score, createdAt",
       metaPrompts: "[sessionId+platform+tier], sessionId, builtAt",
+    });
+
+    // ── v7: + pendingIndex store ── persistent queue for interrupted background
+    // index jobs that survive SW restarts and Chrome close/open cycles.
+    this.version(7).stores({
+      sessions: "id, platform, updatedAt",
+      prompt_templates: "id, userId, isDefault, usageCount, updatedAt",
+      prompt_assignments: "id, sessionId, platform, templateId",
+      chunkEmbeddings: "id, sessionId, createdAt, hasCode",
+      sessionHashes: "sessionId, indexedAt",
+      storedSummaries: "id, sessionId, tier, builtAt",
+      retrievalCache: "id, sessionId, builtAt",
+      migrationQuality: "id, sessionId, platform, tier, score, createdAt",
+      metaPrompts: "[sessionId+platform+tier], sessionId, builtAt",
+      pendingIndex: "sessionId, createdAt, priority",
     });
   }
 }

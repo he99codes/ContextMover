@@ -429,6 +429,43 @@ function extractContext(messages: Message[], compressed?: Message[]): ExtractedC
   };
 }
 
+// [CM-T2-FIX] prompt-message filter — prevents regex extraction from matching
+// on user prompts that contain keywords like "fix", "error", "decided" etc.
+function isLikelyPromptMessage(content: string): boolean {
+  if (content.startsWith('You are a')) return true;
+  if (content.startsWith('Read every file')) return true;
+  if (content.startsWith('TASK —')) return true;
+  if (content.startsWith('REQUIRED')) return true;
+  const codeBlockChars = (content.match(/```[\s\S]*?```/g) ?? [])
+    .reduce((sum, block) => sum + block.length, 0);
+  return codeBlockChars / content.length > 0.4;
+}
+
+// [CM-T2-FIX] multi-window goal sampling — captures goal evolution, not just opening
+function extractEvolvingGoal(messages: Message[]): string {
+  const userMessages = messages.filter(m => m.role === 'user');
+  if (userMessages.length === 0) return '';
+
+  const positions = [
+    0,
+    Math.floor(userMessages.length * 0.25),
+    Math.floor(userMessages.length * 0.5),
+    Math.floor(userMessages.length * 0.75),
+    userMessages.length - 1,
+  ];
+
+  const candidates = [...new Set(positions)]
+    .map(i => userMessages[i]?.content ?? '')
+    .filter(c => c.length > 30 && c.length < 800)
+    .filter(c => !c.startsWith('You are a') && !c.startsWith('Read every file'));
+
+  if (candidates.length === 0) {
+    return userMessages[userMessages.length - 1]?.content?.slice(0, 400) ?? '';
+  }
+
+  return candidates[candidates.length - 1].slice(0, 400);
+}
+
 // ── Goal extraction ───────────────────────────────────────────────────────────
 
 // Patterns that indicate a message is a migration/bootstrap instruction
@@ -542,10 +579,12 @@ const DECISION_RE = [
 const META_FILTER_RE =
   /Transformers\s+are\s+overkill|looking\s+for\s+['"‘“]|pattern\s+matched|keep\s+verbatim|overkill\s+when\s+you|detection\s+pattern|internal\s+regex|you['’]re\s+looking\s+for|scan\s+(the\s+)?first\s+\d/i;
 
+// [CM-T2-FIX] role filter + prompt filter on old decisions path
 function extractDecisions(messages: Message[]): string {
   const items: string[] = [];
   for (const msg of messages) {
     if (msg.role !== "assistant") continue;
+    if (isLikelyPromptMessage(msg.content)) continue;
     const sentences = msg.content.split(/[.!?\n]/).filter((s) => s.trim().length > 20);
     for (const s of sentences) {
       if (DECISION_RE.some((re) => re.test(s)) && !META_FILTER_RE.test(s)) {
@@ -563,9 +602,11 @@ const FACT_RE = [
   /\b(?:version|api key|endpoint|port|url|config)\b/im,
 ];
 
+// [CM-T2-FIX] prompt filter on old facts path
 function extractFacts(messages: Message[]): string {
   const items: string[] = [];
   for (const msg of messages) {
+    if (isLikelyPromptMessage(msg.content)) continue;
     const sentences = msg.content.split(/[.!?\n]/).filter((s) => s.trim().length > 20);
     for (const s of sentences) {
       if (FACT_RE.some((re) => re.test(s))) {
@@ -884,29 +925,15 @@ export function summarizeIntelligent(messages: Message[], task?: string): Intell
       ? userMessages[goalIdx].content.trim().slice(0, 600) || "Not specified"
       : "Not specified";
 
-  // ── 5. Current state — last 3 substantive messages regardless of role ──────
-  // Skip short acks (< 20 chars). 3 messages capture the current direction
-  // without producing an unreadable 1000+ char blob.
-  const substantive: Message[] = [];
-  for (let i = messages.length - 1; i >= 0 && substantive.length < 3; i--) {
-    const m = messages[i];
-    if (m.content.trim().length < 20) continue;
-    substantive.unshift(m);
-  }
-  const currentState =
-    substantive.length > 0
-      ? substantive
-          .map((m) => {
-            const t = m.content.trim();
-            return t.length > 300 ? t.slice(0, 300) + "…" : t;
-          })
-          .join("\n")
-      : "Not specified";
+  // [CM-T2-FIX] current state — multi-window goal sampling, not last-3 blob
+  const currentState = extractEvolvingGoal(messages) || "Not specified";
 
-  // ── 2. Decisions — verbatim sentences from ALL assistant messages ──────────
+  // ── 2. Decisions — verbatim sentences from assistant messages only ─────────
+  // [CM-T2-FIX] skip prompt-like messages so regex doesn't match on instructions
   const rawDecisions: string[] = [];
   for (const msg of messages) {
     if (msg.role !== "assistant") continue;
+    if (isLikelyPromptMessage(msg.content)) continue;
     const sentences = msg.content
       .split(/(?<=[.!?])\s+|\n+/)
       .map((s) => s.trim())
@@ -920,9 +947,11 @@ export function summarizeIntelligent(messages: Message[], task?: string): Intell
     .sort((a, b) => b.score - a.score);
   let decisions = scoredDecisions.map((x) => x.d).slice(0, 20);
 
-  // ── 3. Bugs fixed — verbatim sentences from ALL messages ──────────────────
+  // [CM-T2-FIX] Bugs fixed — assistant messages only + prompt filter
   const rawBugs: string[] = [];
   for (const msg of messages) {
+    if (msg.role !== "assistant") continue;
+    if (isLikelyPromptMessage(msg.content)) continue;
     const sentences = msg.content
       .split(/(?<=[.!?])\s+|\n+/)
       .map((s) => s.trim())
@@ -1207,10 +1236,12 @@ function selectForCategory(scored: ScoredMessage[], cat: string): Message[] {
 }
 
 // Helper to run Tier 2's specific decision extraction loop on a subset
+// [CM-T2-FIX] role filter + prompt filter on decisions
 function _extractDecisionsT2(msgs: Message[]): string[] {
   const raw: string[] = [];
   for (const msg of msgs) {
     if (msg.role !== "assistant") continue;
+    if (isLikelyPromptMessage(msg.content)) continue;
     const sentences = msg.content.split(/(?<=[.!?])\s+|\n+/).map(s => s.trim()).filter(s => s.length > 20);
     for (const s of sentences) {
       if (TIER2_DECISION_RE.some((re) => re.test(s)) && !META_FILTER_RE.test(s)) raw.push(s);
@@ -1220,9 +1251,12 @@ function _extractDecisionsT2(msgs: Message[]): string[] {
 }
 
 // Helper to run Tier 2's specific bug extraction loop on a subset
+// [CM-T2-FIX] role filter + prompt filter on bugs
 function _extractBugsT2(msgs: Message[]): string[] {
   const raw: string[] = [];
   for (const msg of msgs) {
+    if (msg.role !== "assistant") continue;
+    if (isLikelyPromptMessage(msg.content)) continue;
     const sentences = msg.content.split(/(?<=[.!?])\s+|\n+/).map(s => s.trim()).filter(s => s.length > 20);
     for (const s of sentences) {
       if (TIER2_BUG_RE.some((re) => re.test(s))) raw.push(s);

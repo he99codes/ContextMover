@@ -68,6 +68,8 @@ export interface Capabilities {
   tier: Tier;
   /** Human-readable justification, suitable for logging. */
   reason: string;
+  /** Recommended migration tier (1-3) derived from hardware classification. */
+  recommendedMigrationTier: 1 | 2 | 3;
   /** True if the user manually overrode the auto-selected tier. */
   overridden: boolean;
   /** When this snapshot was produced (Date.now()). */
@@ -264,11 +266,12 @@ function selectTier(signals: {
 }): { tier: Tier; reason: string } {
   const reasons: string[] = [];
 
-  // Minimal gates — any single failure forces minimal.
-  if (signals.cores < 2) {
+  // [CM-TIER-FIX] fixed over-aggressive minimal classification
+  // Minimal: genuinely low-end — slow CPU OR low RAM
+  if (signals.cores <= 2) {
     return {
       tier: "minimal",
-      reason: `single-core CPU (cores=${signals.cores}) — forcing minimal`,
+      reason: `cores=${signals.cores} <= 2 — forcing minimal`,
     };
   }
   if (signals.benchmarkOpsPerMs < BENCH_WEAK) {
@@ -277,7 +280,7 @@ function selectTier(signals: {
       reason: `slow CPU benchmark (${signals.benchmarkOpsPerMs} ops/ms < ${BENCH_WEAK}) — forcing minimal`,
     };
   }
-  if (signals.deviceMemoryGb !== undefined && signals.deviceMemoryGb < 4) {
+  if (signals.deviceMemoryGb !== undefined && signals.deviceMemoryGb <= 4) {
     return {
       tier: "minimal",
       reason: `low RAM (deviceMemory=${signals.deviceMemoryGb}GB < 4GB) — forcing minimal`,
@@ -292,9 +295,9 @@ function selectTier(signals: {
 
   // Full-tier gates — all must pass.
   const strongCpu = signals.benchmarkOpsPerMs >= BENCH_STRONG;
-  const manyCores = signals.cores >= 6;
+  const manyCores = signals.cores >= 6; // [CM-TIER-FIX] performance threshold
   const ampleRam =
-    (signals.deviceMemoryGb ?? 0) >= 8 ||
+    (signals.deviceMemoryGb ?? 0) >= 12 ||
     (signals.jsHeapLimitMb ?? 0) >= 3072;
 
   if (signals.hasWebGpu && (strongCpu || manyCores) && ampleRam) {
@@ -306,17 +309,17 @@ function selectTier(signals: {
     return { tier: "full", reason: reasons.join(", ") };
   }
 
-  // Default → balanced.
+  // [CM-TIER-FIX] balanced: cores>=3 AND RAM>=6, WebGPU not required
   reasons.push(`cores=${signals.cores}`);
   reasons.push(`bench=${signals.benchmarkOpsPerMs} ops/ms`);
   reasons.push(`webgpu=${signals.hasWebGpu}`);
   if (signals.deviceMemoryGb !== undefined) reasons.push(`ram=${signals.deviceMemoryGb}GB`);
   // [CM-TIER-FIX] log reclassification to balanced for machines that would have been misclassified as minimal
   const balancedResult = { tier: "balanced" as Tier, reason: reasons.join(", ") };
-  if (signals.cores >= 2 && signals.benchmarkOpsPerMs >= BENCH_WEAK &&
-      (signals.deviceMemoryGb === undefined || signals.deviceMemoryGb >= 4) &&
+  if (signals.cores >= 3 && signals.benchmarkOpsPerMs >= BENCH_WEAK &&
+      (signals.deviceMemoryGb === undefined || signals.deviceMemoryGb >= 6) &&
       (signals.jsHeapLimitMb === undefined || signals.jsHeapLimitMb >= 1024)) {
-    console.log(`[CM:capability] Balanced tier selected (was misclassified as minimal before fix): cores=${signals.cores}, benchmark=${signals.benchmarkOpsPerMs} ops/ms, RAM=${signals.deviceMemoryGb}GB, heap=${signals.jsHeapLimitMb}MB`);
+    console.log(`[CM:hw] reclassified: cores=${signals.cores} mem=${signals.deviceMemoryGb}GB webgpu=${signals.hasWebGpu} -> tier=balanced`);
   }
   return balancedResult;
 }
@@ -459,7 +462,8 @@ class CapabilityDetector {
       overridden = true;
     }
 
-    return { ...prev, onBattery: battery.onBattery, batteryLevel: battery.level, tier, reason, overridden, timestamp: Date.now() };
+    const recommendedMigrationTier: 1 | 2 | 3 = tier === "full" ? 3 : tier === "balanced" ? 2 : 1;
+    return { ...prev, onBattery: battery.onBattery, batteryLevel: battery.level, tier, reason, recommendedMigrationTier, overridden, timestamp: Date.now() };
   }
 
   private async runFullDetection(): Promise<Capabilities> {
@@ -485,6 +489,7 @@ class CapabilityDetector {
     let tier: Tier = autoTier.tier;
     let reason = autoTier.reason;
     let overridden = false;
+    const recommendedMigrationTier: 1 | 2 | 3 = tier === "full" ? 3 : tier === "balanced" ? 2 : 1;
 
     // Battery rule: if on battery and not manually forced to full, downgrade
     // one tier to preserve battery life.
@@ -520,6 +525,7 @@ class CapabilityDetector {
       benchmarkDurationMs: bench.durationMs,
       tier,
       reason,
+      recommendedMigrationTier,
       overridden,
       timestamp: Date.now(),
     };
@@ -538,6 +544,7 @@ class CapabilityDetector {
       benchmarkDurationMs: 0,
       tier: "minimal",
       reason: `fallback minimal (${why})`,
+      recommendedMigrationTier: 1,
       overridden: false,
       timestamp: Date.now(),
     };

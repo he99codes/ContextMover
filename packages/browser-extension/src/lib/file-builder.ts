@@ -8,7 +8,7 @@
 import type { ContextSession, Message } from './types'
 import type { IntelligentSummary } from './summarizer'
 import type { ChunkEmbedding } from './db'
-import type { AttentionMap } from './attention-engine'
+import type { AttentionMap, AttentionChunk } from './attention-engine'
 
 export interface MigrationFile {
   filename: string
@@ -121,6 +121,14 @@ ${summary.codeBlocks.map((cb: any, i: number) => `
     </code>`).join('')}
   </code_blocks>` : ''
 
+  // [CM-T2-FIX] sanitize current goal — remove tool artifacts and code blocks
+  const currentGoal = (summary.currentState ?? '')
+    .replace(/^(Reading|Viewed|Edited|Created|Searched|Command|Checked).*$/gm, '')
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+    .slice(0, 400);
+
   const content = `<?xml version="1.0" encoding="UTF-8"?>
 <contextmover_migration tier="2" type="smart_summary">
 
@@ -143,7 +151,7 @@ ${summary.codeBlocks.map((cb: any, i: number) => `
 
   <goal>
     <primary>${cdata(summary.goal ?? '')}</primary>
-    <current>${cdata(summary.currentState ?? '')}</current>
+    <current>${cdata(currentGoal)}</current>
   </goal>
 
   <decisions count="${summary.decisions?.length ?? 0}">
@@ -182,6 +190,15 @@ ${(summary.tail ?? []).map((m: Message, i: number) => `
   }
 }
 
+// [CM-T3-FIX] populate attention_engine block with scored chunks grouped by type
+function renderScoredChunks(chunks: AttentionChunk[]): string {
+  const T = 800, N = 5;
+  const d = chunks.filter(c => c.type === "message" && /\b(decided|conclusion|agreed|resolution)\b/i.test(c.content)).sort((a,b) => b.relevanceScore - a.relevanceScore).slice(0, N);
+  const code = chunks.filter(c => c.type === "code").sort((a,b) => b.relevanceScore - a.relevanceScore).slice(0, N);
+  const rest = chunks.filter(c => c.type === "message" && !d.includes(c)).sort((a,b) => b.relevanceScore - a.relevanceScore).slice(0, N);
+  const item = (c: AttentionChunk) => `<chunk score="${c.relevanceScore.toFixed(3)}" role="${c.role}">${cdata(c.content.slice(0, T))}${c.content.length > T ? "…" : ""}</chunk>`;
+  return `<scored_topics>${rest.map(item).join("")}</scored_topics><key_decisions>${d.map(item).join("")}</key_decisions><architectural_context>${code.map(item).join("")}</architectural_context>`;
+}
 export function buildTier3File(
   session: ContextSession,
   chunks: ChunkEmbedding[],
@@ -225,7 +242,8 @@ export function buildTier3File(
       ${attentionMap.highlightedFiles?.map((f: string) =>
         `<file>${f}</file>`).join('\n      ')}
     </highlighted_files>
-    <compression_ratio>${attentionMap.compressionRatio ?? 0}%</compression_ratio>` : ''}
+    <compression_ratio>${attentionMap.compressionRatio ?? 0}%</compression_ratio>
+    ${renderScoredChunks(attentionMap.topChunks)}` : ''}
   </attention_engine>
 
   <instructions_for_ai>

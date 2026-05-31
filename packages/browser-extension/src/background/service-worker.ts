@@ -229,15 +229,26 @@ async function ensureOffscreenDocumentLocal(): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const offscreen = (chrome as any).offscreen;
   if (!offscreen) return;
+  // [CM-RACE-FIX] keep-alive starts BEFORE doc creation so it covers hasDocument + createDocument + ONNX init
+  const ka = setInterval(() => chrome.storage.local.get('_ka', () => {}), 5_000);
   try {
     const has: boolean = await offscreen.hasDocument?.() ?? false;
-    if (has) return;
+    if (has) { clearInterval(ka); return; }
     await offscreen.createDocument({
       url: "src/offscreen/offscreen.html",
       reasons: ["WORKERS"],
       justification: "Run ML embedding pipeline for Tier 3 context retrieval",
     });
     console.log("[CM:sw] offscreen document created");
+    try {
+      await new Promise<void>((res, rej) => {
+        const t = setTimeout(() => rej(new Error('offscreen_ready_timeout')), 20_000);
+        const l = (m: any) => { if (m?.type === 'OFFSCREEN_READY') { clearTimeout(t); chrome.runtime.onMessage.removeListener(l); res(); } };
+        chrome.runtime.onMessage.addListener(l);
+      });
+      console.log("[CM:sw] offscreen ready");
+    } catch (e) { console.warn("[CM:sw] offscreen ready wait:", e); }
+    finally { clearInterval(ka); }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (!msg.includes("Only a single offscreen") && !msg.includes("already")) {
@@ -570,6 +581,61 @@ chrome.runtime.onStartup.addListener(async () => {
   void getHardwareProfile().then((hw) => {
     chrome.storage.local.set({ hwTier: hw.tier }).catch(() => {});
   }).catch(() => {});
+
+  // [CM-PERSIST-FIX] recover interrupted background index jobs after Chrome restart
+  // Delay 5s to let offscreen doc and Drive sync initialise first
+  setTimeout(() => {
+    void (async () => {
+      try {
+        const pending = await dexieDb.pendingIndex
+          .orderBy('createdAt')
+          .toArray()
+
+        if (pending.length === 0) return
+
+        console.log(`[CM:startup] recovering ${pending.length} interrupted index job(s)`)
+
+        for (const job of pending) {
+          // Give up after 3 failed attempts — session may be corrupted
+          if (job.retryCount >= 3) {
+            console.warn(
+              `[CM:startup] giving up on ${job.sessionId} ` +
+              `after ${job.retryCount} retries — removing from queue` 
+            )
+            await dexieDb.pendingIndex.delete(job.sessionId).catch(() => {})
+            continue
+          }
+
+          // Verify session still exists locally
+          const recoverySession = await db.getSession(job.sessionId)
+          if (!recoverySession) {
+            await dexieDb.pendingIndex.delete(job.sessionId).catch(() => {})
+            continue
+          }
+
+          // Increment retry count before attempting
+          await dexieDb.pendingIndex.update(job.sessionId, {
+            retryCount: job.retryCount + 1,
+            lastAttemptAt: Date.now(),
+          }).catch(() => {})
+
+          // Dispatch background index — non-blocking
+          // BACKGROUND_INDEX handler at line 1491 calls backgroundIndex(session)
+          chrome.runtime.sendMessage({
+            type: 'BACKGROUND_INDEX',
+            sessionId: job.sessionId,
+          }).catch(() => {
+            // SW may not be listening yet — job persists for next startup
+          })
+
+          // Stagger 2s between jobs — avoid overwhelming offscreen doc on startup
+          await new Promise<void>(resolve => setTimeout(resolve, 2000))
+        }
+      } catch (err) {
+        console.warn('[CM:startup] pending index recovery failed:', err)
+      }
+    })()
+  }, 5000)
 });
 
 // Ensure the periodic alarms exist on install/update too.
@@ -1477,6 +1543,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
+      case "OFFSCREEN_INDEX_DONE": {
+        // [CM-PERSIST-FIX] indexing complete — remove from persistent queue
+        // This fires when offscreen.ts successfully finishes embedding a session
+        const { sessionId: doneSessionId, chunkCount: doneChunkCount } =
+          msg as { sessionId?: string; chunkCount?: number }
+        if (doneSessionId) {
+          await dexieDb.pendingIndex.delete(doneSessionId).catch(() => {})
+          console.log(
+            `[CM:persist] ${doneSessionId} completed — ` +
+            `${doneChunkCount ?? '?'} chunks embedded, removed from pendingIndex` 
+          )
+        }
+        sendResponse({ ok: true })
+        break
+      }
+
       case "BACKGROUND_INDEX": {
         if (!isFromOwnExtension(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         const { sessionId: bgSessionId } = msg as { sessionId?: string };
@@ -1792,6 +1874,17 @@ async function handleCaptureSession(payload: {
     const toWrite = pendingWrites.get(session.id);
     if (!toWrite) return;
     await db.saveSession(toWrite);
+
+    // [CM-PERSIST-FIX] enqueue for background indexing — survives Chrome close
+    // put() is idempotent — safe to call on every session update
+    await dexieDb.pendingIndex.put({
+      sessionId: toWrite.id,
+      createdAt: Date.now(),
+      priority: 'background' as const,
+      retryCount: 0,
+    }).catch((e: unknown) => {
+      console.warn('[CM:persist] failed to write pendingIndex:', e)
+    })
     pendingWrites.delete(session.id);
     writeTimers.delete(session.id);
     sessionCache.invalidate(); // force fresh IDB read on next GET_SESSIONS
@@ -2105,6 +2198,19 @@ async function handleMigrateContext(
         tid = setTimeout(() => reject(new Error('tier3_timeout')), TIER3_TIMEOUT_MS);
       });
       try {
+        // [CM-RACE-FIX] pre-warm model before Tier 3 indexing so embed requests don't race
+        if (!modelWarmed) {
+          reportProgress(28, 'Warming up model...')
+          try {
+            await Promise.race([
+              semanticIndex.warmup(),
+              new Promise<never>((_, reject) => setTimeout(() => reject(new Error('warmup_timeout')), 45_000))
+            ]);
+            modelWarmed = true;
+          } catch (e) {
+            console.warn('[CM:sw] Model warmup failed:', e);
+          }
+        }
         const needsIndex = await Promise.race([
           semanticIndex.needsIndexing(session),
           timeout
@@ -2119,11 +2225,21 @@ async function handleMigrateContext(
           ]);
         }
         reportProgress(75, 'Retrieving relevant chunks...')
-        const chunks = await Promise.race([
+        const { chunks, usedKeywordFallback } = await Promise.race([
           semanticIndex.retrieve(session.id, payload.task ?? null, 15),
           timeout
         ]);
+        // [CM-T3-FIX] reject keyword-fallback results for Tier 3 — fail loudly
+        if (usedKeywordFallback) {
+          console.warn('[CM:sw] Tier 3 retrieve used keyword fallback — rejecting');
+          activeMigrationInProgress = false;
+          sendResponse({ success: false, error: 'tier3_embed_timeout', requestedTier: 3, message: 'Semantic search timed out. Please try again.' });
+          return;
+        }
         if (chunks.length === 0) {
+          // [CM-T3-FIX] clear phantom hash so next attempt will re-index
+          await dexieDb.sessionHashes.where('sessionId').equals(session.id).delete();
+          console.warn(`[CM:sw] T3 — 0 chunks for ${session.id}, phantom hash cleared. User must retry migration.`);
           // [CM-TIER-FIX] 0 chunks — return error, never auto-downgrade
           activeMigrationInProgress = false;
           sendResponse({ success: false, error: 'tier3_no_chunks', requestedTier: 3, message: 'Attention engine returned no relevant chunks. Try again or switch to Smart Summary.' });
@@ -2131,7 +2247,9 @@ async function handleMigrateContext(
         }
         const selectedMessages = getMessagesFromChunks(chunks, session)
         const task3 = payload.task ?? 'Continue from where we left off'
-        const localFile = buildTier3File(session, chunks, task3)
+        // [CM-T3-FIX] build attention map for scored chunk serialization
+        const attentionMap = await attentionEngine.buildAttentionMap(session, task3, 'balanced');
+        const localFile = buildTier3File(session, chunks, task3, attentionMap)
         migrationFile = accessToken
           ? await fetchMigrationBuild(
               { tier: 3, platform: session.platform, sessionTitle: session.title,

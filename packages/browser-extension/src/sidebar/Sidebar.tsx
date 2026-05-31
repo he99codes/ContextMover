@@ -7,6 +7,7 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
+import { dexieDb } from "@/lib/db";
 import type { ContextSession, Platform } from "@/lib/types";
 import ExportMenu from "@/components/ExportMenu";
 import { PlatformBadge, PlatformLogo } from "@/components/PlatformLogo";
@@ -41,6 +42,7 @@ interface SessionCardProps {
   vaultConnected: boolean | null;
   migrationTier?: 1 | 2 | 3;
   driveSourced?: boolean;
+  isPendingIndex?: boolean; // [CM-PERSIST-FIX]
   onSelect: () => void;
   onRenaming?: (v: boolean) => void;
 }
@@ -70,6 +72,7 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
   vaultConnected,
   migrationTier,
   driveSourced,
+  isPendingIndex, // [CM-PERSIST-FIX]
   onSelect,
   onRenaming,
 }) {
@@ -126,6 +129,18 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
             {isDevSession  && <span style={BADGE_DEV}>Dev Session</span>}
             {isMarathon    && <span style={BADGE_MARATHON}>Marathon</span>}
             {isDeepCtx     && <span style={BADGE_DEEP}>Deep Context</span>}
+            {/* [CM-PERSIST-FIX] show indexing status so user knows Tier 3 readiness */}
+            {isPendingIndex && (
+              <span style={{
+                fontSize: '9px',
+                color: 'var(--color-text-warning, #F59E0B)',
+                opacity: 0.85,
+                marginLeft: '4px',
+                letterSpacing: '0.02em',
+              }}>
+                ⚡ indexing...
+              </span>
+            )}
           </div>
           <InlineRename
             session={session}
@@ -349,6 +364,8 @@ type StatusTone = "info" | "success" | "error";
 
 export default function Sidebar() {
   const [sessions, setSessions] = useState<ContextSession[]>([]);
+  // [CM-PERSIST-FIX] tracks sessions with incomplete embeddings
+  const [pendingIndexIds, setPendingIndexIds] = useState<Set<string>>(new Set());
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshSuccess, setRefreshSuccess] = useState(false);
@@ -366,6 +383,20 @@ export default function Sidebar() {
   const [tick, setTick] = useState(0);
   const [isRenaming, setIsRenaming] = useState(false);
   const [showMigrationModal, setShowMigrationModal] = useState(false);
+
+  // [CM-PERSIST-FIX] poll for pending index jobs to show UI indicator
+  useEffect(() => {
+    const refreshPending = async () => {
+      try {
+        const jobs = await dexieDb.pendingIndex.toArray()
+        setPendingIndexIds(new Set(jobs.map(j => j.sessionId)))
+      } catch { /* silently ignore — indicator is non-critical */ }
+    }
+    void refreshPending()
+    // Poll every 30s — fast enough to feel responsive, slow enough to not drain battery
+    const interval = setInterval(() => void refreshPending(), 30_000)
+    return () => clearInterval(interval)
+  }, []);
   const [latestQualityScore, setLatestQualityScore] = useState<QualityScore | null>(null);
   const [latestCoverageStats, setLatestCoverageStats] = useState<any>(null);
   const [qualityStats, setQualityStats] = useState<{ count: number; avgScore: number } | null>(null);
@@ -1623,6 +1654,7 @@ export default function Sidebar() {
                   vaultConnected={vaultConnected}
                   migrationTier={migrationTiers[session.id]}
                   driveSourced={driveSourcedSet.has(session.id)}
+                  isPendingIndex={pendingIndexIds.has(session.id)} // [CM-PERSIST-FIX]
                   onSelect={() => handleSessionSelect(session)}
                   onRenaming={handleRenaming}
                 />

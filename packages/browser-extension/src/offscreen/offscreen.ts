@@ -49,6 +49,16 @@ type WorkerResponse =
 
 const worker = new (MLWorker as { new(): Worker })();
 let workerReady = false;
+let modelReady = false; // [CM-RACE-FIX] true when ml-worker finished model init
+
+// Pending runtime embeds that arrived before model was ready.
+// Each entry carries a safety timeout so the Chrome message channel never hangs.
+const pendingRuntimeEmbeds: Array<{
+  requestId: string;
+  text: string;
+  sendResponse: (response: unknown) => void;
+  timeoutId: ReturnType<typeof setTimeout>;
+}> = [];
 
 // Pending embed callbacks keyed by requestId.
 const pendingEmbeds = new Map<string, {
@@ -69,10 +79,18 @@ const pendingSearches = new Map<string, (response: unknown) => void>();
 worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
   if (data.type === "WORKER_READY") {
     workerReady = true;
+    modelReady = true; // [CM-RACE-FIX]
     console.log("[CM:offscreen] ml-worker ready — signalling SW");
     chrome.runtime.sendMessage({ type: "OFFSCREEN_READY" }).catch(() => {});
     // Start draining any jobs that were enqueued before the worker booted.
     void drainLoop();
+    // [CM-RACE-FIX] drain runtime embeds that arrived while model was loading
+    while (pendingRuntimeEmbeds.length > 0) {
+      const pending = pendingRuntimeEmbeds.shift()!;
+      clearTimeout(pending.timeoutId);
+      pendingResponses.set(pending.requestId, pending.sendResponse);
+      enqueue({ kind: "embed", text: pending.text, requestId: pending.requestId, priority: true });
+    }
     return;
   }
   if (data.type === "OFFSCREEN_SEARCH_DONE") {
@@ -106,6 +124,12 @@ worker.onerror = (ev: ErrorEvent) => {
     cb({ ok: false, error: `worker error: ${ev.message}` });
     pendingSearches.delete(id);
   }
+  // [CM-RACE-FIX] clear runtime embeds that were waiting for model init
+  for (const pending of pendingRuntimeEmbeds) {
+    clearTimeout(pending.timeoutId);
+    pending.sendResponse({ ok: false, error: `worker error: ${ev.message}` });
+  }
+  pendingRuntimeEmbeds.length = 0;
 };
 
 /** Forward a search payload to the worker; results arrive via pendingSearches. */
@@ -152,6 +176,9 @@ const priorityQueue:   Job[] = [];
 const backgroundQueue: Job[] = [];
 let loopRunning = false;
 
+// [CM-T3-FIX] cancelled background index jobs superseded by priority jobs
+const cancelledRequests = new Set<string>();
+
 /** Yield-to-event-loop primitive — lets the message pump process new chrome.runtime messages. */
 const yieldToEventLoop = (): Promise<void> => new Promise<void>((r) => setTimeout(r, 0));
 
@@ -161,8 +188,21 @@ const yieldToEventLoop = (): Promise<void> => new Promise<void>((r) => setTimeou
  * within an in-progress background index (between chunk boundaries).
  */
 function enqueue(job: Job): void {
-  if (job.priority) priorityQueue.push(job);
-  else              backgroundQueue.push(job);
+  if (job.priority) {
+    if (job.kind === 'index') {
+      const bgIdx = backgroundQueue.findIndex(
+        j => j.kind === 'index' && j.session.id === job.session.id
+      );
+      if (bgIdx !== -1) {
+        const cancelled = backgroundQueue.splice(bgIdx, 1)[0] as IndexJob;
+        cancelledRequests.add(cancelled.requestId);
+        console.log(`[CM:offscreen] cancelled bg index ${cancelled.requestId} — replaced by priority`);
+      }
+    }
+    priorityQueue.push(job);
+  } else {
+    backgroundQueue.push(job);
+  }
   if (!loopRunning && workerReady) void drainLoop();
 }
 
@@ -243,6 +283,21 @@ async function processIndexJob(job: IndexJob): Promise<void> {
       progress(requestId, pct, `Embedding ${i + 1}/${chunks.length}`);
     }
 
+    // [CM-T3-FIX] cancel stale bg jobs before persisting — prevents partial writes
+    if (cancelledRequests.has(requestId)) {
+      cancelledRequests.delete(requestId);
+      console.log(`[CM:offscreen] index job ${requestId} was cancelled — skipping persist`);
+      const respond = pendingResponses.get(requestId);
+      pendingResponses.delete(requestId);
+      respond?.({ ok: false, error: 'cancelled — superseded by priority job' });
+      chrome.runtime.sendMessage({
+        type: 'OFFSCREEN_ERROR',
+        requestId,
+        error: 'cancelled — superseded by priority job'
+      }).catch(() => {});
+      return;
+    }
+
     progress(requestId, 90, "Persisting to storage...");
     // Replace stale chunks for this session with fresh embeddings.
     await dexieDb.chunkEmbeddings.where("sessionId").equals(session.id).delete();
@@ -271,6 +326,12 @@ async function processIndexJob(job: IndexJob): Promise<void> {
       indexedAt:    Date.now(),
     });
 
+    // [CM-T3-FIX] respond to SW with real chunkCount (port kept open since handler returned true)
+    const respond = pendingResponses.get(requestId);
+    pendingResponses.delete(requestId);
+    respond?.({ ok: true, chunkCount: chunks.length });
+
+    // Keep broadcast for progress listeners
     chrome.runtime.sendMessage({
       type: "OFFSCREEN_INDEX_DONE",
       requestId,
@@ -279,10 +340,16 @@ async function processIndexJob(job: IndexJob): Promise<void> {
 
     console.log(`[CM:offscreen] indexed session ${session.id} — ${chunks.length} chunks`);
   } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    // [CM-T3-FIX] respond to SW with error so offscreenIndex() throws properly
+    const respond = pendingResponses.get(requestId);
+    pendingResponses.delete(requestId);
+    respond?.({ ok: false, error: errMsg });
+
     chrome.runtime.sendMessage({
       type: "OFFSCREEN_ERROR",
       requestId,
-      error: err instanceof Error ? err.message : String(err),
+      error: errMsg,
     }).catch(() => {});
   }
 }
@@ -310,9 +377,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       requestId: string;
       priority?: boolean;
     };
+    // [CM-T3-FIX] async response — SW waits for real chunkCount, not queued=true
+    pendingResponses.set(requestId, sendResponse);
     enqueue({ kind: "index", session, hardware, requestId, priority });
-    sendResponse({ ok: true, queued: true });
-    return false;
+    return true;
   }
 
   if (msg.type === "OFFSCREEN_EMBED_QUERY") {
@@ -323,6 +391,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     };
     // Store sendResponse — processEmbedJob will call it when the embedding is
     // ready. Do NOT call sendResponse here; return true to keep the port open.
+    if (!modelReady) {
+      const to = setTimeout(() => { const i = pendingRuntimeEmbeds.findIndex(p => p.requestId === requestId); if (i !== -1) { const p = pendingRuntimeEmbeds.splice(i,1)[0]; p.sendResponse({ok:false,error:"model load timeout"}); } }, 25000);
+      pendingRuntimeEmbeds.push({requestId,text,sendResponse,timeoutId:to});
+      return true;
+    }
     pendingResponses.set(requestId, sendResponse);
     enqueue({ kind: "embed", text, requestId, priority });
     return true;

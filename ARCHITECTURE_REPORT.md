@@ -424,10 +424,10 @@ User types in semantic search box
 |----------|---------|--------|-------------|
 | Claude | DOM + fetch-intercept | ✅ text | ✅ (file input) |
 | ChatGPT | DOM + fetch-intercept | ✅ text | ✅ (file input) |
-| Gemini | DOM + fetch-intercept | ✅ text | ⚠️ removed 2026 → text fallback |
-| Grok | DOM + fetch-intercept | ✅ text | ✅ |
-| DeepSeek | DOM + fetch-intercept | ✅ text | ✅ |
-| Perplexity | DOM + fetch-intercept | ✅ text | ✅ |
+| Gemini | DOM + fetch-intercept | ✅ text |   ✅ (file input) ||
+| Grok | DOM + fetch-intercept | ✅ text |  ✅ (file input) ||
+| DeepSeek | DOM + fetch-intercept | ✅ text |  ✅ (file input) | |
+| Perplexity | DOM + fetch-intercept | ✅ text |  ✅ (file input) | |
 
 ---
 
@@ -459,3 +459,99 @@ Key messages routed through service-worker.ts:
 | `GET_QUALITY_STATS` / `GET_QUALITY_REPORT` | UI→SW | Migration quality data |
 | `WARMUP_MODEL` | UI→SW | Pre-warm ONNX model |
 | `SIDEBAR_CLOSED` | UI→SW | Sidebar lifecycle event |
+
+---
+
+## 12. Recent Fixes & Improvements (May 2026)
+
+### Tier 2 Summarizer — Heuristic Extraction Fixes `[CM-T2-FIX]`
+**Problem**: `summarizeIntelligent()` extracted garbage decisions/bugs when the Attention Engine timed out and fell back to heuristics. Regex patterns matched on user prompts containing words like "fix", "error", "decided".
+**Fixes**:
+- `extractEvolvingGoal()`: Multi-window sampling (start, 25%, 50%, 75%, last user message) instead of last-3-message blob for `<current>`.
+- `isLikelyPromptMessage()`: Filters messages starting with "You are a", "Read every file", or containing >40% code blocks.
+- Role filter: Bugs/decisions extraction now scans `assistant` messages only (was scanning all roles).
+- Prompt filter: Applied to `_extractDecisionsT2()`, `_extractBugsT2()`, `extractDecisions()`, `extractFacts()`.
+- `file-builder.ts`: `<current>` sanitized — tool artifacts stripped, code blocks removed, capped at 400 chars.
+
+### Hardware Tier Classification `[CM-TIER-FIX]`
+**Problem**: 16GB/4-core machines without WebGPU were misclassified as `minimal` because `selectTier()` required `cores >= 6` for balanced.
+**Fixes**:
+- `capability-detector.ts`: Balanced tier = `cores >= 3 && RAM >= 6`. Full tier = `cores >= 6 && RAM >= 12 && hasWebGPU`. Minimal = `cores <= 2 || RAM <= 4`.
+- `attention-engine.ts`: `detectHardware()` aligned to same thresholds. `THRESHOLDS` expanded to include `"balanced"`.
+- Added `recommendedMigrationTier: 1 | 2 | 3` to `Capabilities` interface.
+
+### Offscreen Document Race Condition `[CM-RACE-FIX]`
+**Problem**: Embed requests sent before the ONNX model finished initializing caused the Chrome message channel to close prematurely, forcing keyword fallback.
+**Fixes**:
+- `offscreen.ts`: Added `modelReady` flag + `pendingRuntimeEmbeds` queue. Requests arriving before model ready are queued with a 25s safety timeout. Drained after `WORKER_READY`.
+- `semantic-index/index.ts`: `offscreenEmbedQuery()` wrapped in 30-second `Promise.race` timeout.
+- `service-worker.ts`: Tier 3 migration now pre-warms the model (`semanticIndex.warmup()`, 15s timeout) before indexing begins.
+
+### Tier 3 Attention Engine Block `[CM-T3-FIX]`
+**Problem**: `<attention_engine>` XML block in Tier 3 migration files contained only `<task>`, `<highlighted_files>`, and `<compression_ratio>` — no scored chunk content.
+**Fixes**:
+- `file-builder.ts`: Added `renderScoredChunks()` helper. Groups `topChunks` into `<scored_topics>`, `<key_decisions>`, `<architectural_context>`. Top 5 per category, 800-char truncation.
+- `service-worker.ts`: `buildAttentionMap(session, task, 'balanced')` called before `buildTier3File()`, and `attentionMap` passed through.
+
+---
+
+## 13. Known Architectural Bottlenecks & Stress-Testing Protocols
+
+### Cross-Profile Drive Sync vs. Local Priority Queue
+
+**Problem**: When a user operates multiple Chrome profiles bound to a single Google Drive account, a state-sync race condition can silently degrade Tier 3 migration quality.
+
+**Mechanics**:
+1. **Session metadata is global; embeddings are local.** Drive sync (`sync-manager.ts`) serializes session objects (messages, title, platform, capture metadata) as JSON and writes them to the shared Drive app-data folder. Semantic embeddings (`chunkEmbeddings`, `sessionHashes`) live in the browser's local IndexedDB (`dexieDb`) and are *never* synced to Drive. This is intentional — ONNX embeddings are large (384-d float vectors), and syncing them would exceed Drive app-data quotas and sync latency budgets.
+2. **Priority queue interruption.** The Semantic Index (`semantic-index/index.ts`) uses a single serialized queue: one foreground (priority) indexing job and one background indexing job at a time. When a foreground migration is triggered, the background chunking of a *different* session is correctly paused so the migration receives compute resources.
+3. **Incomplete state propagates globally.** If Profile A captures a new session and begins background chunking, then the user triggers a foreground migration for another session, the background job pauses. The session metadata (messages, title) has already been written to Dexie and will be picked up by the periodic Drive sync. However, `chunkEmbeddings` for the paused session may be partially written or entirely absent because the embed loop was interrupted.
+4. **Cross-profile gap.** The user closes Profile A, opens Profile B, and Drive sync pulls the session metadata down. Profile B now has the full message transcript but zero (or stale) embeddings in local Dexie. When the user requests a Tier 3 migration for that session, `needsIndexing()` sees a valid `sessionHash` (or a phantom one), and the retrieval path either returns keyword-fallback chunks or zero chunks — both degrade the migration to heuristics without warning the user that the root cause is an incomplete embed on a different profile.
+
+**Why this is not a bug in the priority queue.** The priority queue is doing exactly what it was designed to do: allocate the single ONNX thread to the user's immediate request. The failure mode is a *data-boundary* mismatch: Drive believes the session is "complete" because the message JSON is present, but the attention engine's prerequisite (local embeddings) is not.
+
+**Current Mitigations**:
+- `needsIndexing()` phantom-hash guard (Fix 1 / Fix B in Section 12) will re-trigger indexing if `chunkEmbeddings.count() === 0`, but only on the *same* profile. If Profile B has never seen the session, it must rebuild embeddings from scratch, which is correct but adds latency.
+- `retrieve()` keyword fallback rejection (Fix C in Section 12) prevents silent Tier 3 downgrade when embeddings are missing.
+
+**Unresolved Risk**: If a session has *partial* embeddings (e.g., 6 of 12 chunks were written before interruption), `needsIndexing()` returns `false` (hash matches, hardware matches, chunkCount > 0), and retrieval will use the incomplete embedding set, producing semantically broken results. A "chunk integrity checksum" (hash of message indices actually embedded) is a candidate future guard.
+
+---
+
+### Stress-Testing Mandate
+
+All future modifications to `sync-manager.ts`, `semantic-index/index.ts`, or the migration engine **must** be validated against the following multi-profile stress matrix before release:
+
+**Scenario A — Interleaved Capture + Migration (Single Profile)**
+1. Capture a high-message-count session (≥ 200 messages) in Profile A.
+2. While background indexing is active, trigger a Tier 3 migration for a *different* session.
+3. Verify that:
+   - The background job resumes after the priority job completes.
+   - `chunkEmbeddings` for the captured session is eventually fully populated.
+   - No "phantom hash" warning fires on a subsequent migration of the captured session.
+
+**Scenario B — Cross-Profile Incomplete Sync**
+1. In Profile A, begin capturing a session, then interrupt background indexing with a priority migration.
+2. Allow Drive sync to run (or force it via `DRIVE_SYNC_NOW`).
+3. Close Profile A, open Profile B, wait for Drive pull.
+4. Attempt Tier 3 migration of the same session in Profile B.
+5. Verify that:
+   - The migration does **not** silently fall back to keyword search.
+   - If embeddings are missing, `tier3_embed_timeout` or `tier3_no_chunks` is surfaced to the user.
+   - Re-indexing completes successfully on retry.
+
+**Scenario C — Simultaneous Multi-Profile Writes**
+1. Open Profile A and Profile B concurrently (two Chrome windows, same Drive account).
+2. Capture a session in Profile A and a different session in Profile B.
+3. Trigger migrations in both profiles within the same 30-second window.
+4. Verify that:
+   - Drive conflict resolution (higher `messageCount` wins) does not drop the lower-count session.
+   - Each profile's local `chunkEmbeddings` remains consistent with its own Drive-fetched session metadata.
+   - No cross-profile embedding corruption occurs.
+
+**Acceptance Criteria**:
+- Console must contain zero `Skip (unchanged)` lines for sessions with < 100% embedding coverage.
+- Console must contain zero `Keyword fallback` lines during Tier 3 migrations.
+- If a session is migrated with incomplete embeddings, the error payload must identify the root cause as `tier3_embed_timeout` or `tier3_no_chunks`, never a silent Tier 1 downgrade.
+- Memory and IndexedDB growth must not exceed 150 MB per profile after 10 sessions of ≥ 200 messages each.
+
+**Process Rule**: Any PR touching `sync-manager.ts`, `semantic-index/index.ts`, `offscreen.ts`, or `service-worker.ts` must include a screen recording or automated log output demonstrating all three scenarios passing before merge.

@@ -210,12 +210,16 @@ async function offscreenEmbedQuery(
       await _offscreenReadyPromise;
     }
     const requestId = `q_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const res = await chrome.runtime.sendMessage<unknown, OffscreenEmbedResponse>({
-      type: "OFFSCREEN_EMBED_QUERY",
-      text,
-      hardware,
-      requestId,
-    });
+    const res = await Promise.race([
+      chrome.runtime.sendMessage<unknown, OffscreenEmbedResponse>({
+        type: "OFFSCREEN_EMBED_QUERY",
+        text,
+        hardware,
+        requestId,
+      }),
+      // [CM-RACE-FIX] 45-second timeout for CPU-only ONNX — 30s was too short on balanced hardware
+      new Promise<OffscreenEmbedResponse>((_, reject) => setTimeout(() => reject(new Error("offscreen embed timeout (45s)")), 45_000)),
+    ]);
     if (!res?.ok || !res.embedding) throw new Error(res?.error ?? "Offscreen embed failed");
     return res.embedding;
   } finally {
@@ -275,7 +279,8 @@ async function maybeCloseOffscreen(): Promise<void> {
 // ──────────────────────────────────────────────────────────────────────────
 // In-memory retrieval cache (30 s TTL, keyed by sessionId + query prefix)
 // ──────────────────────────────────────────────────────────────────────
-const _retrieveCache = new Map<string, { results: ChunkEmbedding[]; ts: number }>();
+type RetrieveResult = { chunks: ChunkEmbedding[]; usedKeywordFallback: boolean };
+const _retrieveCache = new Map<string, RetrieveResult & { ts: number }>();
 
 // ──────────────────────────────────────────────────────────────────────────
 // SemanticIndex
@@ -300,6 +305,50 @@ export class SemanticIndex {
         : "tiny";
       if (stored.model !== MODEL_CONFIGS[expectedTier].modelId) return true;
     } catch { /* hw detection failure → keep existing index */ }
+
+    // [CM-T3-FIX] FINAL guard — chunk validation (must be last, after all other checks)
+    // A session can have a valid hash + matching hardware but 0 actual chunks
+    // (interrupted index, offscreen doc crashed during embed loop)
+    const chunkCount = await dexieDb.chunkEmbeddings
+      .where('sessionId').equals(session.id)
+      .count();
+    if (chunkCount === 0) {
+      console.warn(
+        `[CM:index] phantom hash (current) for ${session.id} ` +
+        `— hash matches but 0 chunks, clearing and re-indexing`
+      );
+      await dexieDb.sessionHashes.delete(session.id);
+      // [CM-PERSIST-FIX] Also add to persistentQueue for startup recovery
+      await dexieDb.pendingIndex.put({
+        sessionId: session.id,
+        createdAt: Date.now(),
+        priority: 'background' as const,
+        retryCount: 0,
+      }).catch(() => {})
+      return true;
+    }
+
+    // [CM-PERSIST-FIX] partial embed guard — catches interrupted index loops
+    // e.g. 6 of 12 chunks written before offscreen doc was destroyed
+    if (stored.chunkCount != null && stored.chunkCount > 0) {
+      const expectedCount = stored.chunkCount
+      // Allow 20% tolerance for chunker variability between versions
+      if (chunkCount < expectedCount * 0.8) {
+        console.warn(
+          `[CM:index] partial embed for ${session.id} — ` +
+          `${chunkCount}/${expectedCount} chunks found (<80%), clearing for re-index` 
+        )
+        await dexieDb.sessionHashes.delete(session.id)
+        // Write to persistent queue so recovery fires on next startup
+        await dexieDb.pendingIndex.put({
+          sessionId: session.id,
+          createdAt: Date.now(),
+          priority: 'background' as const,
+          retryCount: 0,
+        }).catch(() => {})
+        return true
+      }
+    }
 
     return false;
   }
@@ -447,28 +496,28 @@ export class SemanticIndex {
     sessionId: string,
     query: string | null,
     topK: number = 15
-  ): Promise<ChunkEmbedding[]> {
+  ): Promise<RetrieveResult> {
     const t0 = performance.now();
 
     // ── In-memory cache check (30 s TTL) ──
     const cacheKey = `${sessionId}::${query?.slice(0, 50) ?? ''}`;
     const _cached = _retrieveCache.get(cacheKey);
     if (_cached && Date.now() - _cached.ts < 30_000) {
-      return _cached.results;
+      return { chunks: _cached.chunks, usedKeywordFallback: _cached.usedKeywordFallback };
     }
 
     const allChunks = await dexieDb.chunkEmbeddings.where("sessionId").equals(sessionId).toArray();
     if (allChunks.length === 0) {
       console.warn(`[CM:index] No chunks for ${sessionId}`);
-      return [];
+      return { chunks: [], usedKeywordFallback: false };
     }
 
     if (!query || !query.trim()) {
       // No query — return most recent N chunks
       const sorted = [...allChunks].sort((a, b) => b.messageIndex - a.messageIndex);
       const result = sorted.slice(0, topK).reverse();
-      _retrieveCache.set(cacheKey, { results: result, ts: Date.now() });
-      return result;
+      _retrieveCache.set(cacheKey, { chunks: result, usedKeywordFallback: false, ts: Date.now() });
+      return { chunks: result, usedKeywordFallback: false };
     }
 
     // Embed the query — prefer offscreen path, fall back to keyword-only
@@ -488,9 +537,9 @@ export class SemanticIndex {
 
     if (queryEmbedding === null) {
       const result = keywordRetrieve(allChunks, query, topK);
-      _retrieveCache.set(cacheKey, { results: result, ts: Date.now() });
+      _retrieveCache.set(cacheKey, { chunks: result, usedKeywordFallback: true, ts: Date.now() });
       console.log(`[CM:index] Keyword fallback: ${result.length}/${allChunks.length} chunks in ${(performance.now() - t0).toFixed(1)}ms`);
-      return result;
+      return { chunks: result, usedKeywordFallback: true };
     }
 
     // Multi-signal attention score:
@@ -566,13 +615,13 @@ export class SemanticIndex {
       .sort((a, b) => a.chunk.messageIndex - b.chunk.messageIndex)
       .map((s) => s.chunk);
 
-    _retrieveCache.set(cacheKey, { results: retrieved, ts: Date.now() });
+    _retrieveCache.set(cacheKey, { chunks: retrieved, usedKeywordFallback: false, ts: Date.now() });
     console.log(
       `[CM:index] Retrieved ${retrieved.length}/${allChunks.length} chunks ` +
       `(top-code=${topCode.length} top-prose=${topProse.length} recent=${recentChunks.length}) ` +
       `in ${(performance.now() - t0).toFixed(1)}ms`
     );
-    return retrieved;
+    return { chunks: retrieved, usedKeywordFallback: false };
   }
 
   // ─── SUMMARY PERSISTENCE ──────────────────────────────────────────────
