@@ -2,32 +2,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import { Toaster, toast } from 'sonner';
 
-// Define types to match the backend
-interface PlatformSelectors {
-  [key: string]: string | undefined;
-}
+// Types
+interface PlatformSelectors { [key: string]: string | undefined; }
+interface PlatformConfig { platform_id: string; is_enabled: boolean; selectors: PlatformSelectors; last_updated_at: string; updated_by: string; }
+interface ScraperBugReport { id: string; platform_id: string; error_message: string; href: string; user_id: string; reported_at: string; status: string; dom_snippet?: string; }
 
-interface PlatformConfig {
-  platform_id: string;
-  is_enabled: boolean;
-  selectors: PlatformSelectors;
-  last_updated_at: string;
-  updated_by: string;
-}
-
-interface ScraperBugReport {
-  id: string;
-  platform_id: string;
-  error_message: string;
-  href: string;
-  user_id: string;
-  reported_at: string;
-  status: string;
-  dom_snippet?: string;
-}
-
-// Component to edit a single platform's config
+// Editor Component
 function PlatformEditor({ config, onSave }: { config: PlatformConfig, onSave: (config: PlatformConfig) => Promise<void> }) {
   const [selectors, setSelectors] = useState(JSON.stringify(config.selectors, null, 2));
   const [isEnabled, setIsEnabled] = useState(config.is_enabled);
@@ -35,90 +23,98 @@ function PlatformEditor({ config, onSave }: { config: PlatformConfig, onSave: (c
 
   const handleSave = async () => {
     setIsSaving(true);
-    try {
-      const parsedSelectors = JSON.parse(selectors);
-      await onSave({ ...config, selectors: parsedSelectors, is_enabled: isEnabled });
-    } catch (e) {
-      alert('Invalid JSON in selectors');
-    } finally {
-      setIsSaving(false);
-    }
+    const promise = new Promise<void>(async (resolve, reject) => {
+      try {
+        const parsedSelectors = JSON.parse(selectors);
+        await onSave({ ...config, selectors: parsedSelectors, is_enabled: isEnabled });
+        resolve();
+      } catch (e) {
+        reject(e);
+      }
+    });
+
+    toast.promise(promise, {
+      loading: 'Saving configuration...',
+      success: 'Configuration saved!',
+      error: 'Invalid JSON in selectors. Please correct and try again.',
+    });
+
+    promise.finally(() => setIsSaving(false));
   };
 
   return (
-    <div style={{ border: '1px solid #ccc', padding: '1rem', borderRadius: '8px' }}>
-      <h3>{config.platform_id}</h3>
-      <div>
-        <label>
-          <input type="checkbox" checked={isEnabled} onChange={e => setIsEnabled(e.target.checked)} />
-          Enabled
-        </label>
-      </div>
-      <div style={{ marginTop: '0.5rem' }}>
-        <textarea 
-          value={selectors} 
-          onChange={e => setSelectors(e.target.value)} 
-          rows={10} 
-          style={{ width: '100%', fontFamily: 'monospace' }}
-        />
-      </div>
-      <button onClick={handleSave} disabled={isSaving} style={{ marginTop: '0.5rem' }}>
-        {isSaving ? 'Saving...' : 'Save'}
-      </button>
-      <small style={{ display: 'block', marginTop: '0.5rem', color: '#666' }}>
-        Last updated: {new Date(config.last_updated_at).toLocaleString()} by {config.updated_by}
-      </small>
-    </div>
-  );
-}
-
-// Component to display bug reports
-function BugReportViewer({ reports }: { reports: ScraperBugReport[] }) {
-  const [selectedSnippet, setSelectedSnippet] = useState<string | null>(null);
-  return (
-    <>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-      <thead>
-        <tr>
-          <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left' }}>Platform</th>
-          <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left' }}>Error</th>
-          <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left' }}>URL</th>
-          <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left' }}>Snippet</th>
-          <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left' }}>Reported At</th>
-        </tr>
-      </thead>
-      <tbody>
-        {reports.map(report => (
-          <tr key={report.id}>
-            <td style={{ border: '1px solid #ccc', padding: '8px' }}>{report.platform_id}</td>
-            <td style={{ border: '1px solid #ccc', padding: '8px' }}>{report.error_message}</td>
-            <td style={{ border: '1px solid #ccc', padding: '8px' }}><a href={report.href} target="_blank" rel="noopener noreferrer">Link</a></td>
-            <td style={{ border: '1px solid #ccc', padding: '8px' }}>
-              {report.dom_snippet && (
-                <button onClick={() => setSelectedSnippet(report.dom_snippet!)} style={{ padding: '4px 8px', cursor: 'pointer' }}>View</button>
-              )}
-            </td>
-            <td style={{ border: '1px solid #ccc', padding: '8px' }}>{new Date(report.reported_at).toLocaleString()}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-
-    {selectedSnippet && (
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ backgroundColor: '#333', color: 'white', padding: '2rem', borderRadius: '8px', maxWidth: '80vw', maxHeight: '80vh', overflow: 'auto' }}>
-          <h3>DOM Snippet</h3>
-          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', backgroundColor: '#222', padding: '1rem', borderRadius: '4px', maxHeight: '60vh', overflow: 'auto' }}>
-            <code>{selectedSnippet}</code>
-          </pre>
-          <button onClick={() => setSelectedSnippet(null)} style={{ marginTop: '1rem', padding: '8px 16px', cursor: 'pointer' }}>Close</button>
+    <Card className="bg-zinc-900 border-zinc-700 text-white">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="capitalize">{config.platform_id}</CardTitle>
+        <div className="flex items-center space-x-2">
+          <Checkbox id={`enabled-${config.platform_id}`} checked={isEnabled} onCheckedChange={(c) => setIsEnabled(c as boolean)} className="border-zinc-500" />
+          <label htmlFor={`enabled-${config.platform_id}`} className="text-sm font-medium leading-none">Enabled</label>
         </div>
-      </div>
-    )}
-    </>
+      </CardHeader>
+      <CardContent>
+        <Textarea value={selectors} onChange={e => setSelectors(e.target.value)} rows={12} className="w-full font-mono text-xs bg-zinc-800 border-zinc-600 rounded-md" />
+      </CardContent>
+      <CardFooter className="flex justify-between items-center">
+        <Button onClick={handleSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save'}</Button>
+        <p className="text-xs text-zinc-400">
+          Last updated: {new Date(config.last_updated_at).toLocaleString()} by {config.updated_by}
+        </p>
+      </CardFooter>
+    </Card>
   );
 }
 
+// Bug Report Viewer
+function BugReportViewer({ reports }: { reports: ScraperBugReport[] }) {
+  return (
+    <Card className="bg-zinc-900 border-zinc-700 text-white mt-8">
+      <CardHeader>
+        <CardTitle>Bug Reports ({reports.length})</CardTitle>
+        <CardDescription>Automatically reported scraper issues from users.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow className="border-zinc-700">
+              <TableHead>Platform</TableHead>
+              <TableHead>Error</TableHead>
+              <TableHead>URL</TableHead>
+              <TableHead>Snippet</TableHead>
+              <TableHead className="text-right">Reported At</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {reports.map(report => (
+              <TableRow key={report.id} className="border-zinc-800">
+                <TableCell>{report.platform_id}</TableCell>
+                <TableCell className="max-w-xs truncate">{report.error_message}</TableCell>
+                <TableCell><a href={report.href} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Link</a></TableCell>
+                <TableCell>
+                  {report.dom_snippet && (
+                    <Dialog>
+                      <DialogTrigger asChild><Button variant="outline" size="sm">View</Button></DialogTrigger>
+                      <DialogContent className="sm:max-w-[80vw] bg-zinc-900 border-zinc-700 text-white">
+                        <DialogHeader><DialogTitle>DOM Snippet</DialogTitle></DialogHeader>
+                        <pre className="mt-2 w-full rounded-md bg-zinc-950 p-4 overflow-auto max-h-[60vh]">
+                          <code className="text-white text-xs">{report.dom_snippet}</code>
+                        </pre>
+                        <DialogFooter><DialogClose asChild><Button type="button" variant="secondary">Close</Button></DialogClose></DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </TableCell>
+                <TableCell className="text-right text-xs">{new Date(report.reported_at).toLocaleString()}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        {reports.length === 0 && <p className="text-center text-zinc-400 py-8">No bug reports found.</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Main Page Component
 export default function ScraperAdminPage() {
   const [configs, setConfigs] = useState<PlatformConfig[]>([]);
   const [reports, setReports] = useState<ScraperBugReport[]>([]);
@@ -129,27 +125,26 @@ export default function ScraperAdminPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Always fetch configs, as this is a public endpoint
-        const configsRes = await fetch('/api/scraper-admin/configs');
-        if (!configsRes.ok) {
-          const errText = await configsRes.text();
-          throw new Error(`Failed to fetch configs: ${errText}`);
-        }
+        const [configsRes, reportsRes] = await Promise.all([
+          fetch('/api/scraper-admin/configs'),
+          fetch('/api/scraper-admin/bug-reports')
+        ]);
+
+        if (!configsRes.ok) throw new Error(`Failed to fetch configs: ${await configsRes.text()}`);
         const configsData = await configsRes.json();
         setConfigs(configsData);
 
-        // Only fetch reports if we think we're an admin
-        const reportsRes = await fetch('/api/scraper-admin/bug-reports');
         if (reportsRes.ok) {
           const reportsData = await reportsRes.json();
           setReports(reportsData);
         } else {
-          // A 403 is expected if not logged in as admin, not a true error.
           console.warn(`Could not fetch bug reports: ${reportsRes.status}`);
+          toast.error('Could not fetch bug reports. You may not be logged in as an admin.');
         }
-
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+        const msg = err instanceof Error ? err.message : 'An unknown error occurred';
+        setError(msg);
+        toast.error(msg);
       } finally {
         setLoading(false);
       }
@@ -164,30 +159,36 @@ export default function ScraperAdminPage() {
       body: JSON.stringify(configToSave),
     });
     if (!res.ok) {
-      alert('Failed to save config');
+      throw new Error('Failed to save config');
     } else {
-      // Refresh data on successful save
       const newConfigs = configs.map(c => c.platform_id === configToSave.platform_id ? configToSave : c);
       setConfigs(newConfigs);
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) return <div className="flex items-center justify-center h-screen bg-black text-white">Loading...</div>;
+  if (error) return <div className="flex items-center justify-center h-screen bg-black text-white">Error: {error}</div>;
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>Scraper Admin</h1>
+    <div className="min-h-screen bg-black text-white p-4 sm:p-6 lg:p-8">
+      <Toaster richColors theme="dark" />
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">Scraper Admin</h1>
+        <p className="text-zinc-400">Manage platform selectors and view bug reports.</p>
+      </header>
       
-      <h2>Platform Configurations</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1rem' }}>
-        {configs.map(config => (
-          <PlatformEditor key={config.platform_id} config={config} onSave={handleSaveConfig} />
-        ))}
-      </div>
+      <section>
+        <h2 className="text-2xl font-semibold mb-4">Platform Configurations</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {configs.map(config => (
+            <PlatformEditor key={config.platform_id} config={config} onSave={handleSaveConfig} />
+          ))}
+        </div>
+      </section>
 
-      <h2 style={{ marginTop: '2rem' }}>Bug Reports ({reports.length})</h2>
-      <BugReportViewer reports={reports} />
+      <section>
+        <BugReportViewer reports={reports} />
+      </section>
     </div>
   );
 }

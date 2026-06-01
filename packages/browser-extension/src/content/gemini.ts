@@ -51,23 +51,14 @@ function scrapeMessages(): Message[] {
   // Remote selectors override hardcoded defaults when present.
   // Gemini 2026: user-query-container, response-container-content, model-response-text, markdown
   const userSel = _remoteSelectors?.userSelector ?? [
-    'user-query',
-    '[class*="user-query-container"]',
-    '[class*="user-query-bubble"]',
     '.user-query',
-    'user-chunk',
-    '[class*="user-chunk"]',
-    'user-message',
+    '.query-container',
   ].join(', ')
   const asstSel = _remoteSelectors?.assistantSelector ?? [
-    'model-response',
-    'ms-chat-turn[type="model"]',
-    '[class*="model-response-text"]',
-    '[class*="response-container"]',
-    'response-element',
-    '[class*="response-element"]',
+    'model-response-container .response-content',
+    'model-response-container',
+    '.response-container',
     '.model-response',
-    'message-content',
   ].join(', ')
   const strategy = (_remoteSelectors?.userSelector || _remoteSelectors?.assistantSelector) ? 0 : 1
 
