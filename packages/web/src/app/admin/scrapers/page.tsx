@@ -23,11 +23,12 @@ function PlatformEditor({ config, onSave }: { config: PlatformConfig, onSave: (c
 
   const handleSave = async () => {
     setIsSaving(true);
-    const promise = new Promise<void>(async (resolve, reject) => {
+    const promise = new Promise<void>((resolve, reject) => {
       try {
         const parsedSelectors = JSON.parse(selectors);
-        await onSave({ ...config, selectors: parsedSelectors, is_enabled: isEnabled });
-        resolve();
+        onSave({ ...config, selectors: parsedSelectors, is_enabled: isEnabled })
+          .then(resolve)
+          .catch(reject);
       } catch (e) {
         reject(e);
       }
