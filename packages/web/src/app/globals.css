@@ -96,14 +96,12 @@ body {
   }
 }
 
-/* ── Mobile baseline ── */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { overflow-x: hidden; max-width: 100vw; }
 img { max-width: 100%; height: auto; }
 
 @layer base {
   :root {
-    /* ── ContextMover design tokens ── */
     --cf-bg:              #0A0A0A;
     --cf-surface:         #111111;
     --cf-card:            #1A1A1A;
@@ -169,7 +167,6 @@ img { max-width: 100%; height: auto; }
   }
 }
 
-/* ── Scrollbars ── */
 ::-webkit-scrollbar          { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track    { background: transparent; }
 ::-webkit-scrollbar-thumb    { background: #2A2A2A; border-radius: 999px; }

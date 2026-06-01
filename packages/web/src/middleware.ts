@@ -11,8 +11,8 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public access to all scraper admin API routes
-  if (pathname.startsWith('/api/scraper-admin/')) {
+  // Allow public GET access only to scraper config endpoint
+  if (pathname === '/api/scraper-admin/configs' && request.method === 'GET') {
     return NextResponse.next();
   }
   // Skip auth checks if env vars aren't configured yet
