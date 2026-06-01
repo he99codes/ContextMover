@@ -19,11 +19,12 @@ export async function GET(req: NextRequest) {
 
 // POST a new bug report (public, from extension)
 export async function POST(req: NextRequest) {
-  const { platform_id, error_message, href, user_id } = (await req.json()) as {
+  const { platform_id, error_message, href, user_id, dom_snippet } = (await req.json()) as {
     platform_id: string;
     error_message: string;
     href: string;
     user_id?: string;
+    dom_snippet?: string;
   };
 
   if (!platform_id || !error_message) return NextResponse.json({ error: "platform_id and error_message are required" }, { status: 400 });
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
     error_message,
     href,
     user_id,
+    dom_snippet,
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

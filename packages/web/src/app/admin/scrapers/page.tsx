@@ -24,6 +24,7 @@ interface ScraperBugReport {
   user_id: string;
   reported_at: string;
   status: string;
+  dom_snippet?: string;
 }
 
 // Component to edit a single platform's config
@@ -73,13 +74,16 @@ function PlatformEditor({ config, onSave }: { config: PlatformConfig, onSave: (c
 
 // Component to display bug reports
 function BugReportViewer({ reports }: { reports: ScraperBugReport[] }) {
+  const [selectedSnippet, setSelectedSnippet] = useState<string | null>(null);
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
       <thead>
         <tr>
           <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left' }}>Platform</th>
           <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left' }}>Error</th>
           <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left' }}>URL</th>
+          <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left' }}>Snippet</th>
           <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left' }}>Reported At</th>
         </tr>
       </thead>
@@ -89,11 +93,29 @@ function BugReportViewer({ reports }: { reports: ScraperBugReport[] }) {
             <td style={{ border: '1px solid #ccc', padding: '8px' }}>{report.platform_id}</td>
             <td style={{ border: '1px solid #ccc', padding: '8px' }}>{report.error_message}</td>
             <td style={{ border: '1px solid #ccc', padding: '8px' }}><a href={report.href} target="_blank" rel="noopener noreferrer">Link</a></td>
+            <td style={{ border: '1px solid #ccc', padding: '8px' }}>
+              {report.dom_snippet && (
+                <button onClick={() => setSelectedSnippet(report.dom_snippet!)} style={{ padding: '4px 8px', cursor: 'pointer' }}>View</button>
+              )}
+            </td>
             <td style={{ border: '1px solid #ccc', padding: '8px' }}>{new Date(report.reported_at).toLocaleString()}</td>
           </tr>
         ))}
       </tbody>
     </table>
+
+    {selectedSnippet && (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ backgroundColor: '#333', color: 'white', padding: '2rem', borderRadius: '8px', maxWidth: '80vw', maxHeight: '80vh', overflow: 'auto' }}>
+          <h3>DOM Snippet</h3>
+          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', backgroundColor: '#222', padding: '1rem', borderRadius: '4px', maxHeight: '60vh', overflow: 'auto' }}>
+            <code>{selectedSnippet}</code>
+          </pre>
+          <button onClick={() => setSelectedSnippet(null)} style={{ marginTop: '1rem', padding: '8px 16px', cursor: 'pointer' }}>Close</button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 

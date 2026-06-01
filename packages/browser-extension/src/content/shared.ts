@@ -86,6 +86,7 @@ export function createObserver(
           platform,
           reason: `Selector not found: ${resolved}`,
           href: location.href,
+          dom_snippet: getDebugSnippet(),
         }).catch(() => {});
       }
       return;
@@ -96,6 +97,13 @@ export function createObserver(
 
   attach();
   return observer;
+}
+
+function getDebugSnippet(): string {
+  const mainEl = document.querySelector('main, [role="main"]');
+  if (mainEl) return mainEl.outerHTML.slice(0, 5000);
+  return document.body.outerHTML.slice(0, 5000);
+
 }
 
 export function isAssistantStreaming(platform: string): boolean {
@@ -389,6 +397,7 @@ export function startSessionCapture(config: {
           platform: config.platform,
           reason: "Zero messages found after retries.",
           href: location.href,
+          dom_snippet: getDebugSnippet(),
         }).catch(() => {});
       }
       zeroScrapeRetries = 0;
