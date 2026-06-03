@@ -7,8 +7,12 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    const { billing, userId, userEmail, earlyBird } = await req.json();
-    if (!billing || !userId || !["monthly", "annual"].includes(billing)) {
+        const { billing, userId, userEmail } = await req.json();
+
+    // Server-side validation for early bird pricing
+    const earlyBirdCutoff = new Date('2026-07-01T00:00:00Z');
+    const earlyBird = new Date() < earlyBirdCutoff;
+        if (!billing || !userId || !["monthly", "annual"].includes(billing)) {
       return NextResponse.json({ error: "billing (monthly|annual) and userId required" }, { status: 400 });
     }
 

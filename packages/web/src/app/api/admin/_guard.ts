@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const ADMIN_EMAIL = "priyanshu2164@gmail.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
 export async function requireAdmin(
   req: NextRequest
@@ -14,8 +14,9 @@ export async function requireAdmin(
   const admin = createAdminClient();
   const { data, error } = await admin.auth.getUser(token);
   if (error || !data?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  if (data.user.email !== ADMIN_EMAIL)
+  if (data.user.email !== ADMIN_EMAIL) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
-  return { userId: data.user.id, email: data.user.email };
+  return { userId: data.user.id, email: data.user.email ?? '' };
 }

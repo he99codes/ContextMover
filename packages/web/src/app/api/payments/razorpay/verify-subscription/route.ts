@@ -1,14 +1,31 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    const { razorpay_payment_id, razorpay_subscription_id, razorpay_signature, userId } = await req.json();
+        const { razorpay_payment_id, razorpay_subscription_id, razorpay_signature } = await req.json();
 
-    if (!razorpay_payment_id || !razorpay_subscription_id || !razorpay_signature || !userId) {
+    // ── Auth validation ──────────────────────────────────────────────────
+    const authHeader = req.headers.get("authorization") ?? "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const supabaseAuth = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: { user }, error: authErr } = await supabaseAuth.auth.getUser(token);
+    if (authErr || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!razorpay_payment_id || !razorpay_subscription_id || !razorpay_signature || !user) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -28,11 +45,15 @@ export async function POST(req: NextRequest) {
     }
 
     const admin = createAdminClient();
-    const { data: sub } = await admin
+        const { data: sub } = await admin
       .from("subscriptions")
-      .select("interval")
+      .select("user_id, interval")
       .eq("razorpay_subscription_id", razorpay_subscription_id)
       .single();
+
+    if (sub?.user_id !== user.id) {
+      return NextResponse.json({ error: "Subscription mismatch" }, { status: 403 });
+    }
 
     const interval = sub?.interval ?? "monthly";
     const periodEnd = new Date();
@@ -60,7 +81,7 @@ export async function POST(req: NextRequest) {
         razorpay_subscription_id,
         pro_since: new Date().toISOString(),
       })
-      .eq("id", userId);
+      .eq("id", user.id);
 
     return NextResponse.json({ success: true, isPro: true, plan: "pro" });
   } catch (err) {

@@ -28,6 +28,48 @@ export function debounce<T extends (...args: any[]) => void>(fn: T, ms: number):
   }) as T;
 }
 
+/**
+ * SPA navigation detection — watches for URL changes via history API and popstate.
+ * Calls onNavigate(newUrl) when the URL changes, including on initial load.
+ */
+export function watchForSpaNavigation(onNavigate: (newUrl: string) => void): void {
+  let lastUrl = window.location.href;
+
+  // Call onNavigate with current URL on initial load
+  onNavigate(lastUrl);
+
+  // Override history.pushState to detect SPA navigation
+  const originalPushState = history.pushState;
+  history.pushState = function (...args) {
+    originalPushState.apply(this, args);
+    const newUrl = window.location.href;
+    if (newUrl !== lastUrl) {
+      lastUrl = newUrl;
+      onNavigate(newUrl);
+    }
+  };
+
+  // Override history.replaceState to detect SPA navigation
+  const originalReplaceState = history.replaceState;
+  history.replaceState = function (...args) {
+    originalReplaceState.apply(this, args);
+    const newUrl = window.location.href;
+    if (newUrl !== lastUrl) {
+      lastUrl = newUrl;
+      onNavigate(newUrl);
+    }
+  };
+
+  // Listen for popstate events (back/forward navigation)
+  window.addEventListener('popstate', () => {
+    const newUrl = window.location.href;
+    if (newUrl !== lastUrl) {
+      lastUrl = newUrl;
+      onNavigate(newUrl);
+    }
+  });
+}
+
 export function createObserver(
   selectorOrElement: string | Element | (() => string | Element),
   callback: () => void,
@@ -440,10 +482,11 @@ export function startSessionCapture(config: {
     // will re-check and retry since lastMessageHash is still the old value.
 
     // Guard against virtual scroll shrinkage: if the current DOM scrape found
-    // fewer messages than we last successfully sent, the difference is almost
-    // certainly virtual scroll evicting old messages from the DOM, not real
-    // deletion. Suppress the send and keep the existing stored snapshot intact.
-    if (messages.length < lastSentMessageCount) {
+    // significantly fewer messages than we last successfully sent, the difference
+    // is almost certainly virtual scroll evicting old messages from the DOM, not
+    // real deletion. Suppress the send and keep the existing stored snapshot intact.
+    // Allow minor fluctuations (<25% decrease) to handle normal DOM volatility.
+    if (messages.length < lastSentMessageCount * 0.75) {
       console.log(
         `[ContextMover] ${config.platform}: suppressed shrinking scrape ` +
         `(${lastSentMessageCount}\u2192${messages.length}) — likely virtual scroll eviction`
@@ -568,6 +611,14 @@ export function startSessionCapture(config: {
     setTimeout(capture, 800);
     setTimeout(capture, 1500);
   }).observe(document, { subtree: true, childList: true });
+
+  // bfcache restore detection — when user navigates back/forward and page loads from cache
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      // Page was restored from bfcache — trigger capture after 1s delay
+      setTimeout(() => void capture(), 1000);
+    }
+  });
 }
 
 const CF_CHROME_SELECTORS = [
@@ -722,20 +773,90 @@ export function runCapturePipeline(
 
 export const sleep = (ms: number): Promise<void> => new Promise(r => setTimeout(r, ms));
 
-/**
- * Scroll the conversation container to the top and wait until no new DOM nodes
- * have appeared for SETTLE_MS (800ms) — signals lazy-loaded history is done.
- * Hard cap at 30s to prevent hanging on infinite-scroll pages.
- * Returns a restore function that sets scrollTop back to the original position.
- *
- * Detection order for the scroll container:
- *   1. CSS selector returned by getScrollContainerSelector() (remote config)
- *   2. Scrollable direct children of scope (SPA pattern — e.g. ChatGPT)
- *   3. Nearest scrollable ancestor of scope
- *   4. document.documentElement fallback
- *
- * When the container is already at scrollTop=0, returns a no-op immediately.
- */
+export interface DOMProbeCandidate {
+  selector: string;
+  sampleText: string;
+  frequency: number;
+  score: number;
+  likelyRole: 'user' | 'assistant' | 'input' | 'unknown';
+}
+
+export interface DOMProbeResult {
+  platform: string;
+  timestamp: number;
+  candidates: DOMProbeCandidate[];
+  currentSelectors: Record<string, string | undefined>;
+}
+
+export function runDOMProbe(platform: string): DOMProbeResult {
+  const candidates = new Map<string, { count: number, text: string, roles: Set<string> }>();
+
+  document.querySelectorAll('*').forEach(el => {
+    if (el.children.length > 0) return; // only leaf nodes
+    const text = el.textContent?.trim() ?? '';
+    if (text.length < 20) return;
+
+    const selector = el.tagName.toLowerCase() + (el.className ? '.' + String(el.className).split(' ').join('.') : '');
+    const entry = candidates.get(selector) || { count: 0, text: '', roles: new Set<string>() };
+    entry.count++;
+    if (!entry.text) entry.text = text.slice(0, 80).replace(/\s+/g, ' ');
+    
+    // Role detection
+    if (el.closest('textarea, [contenteditable="true"]')) {
+      entry.roles.add('input');
+    } else if (text.match(/^(You:|Human:)/i) || el.closest('[data-testid*="user"], [class*="user-query"]')) {
+      entry.roles.add('user');
+    } else if (el.closest('[data-testid*="assistant"], [class*="model-response"]')) {
+      entry.roles.add('assistant');
+    }
+
+    candidates.set(selector, entry);
+  });
+
+  const scoredCandidates: DOMProbeCandidate[] = Array.from(candidates.entries()).map(([selector, data]) => {
+    let score = 0;
+    if (data.count > 1) score += 0.2;
+    if (selector.includes('[data-testid')) score += 0.5;
+    if (selector.includes('[role=')) score += 0.2;
+    if (data.roles.size > 0) score += 0.1;
+
+    let likelyRole: DOMProbeCandidate['likelyRole'] = 'unknown';
+    if (data.roles.has('input')) likelyRole = 'input';
+    else if (data.roles.has('user')) likelyRole = 'user';
+    else if (data.roles.has('assistant')) likelyRole = 'assistant';
+
+    return {
+      selector,
+      sampleText: data.text,
+      frequency: data.count,
+      score,
+      likelyRole,
+    };
+  }).sort((a, b) => b.score - a.score).slice(0, 30);
+
+  return {
+    platform,
+    timestamp: Date.now(),
+    candidates: scoredCandidates,
+    currentSelectors: {},
+  };
+}
+
+export interface DOMProbeCandidate {
+  selector: string;
+  sampleText: string;
+  frequency: number;
+  score: number;
+  likelyRole: 'user' | 'assistant' | 'input' | 'unknown';
+}
+
+export interface DOMProbeResult {
+  platform: string;
+  timestamp: number;
+  candidates: DOMProbeCandidate[];
+  currentSelectors: Record<string, string | undefined>;
+}
+
 export async function autoScrollBackToTop(
   scope: Element,
   getScrollContainerSelector?: () => string | undefined,

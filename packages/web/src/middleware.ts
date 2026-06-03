@@ -15,6 +15,10 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/api/scraper-admin/configs' && request.method === 'GET') {
     return NextResponse.next();
   }
+  // Allow public read access to exported config JSON used by the extension
+  if (pathname.startsWith('/config/') && request.method === 'GET') {
+    return NextResponse.next();
+  }
   // Skip auth checks if env vars aren't configured yet
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||

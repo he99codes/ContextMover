@@ -804,11 +804,11 @@ export class AttentionEngine {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const TS: any = (mod as any).Parser ?? (mod as any).default ?? mod;
       await TS.init({
-        locateFile: (path: string) => {
+        locateFile: () => {
           if (typeof chrome !== "undefined" && chrome.runtime?.getURL) {
-            return chrome.runtime.getURL(`grammars/${path}`);
+            return chrome.runtime.getURL("tree-sitter.wasm");
           }
-          return `/grammars/${path}`;
+          return "/tree-sitter.wasm";
         },
       });
       this.tsParser = new TS();

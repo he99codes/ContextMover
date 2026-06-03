@@ -31,7 +31,7 @@ function geminiExtractContent(el: Element): string {
   //   message-content .markdown    — assistant rendered markdown
   //   .markdown                    — assistant markdown (looser)
   //   message-content              — assistant container fallback
-  const PRIORITY = ['.query-text', 'message-content .markdown', '.markdown', 'message-content'];
+  const PRIORITY = ['user-query-content', 'message-content', '.response-content', '.query-text', '.markdown'];
   const clean = (n: Element): string => {
     const c = n.cloneNode(true) as Element;
     c.querySelectorAll('script, template').forEach((x) => x.remove());
@@ -48,18 +48,12 @@ function geminiExtractContent(el: Element): string {
 }
 
 function scrapeMessages(): Message[] {
-  // Remote selectors override hardcoded defaults when present.
-  // Gemini 2026: user-query-container, response-container-content, model-response-text, markdown
-  const userSel = _remoteSelectors?.userSelector ?? [
-    '.user-query',
-    '.query-container',
-  ].join(', ')
-  const asstSel = _remoteSelectors?.assistantSelector ?? [
-    'model-response-container .response-content',
-    'model-response-container',
-    '.response-container',
-    '.model-response',
-  ].join(', ')
+  const GEMINI_ROOTS = ['chat-window', '[data-test-id="chat-history-container"]', 'infinite-scroller', 'conversation-container'] as const;
+  let scope: Element | null = null;
+  for (const sel of GEMINI_ROOTS) { scope = document.querySelector(sel); if (scope) { console.log(`[CM:gemini] root found: ${sel}`); break; } }
+  if (!scope) { console.warn('[CM:gemini] no root found — falling back to document.body'); scope = document.body; }
+  const userSel = _remoteSelectors?.userSelector ?? ['user-query', '[data-test-id="user-message"]'].join(', ')
+  const asstSel = _remoteSelectors?.assistantSelector ?? ['model-response', '[data-test-id="response-container"]'].join(', ')
   const strategy = (_remoteSelectors?.userSelector || _remoteSelectors?.assistantSelector) ? 0 : 1
 
   let _uHits = 0, _aHits = 0;
@@ -83,12 +77,12 @@ function scrapeMessages(): Message[] {
   const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
 
   // Outermost-only filter avoids double-capturing nested children with same class.
-  document.querySelectorAll<HTMLElement>(userSel).forEach(el => {
+  scope.querySelectorAll<HTMLElement>(userSel).forEach(el => {
     if (el.parentElement?.closest(userSel)) return
     if (isStreaming(el)) return
     found.push({ el, role: 'user' })
   })
-  document.querySelectorAll<HTMLElement>(asstSel).forEach(el => {
+  scope.querySelectorAll<HTMLElement>(asstSel).forEach(el => {
     if (el.parentElement?.closest(asstSel)) return
     if (isStreaming(el)) return
     found.push({ el, role: 'assistant' })
@@ -103,7 +97,7 @@ function scrapeMessages(): Message[] {
       ['[role="listitem"]',                 'listitem'],
     ];
     for (const [sel, label] of STRUCT_FALLBACKS) {
-      const candidates = document.querySelectorAll<HTMLElement>(sel);
+      const candidates = scope.querySelectorAll<HTMLElement>(sel);
       if (candidates.length === 0) continue;
       candidates.forEach(el => {
         if (isStreaming(el)) return;
@@ -137,14 +131,14 @@ function scrapeMessages(): Message[] {
     if (_uHits === 0 && _aHits === 0) {
       console.warn('[CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.');
       try {
-        const mainEl = document.querySelector('main');
-        const snap = mainEl?.firstElementChild?.outerHTML.slice(0, 500)
+        const snap = scope?.firstElementChild?.outerHTML.slice(0, 500)
           ?? document.body?.firstElementChild?.outerHTML.slice(0, 500)
-          ?? '(no main/body element found)';
+          ?? '(no scope/body element found)';
         console.warn('[CM:Debug] DOM snippet (first 500 chars):\n', snap);
-        const kids = Array.from(mainEl?.children ?? document.body?.children ?? [])
+        const kids = Array.from(scope?.children ?? document.body?.children ?? [])
           .map(c => `<${c.tagName.toLowerCase()} class="${c.getAttribute('class') ?? ''}">`);
-        console.warn('[CM:Debug] main> direct children:', kids);
+        console.warn('[CM:Debug] scope> direct children:', kids);
+
       } catch (e) { console.warn('[CM:Debug] snapshot error:', e); }
     } else {
       console.warn('[CM:Debug] ZERO-SCRAPE: selectors hit nodes but all were filtered (isStreaming or empty extractContent).');

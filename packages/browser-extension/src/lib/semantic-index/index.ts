@@ -243,7 +243,7 @@ type IndexJob = {
 };
 const _priorityQueue:   IndexJob[] = [];
 const _backgroundQueue: IndexJob[] = [];
-const _BACKGROUND_QUEUE_CAP = 3;
+const _BACKGROUND_QUEUE_CAP = 50;
 let _indexQueueRunning = false;
 
 function broadcastIndexStatus(status: {
@@ -373,10 +373,12 @@ export class SemanticIndex {
     }
 
     return new Promise<void>((resolve, reject) => {
-      // Cap background queue — drop oldest on overflow
+      // Cap background queue — reject newest on overflow
       if (_backgroundQueue.length >= _BACKGROUND_QUEUE_CAP) {
-        const dropped = _backgroundQueue.shift()!;
-        dropped.reject(new Error("[CM:queue] Dropped: background queue overflow"));
+        console.warn(`[CM:queue] Near capacity (${_backgroundQueue.length}/${_BACKGROUND_QUEUE_CAP}) — scheduling deferred index for ${session.id}`);
+        setTimeout(() => this.indexSession(session, onProgress).catch(() => {}), 30000);
+        resolve(); // Resolve immediately, the job will be retried later.
+        return;
       }
       _backgroundQueue.push({ session, onProgress, priority: "background", resolve, reject });
       broadcastIndexStatus({
@@ -784,6 +786,10 @@ export class SemanticIndex {
       modelTier: null,
       modelLabel: null,
     };
+  }
+
+  getQueueLength(): number {
+    return _backgroundQueue.length;
   }
 
   async warmup(): Promise<void> {

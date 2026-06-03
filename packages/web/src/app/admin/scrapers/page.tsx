@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -97,7 +98,7 @@ function BugReportViewer({ reports }: { reports: ScraperBugReport[] }) {
                       <DialogContent className="sm:max-w-[80vw] bg-zinc-900 border-zinc-700 text-white">
                         <DialogHeader><DialogTitle>DOM Snippet</DialogTitle></DialogHeader>
                         <pre className="mt-2 w-full rounded-md bg-zinc-950 p-4 overflow-auto max-h-[60vh]">
-                          <code className="text-white text-xs">{report.dom_snippet}</code>
+                          <code className="text-white text-xs" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(report.dom_snippet) }} />
                         </pre>
                         <DialogFooter><DialogClose asChild><Button type="button" variant="secondary">Close</Button></DialogClose></DialogFooter>
                       </DialogContent>

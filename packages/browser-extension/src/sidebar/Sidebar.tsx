@@ -4,7 +4,7 @@
  * of this software, via any medium, is strictly prohibited.
  * Proprietary and confidential.
  */
-
+import type { DOMProbeResult } from '@/content/shared';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
 import { dexieDb } from "@/lib/db";
@@ -446,7 +446,9 @@ export default function Sidebar() {
   const [indexStatsLoading, setIndexStatsLoading] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
   const [remoteUpdateMessage, setRemoteUpdateMessage] = useState<string | null>(null);
-
+  const [probeResult, setProbeResult] = useState<any | null>(null);
+  const [isProbing, setIsProbing] = useState(false);
+  const handleRunProbe = async () => { setIsProbing(true); const [tab] = await chrome.tabs.query({ active: true, currentWindow: true }); if (tab?.id) { const r = await chrome.runtime.sendMessage({ type: 'RUN_DOM_PROBE', tabId: tab.id }); if (r?.ok) setProbeResult(r.probeResult); } setIsProbing(false); };
   // ── Drive sync state — fetched on mount + when settings panel opens ────────
   const [driveStatus, setDriveStatus] = useState<{
     connected: boolean;
@@ -943,22 +945,24 @@ export default function Sidebar() {
     const base = filter === "all" ? sessions : sessions.filter((session) => session.platform === filter);
     const query = searchQuery.trim().toLowerCase();
 
-    if (!query) {
-      return base;
+    let result = base;
+    if (query) {
+      result = base.filter((session) => {
+        const haystack = [
+          session.customName,
+          session.title,
+          PLATFORM_LABELS[session.platform],
+          ...session.messages.slice(-4).map((message) => message.content),
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return haystack.includes(query);
+      });
     }
 
-    return base.filter((session) => {
-      const haystack = [
-        session.customName,
-        session.title,
-        PLATFORM_LABELS[session.platform],
-        ...session.messages.slice(-4).map((message) => message.content),
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(query);
-    });
+    // Sort by updatedAt descending (newest first)
+    return result.sort((a, b) => b.updatedAt - a.updatedAt);
   }, [filter, searchQuery, sessions]);
 
   const sourceCounts = useMemo(
@@ -1271,6 +1275,16 @@ export default function Sidebar() {
             >×</button>
           </div>
         )}
+        <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid #333'}}>
+          <button onClick={()=>void handleRunProbe()} disabled={isProbing} style={{fontSize:12,padding:'4px 8px'}}>
+            {isProbing?'Probing...':'🔍 DOM Probe'}
+          </button>
+          {probeResult?.candidates.slice(0,5).map((c:any,i:number)=>(
+            <div key={i} style={{fontSize:10,marginTop:4,color:'#aaa'}}>
+              <b style={{color:'#0f0'}}>{c.likelyRole}</b> — {c.selector}<br/>{c.sampleText.slice(0,60)}
+            </div>
+          ))}
+        </div>
         {/* Header */}
         <div className="border-b border-[#0D2A0D] px-2 py-[3px]" style={{ background: "linear-gradient(135deg, #040404 0%, #071207 55%, #040404 100%)", boxShadow: "0 1px 0 rgba(0,255,136,0.07)" }}>
           <div className="flex items-center justify-between">

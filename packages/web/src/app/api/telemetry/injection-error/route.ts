@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rate-limiter";
+import { sanitizeTelemetry } from "@/lib/telemetry-sanitizer";
 
 export const runtime = "nodejs";
 
@@ -18,11 +19,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing platform or reason" }, { status: 400 });
     }
 
-    console.error("[CM:telemetry:injection]", JSON.stringify({
-      type: "injection_error", platform: body.platform, reason: body.reason,
-      href: body.href ?? null, tier: body.tier ?? null, strategy: body.strategy ?? null,
-      timestamp: body.timestamp ?? Date.now(), version: body.extensionVersion ?? "unknown",
-    }));
+    const sanitizedBody = sanitizeTelemetry(body);
+    console.error("[CM:telemetry:injection]", JSON.stringify({ type: "injection_error", ...sanitizedBody }));
 
     return NextResponse.json({ ok: true });
   } catch (err) {

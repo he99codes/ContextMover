@@ -288,6 +288,19 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   modelWarmed = false;
 });
 
+// ── Trigger capture on tab URL changes ─────────────────────────────────────
+// When a user navigates to an existing conversation URL (or reloads), trigger
+// a capture so the extension detects and scrapes the conversation without
+// requiring user interaction. The content script's debounce prevents duplicate
+// captures within 1500ms.
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url && PLATFORM_GLOB_RE.test(tab.url)) {
+    chrome.tabs.sendMessage(tabId, { type: 'TRIGGER_CAPTURE' }, () => {
+      void chrome.runtime.lastError; // swallow if content script not ready
+    });
+  }
+});
+
 // ── Auto-close sidebar on tab/window switch ───────────────────────────────
 // Why this is broadcast-based rather than chrome.sidePanel.close({tabId}):
 //   • getContexts() returns ctx.tabId as undefined when the panel was opened
@@ -587,6 +600,22 @@ chrome.runtime.onStartup.addListener(async () => {
   setTimeout(() => {
     void (async () => {
       try {
+        const recentSessions = await dexieDb.sessions.orderBy('updatedAt').reverse().limit(20).toArray();
+        for (const session of recentSessions) {
+          if (session.messages.length > 0) {
+            const chunkCount = await dexieDb.chunkEmbeddings.where('sessionId').equals(session.id).count();
+            if (chunkCount === 0) {
+              console.log(`[CM:startup] Found un-indexed session ${session.id}, re-queuing`);
+              await semanticIndex.indexSession(session).catch(() => {});
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[CM:startup] un-indexed session recovery failed:', err);
+      }
+    })();
+    void (async () => {
+      try {
         const pending = await dexieDb.pendingIndex
           .orderBy('createdAt')
           .toArray()
@@ -597,13 +626,11 @@ chrome.runtime.onStartup.addListener(async () => {
 
         for (const job of pending) {
           // Give up after 3 failed attempts — session may be corrupted
-          if (job.retryCount >= 3) {
-            console.warn(
-              `[CM:startup] giving up on ${job.sessionId} ` +
-              `after ${job.retryCount} retries — removing from queue` 
-            )
-            await dexieDb.pendingIndex.delete(job.sessionId).catch(() => {})
-            continue
+          const hw = await getHardwareProfile();
+          if (hw.tier === 'minimal') {
+            console.log(`[CM:startup] skipping ${job.sessionId} — indexing disabled on minimal hardware`);
+            await dexieDb.pendingIndex.delete(job.sessionId).catch(() => {});
+            continue;
           }
 
           // Verify session still exists locally
@@ -1891,7 +1918,12 @@ async function handleCaptureSession(payload: {
     console.log('[CM:sw] saved (debounced)', { session: toWrite.id, total: toWrite.messages.length });
     void broadcastToViews({ type: "SESSIONS_UPDATED" });
     // Kick off background semantic indexing — fire & forget, never blocks capture
-    void backgroundIndex(toWrite).catch(() => {});
+    if (semanticIndex.getQueueLength() >= 40) {
+      console.warn(`[CM:sw] backpressure: deferring index for ${toWrite.id} by 60s`);
+      setTimeout(() => backgroundIndex(toWrite).catch(() => {}), 60000);
+    } else {
+      void backgroundIndex(toWrite).catch(() => {});
+    }
     // Queue Drive upload (debounced ~30s). Fire-and-forget; silent no-op when
     // the user has not connected Google Drive. Independent of Supabase vault.
     void driveSyncManager.syncAfterCapture(toWrite.id).catch(() => {});
@@ -2346,92 +2378,64 @@ async function handleMigrateContext(
   reportProgress(90, 'Injecting instructions...')
   let injected = false
   let injectionError: string | undefined
-  if (!payload.targetTabId) {
-    console.warn('[CM:sw] No targetTabId — skipping injection')
-  } else if (tier === 1) {
-    // [CM-FIX-4] removed auto-inject — now user-triggered only (MigrationModal path).
-    // When skipAutoInject=true (set by MigrationModal), the file is prepared and
-    // returned in the response; injection happens via the "Inject file into AI chat"
-    // button click in MigrationSuccess — exactly once, with a double-click guard.
-    //
-    // When skipAutoInject is absent (KnowledgeSynthesizer path), auto-inject is
-    // preserved: KnowledgeSynthesizer has no second inject button so there is no
-    // double-injection risk on that path.
-    if (!payload.skipAutoInject) {
+  
+  // [CM-INJECT-FIX] All auto-injection is disabled. User must click inject button.
+  if (payload.skipAutoInject) {
+      console.log(`[CM:sw] Tier ${tier} skipAutoInject=true — injection deferred to MigrationModal button click`);
+  } else {
+      // This path is preserved for KnowledgeSynthesizer, which has no UI button.
+      // It should still be user-triggered from the extension, just not from MigrationModal.
       try {
-        const t1Ready = await waitForTabContentScript(payload.targetTabId!);
-        if (t1Ready) {
-          const t1Result = await new Promise<{ ok: boolean; error?: string }>((resolve) => {
-            chrome.tabs.sendMessage(
-              payload.targetTabId!,
-              { type: "INJECT_FILE_AS_UPLOAD", fileName: migrationFile.filename, fileContent: migrationFile.content },
-              (response) => {
-                void chrome.runtime.lastError;
-                resolve((response as { ok: boolean; error?: string } | null) ?? { ok: false, error: "no response from content script" });
-              }
-            );
-          });
-          injected = t1Result.ok;
-          if (!t1Result.ok) injectionError = t1Result.error;
+        if (tier === 1) {
+            const t1Ready = await waitForTabContentScript(payload.targetTabId!)
+            if (t1Ready) {
+              const t1Result = await new Promise<{ ok: boolean; error?: string }>((resolve) => {
+                chrome.tabs.sendMessage(
+                  payload.targetTabId!,
+                  { type: "INJECT_FILE_AS_UPLOAD", fileName: migrationFile.filename, fileContent: migrationFile.content },
+                  (response) => {
+                    void chrome.runtime.lastError;
+                    resolve((response as { ok: boolean; error?: string } | null) ?? { ok: false, error: "no response from content script" });
+                  }
+                );
+              });
+              injected = t1Result.ok;
+              if (!t1Result.ok) injectionError = t1Result.error;
+            } else {
+              console.warn(`[CM:sw] Tier 1 file injection: content script not ready on tab ${payload.targetTabId}`);
+            }
         } else {
-          console.warn(`[CM:sw] Tier 1 file injection: content script not ready on tab ${payload.targetTabId}`);
+            const ready = await waitForTabContentScript(payload.targetTabId!);
+            if (!ready) {
+                console.warn(`[CM:sw] Tab ${payload.targetTabId} content script not ready after 8 pings — trying executeScript fallback`);
+                const [execResult] = await chrome.scripting.executeScript({
+                    target: { tabId: payload.targetTabId! },
+                    func: injectPromptInPage,
+                    args: [instructionPrompt, payload.targetPlatform],
+                });
+                const execRes = execResult?.result as { ok: boolean; error?: string } | undefined;
+                if (execRes?.ok) {
+                    injected = true;
+                } else {
+                    injectionError = execRes?.error ?? 'executeScript fallback failed';
+                }
+            } else {
+                const result = await sendMessageToTab(payload.targetTabId!, {
+                    type: 'INJECT_CONTEXT',
+                    prompt: instructionPrompt,
+                    platform: payload.targetPlatform
+                });
+                injected = result?.ok ?? false;
+                if (!result.ok) injectionError = result.error;
+            }
         }
       } catch (err) {
         injectionError = err instanceof Error ? err.message : String(err);
-        console.warn('[CM:sw] Tier 1 file injection failed:', err);
-        void reportInjectionError({ platform: payload.targetPlatform, reason: `t1_${injectionError.slice(0,200)}`, timestamp: Date.now(), tier: 1 });
+        console.warn('[CM:sw] Auto-injection for non-modal path failed:', err)
+        void reportInjectionError({ platform: payload.targetPlatform, reason: `auto-inject_${injectionError.slice(0,200)}`, timestamp: Date.now(), tier });
       }
-    } else {
-      console.log('[CM:sw] Tier 1 skipAutoInject=true — injection deferred to MigrationModal button click');
-    }
-  } else if (!payload.skipAutoInject) {
-    try {
-      // Phase 1+2: wait for tab load + content-script ping (8 × 1500ms).
-      // If all pings fail, try a direct executeScript injection as last resort.
-      const ready = await waitForTabContentScript(payload.targetTabId);
-      if (!ready) {
-        console.warn(`[CM:sw] Tab ${payload.targetTabId} content script not ready after 8 pings — trying executeScript fallback`);
-        try {
-          const [execResult] = await chrome.scripting.executeScript({
-            target: { tabId: payload.targetTabId },
-            func: injectPromptInPage,
-            args: [instructionPrompt, payload.targetPlatform],
-          });
-          const execRes = execResult?.result as { ok: boolean; error?: string } | undefined;
-          if (execRes?.ok) {
-            injected = true;
-            console.log(`[CM:sw] Tab ${payload.targetTabId} executeScript fallback injection succeeded`);
-          } else {
-            injectionError = execRes?.error ?? `Content script did not respond after 8 pings and direct injection also failed — reload the ${payload.targetPlatform} tab and retry.`;
-            console.warn(`[CM:sw] Tab ${payload.targetTabId} executeScript fallback failed:`, injectionError);
-            void reportInjectionError({ platform: payload.targetPlatform, reason: `exec_${injectionError.slice(0,200)}`, timestamp: Date.now(), tier, strategy: 'executeScript' });
-          }
-        } catch (scriptErr) {
-          const scriptMsg = scriptErr instanceof Error ? scriptErr.message : String(scriptErr);
-          injectionError = `Content script not ready after 8 pings; direct injection also failed: ${scriptMsg}. Reload the ${payload.targetPlatform} tab and retry.`;
-          console.warn(`[CM:sw] Tab ${payload.targetTabId} executeScript fallback threw:`, scriptErr);
-          void reportInjectionError({ platform: payload.targetPlatform, reason: `scriptErr_${injectionError.slice(0,200)}`, timestamp: Date.now(), tier, strategy: 'executeScript' });
-        }
-      } else {
-        const result = await sendMessageToTab(payload.targetTabId, {
-          type: 'INJECT_CONTEXT',
-          prompt: instructionPrompt,
-          platform: payload.targetPlatform
-        })
-        injected = result?.ok ?? false
-        if (!result.ok) {
-          injectionError = result.error;
-          void reportInjectionError({ platform: payload.targetPlatform, reason: `cs_${injectionError.slice(0,200)}`, timestamp: Date.now(), tier, strategy: 'contentScript' });
-        }
-      }
-    } catch (err) {
-      injectionError = err instanceof Error ? err.message : String(err);
-      console.warn('[CM:sw] Injection failed (non-fatal):', err)
-      void reportInjectionError({ platform: payload.targetPlatform, reason: `general_${injectionError.slice(0,200)}`, timestamp: Date.now(), tier });
-    }
-  } else {
-    console.log(`[CM:sw] Tier ${tier} skipAutoInject=true — injection deferred to MigrationModal button click`);
   }
+
   const elapsed = performance.now() - t0
   reportProgress(100, 'Done')
   const cacheKey = makeCacheKey(session.id, tier)

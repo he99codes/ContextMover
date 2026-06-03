@@ -170,7 +170,6 @@
                 "assets/*.png",
                 "assets/*.svg",
                 "assets/*.woff2",
-                "grammars/*.wasm",
                 "wasm/*"
             ],
             "matches": [
@@ -182,6 +181,14 @@
                 "https://grok.x.ai/*",
                 "https://www.perplexity.ai/*",
                 "https://chat.deepseek.com/*"
+            ]
+        },
+        {
+            "resources": [
+                "grammars/web-tree-sitter.wasm"
+            ],
+            "matches": [
+                "<all_urls>"
             ]
         }
     ],

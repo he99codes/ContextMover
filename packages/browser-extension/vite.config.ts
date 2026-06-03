@@ -27,8 +27,27 @@ function cleanupPublicDupPlugin(): Plugin {
   };
 }
 
-// Copy ONNX WASM runtime files from @xenova/transformers into dist/assets/
-// so the WASM backend can find them at runtime.
+// Copy web-tree-sitter WASM runtime file to dist/ root.
+// The main runtime file must be at the dist root to match chrome.runtime.getURL('tree-sitter.wasm').
+function copyTreeSitterWasmPlugin(): Plugin {
+  return {
+    name: "copy-tree-sitter-wasm",
+    closeBundle() {
+      const src = path.resolve(__dirname, "node_modules/web-tree-sitter/web-tree-sitter.wasm");
+      const dest = path.resolve(__dirname, "dist");
+
+      if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+
+      if (fs.existsSync(src)) {
+        fs.copyFileSync(src, path.join(dest, "tree-sitter.wasm"));
+        console.log(`[copy-tree-sitter-wasm] copied tree-sitter.wasm to dist/`);
+      } else {
+        console.warn(`[copy-tree-sitter-wasm] source file not found: ${src}`);
+      }
+    },
+  };
+}
+
 function copyTransformersWasmPlugin(): Plugin {
   return {
     name: "copy-transformers-wasm",
@@ -134,6 +153,7 @@ export default defineConfig(async ({ mode }) => {
       crx({ manifest }),
       cleanupPublicDupPlugin(),
       copyTransformersWasmPlugin(),
+      copyTreeSitterWasmPlugin(),
       ...productionPlugins,
     ],
     server: {

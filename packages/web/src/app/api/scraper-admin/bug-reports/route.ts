@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/app/api/admin/_guard";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/rate-limiter";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +20,8 @@ export async function GET(req: NextRequest) {
 
 // POST a new bug report (public, from extension)
 export async function POST(req: NextRequest) {
+  const limit = await checkRateLimit(req);
+  if (!limit.ok) return limit.response;
   const { platform_id, error_message, href, user_id, dom_snippet } = (await req.json()) as {
     platform_id: string;
     error_message: string;

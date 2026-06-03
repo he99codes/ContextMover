@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rate-limiter";
+import { sanitizeTelemetry } from "@/lib/telemetry-sanitizer";
 
 export const runtime = "nodejs";
 
@@ -18,12 +19,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing event" }, { status: 400 });
     }
 
-    console.error("[CM:telemetry:event]", JSON.stringify({
-      type: "extension_event", event: body.event, platform: body.platform ?? null,
-      detail: body.detail ?? null, tier: body.tier ?? null,
-      sessionMessageCount: body.sessionMessageCount ?? null,
-      timestamp: body.timestamp ?? Date.now(), version: body.extensionVersion ?? "unknown",
-    }));
+    const sanitizedBody = sanitizeTelemetry(body);
+    console.error("[CM:telemetry:event]", JSON.stringify({ type: "extension_event", ...sanitizedBody }));
 
     return NextResponse.json({ ok: true });
   } catch (err) {

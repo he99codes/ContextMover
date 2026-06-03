@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/app/api/admin/_guard";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export async function GET() {
   // NOTE: This endpoint is public for the extension to fetch, so no admin guard here.
   // A separate admin-only endpoint will handle writes.
   try {
-    const supabase = createAdminClient();
+        const supabase = createClient();
     const { data, error } = await supabase.from("platform_configs").select("*");
     if (error) {
       console.error("Error fetching platform_configs:", error);

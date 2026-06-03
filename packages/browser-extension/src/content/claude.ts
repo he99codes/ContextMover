@@ -107,10 +107,10 @@ function scrapeMessages(): Message[] {
     '[data-testid="user-message"]',
   ];
   const primaryAsstCandidates = [
+    '.font-claude-response',
     '[data-testid="assistant-message"]',
     '[data-testid="ai-turn"]',
     '.font-claude-message',
-    '.font-claude-response',
   ];
 
   for (const sel of primaryUserCandidates) {

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
 
-interface Stats { total_users: number; pro_users: number; migrations_this_month: number; open_bug_reports: number; }
+interface Stats { total_users: number; pro_users: number; total_migrations: number; migrations_this_month: number; open_bug_reports: number; platform_breakdown: Record<string, number>; }
 interface AdminUser { id: string; email: string; created_at: string; plan: string; subscription_status: string | null; tier1_used: number; tier2_used: number; tier3_used: number; }
 interface BugReport { id: string; email: string | null; severity: string; description: string; version: string | null; created_at: string; }
 interface RefundRequest { id: string; email: string | null; payment_id: string | null; reason: string; status: string; created_at: string; }
@@ -37,13 +37,28 @@ function SmBtn({ children, onClick, disabled, danger }: { children: React.ReactN
 }
 
 // ── Stats Bar ────────────────────────────────────────────────────────────────
-function StatsBar({ token }: { token: string }) {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => { af("/api/admin/stats", token).then(r => r.json()).then((d: Stats) => { if (d.total_users !== undefined) setStats(d); else setError("Invalid response"); }).catch((e) => setError(String(e))); }, [token]);
+function PlatformBreakdown({ stats }: { stats: Stats | null }) {
+  if (!stats?.platform_breakdown) return null;
+  const entries = Object.entries(stats.platform_breakdown).sort((a, b) => b[1] - a[1]);
+  return (
+    <section>
+      <SectionTitle>Migrations by Platform</SectionTitle>
+      <div className="bg-[#0A0A0A] border border-[#1A1A1A] rounded p-4 text-xs font-mono text-[#6B6B6B]">
+        {entries.map(([platform, count]) => (
+          <div key={platform} className="flex justify-between">
+            <span>{platform}</span>
+            <span>{count}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function StatsBar({ stats, error }: { stats: Stats | null, error: string | null }) {
   const cards: { label: string; key: keyof Stats }[] = [
     { label: "Total Users", key: "total_users" }, { label: "Pro Users", key: "pro_users" },
-    { label: "Migrations This Month", key: "migrations_this_month" }, { label: "Bug Reports Open", key: "open_bug_reports" },
+    { label: "Total Migrations", key: "total_migrations" }, { label: "Migrations This Month", key: "migrations_this_month" },
   ];
   return (
     <section>
@@ -281,14 +296,28 @@ function RefundsSection({ token }: { token: string }) {
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function AdminPage() {
   const [token, setToken] = useState<string | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setToken(session?.access_token ?? null));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const accessToken = session?.access_token ?? null;
+      setToken(accessToken);
+      if (accessToken) {
+        af("/api/admin/stats", accessToken)
+          .then(r => r.json())
+          .then((d: Stats) => { if (d.total_users !== undefined) setStats(d); else setStatsError("Invalid response"); })
+          .catch((e) => setStatsError(String(e)));
+      }
+    });
   }, []);
+
   if (!token) return <div className="p-8 text-[#3A3A3A] text-sm">Loading…</div>;
   return (
     <div className="min-h-screen bg-[#010101] text-[#F5F5F5] p-8 space-y-10">
       <h1 className="text-lg font-black tracking-widest text-[#00FF88]">⚡ Admin Panel</h1>
-      <StatsBar token={token} />
+      <StatsBar stats={stats} error={statsError} />
+      <PlatformBreakdown stats={stats} />
       <UsersSection token={token} />
       <UsageControlsSection token={token} />
       <BugReportsSection token={token} />

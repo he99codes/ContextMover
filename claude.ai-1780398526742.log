@@ -1,0 +1,1671 @@
+api/claude_code/organizations/ac01db8c-d27d-4c06-9a20-4c711ebbe4c6/user_settings:1  Failed to load resource: the server responded with a status of 404 ()
+connect.facebook.net/en_US/fbevents.js:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+[Deprecation] The ScriptProcessorNode is deprecated. Use AudioWorkletNode instead. (<URL>)
+[Deprecation] The ScriptProcessorNode is deprecated. Use AudioWorkletNode instead. (<URL>)
+[Deprecation] The ScriptProcessorNode is deprecated. Use AudioWorkletNode instead. (<URL>)
+[Deprecation] The ScriptProcessorNode is deprecated. Use AudioWorkletNode instead. (<URL>)
+[Deprecation] The ScriptProcessorNode is deprecated. Use AudioWorkletNode instead. (<URL>)
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 268ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1158ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1454ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 217ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 477ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 729ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1385ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 287ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 540ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 852ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1262ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1722ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 231ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1263ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1700ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 257ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 597ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1863ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 532ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 797ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1032ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 246ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 530ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 902ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1381ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 421ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1194ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1466ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 268ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 925ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1210ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1480ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1875ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 466ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 761ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1877ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 232ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1236ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1657ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 325ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 743ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 974ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 251ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 791ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1454ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1159ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1365ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 411ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1818ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 188ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 540ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1471ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1755ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 266ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 504ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1141ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 434ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1003ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1237ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1653ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1913ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 381ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 840ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1091ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1461ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1760ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 405ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1533ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1757ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 193ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 407ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 344ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 752ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1231ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1747ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1944ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 350ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover] Capture triggered for claude (DOM fallback)
+ [CM:claude] all selectors returned 0 — structural fallback will run next
+ [CM:validate] claude: Object
+ [CM:claude] Registry strategies empty — trying structural detection
+ [CM:structural] claude: attempting structural detection
+ [CM:structural] claude: strategy 1 (alternating) found 3 messages
+ [CM:validate] claude: Object
+ [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1023ms since last send)
+ [CM:health] claude: success=100% assistant=100%
+ [ContextMover:fetch] claude: no messages parsed (body length=21)
+shared-CPFyZVbF.js:9 [ContextMover] Capture triggered for claude (DOM fallback)
+claude-UoVP9kLy.js:5 [CM:claude] all selectors returned 0 — structural fallback will run next
+scrapeMessages @ claude-UoVP9kLy.js:5
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [CM:claude] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CPFyZVbF.js:9
+shared-CPFyZVbF.js:5 [CM:structural] claude: attempting structural detection
+detectByStructure @ shared-CPFyZVbF.js:5
+shared-CPFyZVbF.js:5 [CM:structural] claude: strategy 1 (alternating) found 3 messages
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+shared-CPFyZVbF.js:7 [CM:health] claude: success=100% assistant=100%
+shared-CPFyZVbF.js:9 [ContextMover] Capture triggered for claude (DOM fallback)
+claude-UoVP9kLy.js:5 [CM:claude] all selectors returned 0 — structural fallback will run next
+scrapeMessages @ claude-UoVP9kLy.js:5
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [CM:claude] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CPFyZVbF.js:9
+shared-CPFyZVbF.js:5 [CM:structural] claude: attempting structural detection
+detectByStructure @ shared-CPFyZVbF.js:5
+shared-CPFyZVbF.js:5 [CM:structural] claude: strategy 1 (alternating) found 3 messages
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 595ms since last send)
+shared-CPFyZVbF.js:7 [CM:health] claude: success=100% assistant=100%
+shared-CPFyZVbF.js:9 [ContextMover] Capture triggered for claude (DOM fallback)
+claude-UoVP9kLy.js:5 [CM:claude] all selectors returned 0 — structural fallback will run next
+scrapeMessages @ claude-UoVP9kLy.js:5
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [CM:claude] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CPFyZVbF.js:9
+shared-CPFyZVbF.js:5 [CM:structural] claude: attempting structural detection
+detectByStructure @ shared-CPFyZVbF.js:5
+shared-CPFyZVbF.js:5 [CM:structural] claude: strategy 1 (alternating) found 3 messages
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 967ms since last send)
+shared-CPFyZVbF.js:7 [CM:health] claude: success=100% assistant=100%
+shared-CPFyZVbF.js:9 [ContextMover] Capture triggered for claude (DOM fallback)
+claude-UoVP9kLy.js:5 [CM:claude] all selectors returned 0 — structural fallback will run next
+scrapeMessages @ claude-UoVP9kLy.js:5
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [CM:claude] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CPFyZVbF.js:9
+shared-CPFyZVbF.js:5 [CM:structural] claude: attempting structural detection
+detectByStructure @ shared-CPFyZVbF.js:5
+shared-CPFyZVbF.js:5 [CM:structural] claude: strategy 1 (alternating) found 3 messages
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1217ms since last send)
+shared-CPFyZVbF.js:7 [CM:health] claude: success=100% assistant=100%
+shared-CPFyZVbF.js:9 [ContextMover] Capture triggered for claude (DOM fallback)
+claude-UoVP9kLy.js:5 [CM:claude] all selectors returned 0 — structural fallback will run next
+scrapeMessages @ claude-UoVP9kLy.js:5
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [CM:claude] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CPFyZVbF.js:9
+shared-CPFyZVbF.js:5 [CM:structural] claude: attempting structural detection
+detectByStructure @ shared-CPFyZVbF.js:5
+shared-CPFyZVbF.js:5 [CM:structural] claude: strategy 1 (alternating) found 3 messages
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 1631ms since last send)
+shared-CPFyZVbF.js:7 [CM:health] claude: success=100% assistant=100%
+shared-CPFyZVbF.js:9 [ContextMover] Capture triggered for claude (DOM fallback)
+claude-UoVP9kLy.js:5 [CM:claude] all selectors returned 0 — structural fallback will run next
+scrapeMessages @ claude-UoVP9kLy.js:5
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [CM:claude] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CPFyZVbF.js:9
+shared-CPFyZVbF.js:5 [CM:structural] claude: attempting structural detection
+detectByStructure @ shared-CPFyZVbF.js:5
+shared-CPFyZVbF.js:5 [CM:structural] claude: strategy 1 (alternating) found 3 messages
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+shared-CPFyZVbF.js:7 [CM:health] claude: success=100% assistant=100%
+shared-CPFyZVbF.js:9 [ContextMover] Capture triggered for claude (DOM fallback)
+claude-UoVP9kLy.js:5 [CM:claude] all selectors returned 0 — structural fallback will run next
+scrapeMessages @ claude-UoVP9kLy.js:5
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [CM:claude] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CPFyZVbF.js:9
+shared-CPFyZVbF.js:5 [CM:structural] claude: attempting structural detection
+detectByStructure @ shared-CPFyZVbF.js:5
+shared-CPFyZVbF.js:5 [CM:structural] claude: strategy 1 (alternating) found 3 messages
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 223ms since last send)
+shared-CPFyZVbF.js:7 [CM:health] claude: success=100% assistant=100%
+shared-CPFyZVbF.js:9 [ContextMover] Capture triggered for claude (DOM fallback)
+claude-UoVP9kLy.js:5 [CM:claude] all selectors returned 0 — structural fallback will run next
+scrapeMessages @ claude-UoVP9kLy.js:5
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [CM:claude] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CPFyZVbF.js:9
+shared-CPFyZVbF.js:5 [CM:structural] claude: attempting structural detection
+detectByStructure @ shared-CPFyZVbF.js:5
+shared-CPFyZVbF.js:5 [CM:structural] claude: strategy 1 (alternating) found 3 messages
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [ContextMover:capture] Skipped duplicate for claude-6c6354ce9a (hash changed but 871ms since last send)
+shared-CPFyZVbF.js:7 [CM:health] claude: success=100% assistant=100%
+fetch-interceptor-Dlm8m91O.js:1 [ContextMover:fetch] claude: no messages parsed (body length=21)
+fetch-interceptor-Dlm8m91O.js:1 [ContextMover:fetch] claude: no messages parsed (body length=21)
+shared-CPFyZVbF.js:9 [ContextMover] Capture triggered for claude (DOM fallback)
+claude-UoVP9kLy.js:5 [CM:claude] all selectors returned 0 — structural fallback will run next
+scrapeMessages @ claude-UoVP9kLy.js:5
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [CM:claude] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CPFyZVbF.js:9
+shared-CPFyZVbF.js:5 [CM:structural] claude: attempting structural detection
+detectByStructure @ shared-CPFyZVbF.js:5
+shared-CPFyZVbF.js:5 [CM:structural] claude: strategy 1 (alternating) found 3 messages
+shared-CPFyZVbF.js:3 [CM:validate] claude: Object
+shared-CPFyZVbF.js:9 [ContextMover] Sending CAPTURE_SESSION for session: claude-6c6354ce9a
+shared-CPFyZVbF.js:7 [CM:health] claude: success=100% assistant=100%
+shared-CPFyZVbF.js:9 [ContextMover] Capture triggered for claude (DOM fallback)
+vendor-react-CMGqHaTE.js:10 [CM:claude] all selectors returned 0 — structural fallback will run next
+scrapeMessages @ claude-UoVP9kLy.js:5
+taMoE @ shared-CPFyZVbF.js:9
+runCapturePipeline @ shared-CPFyZVbF.js:9
+scrapeMessages @ claude-UoVP9kLy.js:5
+_0x2c913e @ shared-CPFyZVbF.js:9
+setTimeout
+BfDxl @ shared-CPFyZVbF.js:9
+_0x1d6ee9 @ shared-CPFyZVbF.js:9
+childList
+Bu @ vendor-react-CMGqHaTE.js:10
+ju @ vendor-react-CMGqHaTE.js:10
+Bu @ vendor-react-CMGqHaTE.js:10
+ju @ vendor-react-CMGqHaTE.js:10
+Bu @ vendor-react-CMGqHaTE.js:10
+ju @ vendor-react-CMGqHaTE.js:10
+Bu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+shared-CPFyZVbF.js:3 [CM:validate] claude: {valid: false, errors: Array(1), warnings: Array(0), stats: {…}}
+vendor-react-CMGqHaTE.js:10 [CM:claude] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CPFyZVbF.js:9
+scrapeMessages @ claude-UoVP9kLy.js:5
+_0x2c913e @ shared-CPFyZVbF.js:9
+setTimeout
+BfDxl @ shared-CPFyZVbF.js:9
+_0x1d6ee9 @ shared-CPFyZVbF.js:9
+childList
+Bu @ vendor-react-CMGqHaTE.js:10
+ju @ vendor-react-CMGqHaTE.js:10
+Bu @ vendor-react-CMGqHaTE.js:10
+ju @ vendor-react-CMGqHaTE.js:10
+Bu @ vendor-react-CMGqHaTE.js:10
+ju @ vendor-react-CMGqHaTE.js:10
+Bu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+vendor-react-CMGqHaTE.js:10 [CM:structural] claude: attempting structural detection
+detectByStructure @ shared-CPFyZVbF.js:5
+apvdi @ shared-CPFyZVbF.js:9
+runCapturePipeline @ shared-CPFyZVbF.js:9
+scrapeMessages @ claude-UoVP9kLy.js:5
+_0x2c913e @ shared-CPFyZVbF.js:9
+setTimeout
+BfDxl @ shared-CPFyZVbF.js:9
+_0x1d6ee9 @ shared-CPFyZVbF.js:9
+childList
+Bu @ vendor-react-CMGqHaTE.js:10
+ju @ vendor-react-CMGqHaTE.js:10
+Bu @ vendor-react-CMGqHaTE.js:10
+ju @ vendor-react-CMGqHaTE.js:10
+Bu @ vendor-react-CMGqHaTE.js:10
+ju @ vendor-react-CMGqHaTE.js:10
+Bu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+Qu @ vendor-react-CMGqHaTE.js:10
+Wu @ vendor-react-CMGqHaTE.js:10
+shared-CPFyZVbF.js:5 [CM:structural] claude: strategy 1 (alternating) found 3 messages
+shared-CPFyZVbF.js:3 [CM:validate] claude: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-CPFyZVbF.js:9 [ContextMover] Snapshot hash unchanged, skipping
+fetch-interceptor-Dlm8m91O.js:1 [ContextMover:fetch] claude: no messages parsed (body length=21)
+fetch-interceptor-Dlm8m91O.js:1 [ContextMover:fetch] claude: no messages parsed (body length=21)
+shared-CPFyZVbF.js:7 [CM:health] claude: success=100% assistant=100%
+fetch-interceptor-Dlm8m91O.js:1 [ContextMover:fetch] claude: no messages parsed (body length=21)

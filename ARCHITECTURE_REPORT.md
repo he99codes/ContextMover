@@ -400,7 +400,37 @@ User types in semantic search box
 
 ---
 
-## 9. Environment Variables
+## 9. Current Architectural Failures (June 2026)
+
+A deep testing session in June 2026 revealed several critical, systemic architectural failures that are currently compromising the core functionality of the extension.
+
+### 9.1. Attention Engine: Dual-Point Failure
+
+The Attention Engine, the core of Tier 3 migrations, is non-functional due to two independent failures:
+1.  **Parser Module Failure:** The `web-tree-sitter` module, which is essential for structural code analysis, is failing to load at runtime due to a packaging issue in the extension's build configuration. This forces the engine into a low-quality "regex fallback" mode, severely degrading its ability to understand code.
+2.  **Embedding Timeout:** The ONNX model, running in an offscreen document to generate embeddings, consistently times out during the query embedding phase. This results in a complete failure of any Tier 3 migration that includes a user-provided query.
+
+### 9.2. Systemic Capture Trigger Flaw
+
+There is a fundamental flaw in how the extension initiates a capture. The logic appears to rely on new network events or specific URL changes (`/new`), causing it to fail on:
+*   **Existing Sessions:** Loading a pre-existing conversation does not trigger a re-scrape.
+*   **Single-Page App Navigation:** Navigating between chats within a single-page application does not reliably trigger the capture process.
+
+This is a systemic issue affecting all supported platforms and is the root cause for most of the reported scraper failures.
+
+### 9.3. Scraper Brittleness & Remote Config Failure
+
+The current scraper architecture is too brittle and reliant on specific, unchanging CSS selectors. While a remote configuration system exists to mitigate this, it is currently non-functional:
+1.  **Broken Scrapers:** All platform scrapers are currently broken due to minor UI changes on the target websites.
+2.  **Admin API Failure:** The `/api/scraper-admin/` endpoints are failing with `403 Forbidden` errors, preventing administrators from updating the scraper configurations remotely. This breaks the entire self-healing and remote maintenance workflow.
+
+### 9.4. Semantic Indexing & Background Processing
+
+The background indexing queue (`[CM:queue] Dropped: background queue overflow`) is not robust enough to handle the volume of incoming sessions, causing it to drop indexing jobs. This prevents the semantic index from ever becoming fully populated, which in turn breaks features that rely on it, such as semantic search and high-quality Tier 3 migrations.
+
+---
+
+## 10. Environment Variables
 
 **Extension** (via `chrome.storage.local` at runtime — no build-time env):
 - `accessToken` — Supabase JWT
@@ -462,7 +492,31 @@ Key messages routed through service-worker.ts:
 
 ---
 
-## 12. Recent Fixes & Improvements (May 2026)
+## 12. Security Audit & Hardening (June 2026)
+
+A comprehensive security audit was performed across the web application and browser extension, leading to the following fixes:
+
+- **Stored XSS in Admin Panel (High)**: **Fixed**. Sanitized the `dom_snippet` from bug reports using `DOMPurify` before rendering to prevent malicious script execution.
+- **Privilege Escalation Risk in Public Config Endpoint (High)**: **Fixed**. Switched the public scraper configuration endpoint to use a non-admin Supabase client and enabled Row Level Security to prevent unauthorized access to sensitive data.
+- **Subscription Hijacking (High)**: **Fixed**. The `verify-subscription` route now validates that the authenticated user matches the user ID on the subscription record, preventing one user from activating a subscription for another.
+- **Improper Discount Validation (Medium)**: **Fixed**. The `earlyBird` discount is now determined server-side based on a cutoff date, preventing clients from claiming unentitled discounts.
+- **Hardcoded Admin Email (Medium)**: **Fixed**. Replaced the hardcoded admin email in the API guard with a `ADMIN_EMAIL` environment variable for better security and flexibility.
+- **Abuse of Bug Report Endpoint (Medium)**: **Fixed**. Added rate-limiting to the public bug report endpoint to prevent abuse and spam.
+- **Insecure Logging of Telemetry Data (Low)**: **Fixed**. Implemented a sanitization function to strip potentially sensitive information from telemetry data before logging.
+
+### Dependency Management
+
+As part of the security audit, all outdated dependencies in both the `web` and `browser-extension` packages were updated to their latest versions. This included several major version bumps for critical packages like Next.js, React, and Supabase, which contain important security patches.
+
+The update process was as follows:
+1.  Identified outdated packages using `pnpm outdated`.
+2.  Removed deprecated packages (e.g., `@types/dompurify`).
+3.  Updated packages in batches, starting with patch and minor updates, followed by major version updates.
+4.  Rebuilt the browser extension to ensure compatibility with the new dependencies.
+
+---
+
+## 13. Recent Fixes & Improvements (May 2026)
 
 ### Tier 2 Summarizer — Heuristic Extraction Fixes `[CM-T2-FIX]`
 **Problem**: `summarizeIntelligent()` extracted garbage decisions/bugs when the Attention Engine timed out and fell back to heuristics. Regex patterns matched on user prompts containing words like "fix", "error", "decided".
@@ -493,6 +547,18 @@ Key messages routed through service-worker.ts:
 - `file-builder.ts`: Added `renderScoredChunks()` helper. Groups `topChunks` into `<scored_topics>`, `<key_decisions>`, `<architectural_context>`. Top 5 per category, 800-char truncation.
 - `service-worker.ts`: `buildAttentionMap(session, task, 'balanced')` called before `buildTier3File()`, and `attentionMap` passed through.
 
+### Remote Scraper Configuration & Diagnostics `[CM-SCRAPER-ADMIN]`
+**Problem**: Platform scrapers (e.g., for Gemini, Claude) are brittle and frequently break when platforms update their frontend DOM structure. This previously required a full extension rebuild and Chrome Web Store resubmission, leading to significant downtime.
+
+**Fixes**:
+- **Remote Configuration System**: A new end-to-end system allows for remote management of scraper CSS selectors.
+  - **Supabase Table**: A `platform_configs` table was added to the Supabase database to store selectors (`userSelector`, `assistantSelector`, `observerTarget`, etc.) for each supported platform.
+  - **Admin UI**: A new admin page at `/admin/scrapers` provides a UI for developers to view scraper bug reports and update platform selectors in real-time without deploying new code.
+  - **Public JSON Endpoint**: A new public API route at `/app/config/selectors.json` was created. It reads from the `platform_configs` table and serves the selectors in a JSON format expected by the browser extension. The extension's `remote-config.ts` library fetches this file with a 1-hour cache TTL.
+  - **API Security**: The Next.js middleware was updated to secure the admin write endpoints while allowing public, read-only `GET` access to the new `/app/config/selectors.json` route.
+- **Diagnostic Selector Probe**: To accelerate the process of finding new, robust selectors when a scraper breaks, a "selector probe" was added to the content scripts (initially in `gemini.ts`).
+  - When a "ZERO-SCRAPE" event occurs (no messages found), this probe analyzes the page's leaf nodes, identifies potential candidate selectors based on class names, and logs a ranked list of these candidates with text excerpts to the developer console. This provides immediate, actionable data for updating the remote configuration.
+
 ---
 
 ## 13. Known Architectural Bottlenecks & Stress-Testing Protocols
@@ -514,6 +580,14 @@ Key messages routed through service-worker.ts:
 - `retrieve()` keyword fallback rejection (Fix C in Section 12) prevents silent Tier 3 downgrade when embeddings are missing.
 
 **Unresolved Risk**: If a session has *partial* embeddings (e.g., 6 of 12 chunks were written before interruption), `needsIndexing()` returns `false` (hash matches, hardware matches, chunkCount > 0), and retrieval will use the incomplete embedding set, producing semantically broken results. A "chunk integrity checksum" (hash of message indices actually embedded) is a candidate future guard.
+
+---
+
+### Scraper Maintenance
+
+**Problem**: The Gemini scraper is currently broken due to a recent change in the Gemini UI. The CSS selectors used to identify user and assistant messages are no longer valid, causing the scraper to fail.
+
+**Next Steps**: To fix this, a developer must manually inspect the new Gemini DOM, identify the new selectors for user and assistant messages, and update the remote configuration in the Supabase `platform_configs` table. The diagnostic selector probe in the content script can be used to accelerate this process.
 
 ---
 

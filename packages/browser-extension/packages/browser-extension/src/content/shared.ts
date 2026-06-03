@@ -791,20 +791,6 @@ export async function autoScrollBackToTop(
 // (single bulk-paste transaction instead of per-char insertText). All major
 // editors (ProseMirror / Lexical / Quill / native textarea) accept 200k via
 // the paste path on minimal hardware in <2s. Aligned with service-worker
-// PLATFORM_MAX_CHARS so the user gets the full context they asked for.
-const INJECT_HARD_CAP = 200_000;
-
-export async function injectWithRetry(
-  input: HTMLElement | HTMLTextAreaElement,
-  text: string,
-  platform: string,
-  maxAttempts = 3,
-  delayMs = 300
-): Promise<boolean> {
-  // Hard cap — prevents SIGILL tab crashes from oversized prompts
-  if (text.length > INJECT_HARD_CAP) {
-    const dropped = text.length - INJECT_HARD_CAP;
-    console.warn(`[ContextMover:inject] Prompt too large (${text.length} chars) — truncating to ${INJECT_HARD_CAP} (dropped ${dropped} chars)`);
     text = text.slice(0, INJECT_HARD_CAP) + `\n\n... [ContextMover: ${dropped} chars trimmed — use Tier 1 for full context]`;
   }
   let currentDelay = delayMs;
@@ -948,4 +934,62 @@ export async function sendCapture(
       source: 'fetch-intercept',
     },
   }).catch(() => {});
+}
+
+// ── DOM Probe ─────────────────────────────────────────────────────────────────
+
+export interface DOMProbeCandidate {
+  selector: string;
+  sampleText: string;
+  frequency: number;
+  score: number;
+  likelyRole: 'user' | 'assistant' | 'input' | 'unknown';
+}
+
+export interface DOMProbeResult {
+  platform: string;
+  timestamp: number;
+  candidates: DOMProbeCandidate[];
+  currentSelectors: Record<string, string | undefined>;
+}
+
+export function runDOMProbe(platform: string): DOMProbeResult {
+  const candidates = new Map<string, { count: number; text: string; roles: Set<string> }>();
+  document.querySelectorAll('*').forEach(el => {
+    if (el.children.length > 0) return;
+    const text = el.textContent?.trim() ?? '';
+    if (text.length < 20) return;
+    const selector = el.tagName.toLowerCase() +
+      (el.className && typeof el.className === 'string'
+        ? '.' + el.className.trim().split(/\s+/).join('.')
+        : '');
+    const entry = candidates.get(selector) ?? { count: 0, text: '', roles: new Set<string>() };
+    entry.count++;
+    if (!entry.text) entry.text = text.slice(0, 80).replace(/\s+/g, ' ');
+    if (el.closest('textarea, [contenteditable="true"]')) entry.roles.add('input');
+    else if (el.closest('[data-testid*="user"],[class*="user-query"],user-query')) entry.roles.add('user');
+    else if (el.closest('[data-testid*="assistant"],model-response,[class*="model-response"]')) entry.roles.add('assistant');
+    candidates.set(selector, entry);
+  });
+  const scored: DOMProbeCandidate[] = Array.from(candidates.entries()).map(([selector, data]) => {
+    let score = 0;
+    if (data.count > 1) score += 0.2;
+    if (selector.includes('data-testid')) score += 0.5;
+    if (selector.includes('role')) score += 0.2;
+    if (data.roles.size > 0) score += 0.1;
+    const likelyRole: DOMProbeCandidate['likelyRole'] =
+      data.roles.has('input') ? 'input' :
+      data.roles.has('user') ? 'user' :
+      data.roles.has('assistant') ? 'assistant' : 'unknown';
+    return { selector, sampleText: data.text, frequency: data.count, score, likelyRole };
+  }).sort((a, b) => b.score - a.score).slice(0, 30);
+  return { platform, timestamp: Date.now(), candidates: scored, currentSelectors: {} };
+}
+
+if (typeof window !== 'undefined') {
+  (window as any).__cmRunDOMProbe = () => runDOMProbe(
+    window.location.hostname.includes('gemini') ? 'gemini' :
+    window.location.hostname.includes('claude') ? 'claude' :
+    window.location.hostname.includes('chatgpt') ? 'chatgpt' : 'unknown'
+  );
 }
