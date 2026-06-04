@@ -817,16 +817,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           break;
         }
         console.log(`[CM:sw] CAPTURE_SESSION: ${p.platform} ${p.sessionId}`);
-        await handleCaptureSession(msg.payload);
-        sendResponse({ ok: true });
+        // CRITICAL: Return true to keep message channel open for async handleCaptureSession()
+        // Without this, Chrome closes the channel immediately and "No SW" errors occur
+        (async () => {
+          try {
+            await handleCaptureSession(msg.payload);
+            sendResponse({ ok: true });
+          } catch (err) {
+            console.error('[CM:sw] CAPTURE_SESSION error:', err);
+            sendResponse({ error: err instanceof Error ? err.message : String(err) });
+          }
+          // Notify sidebar toggle icon in this tab — fire-and-forget.
+          if (sender.tab?.id) {
+            void chrome.tabs.sendMessage(sender.tab.id, { type: "CAPTURE_STATUS_UPDATE", status: "idle" }).catch(() => {});
+          }
+        })();
         // Notify sidebar toggle icon in this tab — fire-and-forget.
         if (sender.tab?.id) {
           void chrome.tabs.sendMessage(sender.tab.id, { type: "CAPTURE_STATUS_UPDATE", status: "capturing" }).catch(() => {});
-          setTimeout(() => {
-            if (sender.tab?.id) void chrome.tabs.sendMessage(sender.tab.id, { type: "CAPTURE_STATUS_UPDATE", status: "idle" }).catch(() => {});
-          }, 3000);
         }
-        break;
+        return true;
       }
 
       case "PRECOMPUTE_SUMMARY": {
