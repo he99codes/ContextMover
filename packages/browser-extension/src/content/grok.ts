@@ -50,8 +50,9 @@ function scrapeMessages(): Message[] {
 
   // ── Strategy 1: data-testid role attributes — primary 2026 Grok pattern ─
   if (!hasUser()) {
-    const uS1 = '[data-testid="user-message"], [data-testid="human-turn"], [data-testid*="human-message"], [data-testid*="human"], [data-testid*="user"]'
-    const aS1 = '[data-testid="assistant-message"], [data-testid="ai-turn"], [data-testid*="ai-response"], [data-testid*="grok-response"], [data-testid*="assistant"]'
+    // Probe confirmed these exact selectors work: data-testid="user-message" and "assistant-message"
+    const uS1 = '[data-testid="user-message"]'
+    const aS1 = '[data-testid="assistant-message"]'
     const uEls = queryOutermost(uS1)
     const aEls = queryOutermost(aS1)
     uEls.forEach(el => found.push({ el, role: 'user' }))
@@ -92,6 +93,25 @@ function scrapeMessages(): Message[] {
     uEls.forEach(el => found.push({ el, role: 'user' }))
     if (!hasAsst()) aEls.forEach(el => found.push({ el, role: 'assistant' }))
     console.log(`[CM:diag:grok] S4 aria+structural: user=${uEls.length} asst=${aEls.length}`)
+  }
+
+  // ── Strategy 5: message-bubble class — fallback for 2026+ Grok DOM ────────
+  // Probe confirmed [class*="message-bubble"] finds 28 elements with text.
+  // Use data-testid attribute within these bubbles to distinguish user vs assistant.
+  if (!hasUser()) {
+    const bubbles = [...document.querySelectorAll('[class*="message-bubble"]')]
+      .filter(el => !isStreaming(el) && (el.textContent?.trim().length ?? 0) > 30)
+    bubbles.forEach(el => {
+      const testid = el.getAttribute('data-testid') || ''
+      if (testid.includes('user')) {
+        found.push({ el, role: 'user' })
+      } else if (testid.includes('assistant')) {
+        found.push({ el, role: 'assistant' })
+      }
+    })
+    const u = found.filter(e => e.role === 'user').length
+    const a = found.filter(e => e.role === 'assistant').length
+    console.log(`[CM:diag:grok] S5 message-bubble: user=${u} asst=${a}`)
   }
 
   const u = found.filter(e => e.role === 'user').length

@@ -830,6 +830,82 @@ before writing any code.
 
 ## PROMPT 10 — Fix Grok Scraper
 ## Grok DOM Probe Output
+[
+========== CONTEXTMOVER: GROK DOM PROBE ==========
+
+0ezw0xqwdne5s.js:10 URL: https://grok.com/c/f3c7cf14-9816-46a2-ac16-9de321e952f9?rid=da1b459e-8629-4b72-bc12-afe202417cb5
+0ezw0xqwdne5s.js:10 ROLE-RELATED ATTRIBUTES (attr=value : count):
+0ezw0xqwdne5s.js:10   23x  role="presentation"
+0ezw0xqwdne5s.js:10   14x  data-testid="user-message"
+0ezw0xqwdne5s.js:10   14x  class="message-bubble relative rounded-3xl text-primary min-h-7 prose dark:prose-invert break-words prose-p:opacity-100 prose-strong:opacity-100 prose-li:opacity-100 prose-ul:opacity-100 prose-ol:opacity-100 prose-ul:my-1 prose-ol:my-1 prose-li:my-2 last:prose-li:mb-3 prose-li:ps-1 prose-li:ms-1 bg-surface-l1 border border-border-l1 max-w-[100%] @sm/mainview:max-w-[90%] has-[pre]:w-full px-4 rounded-br-lg overflow-x-auto"
+0ezw0xqwdne5s.js:10   14x  data-testid="assistant-message"
+0ezw0xqwdne5s.js:10   14x  class="message-bubble relative rounded-3xl text-primary min-h-7 prose dark:prose-invert break-words prose-p:opacity-100 prose-strong:opacity-100 prose-li:opacity-100 prose-ul:opacity-100 prose-ol:opacity-100 prose-ul:my-1 prose-ol:my-1 prose-li:my-2 last:prose-li:mb-3 prose-li:ps-1 prose-li:ms-1 w-full max-w-none"
+0ezw0xqwdne5s.js:10   7x  role="button"
+0ezw0xqwdne5s.js:10   3x  content="Grok is an AI assistant built by xAI. Chat, create images, write code, and get real-time answers from the web and X."
+0ezw0xqwdne5s.js:10   3x  content="Grok"
+0ezw0xqwdne5s.js:10   2x  href="https://assets.grok.com/users/6ba90c45-c587-4ac9-9917-3c2759747101/n0GYTdALnn0ly3Ty-profile-picture.webp"
+0ezw0xqwdne5s.js:10   2x  content="https://grok.com/icon-512x512.png"
+0ezw0xqwdne5s.js:10   2x  content="@grok"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/media/UniversalSans_Text_400.p.06he22w9ae9uz.woff2"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/media/UniversalSans_Text_400Italic.p.0t4u8oqlw5.9..woff2"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/media/UniversalSans_Text_550.p.0v0vvoupxwn1c.woff2"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/media/UniversalSans_Text_550Italic.p.1255s5ghf7uud.woff2"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/chunks/0ha20356~d7dj.css"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/chunks/10njmvx0ao~lw.css"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/chunks/0mi~xfmeq7o9_.css"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/chunks/0-nt7.8hplhm5.js"
+0ezw0xqwdne5s.js:10   1x  src="https://cdn.grok.com/_next/static/chunks/07vlc.33b90yz.js"
+0ezw0xqwdne5s.js:10 
+ALL data-testid VALUES:
+assistant-message
+attach-button
+chat-input
+code-block
+drop-container
+drop-ui
+new-chat
+user-message
+0ezw0xqwdne5s.js:10 
+SELECTOR TEST RESULTS:
+0ezw0xqwdne5s.js:10 
+  ✅ "[data-testid*="message"]" → 28 total, 26 with text
+0ezw0xqwdne5s.js:10      [0] <div> | data: {data-testid="user-message"} | class: "message-bubble relative rounded-3xl text-primary min-h-7 prose dark:prose-invert"
+0ezw0xqwdne5s.js:10      [0] text: "contextmover.com look at this web"
+0ezw0xqwdne5s.js:10      [1] <div> | data: {data-testid="assistant-message"} | class: "message-bubble relative rounded-3xl text-primary min-h-7 prose dark:prose-invert"
+0ezw0xqwdne5s.js:10      [1] text: "Thought for 3sGot it! I checked out contextmover.com. Quick Summary: ContextMover is a Chrome extens"
+0ezw0xqwdne5s.js:10 
+  ✅ "[class*="message"]" → 28 total, 26 with text
+0ezw0xqwdne5s.js:10      [0] <div> | data: {data-testid="user-message"} | class: "message-bubble relative rounded-3xl text-primary min-h-7 prose dark:prose-invert"
+0ezw0xqwdne5s.js:10      [0] text: "contextmover.com look at this web"
+0ezw0xqwdne5s.js:10      [1] <div> | data: {data-testid="assistant-message"} | class: "message-bubble relative rounded-3xl text-primary min-h-7 prose dark:prose-invert"
+0ezw0xqwdne5s.js:10      [1] text: "Thought for 3sGot it! I checked out contextmover.com. Quick Summary: ContextMover is a Chrome extens"
+0ezw0xqwdne5s.js:10 
+  ✅ "[class*="response"]" → 142 total, 26 with text
+0ezw0xqwdne5s.js:10      [0] <div> | data: {} | class: "relative response-content-markdown markdown [&_a:not(.not-prose)]:text-current ["
+0ezw0xqwdne5s.js:10      [0] text: "contextmover.com look at this web"
+0ezw0xqwdne5s.js:10      [1] <div> | data: {} | class: "relative response-content-markdown markdown [&_a:not(.not-prose)]:text-current ["
+0ezw0xqwdne5s.js:10      [1] text: "Got it! I checked out contextmover.com. Quick Summary: ContextMover is a Chrome extension that solve"
+0ezw0xqwdne5s.js:10 
+  ✅ "[class*="grok"]" → 1 total, 1 with text
+0ezw0xqwdne5s.js:10      [0] <div> | data: {} | class: "flex w-full h-full overflow-hidden @container/mainview relative [anchor-name:--g"
+0ezw0xqwdne5s.js:10      [0] text: "contextmover.com look at this webThought for 3sGot it! I checked out contextmover.com. Quick Summary"
+0ezw0xqwdne5s.js:10 
+  ✅ "[class*="chat"]" → 17 total, 1 with text
+0ezw0xqwdne5s.js:10      [0] <div> | data: {} | class: "relative flex h-full flex-col items-center @container/chat min-w-[340px] [--cont"
+0ezw0xqwdne5s.js:10      [0] text: "contextmover.com look at this webThought for 3sGot it! I checked out contextmover.com. Quick Summary"
+0ezw0xqwdne5s.js:10 
+ROOT CONTAINER CANDIDATES:
+0ezw0xqwdne5s.js:10   "main" → <main> class="h-full flex-grow flex-shrink relative selection:bg-highlight w-0 @container isol" | msg-like nodes: 28
+0ezw0xqwdne5s.js:10   "[class*="overflow-y"]" → <div> class="flex min-h-0 flex-col overflow-auto grow group-data-[collapsible=icon]:overflow-" | msg-like nodes: 0
+0ezw0xqwdne5s.js:10 
+VIRTUAL SCROLL CHECK:
+0ezw0xqwdne5s.js:10   overflow-y:auto scrollHeight:649px → <body> class="antialiased font-body text-fg-primary bg-surface-base overfl"
+0ezw0xqwdne5s.js:10   overflow-y:auto scrollHeight:23078px → <div> class="w-full h-full overflow-y-auto overflow-x-hidden scrollbar-gu"
+0ezw0xqwdne5s.js:10   overflow-y:auto scrollHeight:868px → <div> class="shiki not-prose relative [&_pre]:overflow-auto [&_pre]:round"
+0ezw0xqwdne5s.js:10   overflow-y:auto scrollHeight:858px → <pre> class="shiki slack-ochin"
+0ezw0xqwdne5s.js:10 
+========== END GROK DOM PROBE ==========]
+## Grok DOM Probe Output
 [PASTE FULL CONSOLE OUTPUT HERE]
 **Severity:** Critical. Same `Selector not found: main` failure as Perplexity.
 
