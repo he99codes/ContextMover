@@ -178,7 +178,7 @@ function scrapeMessages(): Message[] {
 
 startSessionCapture({
   platform: "perplexity",
-  selectorOrElement: "main",
+  selectorOrElement: () => _remoteSelectors?.observerTarget ?? 'main, [role="main"], .conversation, .chat-container, .messages, [class*="conversation"], [class*="messages"], [class*="chat"]',
   scrapeMessages: () => runCapturePipeline("perplexity", scrapeMessages),
   requiresScrollBack: true,
   extraCaptureDelays: [1500, 3000],
