@@ -34,7 +34,26 @@ export function urlKeyFromHref(platform: Platform, href: string): string {
   let path = "";
   try {
     const u = new URL(href);
-    path = `${u.hostname}${u.pathname}${u.search}`.replace(/\/$/, "");
+    let search = u.search;
+    
+    // Strip platform-specific tracking/session parameters that don't affect conversation identity
+    if (platform === "grok") {
+      // Remove ?rid= parameter for Grok — it's a request ID, not conversation ID
+      const params = new URLSearchParams(u.search);
+      params.delete("rid");
+      search = params.toString() ? `?${params.toString()}` : "";
+    } else if (platform === "chatgpt") {
+      // ChatGPT might have ?model= or other tracking params
+      const params = new URLSearchParams(u.search);
+      // Keep conversation ID but remove model/tracking params
+      const conversationId = params.get("c");
+      search = conversationId ? `?c=${conversationId}` : "";
+    } else if (platform === "perplexity") {
+      // Perplexity URLs are stable by pathname alone
+      search = "";
+    }
+    
+    path = `${u.hostname}${u.pathname}${search}`.replace(/\/$/, "");
   } catch {
     path = href;
   }
