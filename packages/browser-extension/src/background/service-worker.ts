@@ -757,6 +757,34 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
+      // ── DOM Probe for self-healing selector discovery ──────────────────
+      case "RUN_DOM_PROBE": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ ok: false }); return; }
+        const tabId = typeof msg.tabId === 'number' ? msg.tabId : null;
+        if (!tabId) { sendResponse({ ok: false, error: "No tabId provided" }); return; }
+        try {
+          const response = await new Promise<{ ok: boolean; probeResult?: any; error?: string }>((resolve) => {
+            chrome.tabs.sendMessage(
+              tabId,
+              { type: "RUN_DOM_PROBE" },
+              (result) => {
+                if (chrome.runtime.lastError) {
+                  console.warn(`[CM:sw] DOM probe failed on tab ${tabId}:`, chrome.runtime.lastError.message);
+                  resolve({ ok: false, error: chrome.runtime.lastError.message });
+                } else {
+                  resolve(result ?? { ok: false, error: "no response from content script" });
+                }
+              }
+            );
+          });
+          sendResponse(response);
+        } catch (err) {
+          console.error("[CM:sw] DOM probe error:", err);
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+        break;
+      }
+
       // ── Google Drive sync (additive layer over IndexedDB) ──────────────
       case "DRIVE_CONNECT": {
         if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }

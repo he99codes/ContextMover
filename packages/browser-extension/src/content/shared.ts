@@ -263,6 +263,22 @@ export function startSessionCapture(config: {
     }
   });
 
+  // DOM Probe handler: analyze current page DOM to discover selector candidates
+  // for self-healing when platform DOM structure changes.
+  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg?.type === "RUN_DOM_PROBE") {
+      try {
+        const probeResult = runDOMProbe(config.platform);
+        console.log(`[CM:${config.platform}] DOM probe completed: ${probeResult.candidates.length} candidates found`);
+        sendResponse({ ok: true, probeResult });
+      } catch (err) {
+        console.error(`[CM:${config.platform}] DOM probe error:`, err);
+        sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+      }
+      return; // async response
+    }
+  });
+
   let sessionId: string | null = null;
   let lastMessageHash = "";
   let lastSentMessageCount = 0;

@@ -876,7 +876,7 @@ export default function MigrationModal({
           targetTabId: tab.id,
           tier,
           caveman,
-          skipAutoInject: true, // [CM-FIX-4] removed auto-inject — now user-triggered only
+          skipAutoInject: false, // Auto-inject enabled by default; tab is reachable (verified above)
           // [CM-PROMPT-SNOOZE] coming soon — re-enable when prompt engine ships
           // promptTemplateId: promptTemplateId ?? undefined,
           // promptTemplate: activeTemplate
