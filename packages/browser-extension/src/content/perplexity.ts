@@ -54,7 +54,7 @@ function scrapeMessages(): Message[] {
     const userEls = [...document.querySelectorAll<HTMLElement>(userSel)]
       .filter((el) => !el.parentElement?.closest(userSel) && !isStreaming(el));
     const asstEls = [...document.querySelectorAll<HTMLElement>(asstSel)]
-      .filter((el) => !el.parentElement?.closest(asstSel) && !isStreaming(el));
+      .filter((el) => !el.parentElement?.closest(asstSel) && !isStreaming(el) && (el.textContent ?? "").trim().length > 30);
 
     for (const el of userEls) collected.push({ el, role: "user" });
     for (const el of asstEls) collected.push({ el, role: "assistant" });

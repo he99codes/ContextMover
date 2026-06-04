@@ -829,7 +829,8 @@ before writing any code.
 ---
 
 ## PROMPT 10 — Fix Grok Scraper
-
+## Grok DOM Probe Output
+[PASTE FULL CONSOLE OUTPUT HERE]
 **Severity:** Critical. Same `Selector not found: main` failure as Perplexity.
 
 **Runtime errors:**
