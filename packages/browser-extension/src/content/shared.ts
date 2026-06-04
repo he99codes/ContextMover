@@ -304,13 +304,17 @@ export function startSessionCapture(config: {
   // first call; invalidated when the URL changes or when the service worker
   // broadcasts SESSION_FORGOTTEN (i.e. user deleted the session).
   async function ensureSessionId(): Promise<string> {
-    if (sessionId) return sessionId;
+    if (sessionId) {
+      console.log(`[ContextMover] ${config.platform}: using cached sessionId=${sessionId}`);
+      return sessionId;
+    }
+    const href = window.location.href;
     sessionId = await resolveSessionId(
       config.platform as Platform,
-      window.location.href,
+      href,
       legacyChecker
     );
-    console.log(`[ContextMover] ${config.platform}: resolved sessionId=${sessionId}`);
+    console.log(`[ContextMover] ${config.platform}: resolved sessionId=${sessionId} for URL=${href}`);
     return sessionId;
   }
 

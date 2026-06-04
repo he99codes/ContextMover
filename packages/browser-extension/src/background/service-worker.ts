@@ -1894,6 +1894,8 @@ async function handleCaptureSession(payload: {
     metadata: nextMeta,
   };
 
+  console.log(`[CM:sw] CAPTURE_SESSION queued: sessionId=${session.id} platform=${session.platform} messages=${session.messages.length} title="${session.title}"`);
+
   // Debounced IDB write — coalesces rapid-fire captures for the same session.
   // Only 1 write fires per 200ms window; SESSIONS_UPDATED broadcasts after flush.
   pendingWrites.set(session.id, session);
@@ -1917,7 +1919,7 @@ async function handleCaptureSession(payload: {
     pendingWrites.delete(session.id);
     writeTimers.delete(session.id);
     sessionCache.invalidate(); // force fresh IDB read on next GET_SESSIONS
-    console.log('[CM:sw] saved (debounced)', { session: toWrite.id, total: toWrite.messages.length });
+    console.log('[CM:sw] SAVED to IndexedDB', { sessionId: toWrite.id, platform: toWrite.platform, messages: toWrite.messages.length, title: toWrite.title });
     void broadcastToViews({ type: "SESSIONS_UPDATED" });
     // Kick off background semantic indexing — fire & forget, never blocks capture
     if (semanticIndex.getQueueLength() >= 40) {

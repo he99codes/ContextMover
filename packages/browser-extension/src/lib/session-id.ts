@@ -111,24 +111,37 @@ export async function resolveSessionId(
   const key = urlKeyFromHref(platform, href);
   const map = await loadMap();
 
-  if (map[key]) return map[key];
+  // Fast path: URL already mapped to a sessionId
+  if (map[key]) {
+    console.log(`[CM:session-id] ${platform}: URL key "${key}" → existing sessionId=${map[key]}`);
+    return map[key];
+  }
 
   let id: string | null = null;
 
+  // Try legacy hash-based id for backward compatibility
   if (legacyChecker) {
     const candidate = legacySessionId(platform, href);
     try {
       const exists = await legacyChecker(candidate);
-      if (exists) id = candidate;
+      if (exists) {
+        id = candidate;
+        console.log(`[CM:session-id] ${platform}: URL key "${key}" → legacy sessionId=${id}`);
+      }
     } catch {
       /* legacy lookup failed — fall through to minting */
     }
   }
 
-  if (!id) id = mintRandomSessionId(platform);
+  // Mint fresh random sessionId
+  if (!id) {
+    id = mintRandomSessionId(platform);
+    console.log(`[CM:session-id] ${platform}: URL key "${key}" → NEW sessionId=${id}`);
+  }
 
   map[key] = id;
   await saveMap(map);
+  console.log(`[CM:session-id] ${platform}: Saved mapping: "${key}" → "${id}"`);
   return id;
 }
 
