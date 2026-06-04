@@ -454,6 +454,15 @@ export function startSessionCapture(config: {
           dom_snippet: getDebugSnippet(),
         }).catch(() => {});
       }
+      // NEW SESSION: if we've never sent messages (lastSentMessageCount === 0),
+      // this is a brand new conversation. Don't report as error — just wait for
+      // the user to send a message. The MutationObserver will trigger capture
+      // once the first message appears in the DOM.
+      if (lastSentMessageCount === 0) {
+        console.log(`[ContextMover] ${config.platform}: New empty session — waiting for first message`);
+        diag("bail: new empty session");
+        return;
+      }
       zeroScrapeRetries = 0;
       console.log(`[ContextMover] No messages found, skipping capture`);
       diag("bail: 0 messages from scrape");
