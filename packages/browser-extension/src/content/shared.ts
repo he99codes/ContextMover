@@ -337,22 +337,22 @@ export function startSessionCapture(config: {
   const FETCH_FALLBACK_WINDOW_MS = 30_000;
   const capture = async () => {
     // Re-resolve session ID on SPA navigation (e.g. Claude pushState from
-    // /new → /chat/abc123 when a conversation starts).
+    // /new → /chat/abc123 when a conversation starts, or Perplexity navigating
+    // to a new conversation URL).
     const currentHref = window.location.href;
     if (currentHref !== lastHref) {
       lastHref = currentHref;
-      // Only drop the session reference when we have NOT yet captured messages.
-      // If we had a 179-msg session and the SPA navigates (chat reload / URL
-      // normalisation), keep the existing sessionId so the next non-zero scrape
-      // updates the same record instead of minting a new orphaned session.
-      if (lastSentMessageCount === 0) {
-        sessionId = null;
-        lastMessageHash = "";
-      }
+      // Always clear sessionId on URL change so the next capture resolves a fresh
+      // session ID from the URL map. This ensures each unique conversation URL
+      // gets its own session, preventing multiple conversations from merging.
+      // The URL→sessionId mapping in session-id.ts handles the deduplication:
+      // if we revisit the same URL, we'll get the same sessionId back.
+      sessionId = null;
+      lastMessageHash = "";
       // Always reset the retry counter on any navigation.
       zeroScrapeRetries = 0;
       if (zeroRetryTimer !== null) { clearTimeout(zeroRetryTimer); zeroRetryTimer = null; }
-      console.log(`[ContextMover] URL changed — ${lastSentMessageCount > 0 ? 'keeping sessionId (had messages)' : 're-resolving sessionId'}`);
+      console.log(`[ContextMover] URL changed — re-resolving sessionId`);
     }
 
     // ── Fetch-intercept fallback gate ──────────────────────────────────
