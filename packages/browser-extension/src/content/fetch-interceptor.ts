@@ -104,8 +104,9 @@
 
   function detectPlatform(url: string): Platform | null {
     if (!url) return null;
-    if (url.includes("chatgpt.com/backend-api/conversation") ||
-        url.includes("chat.openai.com/backend-api/conversation")) return "chatgpt";
+    // ChatGPT: new endpoint /ces/v1/t (2026+) or legacy /backend-api/conversation
+    if ((url.includes("chatgpt.com") || url.includes("chat.openai.com")) &&
+        (/\/ces\/v1\/|\/backend-api\/conversation/.test(url))) return "chatgpt";
     if ((url.includes("claude.ai/api") && /completion|append_message|chat_conversations/.test(url)) ||
         ((url.includes("a-api.anthropic.com") || url.includes("api.anthropic.com")) && /\/v1\//.test(url))) return "claude";
     if (url.includes("gemini.google.com") && /GenerateContent|StreamGenerate|BardChatUi|assistant\.lamda/i.test(url)) return "gemini";
@@ -917,6 +918,15 @@
       try {
         const url = urlOf(input);
         const platform = detectPlatform(url);
+        
+        // [DIAGNOSTIC] Log all ChatGPT-like URLs for debugging
+        if (url.includes("chatgpt.com") || url.includes("chat.openai.com") || url.includes("backend-api")) {
+          console.log(`${TAG} [DIAG] ChatGPT-like URL detected:`, url.slice(0, 120));
+          if (!platform) {
+            console.log(`${TAG} [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null`);
+          }
+        }
+        
         if (platform) {
           const clone = response.clone();
           const body = requestBodyText;
