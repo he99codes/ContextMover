@@ -44,11 +44,12 @@ function scrapeMessages(): Message[] {
     console.log(`[ContextMover:perplexity] A data-message-role: ${collected.length}`);
   }
 
-  // ── Strategy B: class substrings — UserMessage / AnswerText / answer-block ─
+  // ── Strategy B: class substrings — PRIMARY: prose for assistant, group/query for user ─
   if (!hasAsst()) {
-    // Perplexity 2026: group/query for user, prose for assistant
-    const userSel = _remoteSelectors?.userSelector ?? '[class*="group/query"], [data-testid="user-message"], [data-testid*="user-query"], [data-testid*="user"], [aria-label*="your question" i], [aria-label*="you asked" i], [class*="UserMessage"], [class*="user-query"], [class*="query-bubble"], [class*="user-message"]';
-    const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="prose"], [class*="AnswerText"], [class*="answer-text"], [data-testid*="answer"], [data-testid*="assistant"], [aria-label*="answer" i], [class*="model-answer"], [class*="assistant-message"], .answer-block, [class*="answer-block"]';
+    // Perplexity 2026: [class*="prose"] is the primary assistant selector (23+ hits on typical page)
+    // [class*="group/query"] is the primary user selector (2+ hits on typical page)
+    const userSel = _remoteSelectors?.userSelector ?? '[class*="group/query"], [class*="query"], [data-testid="user-message"], [data-testid*="user-query"], [aria-label*="question" i], [class*="UserMessage"], [class*="user-message"]';
+    const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="prose"], [class*="answer-text"], [data-testid*="answer"], [aria-label*="answer" i], [class*="AnswerText"], [class*="model-answer"], [class*="assistant-message"], .answer-block, [class*="answer-block"]';
 
     const userEls = [...document.querySelectorAll<HTMLElement>(userSel)]
       .filter((el) => !el.parentElement?.closest(userSel) && !isStreaming(el));
@@ -61,16 +62,15 @@ function scrapeMessages(): Message[] {
   }
 
   // ── Strategy C: Perplexity thread structure ──────────────────────────────────
-  // Perplexity wraps conversations in [class*="thread"] — each child is one
-  // user query + answer pair. We tag the first child as "user" and the rest as "assistant".
+  // Perplexity wraps Q+A pairs in [class*="thread"] containers (2+ on typical page)
   // Run if user messages are still missing (even if assistant already found via Strategy B).
   if (!hasUser()) {
-    const threadSel = '[class*="thread-item"], [class*="ThreadItem"], [class*="conversation-turn"], [class*="ConversationTurn"]';
+    const threadSel = '[class*="thread"], [class*="ThreadItem"], [class*="conversation-turn"], [class*="ConversationTurn"]';
     const turns = [...document.querySelectorAll<HTMLElement>(threadSel)]
       .filter((el) => !el.parentElement?.closest(threadSel) && !isStreaming(el));
     for (const turn of turns) {
-      const queryEl = turn.querySelector<HTMLElement>('[class*="query"], [class*="Query"], [class*="user"]');
-      const answerEl = turn.querySelector<HTMLElement>('[class*="answer"], [class*="Answer"], [class*="markdown"], .prose, .answer-block, [class*="answer-block"]');
+      const queryEl = turn.querySelector<HTMLElement>('[class*="group/query"], [class*="query"], [class*="Query"], [class*="user"]');
+      const answerEl = turn.querySelector<HTMLElement>('[class*="prose"], [class*="answer"], [class*="Answer"], [class*="markdown"], .answer-block, [class*="answer-block"]');
       if (queryEl && !isStreaming(queryEl)) collected.push({ el: queryEl, role: "user" });
       // Only add assistant from thread turns if Strategy B didn't already find assistant messages.
       if (!hasAsst() && answerEl && !isStreaming(answerEl)) collected.push({ el: answerEl, role: "assistant" });
@@ -178,7 +178,7 @@ function scrapeMessages(): Message[] {
 
 startSessionCapture({
   platform: "perplexity",
-  selectorOrElement: () => _remoteSelectors?.observerTarget ?? 'main, [role="main"], .conversation, .chat-container, .messages, [class*="conversation"], [class*="messages"], [class*="chat"]',
+  selectorOrElement: () => _remoteSelectors?.observerTarget ?? 'main, #root, [role="main"], div.isolate.flex, .conversation, .chat-container, .messages, [class*="conversation"], [class*="messages"], [class*="chat"]',
   scrapeMessages: () => runCapturePipeline("perplexity", scrapeMessages),
   requiresScrollBack: true,
   extraCaptureDelays: [1500, 3000],

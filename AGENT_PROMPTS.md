@@ -735,7 +735,58 @@ before writing any code.
 ---
 
 ## PROMPT 9 — Fix Perplexity Scraper
+## Perplexity DOM Probe Output (on search result page with answer visible)
+[========== CONTEXTMOVER: PERPLEXITY DOM PROBE ==========
 
+vendors-DwcbDYjC.js:5 Current URL: https://www.perplexity.ai/search/997f0901-fe73-446a-8fce-bc13aa9603ba
+vendors-DwcbDYjC.js:5 Page title: is horizon api from nasa working
+vendors-DwcbDYjC.js:5 <main> element exists: true
+vendors-DwcbDYjC.js:5 
+SELECTOR TEST RESULTS:
+vendors-DwcbDYjC.js:5 
+  ✅ "[class*="prose"]" → 31 total, 23 with substantial text
+vendors-DwcbDYjC.js:5      [0] <div> data: {data-renderer="lm"} class: "prose dark:prose-invert inline leading-relaxed break-words min-w-0 [word-break:b"
+vendors-DwcbDYjC.js:5      [0] text: "The NASA Horizons API is operational and provides access to JPL's Horizons system for obtaining sola"
+vendors-DwcbDYjC.js:5      [1] <div> data: {data-renderer="lm"} class: "prose dark:prose-invert inline leading-relaxed break-words min-w-0 [word-break:b"
+vendors-DwcbDYjC.js:5      [1] text: "To use the Horizons API for obtaining planetary positions, follow these steps:Access the API: You ca"
+vendors-DwcbDYjC.js:5 
+  ✅ "[class*="query"]" → 5 total, 2 with substantial text
+vendors-DwcbDYjC.js:5      [0] <div> data: {} class: "group/query relative whitespace-pre-line !text-wrap break-words [word-break:brea"
+vendors-DwcbDYjC.js:5      [0] text: "How can I use the Horizons API to get data on planetary positions"
+vendors-DwcbDYjC.js:5      [1] <div> data: {} class: "group/query relative whitespace-pre-line !text-wrap break-words [word-break:brea"
+vendors-DwcbDYjC.js:5      [1] text: "How do I convert a date to the format required by the Horizons API"
+vendors-DwcbDYjC.js:5 
+  ✅ "[class*="thread"]" → 2 total, 2 with substantial text
+vendors-DwcbDYjC.js:5      [0] <div> data: {} class: "mx-auto flex flex-col pointer-events-auto max-w-threadContentWidth gap-md md:gap"
+vendors-DwcbDYjC.js:5      [0] text: "is horizon api from nasa workingThe NASA Horizons API is operational and provides access to JPL's Ho"
+vendors-DwcbDYjC.js:5      [1] <div> data: {} class: "mx-auto flex flex-col pointer-events-auto max-w-threadContentWidth gap-sm"
+vendors-DwcbDYjC.js:5      [1] text: "ProFree preview of advanced search enabled.Learn moreAsk a follow-upSearch"
+vendors-DwcbDYjC.js:5 
+ALL data-testid VALUES ON PAGE:
+ask-input-mode-toggle-indicator
+code-language-indicator
+copy-code-button
+vendors-DwcbDYjC.js:5 
+PAGE STRUCTURE (top 3 levels):
+vendors-DwcbDYjC.js:5 <body.md:bg-underlay.bg-transparent> [textLen=6641] [children=21]
+vendors-DwcbDYjC.js:5   <div#root> [textLen=6641] [children=1]
+vendors-DwcbDYjC.js:5     <div.border-subtlest.ring-subtlest.divide-subtlest> [textLen=6641] [children=1]
+vendors-DwcbDYjC.js:5       <div.isolate.flex.h-dvh> [textLen=6641] [children=1]
+vendors-DwcbDYjC.js:5   <img> [textLen=0] [children=0]
+vendors-DwcbDYjC.js:5   <script> [textLen=0] [children=0]
+vendors-DwcbDYjC.js:5   <div#pplx-icon-sprites> [textLen=0] [children=1]
+vendors-DwcbDYjC.js:5     <svg> [textLen=0] [children=604]
+vendors-DwcbDYjC.js:5       <symbol#pplx-icon-abacus> [textLen=0] [children=1]
+vendors-DwcbDYjC.js:5       <symbol#pplx-icon-access-point> [textLen=0] [children=1]
+vendors-DwcbDYjC.js:5       <symbol#pplx-icon-activity> [textLen=0] [children=1]
+vendors-DwcbDYjC.js:5       <symbol#pplx-icon-ad-2> [textLen=0] [children=1]
+vendors-DwcbDYjC.js:5 
+SPECIAL PERPLEXITY ELEMENTS:
+vendors-DwcbDYjC.js:5   "[class*="citation"]" → 15 elements
+vendors-DwcbDYjC.js:5 
+========== END PERPLEXITY DOM PROBE ==========
+
+]
 **Severity:** Critical. All 5 scraping strategies (A-E) return zero messages.
 
 **Runtime errors:**
