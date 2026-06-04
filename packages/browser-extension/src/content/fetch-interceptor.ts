@@ -104,9 +104,9 @@
 
   function detectPlatform(url: string): Platform | null {
     if (!url) return null;
-    // ChatGPT: new endpoint /ces/v1/t (2026+) or legacy /backend-api/conversation
+    // ChatGPT: new endpoint /ces/v1/ (2026+) or legacy /backend-api/conversation/
     if ((url.includes("chatgpt.com") || url.includes("chat.openai.com")) &&
-        (/\/ces\/v1\/|\/backend-api\/conversation/.test(url))) return "chatgpt";
+        (/\/ces\/v1\/|\/backend-api\/conversation\//.test(url))) return "chatgpt";
     if ((url.includes("claude.ai/api") && /completion|append_message|chat_conversations/.test(url)) ||
         ((url.includes("a-api.anthropic.com") || url.includes("api.anthropic.com")) && /\/v1\//.test(url))) return "claude";
     if (url.includes("gemini.google.com") && /GenerateContent|StreamGenerate|BardChatUi|assistant\.lamda/i.test(url)) return "gemini";
