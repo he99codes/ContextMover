@@ -101,8 +101,13 @@ async function loadMap(): Promise<Record<string, string>> {
 async function saveMap(map: Record<string, string>): Promise<void> {
   try {
     await chrome.storage.local.set({ [URL_MAP_KEY]: map });
-  } catch {
-    /* storage quota or context invalidated — non-fatal */
+    // Verify save succeeded by reading back
+    const verify = await chrome.storage.local.get(URL_MAP_KEY);
+    if (!verify[URL_MAP_KEY]) {
+      console.error(`[CM:session-id] CRITICAL: Failed to persist URL map to storage!`);
+    }
+  } catch (err) {
+    console.error(`[CM:session-id] Storage error saving URL map:`, err);
   }
 }
 
@@ -136,6 +141,9 @@ export async function resolveSessionId(
     return map[key];
   }
 
+  console.log(`[CM:session-id] ${platform}: URL key "${key}" NOT in map. Current map size: ${Object.keys(map).length}`);
+  console.log(`[CM:session-id] ${platform}: Current mappings:`, Object.entries(map).slice(0, 5));
+
   let id: string | null = null;
 
   // Try legacy hash-based id for backward compatibility
@@ -147,8 +155,8 @@ export async function resolveSessionId(
         id = candidate;
         console.log(`[CM:session-id] ${platform}: URL key "${key}" → legacy sessionId=${id}`);
       }
-    } catch {
-      /* legacy lookup failed — fall through to minting */
+    } catch (err) {
+      console.warn(`[CM:session-id] ${platform}: legacy lookup failed:`, err);
     }
   }
 
