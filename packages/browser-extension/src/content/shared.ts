@@ -411,17 +411,17 @@ export function startSessionCapture(config: {
       return;
     }
 
+    // Skip captures while scrollback is in progress — wait for all messages to load
+    if (isScrollbackInProgress) {
+      console.log(`[ContextMover] ${config.platform}: Skipping capture during scrollback`);
+      return;
+    }
+
     // Prevent concurrent capture executions — if ensureSessionId() is still
     // awaiting from a previous call, skip rather than sending a duplicate.
     if (captureInFlight) {
       console.log(`[ContextMover] ${config.platform}: capture already in flight, skipping`);
       diag("bail: capture in flight");
-      return;
-    }
-    // Skip captures while scrollback is in progress — wait for all messages to load
-    if (isScrollbackInProgress) {
-      console.log(`[ContextMover] ${config.platform}: Skipping capture during scrollback`);
-      captureInFlight = false;
       return;
     }
 
