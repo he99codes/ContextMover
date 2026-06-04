@@ -299,6 +299,7 @@ export function startSessionCapture(config: {
 
   let pendingCaptureAfterStream = false;
   let streamPollId: ReturnType<typeof setInterval> | null = null;
+  let isScrollbackInProgress = false;
 
   // Async-resolve the session id via chrome.storage URL map.  Cached after the
   // first call; invalidated when the URL changes or when the service worker
@@ -417,6 +418,13 @@ export function startSessionCapture(config: {
       diag("bail: capture in flight");
       return;
     }
+    // Skip captures while scrollback is in progress — wait for all messages to load
+    if (isScrollbackInProgress) {
+      console.log(`[ContextMover] ${config.platform}: Skipping capture during scrollback`);
+      captureInFlight = false;
+      return;
+    }
+
     captureInFlight = true;
     try {
 
@@ -575,13 +583,16 @@ export function startSessionCapture(config: {
           ? (document.querySelector(_resolvedSO) ?? document.body)
           : _resolvedSO
       try {
+        isScrollbackInProgress = true;
         console.log(`[CM:${config.platform}] scrollback: starting — loading lazy history`)
         const restore = await autoScrollBackToTop(scopeEl, config.getScrollContainerSelector, config.scrollBackStrategy)
         console.log(`[CM:${config.platform}] scrollback: DOM settled — running full capture`)
+        isScrollbackInProgress = false;
         await capture()
         restore()
         setTimeout(() => void capture(), 800)
       } catch (err) {
+        isScrollbackInProgress = false;
         console.warn(`[CM:${config.platform}] scrollback failed:`, err)
       }
     })()
