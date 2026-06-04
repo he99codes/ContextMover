@@ -2930,72 +2930,92 @@ async function injectIntoGeminiPage(
   }
 
   // Inject text into a found element using 4 fallback strategies.
-  function doInject(el: HTMLElement): boolean {
-    el.focus();
-    el.click();
-
-    // A. Quill JS API on shadow host
-    type QuillLike = { setText(t: string): void; setSelection(n: number): void };
-    const rt = document.querySelector('rich-textarea') as (HTMLElement & { __quill?: QuillLike }) | null;
-    if (rt?.__quill) {
-      rt.__quill.setText(text);
-      rt.__quill.setSelection(text.length);
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      return true;
-    }
-
-    // B. execCommand selectAll + insertText
-    el.innerHTML = '';
-    document.execCommand('selectAll', false, undefined);
-    let ok = false;
-    try { ok = document.execCommand('insertText', false, text); } catch { /* noop */ }
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-    if (ok && (el.textContent?.trim().length ?? 0) > 0) return true;
-
-    // C. Synthetic beforeinput + InputEvent (Angular change-detection path)
+  function doInject(el: HTMLElement): { ok: boolean; error?: string } {
     try {
-      const ev = new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: text });
-      el.dispatchEvent(ev);
-      if (!ev.defaultPrevented) el.textContent = text;
-      el.dispatchEvent(new InputEvent('input', { bubbles: true, data: text, inputType: 'insertText' }));
-      if ((el.textContent?.trim().length ?? 0) > 0) return true;
-    } catch { /* noop */ }
+      el.focus();
+      el.click();
 
-    // D. Direct textContent fallback
-    el.textContent = text;
-    el.dispatchEvent(new InputEvent('input', { bubbles: true, data: text }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-    return (el.textContent?.trim().length ?? 0) > 0;
+      // A. Quill JS API on shadow host
+      type QuillLike = { setText(t: string): void; setSelection(n: number): void };
+      const rt = document.querySelector('rich-textarea') as (HTMLElement & { __quill?: QuillLike }) | null;
+      if (rt?.__quill) {
+        rt.__quill.setText(text);
+        rt.__quill.setSelection(text.length);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        return { ok: true };
+      }
+
+      // B. execCommand selectAll + insertText
+      el.innerHTML = '';
+      document.execCommand('selectAll', false, undefined);
+      let ok = false;
+      try { ok = document.execCommand('insertText', false, text); } catch (e) {
+        console.error('[CM] execCommand error:', e);
+      }
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      if (ok && (el.textContent?.trim().length ?? 0) > 0) return { ok: true };
+
+      // C. Synthetic beforeinput + InputEvent (Angular change-detection path)
+      try {
+        const ev = new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: text });
+        el.dispatchEvent(ev);
+        if (!ev.defaultPrevented) el.textContent = text;
+        el.dispatchEvent(new InputEvent('input', { bubbles: true, data: text, inputType: 'insertText' }));
+        if ((el.textContent?.trim().length ?? 0) > 0) return { ok: true };
+      } catch (e) {
+        console.error('[CM] beforeinput event error:', e);
+      }
+
+      // D. Direct textContent fallback
+      el.textContent = text;
+      el.dispatchEvent(new InputEvent('input', { bubbles: true, data: text }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      const finalLen = (el.textContent?.trim().length ?? 0);
+      return { ok: finalLen > 0, error: finalLen === 0 ? 'text_not_set' : undefined };
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      console.error('[CM] doInject error:', errMsg);
+      return { ok: false, error: errMsg };
+    }
   }
 
   // ── Retry loop ──────────────────────────────────────────────────────────────
   const ATTEMPT_DELAYS = [0, 300, 800, 1500, 2000];
+  let lastError = 'no_input_found_after_retries';
 
-  for (let attempt = 0; attempt < ATTEMPT_DELAYS.length; attempt++) {
-    if (attempt > 0) await new Promise<void>((r) => setTimeout(r, ATTEMPT_DELAYS[attempt]));
+  try {
+    for (let attempt = 0; attempt < ATTEMPT_DELAYS.length; attempt++) {
+      if (attempt > 0) await new Promise<void>((r) => setTimeout(r, ATTEMPT_DELAYS[attempt]));
 
-    console.log(`[CM] Gemini inject attempt ${attempt + 1}/${ATTEMPT_DELAYS.length} (delay=${ATTEMPT_DELAYS[attempt]}ms)`);
+      console.log(`[CM] Gemini inject attempt ${attempt + 1}/${ATTEMPT_DELAYS.length} (delay=${ATTEMPT_DELAYS[attempt]}ms)`);
 
-    const found = findGeminiEl();
-    if (!found) {
-      console.warn(`[CM] Gemini inject attempt ${attempt + 1}: no input found`);
-      continue;
+      const found = findGeminiEl();
+      if (!found) {
+        console.warn(`[CM] Gemini inject attempt ${attempt + 1}: no input found`);
+        lastError = 'no_input_element_found';
+        continue;
+      }
+
+      const { el, label } = found;
+      console.log(`[CM] Gemini inject attempt ${attempt + 1}: found via "${label}"`);
+
+      const injectResult = doInject(el);
+      const length = el.textContent?.trim().length ?? 0;
+      if (injectResult.ok || length > 0) {
+        console.log(`[CM] Gemini inject succeeded (attempt ${attempt + 1}, length=${length})`);
+        return { ok: true, selector: label, length };
+      }
+      lastError = injectResult.error ?? 'injection_failed';
+      console.warn(`[CM] Gemini inject attempt ${attempt + 1}: element found but injection failed — ${lastError}`);
     }
-
-    const { el, label } = found;
-    console.log(`[CM] Gemini inject attempt ${attempt + 1}: found via "${label}"`);
-
-    const injected = doInject(el);
-    const length = el.textContent?.trim().length ?? 0;
-    if (injected || length > 0) {
-      console.log(`[CM] Gemini inject succeeded (attempt ${attempt + 1}, length=${length})`);
-      return { ok: true, selector: label, length };
-    }
-    console.warn(`[CM] Gemini inject attempt ${attempt + 1}: element found but injection failed`);
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : String(e);
+    console.error('[CM] injectIntoGeminiPage error:', errMsg);
+    lastError = errMsg;
   }
 
-  return { ok: false, reason: 'no_input_found_after_retries' };
+  return { ok: false, reason: lastError };
 }
 
 /**

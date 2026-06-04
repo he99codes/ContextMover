@@ -1036,7 +1036,198 @@ before writing any code.
 ---
 
 ## PROMPT 12 — Fix Gemini Context Injection Failure
+## gemini DOM ::[======= CONTEXTMOVER: GEMINI INPUT FIELD PROBE ==========
 
+VM372:5 ALL INPUT-LIKE ELEMENTS:
+VM372:28 
+  ✅ "[contenteditable="true"]" [0] — visible: true
+VM372:29      tag: <div>
+VM372:30      attrs: class="ql-editor textarea new-input-ui ql-blank" data-gramm="false" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Enter a prompt for Gemini" data-placeholder="Ask Gemini" sty
+VM372:31      class: ql-editor textarea new-input-ui ql-blank
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[contenteditable="true"]" [1] — visible: false
+VM372:29      tag: <div>
+VM372:30      attrs: class="ql-clipboard" contenteditable="true" tabindex="-1"
+VM372:31      class: ql-clipboard
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[contenteditable]" [0] — visible: true
+VM372:29      tag: <div>
+VM372:30      attrs: class="ql-editor textarea new-input-ui ql-blank" data-gramm="false" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Enter a prompt for Gemini" data-placeholder="Ask Gemini" sty
+VM372:31      class: ql-editor textarea new-input-ui ql-blank
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[contenteditable]" [1] — visible: false
+VM372:29      tag: <div>
+VM372:30      attrs: class="ql-clipboard" contenteditable="true" tabindex="-1"
+VM372:31      class: ql-clipboard
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[role="textbox"]" [0] — visible: true
+VM372:29      tag: <div>
+VM372:30      attrs: class="ql-editor textarea new-input-ui ql-blank" data-gramm="false" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Enter a prompt for Gemini" data-placeholder="Ask Gemini" sty
+VM372:31      class: ql-editor textarea new-input-ui ql-blank
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "rich-textarea" [0] — visible: true
+VM372:29      tag: <rich-textarea>
+VM372:30      attrs: _ngcontent-ng-c2544449659="" atmentions="" class="text-input-field_textarea ql-container q" _nghost-ng-c2167784822="" enterkeyhint="enter" dir="ltr" style="--textarea-max-rows: 7; --chat-container"
+VM372:31      class: text-input-field_textarea ql-container ql-bubble ng-tns-c2544449659-5 simplified-input ng-untouched 
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="input"]" [0] — visible: true
+VM372:29      tag: <chat-window>
+VM372:30      attrs: _nghost-ng-c2498487393="" class="lm-canvas-styling ng-tns-c2498487393-1 f"
+VM372:31      class: lm-canvas-styling ng-tns-c2498487393-1 full-width-input
+VM372:32      value/textContent: "Conversation with Gemini TEXmain You said  AI Tutor - Hindi "
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="input"]" [1] — visible: true
+VM372:29      tag: <input-container>
+VM372:30      attrs: _ngcontent-ng-c2498487393="" trace="" _nghost-ng-c4037128113="" class="ui-improvements-phase-1 edge-to-edge lm-"
+VM372:31      class: ui-improvements-phase-1 edge-to-edge lm-input-redesign ng-tns-c4037128113-2 input-gradient
+VM372:32      value/textContent: "Gemini is AI and can make mistakes."
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="input"]" [2] — visible: true
+VM372:29      tag: <fieldset>
+VM372:30      attrs: _ngcontent-ng-c4037128113="" class="input-area-container ng-trigger ng-trigg" style=""
+VM372:31      class: input-area-container ng-trigger ng-trigger-inputAreaAnimation is-mobile
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="input"]" [3] — visible: true
+VM372:29      tag: <input-area-v2>
+VM372:30      attrs: _ngcontent-ng-c4037128113="" trace="" _nghost-ng-c2544449659="" class="ng-tns-c2544449659-5 ng-tns-c4037128113-" style="--uploader-height: 112px;"
+VM372:31      class: ng-tns-c2544449659-5 ng-tns-c4037128113-2 ui-improvements-phase-1 with-toolbox-drawer input-box-shad
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="input"]" [4] — visible: true
+VM372:29      tag: <div>
+VM372:30      attrs: _ngcontent-ng-c2544449659="" uireadyparent="" data-node-type="input-area" class="input-area ng-tns-c2544449659-5 children"
+VM372:31      class: input-area ng-tns-c2544449659-5 children-ready is-mobile
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="input"]" [5] — visible: true
+VM372:29      tag: <div>
+VM372:30      attrs: _ngcontent-ng-c2544449659="" xapfileselectordropzone="" class="text-input-field ng-tns-c2544449659-5 si" jslog="303810;track:impression"
+VM372:31      class: text-input-field ng-tns-c2544449659-5 simplified-input-area simplified-input-on-mobile
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="input"]" [6] — visible: true
+VM372:29      tag: <div>
+VM372:30      attrs: _ngcontent-ng-c2544449659="" class="text-input-field-main-area ng-tns-c25444"
+VM372:31      class: text-input-field-main-area ng-tns-c2544449659-5
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="input"]" [7] — visible: true
+VM372:29      tag: <div>
+VM372:30      attrs: _ngcontent-ng-c2544449659="" data-test-id="textarea-inner" class="text-input-field_textarea-inner ng-tns-c"
+VM372:31      class: text-input-field_textarea-inner ng-tns-c2544449659-5
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="input"]" [8] — visible: true
+VM372:29      tag: <rich-textarea>
+VM372:30      attrs: _ngcontent-ng-c2544449659="" atmentions="" class="text-input-field_textarea ql-container q" _nghost-ng-c2167784822="" enterkeyhint="enter" dir="ltr" style="--textarea-max-rows: 7; --chat-container"
+VM372:31      class: text-input-field_textarea ql-container ql-bubble ng-tns-c2544449659-5 simplified-input ng-untouched 
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="input"]" [9] — visible: true
+VM372:29      tag: <div>
+VM372:30      attrs: class="ql-editor textarea new-input-ui ql-blank" data-gramm="false" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Enter a prompt for Gemini" data-placeholder="Ask Gemini" sty
+VM372:31      class: ql-editor textarea new-input-ui ql-blank
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="input"]" [10] — visible: true
+VM372:29      tag: <simplified-input-menu>
+VM372:30      attrs: _ngcontent-ng-c2544449659="" trace="" class="simplified-input-menu ng-tns-c2544449659" _nghost-ng-c1941400756="" style=""
+VM372:31      class: simplified-input-menu ng-tns-c2544449659-5 ng-star-inserted
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="input"]" [11] — visible: true
+VM372:29      tag: <div>
+VM372:30      attrs: _ngcontent-ng-c1941400756="" class="simplified-input-menu-container"
+VM372:31      class: simplified-input-menu-container
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="input"]" [12] — visible: true
+VM372:29      tag: <div>
+VM372:30      attrs: _ngcontent-ng-c2544449659="" class="input-buttons-wrapper-bottom ng-tns-c254"
+VM372:31      class: input-buttons-wrapper-bottom ng-tns-c2544449659-5 persistent-mic
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="textarea"]" [0] — visible: true
+VM372:29      tag: <div>
+VM372:30      attrs: _ngcontent-ng-c2544449659="" data-test-id="textarea-inner" class="text-input-field_textarea-inner ng-tns-c"
+VM372:31      class: text-input-field_textarea-inner ng-tns-c2544449659-5
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="textarea"]" [1] — visible: true
+VM372:29      tag: <rich-textarea>
+VM372:30      attrs: _ngcontent-ng-c2544449659="" atmentions="" class="text-input-field_textarea ql-container q" _nghost-ng-c2167784822="" enterkeyhint="enter" dir="ltr" style="--textarea-max-rows: 7; --chat-container"
+VM372:31      class: text-input-field_textarea ql-container ql-bubble ng-tns-c2544449659-5 simplified-input ng-untouched 
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="textarea"]" [2] — visible: true
+VM372:29      tag: <div>
+VM372:30      attrs: class="ql-editor textarea new-input-ui ql-blank" data-gramm="false" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Enter a prompt for Gemini" data-placeholder="Ask Gemini" sty
+VM372:31      class: ql-editor textarea new-input-ui ql-blank
+VM372:32      value/textContent: ""
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="prompt"]" [0] — visible: true
+VM372:29      tag: <user-query-content>
+VM372:30      attrs: _ngcontent-ng-c1022970385="" class="user-query-container enable-luminous-pro" _nghost-ng-c1988893380="" style="--max-lines-for-collapse-count: 5;"
+VM372:31      class: user-query-container enable-luminous-prompt-bubble enable-luminous-edit-box-updates
+VM372:32      value/textContent: "TEXmain You said  AI Tutor - Hindi  Remote  ABOUT xAI  xAI’s"
+VM372:33      hasShadowRoot: false
+VM372:28 
+  ✅ "[class*="prompt"]" [1] — visible: false
+VM372:29      tag: <user-query-file-preview>
+VM372:30      attrs: _ngcontent-ng-c1988893380="" class="query-file-preview force-ltr enable-lumi" _nghost-ng-c727314656=""
+VM372:31      class: query-file-preview force-ltr enable-luminous-prompt-bubble
+VM372:32      value/textContent: "TEXmain"
+VM372:33      hasShadowRoot: false
+VM372:47 
+
+SUBMIT BUTTON:
+VM372:54   "button[aria-label*="send" i]" → <button> aria-label="Send message" disabled=false class="mdc-icon-button mat-mdc-icon-button mat-mdc-button-base mat-"
+VM372:54   "[class*="send-button"]" → <div> aria-label="null" disabled=undefined class="mat-mdc-tooltip-trigger send-button-container ng-tns-c254444"
+VM372:54   "[class*="submit"]" → <gem-icon-button> aria-label="null" disabled=undefined class="send-button ng-tns-c2544449659-5 gem-button gem-button-badge"
+VM372:54   "[class*="send"]" → <div> aria-label="null" disabled=undefined class="mat-mdc-tooltip-trigger send-button-container ng-tns-c254444"
+VM372:59 
+FRAMEWORK DETECTION:
+VM372:63   Angular detected: true
+VM372:64   React detected: false
+VM372:65   Angular custom elements present: true
+VM372:68 
+INJECTION METHOD TEST (non-destructive — will not change visible content):
+VM372:79   <rich-textarea> found — check shadowRoot for inner textarea
+VM372:81   Inner element in shadowRoot: NOT FOUND
+VM372:84   [contenteditable] found — use: el.textContent = text; el.dispatchEvent(new InputEvent('input', {bubbles:true, data:text}))
+VM372:87 
+========== END GEMINI INPUT FIELD PROBE ==========
+
+]
 **Severity:** High. Blocks ALL migration tiers from completing on Gemini.
 
 **Runtime error:**

@@ -180,8 +180,15 @@ startSessionCapture({
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === "INJECT_CONTEXT" && msg.platform === "gemini") {
     injectIntoGeminiInput(msg.prompt)
-      .then((result) => sendResponse(result))
-      .catch((err) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
+      .then((result) => {
+        console.log('[CM:gemini] INJECT_CONTEXT result:', result);
+        sendResponse(result);
+      })
+      .catch((err) => {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        console.error('[CM:gemini] INJECT_CONTEXT error:', errMsg, err);
+        sendResponse({ ok: false, error: errMsg });
+      });
     return true; // CRITICAL — keeps channel open for async response
   }
   if (msg.type === "INJECT_FILE_AS_UPLOAD" || msg.type === "INJECT_FILE_TO_TAB") {
@@ -312,72 +319,86 @@ async function findGeminiInput(timeoutMs = 6000): Promise<HTMLElement | null> {
 }
 
 async function injectIntoGeminiInput(text: string) {
-  const useElement = await findGeminiInput(6000);
-
-  if (!useElement) {
-    return { ok: false, error: "Gemini input box not found. Make sure a chat is open." };
-  }
-
-  useElement.focus();
-  useElement.click();
-  await new Promise<void>((r) => setTimeout(r, 80));
-
-  // A. Try Quill JS API — check on shadow host and surrounding containers.
-  //    rich-textarea.__quill or the nearest .ql-container.__quill.
-  const rt = document.querySelector('rich-textarea') as (HTMLElement & { __quill?: _QuillInstance }) | null;
-  if (rt?.__quill) {
-    rt.__quill.setText(text);
-    rt.__quill.setSelection(text.length);
-    useElement.dispatchEvent(new Event('input', { bubbles: true }));
-    console.log('[CM] Gemini inject: Quill API path');
-    return { ok: true };
-  }
-  // Also check nearest .ql-container (may be in shadow root)
-  const sr = rt?.shadowRoot ?? null;
-  const quillContainer = (
-    useElement.closest('.ql-container') ??
-    sr?.querySelector('.ql-container')
-  ) as (HTMLElement & { __quill?: _QuillInstance }) | null;
-  if (quillContainer?.__quill) {
-    quillContainer.__quill.setText(text);
-    quillContainer.__quill.setSelection(text.length);
-    useElement.dispatchEvent(new Event('input', { bubbles: true }));
-    console.log('[CM] Gemini inject: Quill container API path');
-    return { ok: true };
-  }
-
-  // B. execCommand path (framework-aware: triggers Angular/React beforeinput listeners).
-  document.execCommand('selectAll', false, undefined);
-  const didInsert = document.execCommand('insertText', false, text);
-  useElement.dispatchEvent(new Event('input', { bubbles: true }));
-  useElement.dispatchEvent(new Event('change', { bubbles: true }));
-  if (didInsert && (useElement.textContent?.trim().length ?? 0) > 0) {
-    console.log('[CM] Gemini inject: execCommand path succeeded');
-    return { ok: true };
-  }
-
-  // C. Synthetic beforeinput + InputEvent — Angular listens on (beforeinput) host events.
   try {
-    const beforeInput = new InputEvent('beforeinput', {
-      bubbles: true, cancelable: true,
-      inputType: 'insertText', data: text,
-    });
-    useElement.dispatchEvent(beforeInput);
-    if (!beforeInput.defaultPrevented) {
-      useElement.textContent = text;
+    const useElement = await findGeminiInput(6000);
+
+    if (!useElement) {
+      return { ok: false, error: "Gemini input box not found. Make sure a chat is open." };
     }
-    useElement.dispatchEvent(new InputEvent('input', { bubbles: true, data: text, inputType: 'insertText' }));
-    if ((useElement.textContent?.trim().length ?? 0) > 0) {
-      console.log('[CM] Gemini inject: beforeinput event path succeeded');
+
+    console.log('[CM:gemini] Input element found, focusing and clicking');
+    useElement.focus();
+    useElement.click();
+    await new Promise<void>((r) => setTimeout(r, 80));
+
+    // A. Try Quill JS API — check on shadow host and surrounding containers.
+    //    rich-textarea.__quill or the nearest .ql-container.__quill.
+    const rt = document.querySelector('rich-textarea') as (HTMLElement & { __quill?: _QuillInstance }) | null;
+    if (rt?.__quill) {
+      console.log('[CM:gemini] Attempting Quill API path');
+      rt.__quill.setText(text);
+      rt.__quill.setSelection(text.length);
+      useElement.dispatchEvent(new Event('input', { bubbles: true }));
+      console.log('[CM:gemini] Quill API path succeeded');
       return { ok: true };
     }
-  } catch { /* fall through */ }
+    // Also check nearest .ql-container (may be in shadow root)
+    const sr = rt?.shadowRoot ?? null;
+    const quillContainer = (
+      useElement.closest('.ql-container') ??
+      sr?.querySelector('.ql-container')
+    ) as (HTMLElement & { __quill?: _QuillInstance }) | null;
+    if (quillContainer?.__quill) {
+      console.log('[CM:gemini] Attempting Quill container API path');
+      quillContainer.__quill.setText(text);
+      quillContainer.__quill.setSelection(text.length);
+      useElement.dispatchEvent(new Event('input', { bubbles: true }));
+      console.log('[CM:gemini] Quill container API path succeeded');
+      return { ok: true };
+    }
 
-  // D. Direct textContent assignment (last resort).
-  useElement.textContent = text;
-  useElement.dispatchEvent(new InputEvent('input', { bubbles: true, data: text }));
-  useElement.dispatchEvent(new Event('change', { bubbles: true }));
-  const finalLen = useElement.textContent?.trim().length ?? 0;
-  console.log(`[CM] Gemini inject: textContent fallback, length=${finalLen}`);
-  return { ok: finalLen > 0 };
+    // B. execCommand path (framework-aware: triggers Angular/React beforeinput listeners).
+    console.log('[CM:gemini] Attempting execCommand path');
+    document.execCommand('selectAll', false, undefined);
+    const didInsert = document.execCommand('insertText', false, text);
+    useElement.dispatchEvent(new Event('input', { bubbles: true }));
+    useElement.dispatchEvent(new Event('change', { bubbles: true }));
+    if (didInsert && (useElement.textContent?.trim().length ?? 0) > 0) {
+      console.log('[CM:gemini] execCommand path succeeded');
+      return { ok: true };
+    }
+
+    // C. Synthetic beforeinput + InputEvent — Angular listens on (beforeinput) host events.
+    console.log('[CM:gemini] Attempting beforeinput event path');
+    try {
+      const beforeInput = new InputEvent('beforeinput', {
+        bubbles: true, cancelable: true,
+        inputType: 'insertText', data: text,
+      });
+      useElement.dispatchEvent(beforeInput);
+      if (!beforeInput.defaultPrevented) {
+        useElement.textContent = text;
+      }
+      useElement.dispatchEvent(new InputEvent('input', { bubbles: true, data: text, inputType: 'insertText' }));
+      if ((useElement.textContent?.trim().length ?? 0) > 0) {
+        console.log('[CM:gemini] beforeinput event path succeeded');
+        return { ok: true };
+      }
+    } catch (e) {
+      console.error('[CM:gemini] beforeinput event path error:', e);
+    }
+
+    // D. Direct textContent assignment (last resort).
+    console.log('[CM:gemini] Attempting textContent fallback');
+    useElement.textContent = text;
+    useElement.dispatchEvent(new InputEvent('input', { bubbles: true, data: text }));
+    useElement.dispatchEvent(new Event('change', { bubbles: true }));
+    const finalLen = useElement.textContent?.trim().length ?? 0;
+    console.log(`[CM:gemini] textContent fallback completed, length=${finalLen}`);
+    return { ok: finalLen > 0, error: finalLen === 0 ? 'text_not_set_after_all_strategies' : undefined };
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : String(e);
+    console.error('[CM:gemini] injectIntoGeminiInput error:', errMsg, e);
+    return { ok: false, error: errMsg };
+  }
 }
