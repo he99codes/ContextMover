@@ -948,6 +948,16 @@ export default function MigrationModal({
   // Portal to document.body so the overlay escapes the sidebar's animate-slide-up
   // transform ancestor, which would otherwise break position:fixed centering.
   return createPortal(
+    <>
+      <style>{`
+        @keyframes neon-amber-glow {
+          0%, 100% { text-shadow: 0 0 3px rgba(245,158,11,0.25), 0 0 6px rgba(245,158,11,0.1); opacity: 0.75; }
+          50% { text-shadow: 0 0 8px rgba(245,158,11,0.8), 0 0 14px rgba(245,158,11,0.35); opacity: 1; }
+        }
+        .pulse-glow-amber {
+          animation: neon-amber-glow 2s infinite ease-in-out;
+        }
+      `}</style>
     <div
       style={{
         position: "fixed",
@@ -1240,7 +1250,7 @@ export default function MigrationModal({
 
         {/* ── [CM-PROMPT-SNOOZE] Prompt Engine section — coming soon ── */}
         <div style={{ marginBottom: "6px" }}>
-          <div style={{
+          <div className="pulse-glow-amber" style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '5px',
@@ -1250,7 +1260,7 @@ export default function MigrationModal({
             fontWeight: 500,
             background: 'var(--color-background-warning)',
             color: 'var(--color-text-warning)',
-            opacity: 0.85,
+            border: '1px solid rgba(245,158,11,0.3)',
           }}>
             Prompt Engine — Coming Soon
           </div>
@@ -1549,7 +1559,9 @@ export default function MigrationModal({
         </div>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } } .cf-chips-row::-webkit-scrollbar { display: none; }`}</style>
-    </div>,
+    </div>
+    </>
+    ,
     document.body
   );
 }

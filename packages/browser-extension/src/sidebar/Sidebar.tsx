@@ -1264,6 +1264,22 @@ export default function Sidebar() {
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden bg-[#050505] text-[#F5F5F5] crt">
+      <style>{`
+        @keyframes neon-amber-glow {
+          0%, 100% { text-shadow: 0 0 3px rgba(245,158,11,0.25), 0 0 6px rgba(245,158,11,0.1); opacity: 0.75; }
+          50% { text-shadow: 0 0 8px rgba(245,158,11,0.8), 0 0 14px rgba(245,158,11,0.35); opacity: 1; }
+        }
+        @keyframes neon-green-glow {
+          0%, 100% { text-shadow: 0 0 3px rgba(0,255,136,0.15), 0 0 6px rgba(0,255,136,0.05); opacity: 0.75; }
+          50% { text-shadow: 0 0 8px rgba(0,255,136,0.6), 0 0 12px rgba(0,255,136,0.25); opacity: 1; }
+        }
+        .pulse-glow-amber {
+          animation: neon-amber-glow 2s infinite ease-in-out;
+        }
+        .pulse-glow-green {
+          animation: neon-green-glow 2s infinite ease-in-out;
+        }
+      `}</style>
       <div className="flex h-full flex-col">
         {/* ── Update available banner ── */}
         {updateAvailable && (
@@ -1286,16 +1302,6 @@ export default function Sidebar() {
             >×</button>
           </div>
         )}
-        <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid #333'}}>
-          <button onClick={()=>void handleRunProbe()} disabled={isProbing} style={{fontSize:12,padding:'4px 8px'}}>
-            {isProbing?'Probing...':'🔍 DOM Probe'}
-          </button>
-          {probeResult?.candidates.slice(0,5).map((c:any,i:number)=>(
-            <div key={i} style={{fontSize:10,marginTop:4,color:'#aaa'}}>
-              <b style={{color:'#0f0'}}>{c.likelyRole}</b> — {c.selector}<br/>{c.sampleText.slice(0,60)}
-            </div>
-          ))}
-        </div>
         {/* Header */}
         <div className="border-b border-[#0D2A0D] px-2 py-[3px]" style={{ background: "linear-gradient(135deg, #040404 0%, #071207 55%, #040404 100%)", boxShadow: "0 1px 0 rgba(0,255,136,0.07)" }}>
           <div className="flex items-center justify-between">
@@ -1400,7 +1406,7 @@ export default function Sidebar() {
                 >
                   <span className="text-[11px]">⚡</span>
                 </button>
-                <div style={{
+                <div className="pulse-glow-amber" style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '2px',
@@ -1410,8 +1416,8 @@ export default function Sidebar() {
                   fontWeight: 500,
                   background: 'var(--color-background-warning)',
                   color: 'var(--color-text-warning)',
-                  opacity: 0.85,
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
+                  border: '1px solid rgba(245,158,11,0.3)',
                 }}>
                   Coming Soon
                 </div>
@@ -1488,17 +1494,24 @@ export default function Sidebar() {
               <button
                 key={platform}
                 onClick={() => setFilter(platform)}
-                className="flex flex-col items-center gap-0 rounded-[4px] border py-1 transition-all duration-200 hover:scale-[1.06] hover:-translate-y-0.5"
+                className="flex flex-col items-center justify-center rounded-[4px] border py-0.5 transition-all duration-200 hover:scale-[1.04]"
                 style={{
                   borderColor: count > 0 ? `${PLATFORM_COLORS[platform]}40` : "#141414",
                   background: count > 0 ? `${PLATFORM_COLORS[platform]}0E` : "#0a0a0a",
-                  boxShadow: count > 0 ? `0 0 8px ${PLATFORM_COLORS[platform]}18` : "none",
+                  boxShadow: count > 0 ? `0 0 6px ${PLATFORM_COLORS[platform]}10` : "none",
+                  height: '34px',
                 }}
                 title={PLATFORM_LABELS[platform]}
               >
-                <PlatformLogo platform={platform} size={4} className="mx-auto" />
-                <div className="text-[9px] font-black uppercase tabular-nums" style={{ color: count > 0 ? PLATFORM_COLORS[platform] : "#1A2A1A", textShadow: count > 0 ? `0 0 8px ${PLATFORM_COLORS[platform]}60` : "none" }}>{PLATFORM_SHORT[platform]}</div>
-                <div className="text-[13px] font-bold tabular-nums" style={{ color: count > 0 ? PLATFORM_COLORS[platform] : "#1A2A1A", textShadow: count > 0 ? `0 0 8px ${PLATFORM_COLORS[platform]}60` : "none" }}>{count}</div>
+                <div className="flex items-center gap-1">
+                  <PlatformLogo platform={platform} size={10} />
+                  <span className="text-[8px] font-black uppercase tracking-wider" style={{ color: count > 0 ? PLATFORM_COLORS[platform] : "#555" }}>
+                    {PLATFORM_SHORT[platform]}
+                  </span>
+                </div>
+                <div className="text-[11px] font-bold leading-tight" style={{ color: count > 0 ? PLATFORM_COLORS[platform] : "#333" }}>
+                  {count}
+                </div>
               </button>
             ))}
           </div>
@@ -1788,9 +1801,9 @@ function MCPStatusPanel() {
         <span style={{ fontSize: 6, fontWeight: 700, color: "#3A3A3A", textTransform: "uppercase", letterSpacing: "0.18em", flex: 1 }}>
           IDE Bridge
         </span>
-        <span style={{
-          fontSize: 6, fontWeight: 900, color: "#3A3A3A", textTransform: "uppercase",
-          letterSpacing: "0.14em", border: "1px solid #2A2A2A", borderRadius: 3, padding: "1px 3px",
+        <span className="pulse-glow-green" style={{
+          fontSize: 6, fontWeight: 900, color: "rgba(0,255,136,0.4)", textTransform: "uppercase",
+          letterSpacing: "0.14em", border: "1px solid rgba(0,255,136,0.15)", borderRadius: 3, padding: "1px 3px", background: "rgba(0,255,136,0.02)",
         }}>
           Coming Soon
         </span>

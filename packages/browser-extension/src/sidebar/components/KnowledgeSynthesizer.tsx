@@ -234,7 +234,16 @@ export default function KnowledgeSynthesizer() {
 
   return (
     <div style={{ padding: '16px', textAlign: 'center' }}>
-      <div style={{
+      <style>{`
+        @keyframes neon-amber-glow {
+          0%, 100% { text-shadow: 0 0 3px rgba(245,158,11,0.25), 0 0 6px rgba(245,158,11,0.1); opacity: 0.75; }
+          50% { text-shadow: 0 0 8px rgba(245,158,11,0.8), 0 0 14px rgba(245,158,11,0.35); opacity: 1; }
+        }
+        .pulse-glow-amber {
+          animation: neon-amber-glow 2s infinite ease-in-out;
+        }
+      `}</style>
+      <div className="pulse-glow-amber" style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: '5px',
@@ -244,7 +253,7 @@ export default function KnowledgeSynthesizer() {
         fontWeight: 500,
         background: 'var(--color-background-warning)',
         color: 'var(--color-text-warning)',
-        opacity: 0.85,
+        border: '1px solid rgba(245,158,11,0.3)',
       }}>
         Knowledge Synthesizer — Coming Soon
       </div>
