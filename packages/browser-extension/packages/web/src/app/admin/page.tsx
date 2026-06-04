@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+// Force dynamic rendering - this page uses Supabase auth and client-side state
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const supabase = createClient();
 
 interface Stats { total_users: number; pro_users: number; migrations_this_month: number; open_bug_reports: number; }

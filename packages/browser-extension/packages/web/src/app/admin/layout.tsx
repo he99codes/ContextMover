@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+// Force dynamic rendering - this layout uses Supabase auth
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const ADMIN_EMAIL = "priyanshu2164@gmail.com";
 const supabase = createClient();
 

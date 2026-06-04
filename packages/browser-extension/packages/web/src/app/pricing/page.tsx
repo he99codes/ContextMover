@@ -16,6 +16,10 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { createClient } from "@/lib/supabase/client";
 import PricingSection from "@/components/pricing/PricingSection";
 
+// Force dynamic rendering - this page uses Supabase auth and client-side state
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 
 // Razorpay subscription-mode constructor (different option shape from the
 // one-shot order constructor declared globally in `types/razorpay.d.ts`).
