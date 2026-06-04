@@ -942,7 +942,18 @@ export default function Sidebar() {
   }
 
   const filtered = useMemo(() => {
-    const base = filter === "all" ? sessions : sessions.filter((session) => session.platform === filter);
+    // Deduplicate sessions by ID (keep latest updatedAt)
+    const deduped = Array.from(
+      sessions.reduce((map, session) => {
+        const existing = map.get(session.id);
+        if (!existing || session.updatedAt > existing.updatedAt) {
+          map.set(session.id, session);
+        }
+        return map;
+      }, new Map<string, ContextSession>()).values()
+    );
+
+    const base = filter === "all" ? deduped : deduped.filter((session) => session.platform === filter);
     const query = searchQuery.trim().toLowerCase();
 
     let result = base;
