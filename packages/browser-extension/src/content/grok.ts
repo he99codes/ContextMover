@@ -154,6 +154,11 @@ startSessionCapture({
   selectorOrElement: "main",
   scrapeMessages: () => runCapturePipeline("grok", scrapeMessages),
   requiresScrollBack: true,
+  // CRITICAL: Use 'step' strategy for Grok's virtual scroll
+  // Grok uses deep nesting (main > flex > overflow-y:auto container)
+  // Step strategy scrolls in viewport-height chunks with scroll events,
+  // which triggers virtual scroll to load more messages
+  scrollBackStrategy: 'step',
   extraCaptureDelays: [1500, 3000],
 });
 
