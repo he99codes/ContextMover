@@ -49,22 +49,10 @@ function scrapeMessages(): Message[] {
   const hasAsst = () => collected.some((e) => e.role === "assistant");
   let matchedStrategy = 'none';
 
-  // ── Strategy A: data-message-author-role (remote messageSelector overrides) ──
+  // ── Strategy A: DeepSeek class patterns (PRIMARY — proven to work) ────────────
   {
-    const msgSel = _remoteSelectors?.messageSelector ?? "[data-message-author-role]";
-    const els = [...document.querySelectorAll<HTMLElement>(msgSel)]
-      .filter((el) => !el.parentElement?.closest(msgSel) && !isStreaming(el));
-    for (const el of els) {
-      const role = el.dataset.messageAuthorRole;
-      if (role === "user" || role === "assistant") collected.push({ el, role });
-    }
-    console.log(`[ContextMover:deepseek] A data-author-role: ${collected.length}`);
-    if (collected.length > 0) matchedStrategy = 'A';
-  }
-
-  // ── Strategy B: DeepSeek class patterns ─────────────────────────────────────
-  if (!hasAsst()) {
     // DeepSeek 2026 uses ds-message / ds-markdown / ds-assistant-message-main-content.
+    // This strategy is proven to find messages on existing conversations.
     const userSel = _remoteSelectors?.userSelector ?? '[class*="ds-message"]:not([class*="ds-assistant"]), [data-testid*="user"], [data-testid*="human"], [aria-label*="your message" i], [class*="userMessage"], [class*="user-message"], [class*="human-message"], [class*="UserMessage"], [class*="human_turn"], [class*="user_turn"], [data-type="user"], [data-role="user"]';
     const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="ds-assistant-message-main-content"], [class*="ds-markdown"], [data-testid*="assistant"], [data-testid*="answer"], [aria-label*="DeepSeek" i], [class*="markdown-content"], [class*="assistantMessage"], [class*="assistant-message"], [class*="AssistantMessage"], [class*="model-response"]';
 
@@ -77,8 +65,21 @@ function scrapeMessages(): Message[] {
     const userFiltered = userEls.filter(el => !el.querySelector('[class*="ds-markdown"], [class*="ds-assistant-message-main-content"]'));
     for (const el of userFiltered) collected.push({ el, role: "user" });
     for (const el of asstEls) collected.push({ el, role: "assistant" });
-    console.log(`[ContextMover:deepseek] B class-substr: user=${userFiltered.length} asst=${asstEls.length}`);
-    if (userFiltered.length + asstEls.length > 0) matchedStrategy = 'B';
+    console.log(`[ContextMover:deepseek] A class-substr: user=${userFiltered.length} asst=${asstEls.length}`);
+    if (userFiltered.length + asstEls.length > 0) matchedStrategy = 'A';
+  }
+
+  // ── Strategy B: data-message-author-role (fallback) ────────────────────────────
+  if (!hasAsst()) {
+    const msgSel = _remoteSelectors?.messageSelector ?? "[data-message-author-role]";
+    const els = [...document.querySelectorAll<HTMLElement>(msgSel)]
+      .filter((el) => !el.parentElement?.closest(msgSel) && !isStreaming(el));
+    for (const el of els) {
+      const role = el.dataset.messageAuthorRole;
+      if (role === "user" || role === "assistant") collected.push({ el, role });
+    }
+    console.log(`[ContextMover:deepseek] B data-author-role: ${collected.length}`);
+    if (collected.length > 0) matchedStrategy = 'B';
   }
 
   // ── Strategy C: data-role / role attributes ──────────────────────────────────
@@ -199,10 +200,26 @@ function scrapeMessages(): Message[] {
 
 startSessionCapture({
   platform: "deepseek",
-  selectorOrElement: "main",
+  selectorOrElement: document.body,
   scrapeMessages: () => runCapturePipeline("deepseek", scrapeMessages),
   requiresScrollBack: true,
-  getScrollContainerSelector: () => _remoteSelectors?.scrollContainer,
+  getScrollContainerSelector: () => {
+    // Try remote config first, then fallback to DeepSeek-specific selectors
+    if (_remoteSelectors?.scrollContainer) return _remoteSelectors.scrollContainer;
+    // DeepSeek uses nested scroll containers for message history
+    const candidates = [
+      '[class*="scroll"]',
+      '[class*="message"]',
+      '[role="main"]',
+      '[class*="chat"]',
+    ];
+    for (const sel of candidates) {
+      const el = document.querySelector(sel);
+      if (el && el.scrollHeight > el.clientHeight) return sel;
+    }
+    return '[class*="message"]'; // fallback
+  },
+  scrollBackStrategy: 'step',
   extraCaptureDelays: [1500, 3000],
 });
 

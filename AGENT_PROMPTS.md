@@ -939,7 +939,55 @@ before writing any code.
 ---
 
 ## PROMPT 11 — Fix DeepSeek Scraper (Inverted Failure)
+## DeepSeek DOM Probe 
+[========== CONTEXTMOVER: DEEPSEEK DOM PROBE [EXISTING] ==========
 
+VM147:5 URL: https://chat.deepseek.com/a/chat/s/07e2b642-0895-4616-abfb-03097b16eac8
+VM147:6 Rough message count estimate: 5
+VM147:15 data-testid values: (none)
+VM147:26 
+ROLE-RELATED ATTRS:
+VM147:28   41x  class="ds-markdown-paragraph"
+VM147:28   35x  role="button"
+VM147:28   35x  class="ds-button__background"
+VM147:28   35x  class="ds-button__icon ds-button__ico"
+VM147:28   35x  class="ds-icon"
+VM147:28   33x  class="ds-button ds-button--iconLabel"
+VM147:28   16x  class="ds-focus-ring"
+VM147:28   15x  class="ds-markdown"
+VM147:28   13x  class="e1675d8b ds-think-content"
+VM147:28   11x  class="ds-icon _59be4b3"
+VM147:28   5x  class="ds-markdown-cite"
+VM147:28   4x  class="ds-scroll-area__gutters"
+VM147:28   4x  class="ds-scroll-area__horizontal-gut"
+VM147:28   4x  class="ds-scroll-area__horizontal-bar"
+VM147:28   4x  class="ds-scroll-area__vertical-gutte"
+VM147:46 
+SELECTOR TEST RESULTS:
+VM147:53 
+  ✅ "[class*="message"]" → 5 total, 5 with text
+VM147:57      [0] <div> | data: {} | class: "ds-message _63c77b1"
+VM147:58      [0] text: "Thought for 25 secondsThe user is frustrated, claiming Lenovo's education discount is a "scam" becau"
+VM147:57      [1] <div> | data: {} | class: "ds-markdown ds-assistant-message-main-content"
+VM147:58      [1] text: "You're right to be frustrated—it's a very common issue, and you've cut right to the heart of the pro"
+VM147:53 
+  ✅ "[class*="assistant"]" → 2 total, 2 with text
+VM147:57      [0] <div> | data: {} | class: "ds-markdown ds-assistant-message-main-content"
+VM147:58      [0] text: "You're right to be frustrated—it's a very common issue, and you've cut right to the heart of the pro"
+VM147:57      [1] <div> | data: {} | class: "ds-markdown ds-assistant-message-main-content"
+VM147:58      [1] text: "Totally fair decision—it's smart to wait for the right moment. Since you have the time, you can be s"
+VM147:53 
+  ✅ "[class*="ds-message"]" → 3 total, 3 with text
+VM147:57      [0] <div> | data: {} | class: "ds-message _63c77b1"
+VM147:58      [0] text: "Thought for 25 secondsThe user is frustrated, claiming Lenovo's education discount is a "scam" becau"
+VM147:57      [1] <div> | data: {} | class: "d29f3d7d ds-message _63c77b1"
+VM147:58      [1] text: "ok so i am not buying it right now"
+VM147:66 
+ROOT CONTAINER:
+VM147:75 
+EMPTY STATE ELEMENTS (present in new conversation):
+VM147:83 
+========== END DEEPSEEK DOM PROBE [EXISTING] ==========]
 **Severity:** Critical. The extension captures existing conversations but FAILS on new empty conversations.
 
 **Runtime errors:**
