@@ -109,11 +109,13 @@
         (/\/ces\/v1\/|\/backend-api\/conversation\//.test(url))) return "chatgpt";
     if ((url.includes("claude.ai/api") && /completion|append_message|chat_conversations/.test(url)) ||
         ((url.includes("a-api.anthropic.com") || url.includes("api.anthropic.com")) && /\/v1\//.test(url))) return "claude";
-    if (url.includes("gemini.google.com") && /GenerateContent|StreamGenerate|BardChatUi|assistant\.lamda/i.test(url)) return "gemini";
+    // Gemini: only actual API endpoints (GenerateContent, StreamGenerate). BardChatUi and assistant.lamda are script filenames, not API calls.
+    if (url.includes("gemini.google.com") && /GenerateContent|StreamGenerate/i.test(url)) return "gemini";
     if (url.includes("grok.com/api") && /chat|conversation|completion/i.test(url)) return "grok";
     if (url.includes("chat.deepseek.com/api") && /chat|completion|message/i.test(url)) return "deepseek";
-    // Perplexity uses REST SSE at /api/v3/ or /_next/server-action; socket.io is NOT interceptable via fetch.
-    if (url.includes("perplexity.ai") && /\/api\/|search|ask|completions/i.test(url)) return "perplexity";
+    // Perplexity: only REST API endpoints (/api/v3/ and /_next/server-action). /search and /ask are page navigation, not API.
+    // NOTE: Perplexity also uses socket.io which is NOT interceptable via fetch/XHR — WebSocket interception would require a separate handler.
+    if (url.includes("perplexity.ai") && (/\/api\/v3\/|_next\/server-action/i.test(url))) return "perplexity";
     return null;
   }
 
