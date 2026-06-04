@@ -48,12 +48,38 @@ export function getMessagesFromChunks(
 ): Message[] {
   const seen = new Set<number>()
   const messages: Message[] = []
+  
+  // CRITICAL: Validate chunks belong to this session to prevent cross-session contamination
+  const wrongSessionChunks = chunks.filter(c => c.sessionId !== session.id)
+  if (wrongSessionChunks.length > 0) {
+    console.error(
+      `[CM:file-builder] CRITICAL: ${wrongSessionChunks.length}/${chunks.length} chunks from wrong session! ` +
+      `Expected sessionId=${session.id}, got: ${wrongSessionChunks.map(c => c.sessionId).join(', ')}`
+    )
+  }
+  
   for (const chunk of chunks) {
+    // Skip chunks from other sessions
+    if (chunk.sessionId !== session.id) {
+      console.warn(`[CM:file-builder] Skipping chunk from wrong session: ${chunk.sessionId} (expected ${session.id})`)
+      continue
+    }
+    
+    // Validate messageIndex is in bounds
+    if (chunk.messageIndex < 0 || chunk.messageIndex >= session.messages.length) {
+      console.warn(
+        `[CM:file-builder] Skipping chunk with out-of-bounds messageIndex: ` +
+        `${chunk.messageIndex} (session has ${session.messages.length} messages)`
+      )
+      continue
+    }
+    
     if (!seen.has(chunk.messageIndex)) {
       seen.add(chunk.messageIndex)
       messages.push(session.messages[chunk.messageIndex])
     }
   }
+  
   // Only tail-pad when the attention engine returned very few chunks.  When
   // chunks.length >= 5 the semantic filter already selected the relevant set;
   // unconditionally appending the tail would silently erase that filtering and
