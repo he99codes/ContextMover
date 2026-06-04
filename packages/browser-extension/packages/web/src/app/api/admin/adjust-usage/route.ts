@@ -42,11 +42,11 @@ export async function POST(req: NextRequest) {
   if (action === "reset") {
     newCounts = { tier1_count: 0, tier2_count: 0, tier3_count: 0 };
   } else if (action === "add_tier1") {
-    newCounts.tier1_count = Math.max(0, base.tier1_count - amount);
+    newCounts.tier1_count = base.tier1_count + amount;
   } else if (action === "add_tier2") {
-    newCounts.tier2_count = Math.max(0, base.tier2_count - amount);
+    newCounts.tier2_count = base.tier2_count + amount;
   } else if (action === "add_tier3") {
-    newCounts.tier3_count = Math.max(0, base.tier3_count - amount);
+    newCounts.tier3_count = base.tier3_count + amount;
   }
 
   const { error } = await admin.from("usage_counters").upsert({

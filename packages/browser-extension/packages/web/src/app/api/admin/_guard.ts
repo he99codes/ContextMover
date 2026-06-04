@@ -3,7 +3,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const ADMIN_EMAIL = "priyanshu2164@gmail.com";
+// Admin emails list — add your email here to grant admin access
+const ADMIN_EMAILS = [
+  "priyanshu2164@gmail.com",
+  // Add more admin emails as needed
+];
 
 export async function requireAdmin(
   req: NextRequest
@@ -14,8 +18,15 @@ export async function requireAdmin(
   const admin = createAdminClient();
   const { data, error } = await admin.auth.getUser(token);
   if (error || !data?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  if (data.user.email !== ADMIN_EMAIL)
+  
+  // Check if user email is in admin list
+  const userEmail = data.user.email?.toLowerCase() ?? "";
+  const isAdmin = ADMIN_EMAILS.some(email => email.toLowerCase() === userEmail);
+  
+  if (!isAdmin) {
+    console.warn(`[admin] Unauthorized access attempt from ${userEmail}`);
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   return { userId: data.user.id };
 }
