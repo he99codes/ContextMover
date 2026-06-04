@@ -48,12 +48,17 @@ function geminiExtractContent(el: Element): string {
 }
 
 function scrapeMessages(): Message[] {
-  const GEMINI_ROOTS = ['chat-window', '[data-test-id="chat-history-container"]', 'infinite-scroller', 'conversation-container'] as const;
+  // Root container search (priority order)
+  const GEMINI_ROOTS = ['chat-window', 'infinite-scroller', '[data-test-id="chat-history-container"]', 'conversation-container', 'main'] as const;
   let scope: Element | null = null;
   for (const sel of GEMINI_ROOTS) { scope = document.querySelector(sel); if (scope) { console.log(`[CM:gemini] root found: ${sel}`); break; } }
   if (!scope) { console.warn('[CM:gemini] no root found — falling back to document.body'); scope = document.body; }
-  const userSel = _remoteSelectors?.userSelector ?? ['user-query', '[data-test-id="user-message"]'].join(', ')
-  const asstSel = _remoteSelectors?.assistantSelector ?? ['model-response', '[data-test-id="response-container"]'].join(', ')
+  
+  // Message selector strategy (Option A: custom elements + comprehensive fallbacks)
+  // Primary: user-query (custom element) | Fallback: .query-content (class) | Last resort: [data-test-id="user-message"]
+  // Primary: model-response (custom element) | Fallback: response-container (custom element) | Last resort: .response-content (class)
+  const userSel = _remoteSelectors?.userSelector ?? ['user-query', '.query-content', '[data-test-id="user-message"]', 'user-query-content'].join(', ')
+  const asstSel = _remoteSelectors?.assistantSelector ?? ['model-response', 'response-container', '.response-content', '[data-test-id="response-container"]', 'message-content'].join(', ')
   const strategy = (_remoteSelectors?.userSelector || _remoteSelectors?.assistantSelector) ? 0 : 1
 
   let _uHits = 0, _aHits = 0;
@@ -91,20 +96,31 @@ function scrapeMessages(): Message[] {
   // ── Structural fallback: activates when all primary selectors find nothing ──
   if (found.length === 0) {
     const STRUCT_FALLBACKS: Array<[string, string]> = [
-      ['.conversation-container',           'conversation-container'],
-      ['[class*="conversation-container"]', 'conversation-container-class'],
+      // Container-based detection (look for message containers with role indicators inside)
+      ['.conversation-container',           'conversation-container-class'],
+      ['[class*="conversation-container"]', 'conversation-container-wildcard'],
+      ['[class*="message-actions-h"]',      'message-actions-container'],
+      ['[id*="c69da77b"], [id*="09f34cab"]', 'conversation-id-pattern'],
+      // Direct element fallback
       ['response-container',                'response-container-tag'],
-      ['[role="listitem"]',                 'listitem'],
+      ['[role="listitem"]',                 'listitem-role'],
+      ['[class*="ng-tns"]',                 'angular-tns-class'],
     ];
     for (const [sel, label] of STRUCT_FALLBACKS) {
       const candidates = scope.querySelectorAll<HTMLElement>(sel);
       if (candidates.length === 0) continue;
       candidates.forEach(el => {
         if (isStreaming(el)) return;
-        const isUser = !!el.querySelector('user-query, [class*="user-query"]');
-        const isAsst = !!el.querySelector('model-response, [class*="model-response"]');
-        if (isUser) found.push({ el, role: 'user' });
-        else if (isAsst) found.push({ el, role: 'assistant' });
+        // Enhanced detection: look for message indicators in multiple ways
+        const hasUserQuery = !!el.querySelector('user-query, user-query-content, [class*="user-query"]');
+        const hasModelResponse = !!el.querySelector('model-response, response-container, [class*="model-response"], [class*="response-content"]');
+        const hasMessageContent = !!el.querySelector('message-content, [class*="message-content"]');
+        
+        if (hasUserQuery) {
+          found.push({ el, role: 'user' });
+        } else if (hasModelResponse || hasMessageContent) {
+          found.push({ el, role: 'assistant' });
+        }
       });
       if (found.length > 0) {
         console.log(`[CM:gemini] fallback found ${found.length} messages via ${label}`);

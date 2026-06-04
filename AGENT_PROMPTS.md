@@ -520,6 +520,179 @@ before writing any code.
 ---
 
 ## PROMPT 8 — Fix Gemini Scraper (Existing Sessions + New Sessions)
+## Gemini DOM Probe — 
+[
+========== CONTEXTMOVER: GEMINI DOM PROBE [LIKELY-EXISTING] ==========
+
+VM668:10 CUSTOM ELEMENTS (web components) on page:
+VM668:13   1x <at-mentions-menu>
+VM668:13   1x <auto-suggest>
+VM668:13   1x <bard-mode-switcher>
+VM668:13   1x <bot-banner>
+VM668:13   1x <chat-app>
+VM668:13   1x <chat-app-announcement-banners>
+VM668:13   1x <chat-app-banners>
+VM668:13   1x <chat-app-side-nav-menu-button>
+VM668:13   1x <chat-app-tooltips>
+VM668:13   1x <chat-loading-animation>
+VM668:13   1x <chat-notifications>
+VM668:13   1x <chat-window>
+VM668:13   1x <chat-window-content>
+VM668:13   1x <condensed-tos-disclaimer>
+VM668:13   1x <conversation-action-menu>
+VM668:13   1x <conversation-actions-icon>
+VM668:13   1x <conversations-list>
+VM668:13   4x <copy-button>
+VM668:13   1x <crust-task>
+VM668:13   2x <expandable-section>
+VM668:13   1x <file-drop-indicator>
+VM668:13   1x <freemium-file-upload-near-quota-disclaimer>
+VM668:13   1x <freemium-file-upload-quota-exceeded-disclaimer>
+VM668:13   4x <freemium-rag-disclaimer>
+VM668:13   1x <g1-dynamic-upsell-button>
+VM668:13   1x <gem-button>
+VM668:13   44x <gem-icon>
+VM668:13   32x <gem-icon-button>
+VM668:13   6x <gem-nav-list-item>
+VM668:13   7x <gem-popover>
+VM668:13   2x <hallucination-disclaimer>
+VM668:13   2x <infinite-scroller>
+VM668:13   1x <input-area-v2>
+VM668:13   1x <input-container>
+VM668:13   1x <mat-action-list>
+VM668:13   46x <mat-icon>
+VM668:13   15x <mat-menu>
+VM668:13   5x <mat-nav-list>
+VM668:13   2x <mat-progress-spinner>
+VM668:13   1x <mat-sidenav>
+VM668:13   1x <mat-sidenav-container>
+VM668:13   1x <mat-sidenav-content>
+VM668:13   4x <message-actions>
+VM668:13   4x <message-content>
+VM668:13   4x <model-response>
+VM668:13   1x <new-chat-button>
+VM668:13   1x <project-sidenav-list>
+VM668:13   1x <regenerate-button>
+VM668:13   4x <response-container>
+VM668:13   1x <rich-textarea>
+VM668:13   1x <router-outlet>
+VM668:13   4x <sensitive-memories-banner>
+VM668:13   1x <side-nav-menu-button>
+VM668:13   1x <side-nav-sparkle-button>
+VM668:13   1x <side-navigation-content>
+VM668:13   1x <side-navigation-v2>
+VM668:13   1x <sidenav-mavatar-footer>
+VM668:13   1x <simplified-input-menu>
+VM668:13   4x <sources-list>
+VM668:13   1x <speech-dictation-mic-button>
+VM668:13   4x <structured-content-container>
+VM668:13   4x <thinking-overlay>
+VM668:13   4x <thumb-down-button>
+VM668:13   4x <thumb-up-button>
+VM668:13   1x <top-bar-actions>
+VM668:13   1x <tts-control-v2>
+VM668:13   1x <user-profile-picture>
+VM668:13   4x <user-query>
+VM668:13   4x <user-query-content>
+VM668:13   1x <xap-count-badge>
+VM668:29 
+SELECTOR TEST RESULTS:
+VM668:34 
+  ✅ "model-response" → 4 elements
+VM668:38      [0] <model-response> attrs: _ngcontent-ng-c3091545854="" _nghost-ng-c2169594278="" class="enable-lr26-response-chrome-updates ng-s"
+VM668:39      [0] text: "Gemini saidHii! How's it going? What's on your mind today?"
+VM668:38      [1] <model-response> attrs: _ngcontent-ng-c3091545854="" _nghost-ng-c2169594278="" class="enable-lr26-response-chrome-updates ng-s"
+VM668:39      [1] text: "Gemini saidI'm listening! What's up?"
+VM668:34 
+  ✅ "user-query" → 4 elements
+VM668:38      [0] <user-query> attrs: _ngcontent-ng-c3091545854="" _nghost-ng-c4059923229="" class="ng-star-inserted"
+VM668:39      [0] text: "You said hii"
+VM668:38      [1] <user-query> attrs: _ngcontent-ng-c3091545854="" _nghost-ng-c4059923229="" class="ng-star-inserted"
+VM668:39      [1] text: "You said hellolisten"
+VM668:34 
+  ✅ "response-container" → 4 elements
+VM668:38      [0] <response-container> attrs: _ngcontent-ng-c2169594278="" _nghost-ng-c3511524645="" class="ng-tns-c3511524645-12 reduced-bottom-pad" jslog="188576;track:impression,attention;BardV
+VM668:39      [0] text: "Gemini saidHii! How's it going? What's on your mind today?"
+VM668:38      [1] <response-container> attrs: _ngcontent-ng-c2169594278="" _nghost-ng-c3511524645="" class="ng-tns-c3511524645-16 reduced-bottom-pad" jslog="188576;track:impression,attention;BardV
+VM668:39      [1] text: "Gemini saidI'm listening! What's up?"
+VM668:34 
+  ✅ "message-content" → 4 elements
+VM668:38      [0] <message-content> attrs: _ngcontent-ng-c587905618="" _nghost-ng-c587149462="" id="message-content-id-r_779c2502c69da77b" class="ng-star-inserted"
+VM668:39      [0] text: "Hii! How's it going? What's on your mind today?"
+VM668:38      [1] <message-content> attrs: _ngcontent-ng-c587905618="" _nghost-ng-c587149462="" id="message-content-id-r_2228fd5f09f34cab" class="ng-star-inserted"
+VM668:39      [1] text: "I'm listening! What's up?"
+VM668:34 
+  ✅ "[class*="response"]" → 60 elements
+VM668:38      [0] <div> attrs: _ngcontent-ng-c3322900915="" class="response-tts-container hidden ng-star-in"
+VM668:39      [0] text: ""
+VM668:38      [1] <model-response> attrs: _ngcontent-ng-c3091545854="" _nghost-ng-c2169594278="" class="enable-lr26-response-chrome-updates ng-s"
+VM668:39      [1] text: "Gemini saidHii! How's it going? What's on your mind today?"
+VM668:34 
+  ✅ "[class*="query"]" → 32 elements
+VM668:38      [0] <span> attrs: _ngcontent-ng-c4059923229="" class="user-query-container"
+VM668:39      [0] text: "You said hii"
+VM668:38      [1] <user-query-content> attrs: _ngcontent-ng-c4059923229="" class="user-query-container enable-luminous-pro" _nghost-ng-c3195099594="" style="--max-lines-for-collapse-count: 5;"
+VM668:39      [1] text: "You said hii"
+VM668:34 
+  ✅ "[class*="user-query"]" → 20 elements
+VM668:38      [0] <span> attrs: _ngcontent-ng-c4059923229="" class="user-query-container"
+VM668:39      [0] text: "You said hii"
+VM668:38      [1] <user-query-content> attrs: _ngcontent-ng-c4059923229="" class="user-query-container enable-luminous-pro" _nghost-ng-c3195099594="" style="--max-lines-for-collapse-count: 5;"
+VM668:39      [1] text: "You said hii"
+VM668:34 
+  ✅ "[class*="model-response"]" → 8 elements
+VM668:38      [0] <h2> attrs: _ngcontent-ng-c2169594278="" class="cdk-visually-hidden screen-reader-model-"
+VM668:39      [0] text: "Gemini said"
+VM668:38      [1] <structured-content-container> attrs: _ngcontent-ng-c2169594278="" class="model-response-text processing-state-vis" _nghost-ng-c587905618="" style="height: auto;"
+VM668:39      [1] text: "Hii! How's it going? What's on your mind today?"
+VM668:34 
+  ✅ "[class*="message"]" → 5 elements
+VM668:38      [0] <div> attrs: _ngcontent-ng-c3091545854="" class="conversation-container message-actions-h" id="779c2502c69da77b" style=""
+VM668:39      [0] text: "You said hii Gemini saidHii! How's it going? What's on your mind today?"
+VM668:38      [1] <div> attrs: _ngcontent-ng-c3091545854="" class="conversation-container message-actions-h" id="2228fd5f09f34cab" style=""
+VM668:39      [1] text: "You said hellolisten Gemini saidI'm listening! What's up?"
+VM668:34 
+  ✅ ".response-content" → 4 elements
+VM668:38      [0] <div> attrs: _ngcontent-ng-c2169594278="" class="response-content ng-tns-c3511524645-12"
+VM668:39      [0] text: "Gemini saidHii! How's it going? What's on your mind today?"
+VM668:38      [1] <div> attrs: _ngcontent-ng-c2169594278="" class="response-content ng-tns-c3511524645-16"
+VM668:39      [1] text: "Gemini saidI'm listening! What's up?"
+VM668:34 
+  ✅ ".query-content" → 4 elements
+VM668:38      [0] <div> attrs: _ngcontent-ng-c3195099594="" class="query-content ng-star-inserted verticle-" id="user-query-content-0" jslog="275422;track:impression,attention" data
+VM668:39      [0] text: "You said hii"
+VM668:38      [1] <div> attrs: _ngcontent-ng-c3195099594="" class="query-content ng-star-inserted verticle-" id="user-query-content-1" jslog="275422;track:impression,attention" data
+VM668:39      [1] text: "You said hellolisten"
+VM668:34 
+  ✅ "infinite-scroller" → 2 elements
+VM668:38      [0] <infinite-scroller> attrs: _ngcontent-ng-c825628007="" _nghost-ng-c727933417="" class="lr26-theme ng-star-inserted"
+VM668:39      [0] text: "LibraryNotebooksNew notebookRecenthii"
+VM668:38      [1] <infinite-scroller> attrs: _ngcontent-ng-c3091545854="" data-test-id="chat-history-container" class="chat-history enable-lr26-markdown-stylin" _nghost-ng-c727933417="" jslog="26
+VM668:39      [1] text: "You said hii Gemini saidHii! How's it going? What's on your mind today?You said hellolisten Gemini s"
+VM668:46 
+JSNAME ATTRIBUTES (Angular internal identifiers):
+VM668:48   All jsname values (first 20): 
+VM668:51 
+CONVERSATION ROOT SEARCH:
+VM668:58   "infinite-scroller" → <infinite-scroller> | children: 7 | scrollHeight: 379
+VM668:58   "chat-window" → <chat-window> | children: 1 | scrollHeight: 581
+VM668:58   "main" → <main> | children: 4 | scrollHeight: 581
+VM668:58   "[class*="conversation"]" → <span> | children: 0 | scrollHeight: 24
+VM668:58   "[class*="history"]" → <div> | children: 2 | scrollHeight: 649
+VM668:63 
+SHADOW DOM CHECK:
+VM668:68   <model-response> has shadowRoot: false
+VM668:68   <user-query> has shadowRoot: false
+VM668:68   <response-container> has shadowRoot: false
+VM668:77 
+TEXT CONTENT SAMPLING (first 5 substantial text blocks):
+VM668:83   <script> class="" → "window["_F_toggles_default_BardChatUi"] = [0x6840021, 0x2ff3140f, 0x278614d, 0x2..."
+VM668:83   <script> class="" → "var _F_cssRowKey = 'boq-bard-web.BardChatUi.FwbtNzIGSDQ.L.B1.O';var _F_combinedS..."
+VM668:83   <script> class="" → "(window.dataLayer=window.dataLayer||[]).push({"gtm.start": new Date().getTime(),..."
+VM668:83   <script> class="" → "{"@context" : "https://schema.org", "@type" : "WebSite", "name" : "Gemini", "url..."
+VM668:83   <script> class="" → "var AF_initDataKeys = []; var AF_dataServiceRequests = {}; var AF_initDataChunkQ..."
+VM668:88 
+========== END GEMINI DOM PROBE [LIKELY-EXISTING] ==========]
 
 **Severity:** High. Zero messages found in existing sessions; structural fallback also fails.
 
