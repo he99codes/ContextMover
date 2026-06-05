@@ -9,7 +9,7 @@
 // Receives feedback form submissions and forwards them via ZeptoMail.
 // Required: rating (1–5), feedback. Optional: email.
 import { NextRequest, NextResponse } from "next/server";
-import { sendEmail, SENDERS } from "@/lib/mailer";
+import { sendEmail, SENDERS, escapeHtml } from "@/lib/mailer";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -41,9 +41,9 @@ export async function POST(req: NextRequest) {
       subject: `Feedback ${stars}${email ? ` · ${email}` : ""}`,
       html: `
         <p><strong>Rating:</strong> ${stars} (${rating ?? "—"}/5)</p>
-        ${email ? `<p><strong>Reply-to:</strong> ${email}</p>` : ""}
+        ${email ? `<p><strong>Reply-to:</strong> ${escapeHtml(email)}</p>` : ""}
         <p><strong>Feedback:</strong></p>
-        <p style="white-space:pre-wrap">${feedback.trim()}</p>
+        <p style="white-space:pre-wrap">${escapeHtml(feedback.trim())}</p>
       `,
     });
 

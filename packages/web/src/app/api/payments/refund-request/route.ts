@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUserFromRequest } from "@/lib/usage/helpers";
-import { sendEmail, SENDERS } from "@/lib/mailer";
+import { sendEmail, SENDERS, escapeHtml } from "@/lib/mailer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
         from:    SENDERS.support,
         to:      "support@contextmover.com",
         subject: `[REFUND REQUEST] ${email}`,
-        html:    `<p>User: ${email} (${user.id})<br>Payment ID: ${body.payment_id ?? "—"}<br>Reason: ${body.reason}</p>`,
+        html:    `<p>User: ${escapeHtml(email)} (${escapeHtml(user.id)})<br>Payment ID: ${escapeHtml(body.payment_id ?? "—")}<br>Reason: ${escapeHtml(body.reason)}</p>`,
       }).catch((e: unknown) => console.warn("[refund-request] email failed:", e));
     }
 

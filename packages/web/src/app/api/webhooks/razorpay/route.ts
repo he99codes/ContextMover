@@ -46,10 +46,10 @@ export async function POST(req: NextRequest) {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET ?? "";
 
   if (!secret) {
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV !== "development") {
       return NextResponse.json({ error: "Misconfigured" }, { status: 503 });
     }
-    console.warn("[CM:webhook:razorpay] RAZORPAY_WEBHOOK_SECRET not set — skipping verify (dev only)");
+    console.warn("[CM:webhook:razorpay] RAZORPAY_WEBHOOK_SECRET not set — skipping verify (local dev only)");
   }
 
   if (secret) {

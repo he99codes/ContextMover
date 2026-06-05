@@ -36,6 +36,16 @@ function getTransporter(): nodemailer.Transporter {
   return _transporter;
 }
 
+// ── HTML escaping ─────────────────────────────────────────────────────────────
+export function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // ── Sender addresses ──────────────────────────────────────────────────────────
 export const SENDERS = {
   noreply: "ContextMover <noreply@contextmover.com>",

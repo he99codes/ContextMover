@@ -76,17 +76,10 @@ export async function getAuthUserFromRequest(
   const authHeader = req.headers.get("authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
 
-  console.log("[auth-debug] header present:", !!authHeader);
-  console.log("[auth-debug] token length:", token.length);
-  console.log("[auth-debug] token prefix:", token.slice(0, 20));
-
   if (!token) return null;
 
   const admin = createAdminClient();
   const { data, error } = await admin.auth.getUser(token);
-
-  console.log("[auth-debug] getUser error:", error?.message ?? "none");
-  console.log("[auth-debug] user found:", !!data?.user);
 
   if (error || !data?.user) return null;
   return data.user;

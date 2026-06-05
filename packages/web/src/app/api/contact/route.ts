@@ -9,7 +9,7 @@
 // Handles contact form + Build-With-Me + footer email widget submissions.
 // Required: email, message. Optional: name, subject.
 import { NextRequest, NextResponse } from "next/server";
-import { sendEmail, SENDERS } from "@/lib/mailer";
+import { sendEmail, SENDERS, escapeHtml } from "@/lib/mailer";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -42,11 +42,11 @@ export async function POST(req: NextRequest) {
       from: SENDERS.noreply,
       subject: emailSubject,
       html: `
-        ${name?.trim() ? `<p><strong>Name:</strong> ${name.trim()}</p>` : ""}
-        <p><strong>Email:</strong> ${email.trim()}</p>
-        ${subject?.trim() ? `<p><strong>Subject:</strong> ${subject.trim()}</p>` : ""}
+        ${name?.trim() ? `<p><strong>Name:</strong> ${escapeHtml(name.trim())}</p>` : ""}
+        <p><strong>Email:</strong> ${escapeHtml(email.trim())}</p>
+        ${subject?.trim() ? `<p><strong>Subject:</strong> ${escapeHtml(subject.trim())}</p>` : ""}
         <p><strong>Message:</strong></p>
-        <p style="white-space:pre-wrap">${message.trim()}</p>
+        <p style="white-space:pre-wrap">${escapeHtml(message.trim())}</p>
       `,
     });
 

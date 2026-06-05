@@ -893,7 +893,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         let accessToken: string | undefined;
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          console.log("[CM:debug] getSession result:", { hasSession: !!session, hasToken: !!session?.access_token, tokenLen: session?.access_token?.length ?? 0 });
           if (session?.access_token) {
             accessToken = session.access_token;
             // Keep storage in sync
@@ -905,15 +904,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             // Fallback to stored token
             const stored = await chrome.storage.local.get("accessToken");
             accessToken = stored.accessToken as string | undefined;
-            console.log("[CM:debug] fallback to storage, token:", typeof accessToken, "len:", accessToken?.length ?? 0);
           }
-        } catch (e) {
-          console.log("[CM:debug] getSession threw:", e);
+        } catch {
           const stored = await chrome.storage.local.get("accessToken");
           accessToken = stored.accessToken as string | undefined;
         }
 
-        console.log("[CM:debug] final accessToken:", typeof accessToken, "truthy:", !!accessToken, "len:", accessToken?.length ?? 0);
         if (accessToken) {
           const usage = await checkMigrationAllowed(_tier, accessToken as string);
           if (!usage.allowed) {
