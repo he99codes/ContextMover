@@ -37,7 +37,10 @@ async function getUserEmail(userId: string | null): Promise<string | null> {
     const admin = createAdminClient();
     const { data } = await admin.auth.admin.getUserById(userId);
     return data?.user?.email ?? null;
-  } catch { return null; }
+  } catch (err) {
+    console.error("[CM:webhook:razorpay] getUserEmail failed for user:", userId, err);
+    return null;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -184,6 +187,10 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     console.error("[CM:webhook:razorpay] handler error:", err);
+    return NextResponse.json(
+      { error: "Webhook processing failed" },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ received: true });

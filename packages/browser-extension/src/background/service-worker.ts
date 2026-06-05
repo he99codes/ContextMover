@@ -313,7 +313,9 @@ async function closeAllSidebarsAndNotify(): Promise<void> {
   // 1. Tell every sidebar instance (any tab/window) to self-close.
   try {
     await chrome.runtime.sendMessage({ type: "SIDEBAR_FORCE_CLOSE" });
-  } catch { /* no sidebar receivers */ }
+  } catch (err) {
+    console.debug("[CM:sw] closeAllSidebars: no sidebar receivers", err instanceof Error ? err.message : err);
+  }
   // 2. Reset all toggle-button icons via existing SIDEBAR_CLOSED listener.
   try {
     const tabs = await chrome.tabs.query({ url: ALL_PLATFORM_URL_GLOBS });
@@ -323,9 +325,13 @@ async function closeAllSidebarsAndNotify(): Promise<void> {
         chrome.tabs.sendMessage(tab.id, { type: "SIDEBAR_CLOSED" }, () => {
           void chrome.runtime.lastError;
         });
-      } catch { /* tab gone */ }
+      } catch (err) {
+        console.debug(`[CM:sw] closeAllSidebars: tab ${tab.id} gone`, err instanceof Error ? err.message : err);
+      }
     }
-  } catch { /* query failed */ }
+  } catch (err) {
+    console.warn("[CM:sw] closeAllSidebars: tabs.query failed", err);
+  }
   // 3. Best-effort native close (Chrome 123+); ignored if unsupported.
   try {
     const contexts = await chrome.runtime.getContexts({
@@ -336,9 +342,13 @@ async function closeAllSidebarsAndNotify(): Promise<void> {
       try {
         await (chrome.sidePanel as unknown as { close(d: { tabId: number }): Promise<void> })
           .close({ tabId: ctx.tabId });
-      } catch { /* unsupported on this Chrome */ }
+      } catch (err) {
+        console.debug(`[CM:sw] closeAllSidebars: sidePanel.close unsupported`, err instanceof Error ? err.message : err);
+      }
     }
-  } catch { /* getContexts unavailable */ }
+  } catch (err) {
+    console.debug("[CM:sw] closeAllSidebars: getContexts unavailable", err instanceof Error ? err.message : err);
+  }
 }
 
 // Auto-close on tab/window change removed: sidebar must persist across tab

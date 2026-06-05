@@ -197,7 +197,9 @@ class DriveClient {
       const tok = stored[FLOW_TOKEN_KEY] as string | undefined;
       const at = stored[FLOW_TOKEN_AT_KEY] as number | undefined;
       if (tok && typeof at === "number" && Date.now() - at < FLOW_TOKEN_TTL_MS) return tok;
-    } catch { /* swallow */ }
+    } catch (err) {
+      console.warn("[CM:drive] readFlowToken failed:", err instanceof Error ? err.message : err);
+    }
     return null;
   }
 
@@ -207,13 +209,17 @@ class DriveClient {
         [FLOW_TOKEN_KEY]: token,
         [FLOW_TOKEN_AT_KEY]: Date.now(),
       });
-    } catch { /* swallow */ }
+    } catch (err) {
+      console.warn("[CM:drive] writeFlowToken failed:", err instanceof Error ? err.message : err);
+    }
   }
 
   private async clearFlowToken(): Promise<void> {
     try {
       await chrome.storage.local.remove([FLOW_TOKEN_KEY, FLOW_TOKEN_AT_KEY]);
-    } catch { /* swallow */ }
+    } catch (err) {
+      console.warn("[CM:drive] clearFlowToken failed:", err instanceof Error ? err.message : err);
+    }
   }
 
   async isTokenValid(): Promise<boolean> {
@@ -223,7 +229,10 @@ class DriveClient {
       const at = stored["drive.flowTokenAt"];
       if (!token || !at) return false;
       return Date.now() - Number(at) < FLOW_TOKEN_TTL_MS;
-    } catch { return false; }
+    } catch (err) {
+      console.warn("[CM:drive] isTokenValid failed:", err instanceof Error ? err.message : err);
+      return false;
+    }
   }
 
   /** Pure connection check — never prompts the user. */
@@ -248,7 +257,9 @@ class DriveClient {
           chrome.identity.removeCachedAuthToken({ token: t }, () => resolve())
         );
       }
-    } catch { /* swallow */ }
+    } catch (err) {
+      console.warn("[CM:drive] disconnect: revoking getAuthToken failed:", err instanceof Error ? err.message : err);
+    }
     // 2. Clear our launchWebAuthFlow token cache.
     await this.clearFlowToken();
     // 3. Clear local-only drive sync metadata.
@@ -259,7 +270,9 @@ class DriveClient {
         "drive.profileId",
         "drive.lastSyncCount",
       ]);
-    } catch { /* swallow */ }
+    } catch (err) {
+      console.warn("[CM:drive] disconnect: clearing storage failed:", err instanceof Error ? err.message : err);
+    }
   }
 
   /**

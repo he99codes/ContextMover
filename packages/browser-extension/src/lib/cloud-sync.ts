@@ -101,7 +101,8 @@ async function tableExists(tableName: string): Promise<boolean> {
       console.warn(`[ContextMover:cloud] ${tableName} probe failed:`, error.message);
     }
     return false;
-  } catch {
+  } catch (err) {
+    console.warn("[ContextMover:cloud] tableExists threw unexpectedly:", err instanceof Error ? err.message : err);
     return false;
   }
 }

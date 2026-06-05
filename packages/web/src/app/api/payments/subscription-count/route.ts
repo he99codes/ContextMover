@@ -13,6 +13,9 @@ export async function GET() {
     return NextResponse.json({ activeCount: count ?? 0 });
   } catch (err) {
     console.error("[CM:api:subscription-count] error:", err);
-    return NextResponse.json({ activeCount: 0 });
+    return NextResponse.json(
+      { error: "Failed to fetch subscription count" },
+      { status: 500 }
+    );
   }
 }

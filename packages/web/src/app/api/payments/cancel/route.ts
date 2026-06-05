@@ -85,6 +85,11 @@ export async function POST(req: NextRequest) {
       remoteResult = "razorpay";
     } catch (err) {
       console.error("[CM:api:cancel:razorpay] error:", err);
+      const message = err instanceof Error ? err.message : "Gateway cancellation failed";
+      return NextResponse.json(
+        { error: message, detail: "Subscription could not be cancelled at the payment gateway. Please try again or contact support." },
+        { status: 502 }
+      );
     }
   }
 

@@ -50,8 +50,8 @@ async function getOrCreateProfileId(): Promise<string> {
     const fresh = `cm-${(crypto.randomUUID?.() ?? Math.random().toString(36).slice(2))}`;
     await chrome.storage.local.set({ [PROFILE_ID_KEY]: fresh });
     return fresh;
-  } catch {
-    // Fallback if chrome.storage is somehow unavailable.
+  } catch (err) {
+    console.warn("[drive-sync] getOrCreateProfileId: chrome.storage unavailable, using ephemeral id", err instanceof Error ? err.message : err);
     return `cm-${Math.random().toString(36).slice(2)}`;
   }
 }
@@ -61,7 +61,9 @@ async function readSourcedIdSet(): Promise<Set<string>> {
     const got = await chrome.storage.local.get(SOURCED_IDS_KEY);
     const arr = got[SOURCED_IDS_KEY];
     if (Array.isArray(arr)) return new Set(arr.filter((x): x is string => typeof x === "string"));
-  } catch { /* fall through */ }
+  } catch (err) {
+    console.warn("[drive-sync] readSourcedIdSet failed:", err instanceof Error ? err.message : err);
+  }
   return new Set();
 }
 
@@ -71,7 +73,9 @@ async function addSourcedIds(ids: string[]): Promise<void> {
     const current = await readSourcedIdSet();
     for (const id of ids) current.add(id);
     await chrome.storage.local.set({ [SOURCED_IDS_KEY]: [...current] });
-  } catch { /* swallow */ }
+  } catch (err) {
+    console.warn("[drive-sync] addSourcedIds failed:", err instanceof Error ? err.message : err);
+  }
 }
 
 /**
@@ -230,7 +234,9 @@ class DriveSyncManager {
         [LAST_SYNC_AT_KEY]: index.lastSync,
         [LAST_SYNC_COUNT_KEY]: entries.length,
       });
-    } catch { /* swallow */ }
+    } catch (err) {
+      console.warn("[drive-sync] rebuildIndex: failed to persist sync metadata", err instanceof Error ? err.message : err);
+    }
   }
 
   /**
@@ -335,10 +341,14 @@ class DriveSyncManager {
           [LAST_SYNC_AT_KEY]: Date.now(),
           [LAST_SYNC_COUNT_KEY]: index.sessions.length,
         });
-      } catch { /* swallow */ }
+      } catch (err) {
+        console.warn("[drive-sync] pullFromDrive: failed to persist sync metadata", err instanceof Error ? err.message : err);
+      }
 
       // Notify any open sidebars to refresh.
-      try { chrome.runtime.sendMessage({ type: "SESSIONS_UPDATED" }, () => { void chrome.runtime.lastError; }); } catch { /* no listener */ }
+      try { chrome.runtime.sendMessage({ type: "SESSIONS_UPDATED" }, () => { void chrome.runtime.lastError; }); } catch (err) {
+        console.debug("[drive-sync] pullFromDrive: no listener for SESSIONS_UPDATED", err instanceof Error ? err.message : err);
+      }
 
       return { added, updated };
     } catch (e) {
@@ -361,7 +371,9 @@ class DriveSyncManager {
    * Returns the number of sessions seeded from Drive.
    */
   private bcast(msg: Record<string, unknown>): void {
-    try { chrome.runtime.sendMessage(msg, () => { void chrome.runtime.lastError; }); } catch { /* no listener */ }
+    try { chrome.runtime.sendMessage(msg, () => { void chrome.runtime.lastError; }); } catch (err) {
+      console.debug("[drive-sync] bcast: no listener", err instanceof Error ? err.message : err);
+    }
   }
 
   private async bootstrapInitialIndex(): Promise<number> {
@@ -429,7 +441,9 @@ class DriveSyncManager {
       if (!(await driveClient.isConnected())) return;
       const result = await this.pullFromDrive();
       if (result.added > 0 || result.updated > 0) {
-        try { chrome.runtime.sendMessage({ type: "SESSIONS_UPDATED" }, () => { void chrome.runtime.lastError; }); } catch { /* no listener */ }
+        try { chrome.runtime.sendMessage({ type: "SESSIONS_UPDATED" }, () => { void chrome.runtime.lastError; }); } catch (err) {
+          console.debug("[drive-sync] initialSync: no listener for SESSIONS_UPDATED", err instanceof Error ? err.message : err);
+        }
       }
     } catch (e) {
       console.warn("[drive-sync] initialSync error", e);
@@ -513,7 +527,9 @@ class DriveSyncManager {
       lastSyncCount = typeof got[LAST_SYNC_COUNT_KEY] === "number" ? got[LAST_SYNC_COUNT_KEY] : null;
       const ids = got[SOURCED_IDS_KEY];
       if (Array.isArray(ids)) sourcedIds = ids.filter((x): x is string => typeof x === "string");
-    } catch { /* swallow */ }
+    } catch (err) {
+      console.warn("[drive-sync] getStatus: failed to read storage", err instanceof Error ? err.message : err);
+    }
     return { connected, lastSyncAt, lastSyncCount, sourcedIds };
   }
 }
