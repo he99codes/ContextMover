@@ -22,9 +22,14 @@ export async function POST(req: NextRequest) {
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supaAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supaUrl || !supaAnon) {
+      return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+    }
     const supabaseAuth = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      supaUrl,
+      supaAnon,
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
     const { data: { user }, error: authErr } = await supabaseAuth.auth.getUser(token);
@@ -75,11 +80,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       subscriptionId: subscription.id,
-      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? "",
     });
   } catch (err) {
     console.error("[create-subscription]", err);
-    const message = err instanceof Error ? err.message : "Failed to create subscription";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create subscription" }, { status: 500 });
   }
 }

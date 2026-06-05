@@ -316,8 +316,8 @@ export async function POST(req: NextRequest) {
     else if (tier === 2) content = buildTier2(body);
     else content = buildTier3(body);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: `Build failed: ${msg}` }, { status: 422 });
+    console.error("[migrate/build] error:", err);
+    return NextResponse.json({ error: "Build failed" }, { status: 422 });
   }
 
   return NextResponse.json({

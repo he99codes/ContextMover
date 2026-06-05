@@ -44,8 +44,11 @@ export async function POST(req: NextRequest) {
     // Supabase session (access_token + refresh_token).
     // generateLink({type:"magiclink"}) in v2 returns only action_link/hashed_token,
     // not the JWT tokens — hence the original 500.
-    const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supaAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supaAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supaUrl || !supaAnon) {
+      return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+    }
     const anon = createClient(supaUrl, supaAnon, { auth: { persistSession: false } });
     const { data: sd, error: serr } = await anon.auth.signInWithIdToken({
       provider: "google",

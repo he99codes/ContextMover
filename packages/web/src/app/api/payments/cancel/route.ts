@@ -41,11 +41,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supaKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supaUrl || !supaKey) {
+    return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+  }
+
   // Look up the gateway subscription id from the raw row (the typed
   // Subscription value doesn't expose it).
   const admin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    supaUrl,
+    supaKey,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
   const { data: row } = await admin
@@ -77,7 +83,7 @@ export async function POST(req: NextRequest) {
       };
       const razorpay = new Razorpay({
         key_id:     process.env.RAZORPAY_KEY_ID,
-        key_secret: process.env.RAZORPAY_KEY_SECRET!,
+        key_secret: process.env.RAZORPAY_KEY_SECRET ?? "",
       });
       await razorpay.subscriptions.cancel(gatewaySubscriptionId, {
         cancel_at_cycle_end: 1,

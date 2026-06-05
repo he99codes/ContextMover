@@ -59,14 +59,24 @@ export function startExtensionBridge(port: number = BRIDGE_PORT): Promise<{ port
   return new Promise((resolve, reject) => {
     const app = express();
 
-    // [SECURITY] Only chrome-extension:// origins and localhost may post.
-    // Wildcards aren't allowed in real CORS — we mirror by checking each origin.
+    // [SECURITY] CORS: allow localhost and specific extension origins.
+    // If ALLOWED_EXTENSION_IDS is set (comma-separated), only those IDs are
+    // accepted; otherwise all chrome-extension:// origins are allowed (dev mode).
+    const allowedIds = process.env.ALLOWED_EXTENSION_IDS
+      ? new Set(process.env.ALLOWED_EXTENSION_IDS.split(",").map(s => s.trim()).filter(Boolean))
+      : null;
+
     app.use(cors({
       origin: (origin, cb) => {
         if (!origin) return cb(null, true); // same-origin / curl / Node clients
-        if (origin.startsWith("chrome-extension://")) return cb(null, true);
+        if (origin.startsWith("chrome-extension://")) {
+          if (!allowedIds) return cb(null, true);
+          const extId = origin.replace("chrome-extension://", "");
+          if (allowedIds.has(extId)) return cb(null, true);
+          return cb(new Error(`Extension not allowed: ${extId}`));
+        }
         if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return cb(null, true);
-        cb(new Error(`Origin not allowed: ${origin}`));
+        cb(new Error("Origin not allowed"));
       },
       methods: ["GET", "POST", "OPTIONS"],
     }));
@@ -86,9 +96,8 @@ export function startExtensionBridge(port: number = BRIDGE_PORT): Promise<{ port
         console.error(`[CM:bridge] Session synced: ${session.id} (${session.messages.length} messages)`);
         res.json({ ok: true });
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error("[CM:bridge] Sync error:", msg);
-        res.status(500).json({ error: msg });
+        console.error("[CM:bridge] Sync error:", err);
+        res.status(500).json({ error: "Sync failed" });
       }
     });
 
@@ -98,8 +107,8 @@ export function startExtensionBridge(port: number = BRIDGE_PORT): Promise<{ port
         const stats = storageBridge.getStats();
         res.json({ ok: true, version: "0.1.0", ...stats });
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        res.status(500).json({ ok: false, error: msg });
+        console.error("[CM:bridge] Health check error:", err);
+        res.status(500).json({ ok: false, error: "Health check failed" });
       }
     });
 
@@ -150,9 +159,8 @@ export function startExtensionBridge(port: number = BRIDGE_PORT): Promise<{ port
         storageBridge.upsertChunkEmbeddings(sessionId, cleaned);
         res.json({ ok: true, count: cleaned.length });
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error("[CM:bridge] /embeddings error:", msg);
-        res.status(500).json({ error: msg });
+        console.error("[CM:bridge] /embeddings error:", err);
+        res.status(500).json({ error: "Embeddings sync failed" });
       }
     });
 
@@ -179,9 +187,8 @@ export function startExtensionBridge(port: number = BRIDGE_PORT): Promise<{ port
         storageBridge.upsertSummary(sessionId, tier, content);
         res.json({ ok: true });
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error("[CM:bridge] /summaries error:", msg);
-        res.status(500).json({ error: msg });
+        console.error("[CM:bridge] /summaries error:", err);
+        res.status(500).json({ error: "Summary sync failed" });
       }
     });
 
@@ -214,9 +221,8 @@ export function startExtensionBridge(port: number = BRIDGE_PORT): Promise<{ port
         storageBridge.upsertSelectedFiles(cleaned);
         res.json({ ok: true, count: cleaned.length });
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error("[CM:bridge] /files error:", msg);
-        res.status(500).json({ error: msg });
+        console.error("[CM:bridge] /files error:", err);
+        res.status(500).json({ error: "File sync failed" });
       }
     });
 
@@ -225,8 +231,8 @@ export function startExtensionBridge(port: number = BRIDGE_PORT): Promise<{ port
       try {
         res.json(storageBridge.getStats());
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        res.status(500).json({ error: msg });
+        console.error("[CM:bridge] /stats error:", err);
+        res.status(500).json({ error: "Stats unavailable" });
       }
     });
 

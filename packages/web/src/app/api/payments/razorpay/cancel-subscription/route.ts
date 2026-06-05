@@ -25,9 +25,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supaAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supaUrl || !supaAnon) {
+      return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+    }
     const supabase = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      supaUrl,
+      supaAnon,
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
@@ -91,8 +96,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("[cancel-subscription]", err);
-    const message =
-      err instanceof Error ? err.message : "Failed to cancel subscription";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to cancel subscription" }, { status: 500 });
   }
 }

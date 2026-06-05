@@ -38,10 +38,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supaKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supaUrl || !supaKey) {
+    return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+  }
+
+  const supabase = createClient(supaUrl, supaKey);
 
   const { data, error } = await supabase.rpc("increment_usage", {
     p_user_id: user.id,
@@ -51,7 +54,7 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     console.error("[CM:api:usage] rpc error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Usage check failed" }, { status: 500 });
   }
 
   // RPC returns a jsonb object — pass through as-is.

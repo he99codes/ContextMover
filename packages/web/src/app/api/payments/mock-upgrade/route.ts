@@ -18,9 +18,9 @@ import { upsertSubscription } from "@/lib/payments/subscription";
 import type { Plan } from "@/lib/payments/types";
 
 export async function POST(req: NextRequest) {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV !== "development") {
     return NextResponse.json(
-      { error: "Not available in production" },
+      { error: "Not available outside local development" },
       { status: 403 }
     );
   }
@@ -56,8 +56,7 @@ export async function POST(req: NextRequest) {
       message: `Mock ${plan} subscription activated`,
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[CM:api:mock-upgrade] error:", msg);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[CM:api:mock-upgrade] error:", err);
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

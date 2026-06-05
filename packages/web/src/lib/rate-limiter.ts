@@ -34,15 +34,24 @@ interface WindowEntry {
   windowStart: number;
 }
 
-// [SECURITY] In-process store — resets on cold start (serverless).
-// For persistent rate limiting across instances, use Upstash Redis.
+// [SECURITY] In-process store — resets on every serverless cold start, so an
+// attacker can bypass rate limiting by waiting for the instance to scale down.
+// For production-grade enforcement, replace with Upstash Redis (@upstash/ratelimit)
+// or a similar distributed store that persists across instances and deploys.
 const store = new Map<string, WindowEntry>();
 
+// [SECURITY] Loose check that a string looks like an IPv4 or IPv6 address.
+// Rejects obviously bogus values (e.g. script injections via X-Forwarded-For)
+// while remaining permissive enough for real proxies that may include ports.
+const IP_LIKE = /^[\d.:a-fA-F%]+$/;
+
 function getSlidingWindowKey(req: NextRequest): string {
-  // Prefer the real IP forwarded by the hosting provider.
   const forwarded = req.headers.get("x-forwarded-for");
-  const ip = forwarded ? forwarded.split(",")[0].trim() : "unknown";
-  return ip;
+  if (forwarded) {
+    const candidate = forwarded.split(",")[0].trim();
+    if (candidate && IP_LIKE.test(candidate)) return candidate;
+  }
+  return "unknown";
 }
 
 export interface RateLimitResult {
