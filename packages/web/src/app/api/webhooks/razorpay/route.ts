@@ -88,15 +88,6 @@ export async function POST(req: NextRequest) {
   const paymentEntity = event?.payload?.payment?.entity;
   const subId: string = subEntity?.id ?? paymentEntity?.subscription_id ?? "";
 
-  // Log event
-  await admin.from("payment_events").insert({
-    razorpay_event_id: eventId,
-    event_type: event.event,
-    razorpay_subscription_id: subId || null,
-    razorpay_payment_id: paymentEntity?.id ?? null,
-    payload: event,
-  });
-
   try {
     switch (event.event) {
       case "subscription.activated":
@@ -192,6 +183,16 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+
+  // Log event AFTER successful processing so that on failure (500 returned
+  // above), Razorpay retries hit a clean idempotency check and re-process.
+  await admin.from("payment_events").insert({
+    razorpay_event_id: eventId,
+    event_type: event.event,
+    razorpay_subscription_id: subId || null,
+    razorpay_payment_id: paymentEntity?.id ?? null,
+    payload: event,
+  });
 
   return NextResponse.json({ received: true });
 }
