@@ -1,0 +1,178 @@
+/**
+ * Copyright © 2026 ContextMover. All rights reserved.
+ * Unauthorized copying, modification, distribution, or use
+ * of this software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
+
+// packages/browser-extension/src/content/gemini.ts
+import { extractContent, injectWithRetry, runCapturePipeline, startSessionCapture, waitForAnyElement } from "./shared";
+import type { Message } from "./shared";
+import { getPlatformSelectors, type PlatformSelectors } from "@/lib/remote-config";
+
+// Pre-warm remote selector config at load time.
+let _remoteSelectors: PlatformSelectors | null = null;
+getPlatformSelectors("gemini").then((s) => { _remoteSelectors = s; }).catch(() => {});
+
+// ── DIAGNOSTIC STAGE 1 ────────────────────────────────────────────────────────
+// Per-element streaming guard — skip messages still being generated.
+function isStreaming(el: Element): boolean {
+  return (
+    el.querySelector('.loading-indicator, [aria-label="Gemini is responding"]') !== null ||
+    el.closest('[class*="loading"]') !== null
+  )
+}
+
+function scrapeMessages(): Message[] {
+  // Remote selectors override hardcoded defaults when present.
+  // Gemini 2026: user-query-container, response-container-content, model-response-text, markdown
+  const userSel = _remoteSelectors?.userSelector ?? '[class*="user-query-container"], [class*="user-query-bubble"], user-query, .user-query, [class*="user-query"]'
+  const asstSel = _remoteSelectors?.assistantSelector ?? '[class*="response-container-content"], [class*="model-response-text"], model-response, .model-response, [class*="model-response"]'
+  const strategy = (_remoteSelectors?.userSelector || _remoteSelectors?.assistantSelector) ? 0 : 1
+
+  const found: Array<{ el: Element; role: 'user' | 'assistant' }> = []
+
+  // Outermost-only filter avoids double-capturing nested children with same class.
+  document.querySelectorAll<HTMLElement>(userSel).forEach(el => {
+    if (el.parentElement?.closest(userSel)) return
+    if (isStreaming(el)) return
+    found.push({ el, role: 'user' })
+  })
+  document.querySelectorAll<HTMLElement>(asstSel).forEach(el => {
+    if (el.parentElement?.closest(asstSel)) return
+    if (isStreaming(el)) return
+    found.push({ el, role: 'assistant' })
+  })
+
+  found.sort((a, b) =>
+    a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+  )
+
+  const msgs = found.map(({ el, role }) => ({
+    role,
+    content: extractContent(el),
+    timestamp: Date.now()
+  })).filter(m => m.content.trim().length > 0)
+
+  const u = msgs.filter(m => m.role === 'user').length
+  const a = msgs.filter(m => m.role === 'assistant').length
+  console.log(`[CM:diag:gemini] strategy=${strategy} user=${u} asst=${a}`)
+  return msgs
+}
+
+startSessionCapture({
+  platform: "gemini",
+  selectorOrElement: () => _remoteSelectors?.observerTarget ?? "chat-window, main",
+  scrapeMessages: () => runCapturePipeline("gemini", scrapeMessages),
+  requiresScrollBack: true,
+  getScrollContainerSelector: () => _remoteSelectors?.scrollContainer,
+  // Angular renders message shells first, then hydrates text content async.
+  // Extra 2 s / 4 s captures catch sessions that load after the initial mount.
+  extraCaptureDelays: [1500, 2000, 3000, 4000],
+  observerSettleMs: 150,
+});
+
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === "INJECT_CONTEXT" && msg.platform === "gemini") {
+    injectIntoGeminiInput(msg.prompt)
+      .then((result) => sendResponse(result))
+      .catch((err) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
+    return true; // CRITICAL — keeps channel open for async response
+  }
+  if (msg.type === "INJECT_FILE_AS_UPLOAD") {
+    void (async () => {
+      try {
+        // Use text/plain — Gemini's file input accept attribute typically allows
+        // plain text but blocks text/xml, causing silent rejection by Angular's
+        // component even when the file IS programmatically attached.
+        const file = new File([msg.fileContent as string], msg.fileName as string, { type: "text/plain" });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+
+        // Shadow-DOM-aware querySelector: Gemini's Angular components sometimes
+        // host the actual <input type="file"> inside a shadow root.
+        const findFileInput = (): HTMLInputElement | null => {
+          const light = document.querySelector<HTMLInputElement>("input[type='file']");
+          if (light) return light;
+          for (const host of document.querySelectorAll("*")) {
+            const sr = (host as Element & { shadowRoot?: ShadowRoot }).shadowRoot;
+            if (sr) {
+              const el = sr.querySelector<HTMLInputElement>("input[type='file']");
+              if (el) return el;
+            }
+          }
+          return null;
+        };
+
+        let input = findFileInput();
+
+        if (!input) {
+          // Gemini-specific Angular Material upload button selectors.
+          // The button that reveals the hidden file input in Gemini's 2026 UI.
+          const uploadBtn = document.querySelector<HTMLElement>(
+            'button[aria-label*="Upload"], button[aria-label*="upload"], ' +
+            'button[aria-label*="Add files"], button[aria-label*="Add image"], ' +
+            'button[aria-label*="Attach"], button[aria-label*="attach"], ' +
+            '[data-test-id*="upload"], [data-testid*="upload"], ' +
+            '.input-media-button button, input-media-button, ' +
+            '[class*="upload-btn"], [class*="upload-button"], ' +
+            '[class*="attach-btn"], [class*="file-picker"], ' +
+            '.upload-button, [class*="upload"], [class*="attach"]'
+          );
+          if (uploadBtn) {
+            console.debug("[CM:gemini] clicking upload button:", uploadBtn.tagName, uploadBtn.getAttribute("aria-label"));
+            uploadBtn.click();
+            for (let i = 0; i < 20; i++) {
+              await new Promise((r) => setTimeout(r, 100));
+              input = findFileInput();
+              if (input) break;
+            }
+          }
+        }
+
+        if (input) {
+          // Remove accept restriction that may silently block XML / plain-text files.
+          const originalAccept = input.getAttribute("accept") ?? "";
+          if (originalAccept) {
+            console.debug("[CM:gemini] clearing accept attr:", originalAccept);
+            input.removeAttribute("accept");
+          }
+          input.files = dt.files;
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          console.debug("[CM:gemini] file attached via input element, files.length:", dt.files.length);
+          sendResponse({ ok: true });
+          return;
+        }
+
+        // Final fallback: inject the XML content as text into the Gemini
+        // text input. This succeeds even when no file input is reachable.
+        console.warn("[CM:gemini] INJECT_FILE_AS_UPLOAD: no file input found — falling back to text injection");
+        const textResult = await injectIntoGeminiInput(msg.fileContent as string);
+        sendResponse(textResult);
+      } catch (err) {
+        sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+      }
+    })();
+    return true; // keep channel open for async sendResponse
+  }
+});
+
+async function injectIntoGeminiInput(text: string) {
+  const input = await waitForAnyElement<HTMLElement>([
+    "rich-textarea [contenteditable='true']",     // Gemini Angular component
+    "rich-textarea p",                            // inner paragraph element
+    "[contenteditable='true'][role='textbox']",
+    "[contenteditable='true'][aria-label]",       // labelled contenteditable
+    "textarea:not([readonly])",
+    "[contenteditable='true']",                   // last-resort
+  ]);
+
+  if (!input) return { ok: false, error: "Gemini input box not found. Make sure a chat is open." };
+
+  if (!await injectWithRetry(input, text, "gemini")) {
+    return { ok: false, error: "Gemini input did not accept the text after 3 attempts. Context copied to clipboard — paste with Ctrl+V." };
+  }
+
+  return { ok: true };
+}

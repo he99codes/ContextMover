@@ -1,0 +1,154 @@
+service-worker.ts-D1iU4qKW.js:699 [ContextMover] Extension installed.
+service-worker.ts-D1iU4qKW.js:906 [CM:auth] token refreshed, event: SIGNED_IN
+service-worker.ts-D1iU4qKW.js:906 [CM:auth] token refreshed, event: INITIAL_SESSION
+service-worker.ts-D1iU4qKW.js:17 [CM:index] Cleaned up orphan: gemini-00f5108de4
+service-worker.ts-D1iU4qKW.js:3839 [CM:sw] activate: IDB cleanup complete
+service-worker.ts-D1iU4qKW.js:777 [ContextMover] Injected content script into tab 975253518 (https://gemini.google.com/app/a8dd2a03c6a115e6) — 4 script(s): assets/src/content/fetch-interceptor-Dlm8m91O.js | assets/interceptor-bridge.ts-loader-BX2RZ2pa.js | assets/gemini.ts-loader-BBxYbAsB.js | assets/src/content/sidebar-toggle/toggle-ZLZqVxth.js
+service-worker.ts-D1iU4qKW.js:1474 [CM:sw] CAPTURE_SESSION: gemini gemini-81b41a40de
+service-worker.ts-D1iU4qKW.js:2807 [ContextMover] Session stored locally only. No cloud sync unless user connects personal Supabase.
+service-worker.ts-D1iU4qKW.js:2818 [CM:sw] verified Object
+service-worker.ts-D1iU4qKW.js:2803 [CM:sw] saved (debounced) Object
+supabase-Ck0Ecbp7.js:299 [ContextMover:tier1] 2 msgs → 76 chars (0% compressed)
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+No available adapters.
+supabase-Ck0Ecbp7.js:297 [CM:hw] reclassified: cores=4 mem=16GB webgpu=false -> tier=balanced
+supabase-Ck0Ecbp7.js:297 [ContextMover:hw] {"cores":4,"memoryGB":16,"hasWebGPU":false,"gpuRenderer":null,"tier":"balanced","recommendedMigrationTier":2}
+service-worker.ts-D1iU4qKW.js:17 [CM:queue] dequeue background gemini-81b41a40de Object
+service-worker.ts-D1iU4qKW.js:2944 [CM:sw:metaPrompt] built 12 prompts in 81ms
+service-worker.ts-D1iU4qKW.js:668 [CM:config] Remote config refreshed.
+service-worker.ts-D1iU4qKW.js:17 [CM:offscreen] document created
+service-worker.ts-D1iU4qKW.js:17 [CM:index] gemini-81b41a40de: 1 chunks indexed in 1307ms
+service-worker.ts-D1iU4qKW.js:2852 [CM:sw:bgIdx] indexed session gemini-81b41a40de in 1314ms
+supabase-Ck0Ecbp7.js:295 [ContextMover:capability-detector] tier=minimal (slow CPU benchmark (292 ops/ms < 300) — forcing minimal)
+supabase-Ck0Ecbp7.js:299 [ContextMover:tier1] 2 msgs → 76 chars (0% compressed)
+supabase-Ck0Ecbp7.js:299 [ContextMover:tier2] 2 msgs → extracted:
+  goals=1 decisions=0 bugs=0 completed=0 pending=0 code_blocks=0 → 81 chars (-42% compressed) [7ms]
+service-worker.ts-D1iU4qKW.js:1523 [CM:sw] PRECOMPUTE_SUMMARY warmed summaries for session gemini-81b41a40de
+supabase-Ck0Ecbp7.js:299 [ContextMover:tier1] 78 msgs → 265133 chars (18% compressed)
+supabase-Ck0Ecbp7.js:299 [ContextMover:tier2] 78 msgs → extracted:
+  goals=1 decisions=10 bugs=2 completed=10 pending=4 code_blocks=15 → 33879 chars (89% compressed) [133ms]
+service-worker.ts-D1iU4qKW.js:1523 [CM:sw] PRECOMPUTE_SUMMARY warmed summaries for session grok-89196d7470
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] Initializing tier=minimal config= Object
+supabase-Ck0Ecbp7.js:297 [CM:hw] reclassified: cores=4 mem=16GB webgpu=true -> tier=balanced
+supabase-Ck0Ecbp7.js:297 [ContextMover:hw] {"cores":4,"memoryGB":16,"hasWebGPU":true,"gpuRenderer":"ANGLE (Intel, Mesa Intel(R) HD Graphics 4400 (HSW GT2), OpenGL 4.6)","tier":"balanced","recommendedMigrationTier":2}
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] Ready (minimal tier — regex only)
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] indexSession — session=grok-89196d7470 msgs=78
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] buildStructure — 191 code block(s) found
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] Delta-indexing 259 new chunk(s) for session grok-89196d7470 (0 already indexed, tier=minimal cap=259)
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] Appended 259 new chunk(s) for session grok-89196d7470
+service-worker.ts-D1iU4qKW.js:1738 [CM:debug] getSession result: Object
+service-worker.ts-D1iU4qKW.js:1755 [CM:debug] final accessToken: string truthy: true len: 1406
+service-worker.ts-D1iU4qKW.js:1784 [CM:sw] MIGRATE_CONTEXT — priority T3 index queued (migrate-priority-grok-89196d7470-1780399104808)
+service-worker.ts-D1iU4qKW.js:3248 [CM:sw] Tier 1 skipAutoInject=true — injection deferred to MigrationModal button click
+service-worker.ts-D1iU4qKW.js:2320 [CM:gemini] injection result: null
+service-worker.ts-D1iU4qKW.js:2325 [CM:gemini] injection failed — reason: unknown
+(anonymous) @ service-worker.ts-D1iU4qKW.js:2325
+service-worker.ts-D1iU4qKW.js:1738 [CM:debug] getSession result: Object
+service-worker.ts-D1iU4qKW.js:1755 [CM:debug] final accessToken: string truthy: true len: 1406
+service-worker.ts-D1iU4qKW.js:1784 [CM:sw] MIGRATE_CONTEXT — priority T3 index queued (migrate-priority-grok-89196d7470-1780399167517)
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] scoring timed out — heuristic fallback
+(anonymous) @ supabase-Ck0Ecbp7.js:297
+service-worker.ts-D1iU4qKW.js:3085 [CM:tier2] scored 78 messages for extraction
+supabase-Ck0Ecbp7.js:299 [ContextMover:tier2] 78 msgs → extracted:
+  goals=1 decisions=10 bugs=2 completed=10 pending=4 code_blocks=15 → 33879 chars (89% compressed) [111ms]
+service-worker.ts-D1iU4qKW.js:3248 [CM:sw] Tier 2 skipAutoInject=true — injection deferred to MigrationModal button click
+service-worker.ts-D1iU4qKW.js:2320 [CM:gemini] injection result: null
+service-worker.ts-D1iU4qKW.js:2325 [CM:gemini] injection failed — reason: unknown
+(anonymous) @ service-worker.ts-D1iU4qKW.js:2325
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] indexSession — session=grok-89196d7470 msgs=78
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] buildStructure — 191 code block(s) found
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] Session grok-89196d7470 fully up-to-date — 259 chunk(s) already indexed, nothing new
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] indexSession — session=grok-89196d7470 msgs=78
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] buildStructure — 191 code block(s) found
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] Session grok-89196d7470 fully up-to-date — 259 chunk(s) already indexed, nothing new
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] buildAttentionMap — strength=light
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] indexSession — session=grok-89196d7470 msgs=78
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] buildStructure — 191 code block(s) found
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] Session grok-89196d7470 fully up-to-date — 259 chunk(s) already indexed, nothing new
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] Scoring 259 chunk(s) against 4 query variant(s)
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] AttentionMap ready — chunks=72 files=0 compression=-11%
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] indexSession — session=grok-89196d7470 msgs=78
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] buildStructure — 191 code block(s) found
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] Session grok-89196d7470 fully up-to-date — 259 chunk(s) already indexed, nothing new
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] buildAttentionMap — strength=light
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] indexSession — session=grok-89196d7470 msgs=78
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] buildStructure — 191 code block(s) found
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] Session grok-89196d7470 fully up-to-date — 259 chunk(s) already indexed, nothing new
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] Scoring 259 chunk(s) against 4 query variant(s)
+supabase-Ck0Ecbp7.js:297 [ContextMover:attention-engine] AttentionMap ready — chunks=72 files=0 compression=-11%
+supabase-Ck0Ecbp7.js:299 [ContextMover:summarizer] summarizeWithAttention: msgs=78→78 compression=39%
+service-worker.ts-D1iU4qKW.js:1738 [CM:debug] getSession result: Object
+service-worker.ts-D1iU4qKW.js:1755 [CM:debug] final accessToken: string truthy: true len: 1406
+service-worker.ts-D1iU4qKW.js:1784 [CM:sw] MIGRATE_CONTEXT — priority T3 index queued (migrate-priority-grok-89196d7470-1780399208272)
+service-worker.ts-D1iU4qKW.js:17 [CM:queue] dequeue priority grok-89196d7470 Object

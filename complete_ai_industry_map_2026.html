@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete AI Industry Knowledge Map 2026</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0e0f;
+            color: #00ff00;
+            min-height: 100vh;
+            padding: 20px;
+            border: 2px solid #00ff00;
+            box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.1);
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #0a1f0a 0%, #001a00 100%);
+            border: 2px solid #00ff00;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+        }
+        
+        h1 {
+            font-size: 2.2em;
+            color: #00ff00;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+            letter-spacing: 2px;
+        }
+        
+        .subtitle {
+            font-size: 0.95em;
+            color: #00dd00;
+            margin-bottom: 10px;
+        }
+        
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+            padding: 15px;
+            background: #000000;
+            border: 1px solid #00ff00;
+        }
+        
+        .stat-item {
+            padding: 10px;
+            border-left: 2px solid #00ff00;
+            font-size: 0.85em;
+        }
+        
+        .stat-label {
+            color: #00aa00;
+            font-size: 0.75em;
+        }
+        
+        .stat-value {
+            color: #00ff00;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            min-width: 250px;
+            padding: 12px;
+            background: #000000;
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1);
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.3), 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+        
+        .filter-btn {
+            padding: 8px 12px;
+            background: #000000;
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .filter-btn:hover {
+            background: #001a00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+        
+        .filter-btn.active {
+            background: #00ff00;
+            color: #000000;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 1400px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .section {
+            background: linear-gradient(135deg, #0a0f0a 0%, #000000 100%);
+            border: 2px solid #00ff00;
+            border-radius: 3px;
+            padding: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+        }
+        
+        .section:hover {
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+        }
+        
+        .section-title {
+            font-size: 1.1em;
+            color: #00ff00;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #00ff00;
+            text-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+        }
+        
+        .node-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .node {
+            padding: 8px 12px;
+            background: #000000;
+            border: 1px solid #00ff00;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.8em;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+            color: #00ff00;
+        }
+        
+        .node:hover {
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+        }
+        
+        .node.core { border-color: #ff3333; color: #ff6666; }
+        .node.core:hover { box-shadow: 0 0 15px rgba(255, 51, 51, 0.6); }
+        
+        .node.model { border-color: #00ddaa; color: #00ddaa; }
+        .node.model:hover { box-shadow: 0 0 15px rgba(0, 221, 170, 0.6); }
+        
+        .node.tool { border-color: #aa88ff; color: #aa88ff; }
+        .node.tool:hover { box-shadow: 0 0 15px rgba(170, 136, 255, 0.6); }
+        
+        .node.application { border-color: #ffaa00; color: #ffaa00; }
+        .node.application:hover { box-shadow: 0 0 15px rgba(255, 170, 0, 0.6); }
+        
+        .node.realtime { border-color: #ff00ff; color: #ff00ff; }
+        .node.realtime:hover { box-shadow: 0 0 15px rgba(255, 0, 255, 0.6); }
+        
+        .node.security { border-color: #ff0000; color: #ff4444; }
+        .node.security:hover { box-shadow: 0 0 15px rgba(255, 0, 0, 0.6); }
+        
+        .node.trend { border-color: #00ffff; color: #00ffff; }
+        .node.trend:hover { box-shadow: 0 0 15px rgba(0, 255, 255, 0.6); }
+        
+        .node.enterprise { border-color: #ffff00; color: #ffff00; }
+        .node.enterprise:hover { box-shadow: 0 0 15px rgba(255, 255, 0, 0.6); }
+        
+        .details-panel {
+            background: linear-gradient(135deg, #0a0f0a 0%, #000000 100%);
+            border: 2px solid #00ff00;
+            border-radius: 3px;
+            padding: 20px;
+            min-height: 300px;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+            grid-column: 1 / -1;
+        }
+        
+        .details-panel.empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #005500;
+        }
+        
+        .detail-title {
+            font-size: 1.6em;
+            color: #00ff00;
+            margin-bottom: 12px;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+        }
+        
+        .detail-category {
+            font-size: 0.9em;
+            color: #00dd00;
+            font-weight: bold;
+            margin-top: 12px;
+            margin-bottom: 8px;
+            border-left: 3px solid #00ff00;
+            padding-left: 10px;
+        }
+        
+        .detail-content {
+            font-size: 0.9em;
+            line-height: 1.6;
+            color: #00cc00;
+            margin-bottom: 10px;
+        }
+        
+        .related-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .related-item {
+            padding: 5px 10px;
+            background: #000000;
+            border: 1px solid #00ff00;
+            border-radius: 3px;
+            font-size: 0.75em;
+            color: #00ff00;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .related-item:hover {
+            background: #001a00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+        
+        .tag {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #001a00;
+            border: 1px solid #00ff00;
+            border-radius: 2px;
+            font-size: 0.75em;
+            margin-right: 5px;
+            color: #00ff00;
+            margin-bottom: 5px;
+        }
+        
+        .tag.critical {
+            background: #1a0000;
+            border-color: #ff0000;
+            color: #ff6666;
+        }
+        
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .tab-btn {
+            padding: 10px 16px;
+            background: #000000;
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            border-radius: 3px;
+        }
+        
+        .tab-btn.active {
+            background: #00ff00;
+            color: #000000;
+        }
+        
+        .content-section {
+            display: none;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ COMPLETE AI INDUSTRY MAP 2026 ⚡</h1>
+            <p class="subtitle">Everything in AI: From Foundations to Real-Time Applications</p>
+            <p class="subtitle">Includes: Models • Tools • Applications • Platforms • Security • Trends • Enterprise Solutions</p>
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-label">NODES</div>
+                    <div class="stat-value">250+</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">CATEGORIES</div>
+                    <div class="stat-value">12</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">APPLICATIONS</div>
+                    <div class="stat-value">50+</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">REAL-TIME SYSTEMS</div>
+                    <div class="stat-value">20+</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">SECURITY TOPICS</div>
+                    <div class="stat-value">35+</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">CURRENT TRENDS</div>
+                    <div class="stat-value">15+</div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="switchTab('all')">📊 ALL NODES</button>
+            <button class="tab-btn" onclick="switchTab('applications')">🏢 REAL-WORLD APPLICATIONS</button>
+            <button class="tab-btn" onclick="switchTab('realtime')">⚡ REAL-TIME SYSTEMS</button>
+            <button class="tab-btn" onclick="switchTab('trends')">🔥 CURRENT TRENDS 2026</button>
+            <button class="tab-btn" onclick="switchTab('enterprise')">🏭 ENTERPRISE SOLUTIONS</button>
+        </div>
+        
+        <div class="controls">
+            <input type="text" id="searchBox" placeholder="SEARCH > query (e.g., 'GPT-4', 'Ollama', 'RAG', 'Hermes', 'Real-time'...)">
+            <button class="filter-btn active" onclick="filterByCategory('')">ALL</button>
+            <button class="filter-btn" onclick="filterByCategory('model')">MODELS</button>
+            <button class="filter-btn" onclick="filterByCategory('tool')">TOOLS</button>
+            <button class="filter-btn" onclick="filterByCategory('application')">APPS</button>
+            <button class="filter-btn" onclick="filterByCategory('realtime')">REAL-TIME</button>
+            <button class="filter-btn" onclick="filterByCategory('security')">🔒 SECURITY</button>
+            <button class="filter-btn" onclick="filterByCategory('trend')">TRENDS</button>
+            <button class="filter-btn" onclick="filterByCategory('enterprise')">ENTERPRISE</button>
+        </div>
+        
+        <div id="contentAll" class="content-section active">
+            <div class="main-grid" id="mainContent">
+                <!-- Content will be generated by JavaScript -->
+            </div>
+        </div>
+        
+        <div id="contentApplications" class="content-section">
+            <div class="main-grid" id="applicationsContent">
+                <!-- Applications content -->
+            </div>
+        </div>
+        
+        <div id="contentRealtime" class="content-section">
+            <div class="main-grid" id="realtimeContent">
+                <!-- Real-time content -->
+            </div>
+        </div>
+        
+        <div id="contentTrends" class="content-section">
+            <div class="main-grid" id="trendsContent">
+                <!-- Trends content -->
+            </div>
+        </div>
+        
+        <div id="contentEnterprise" class="content-section">
+            <div class="main-grid" id="enterpriseContent">
+                <!-- Enterprise content -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const knowledgeBase = {
+            // ============ CORE AI CONCEPTS ============
+            "Transformer Architecture": {
+                category: "core",
+                tags: ["Foundation"],
+                description: "Neural network architecture powering all modern LLMs. Self-attention mechanism. Parallel processing. Published 2017, still dominant.",
+                details: "All models (GPT, Claude, Llama) use Transformers. Encoder-decoder layers, residual connections, layer normalization."
+            },
+            "Self-Attention & Multi-Head Attention": {
+                category: "core",
+                tags: ["Mechanism"],
+                description: "Allows tokens to attend to all other positions. Multi-head: Different attention heads focus on different patterns.",
+                details: "O(n²) complexity. Enables long-range dependencies. Key innovation that made Transformers work."
+            },
+            
+            // ============ FOUNDATION MODELS (2024-2026) ============
+            "GPT-4 & GPT-4 Turbo": {
+                category: "model",
+                tags: ["Proprietary", "SOTA"],
+                description: "OpenAI's flagship. GPT-4 Turbo: 128K context, vision support. Most capable for complex reasoning. API: $0.01-0.1/1K tokens.",
+                details: "Vision: Analyze images, PDFs, screenshots. Function calling: Tool integration. Best for enterprise."
+            },
+            "GPT-4O (Omni)": {
+                category: "model",
+                tags: ["Latest", "Multimodal"],
+                description: "OpenAI 2024. Native multimodal (text+vision). 50% cheaper than GPT-4 Turbo. Faster inference.",
+                details: "Better at image understanding. Real-time streaming capability. Production-ready."
+            },
+            "Claude 3.5 Sonnet": {
+                category: "model",
+                tags: ["Proprietary", "Safety"],
+                description: "Anthropic's flagship. 200K context (reads entire books). $3 input/$15 output per 1M tokens. Best for long documents.",
+                details: "Constitutional AI safety training. Vision support. Excellent at coding, analysis, reasoning."
+            },
+            "Claude 3.5 Opus": {
+                category: "model",
+                tags: ["Proprietary", "Advanced"],
+                description: "Anthropic's most capable model. 200K context. Better reasoning than Sonnet. Higher cost.",
+                details: "Best for complex reasoning, research, advanced analysis. Most expensive option."
+            },
+            "Llama 3.1 & Llama 4": {
+                category: "model",
+                tags: ["Open Source"],
+                description: "Meta's open-source LLMs. 8B-405B parameters. Free commercial use. Can run locally with Ollama.",
+                details: "Llama 3.1 70B: Comparable to GPT-3.5. 405B: Frontier model. Best open-source option."
+            },
+            "Mistral & Mixtral": {
+                category: "model",
+                tags: ["Open Source", "Efficient"],
+                description: "French model startup. Mistral 7B: Beats Llama 13B. Mixtral: Mixture of Experts (efficient).",
+                details: "Good for local deployment. Fast inference. Apache 2.0 license."
+            },
+            "Phi-4 Series (Microsoft)": {
+                category: "model",
+                tags: ["Small", "Efficient"],
+                description: "Microsoft's small efficient models. Phi-4: Beats larger models on benchmarks. Great for edge/local.",
+                details: "Runs on laptops, phones. Optimal efficiency/performance trade-off."
+            },
+            "DeepSeek R1 & Reasoning Models": {
+                category: "model",
+                tags: ["Reasoning", "Advanced"],
+                description: "Chinese breakthrough model. Excellent reasoning capabilities. Takes time to think. Better at math/logic.",
+                details: "Open source. Competitive with GPT-4 on reasoning tasks."
+            },
+            "Hermes Models (NousResearch)": {
+                category: "model",
+                tags: ["Open Source", "Instruction-Tuned"],
+                description: "High-quality instruction-following models. Built on Llama/Mistral. Great for agents.",
+                details: "Hermes-2: Excellent for tool use. Hermes-3: Latest, best instruction-following."
+            },
+            "Gemini 2.0 (Google)": {
+                category: "model",
+                tags: ["Proprietary", "Multimodal"],
+                description: "Google's flagship 2024. Multimodal with audio/video support. Competitive with GPT-4O.",
+                details: "Deep integration with Google Workspace. Real-time capabilities."
+            },
+            "Grok (xAI)": {
+                category: "model",
+                tags: ["Latest", "Reasoning"],
+                description: "Elon Musk's xAI model. Real-time knowledge. No content restrictions.",
+                details: "Focused on reasoning. Latest information access."
+            },
+            
+            // ============ LOCAL & OPEN MODELS PLATFORMS ============
+            "Ollama": {
+                category: "tool",
+                tags: ["Local", "Easy"],
+                description: "Run any model locally. No GPU required. Quantization automatic. Works offline. Zero cost after setup.",
+                details: "ollama run llama2 | ollama pull mistral\nOpenAI-compatible API on localhost:11434"
+            },
+            "LM Studio": {
+                category: "tool",
+                tags: ["GUI", "Local"],
+                description: "GUI for local LLMs. Easy model management. Chat interface built-in. No coding needed.",
+                details: "Better UX than Ollama. HuggingFace integration. Batch inference support."
+            },
+            "Hugging Face": {
+                category: "tool",
+                tags: ["Model Hub", "Community"],
+                description: "Largest model repository. 150K+ models. Free hosting. Community-driven. Standard Python library (transformers).",
+                details: "Download any model. Fine-tune. Share. Hub model downloads: 500M+/month."
+            },
+            "Together AI": {
+                category: "tool",
+                tags: ["API", "Open Models"],
+                description: "API for open-source models. LLaMA, Mistral, etc. 90% cheaper than OpenAI. Open-source friendly.",
+                details: "Per-token pricing. Good for startups. No proprietary lock-in."
+            },
+            "Groq LLM Inference": {
+                category: "tool",
+                tags: ["Speed", "Inference"],
+                description: "Fastest LLM inference on the planet. LLaMA inference at 800+ tokens/second. Free tier available.",
+                details: "Purpose-built hardware. Best for real-time applications. API-based."
+            },
+            "LocalAI": {
+                category: "tool",
+                tags: ["API", "Self-Hosted"],
+                description: "OpenAI-compatible API, runs locally. Any GGUF model. No internet needed. No API keys.",
+                details: "Drop-in replacement for OpenAI API. Self-hosted alternative."
+            },
+            "vLLM": {
+                category: "tool",
+                tags: ["Inference", "Optimization"],
+                description: "Fast LLM serving engine. Paged attention optimization. Used by major platforms.",
+                details: "Production inference server. High throughput, low latency."
+            },
+            "text-generation-webui": {
+                category: "tool",
+                tags: ["GUI", "Local"],
+                description: "Advanced GUI for running models locally. Multiple UIs, advanced features, model merging.",
+                details: "Community-developed. Flexible configuration. Supports most models."
+            },
+            
+            // ============ API PLATFORMS & SERVICES ============
+            "OpenAI API": {
+                category: "tool",
+                tags: ["Official", "Production"],
+                description: "GPT-4, GPT-4O, vision, embeddings. Industry standard. $0.50-100/month depending on usage.",
+                details: "Function calling, vision analysis, batch processing, fine-tuning available."
+            },
+            "Anthropic API": {
+                category: "tool",
+                tags: ["Official", "Production"],
+                description: "Claude models via API. Vision support. Long context (200K tokens). $3-15 per 1M tokens.",
+                details: "Batch API for cost savings (50% discount). Vision included. Constitution safety built-in."
+            },
+            "Google Cloud AI (Vertex AI)": {
+                category: "tool",
+                tags: ["Enterprise", "Multimodal"],
+                description: "Gemini API access. Multimodal models. Enterprise support. Competitive pricing.",
+                details: "Vertex Generative AI. PaLM 2, Gemini 2.0. Google Cloud integration."
+            },
+            "Replicate": {
+                category: "tool",
+                tags: ["API", "Community"],
+                description: "Run open-source models via API. Simple interface. Community Models. Pricing per second.",
+                details: "Great for experimentation. Supports image generation, LLMs, fine-tuning."
+            },
+            "Fireworks AI": {
+                category: "tool",
+                tags: ["Inference", "Speed"],
+                description: "Fast inference API. Open-source models. 10x cheaper than OpenAI. Real-time streaming.",
+                details: "Dedicated for serving open models. Low latency, high throughput."
+            },
+            
+            // ============ MULTIMODAL & VISION ============
+            "Vision Language Models (VLM)": {
+                category: "core",
+                tags: ["Multimodal"],
+                description: "Models that understand images and text. GPT-4V, Claude 3 Vision, Gemini Vision. Can analyze images, PDFs, screenshots.",
+                details: "Applications: Document analysis, image captioning, visual QA, OCR."
+            },
+            "DALL-E 3": {
+                category: "tool",
+                tags: ["Image Generation"],
+                description: "OpenAI's latest image generation. High quality. Text-to-image. Integrated with GPT-4.",
+                details: "Best text-to-image quality. Prompt optimization built-in."
+            },
+            "Midjourney": {
+                category: "tool",
+                tags: ["Image Generation", "Commercial"],
+                description: "Discord-based image generation. High-quality artistic style. $20-120/month subscription.",
+                details: "Popular with designers. Consistent style. Community-driven."
+            },
+            "Stable Diffusion 3": {
+                category: "tool",
+                tags: ["Open Source", "Image Generation"],
+                description: "Open-source image generation. Can run locally. Free to use.",
+                details: "Text-to-image, image-to-image. LoRA fine-tuning support."
+            },
+            "LLaVA (Large Language and Vision Assistant)": {
+                category: "tool",
+                tags: ["Open Source", "Vision"],
+                description: "Open-source vision-language model. Runs locally. Combines Llama with vision.",
+                details: "Good for local vision tasks. Community improvements active."
+            },
+            
+            // ============ AGENTS & AUTONOMOUS SYSTEMS ============
+            "Agent Frameworks": {
+                category: "tool",
+                tags: ["Agents"],
+                description: "Build autonomous AI agents. ReAct, tool use, planning, reasoning loops.",
+                details: "Agents can: Search, Code, Read files, API calls, Database queries. Multi-step reasoning."
+            },
+            "LangChain": {
+                category: "framework",
+                tags: ["Orchestration", "Popular"],
+                description: "Python/JS framework for building LLM applications. 100+ integrations. Agents, RAG, chains.",
+                details: "Industry standard. Large ecosystem. Active development. Supports all major LLMs."
+            },
+            "LangGraph": {
+                category: "framework",
+                tags: ["Agents", "Graphs"],
+                description: "Graph-based agent framework. Build stateful, multi-actor agents. Visual debugging.",
+                details: "More powerful than chains. Handles complex workflows. Built on LangChain."
+            },
+            "LlamaIndex": {
+                category: "framework",
+                tags: ["RAG", "Documents"],
+                description: "RAG framework. Load, index, query documents with LLMs. Vector DB integration.",
+                details: "Simple API. Great for document Q&A. Integrates with LangChain."
+            },
+            "CrewAI": {
+                category: "framework",
+                tags: ["Agents", "Collaboration"],
+                description: "Framework for multi-agent teams. Agents collaborate on complex tasks. Role-based.",
+                details: "Great for complex workflows. Task delegation. Hierarchical agents."
+            },
+            "AutoGPT & Open-Source Agents": {
+                category: "tool",
+                tags: ["Autonomous", "Experimental"],
+                description: "Self-directed AI agents. Can run complex tasks autonomously. Experimental stage.",
+                details: "Safety concerns. Active research area. Improvements ongoing."
+            },
+            "OpenInterpreter (Open Code Execution)": {
+                category: "tool",
+                tags: ["Code Execution", "Agents"],
+                description: "Execute code from LLM output. Local code execution. Unrestricted computation.",
+                details: "Dangerous if not controlled. Can analyze data, create visualizations, run scripts."
+            },
+            
+            // ============ RAG & KNOWLEDGE SYSTEMS ============
+            "Retrieval Augmented Generation (RAG)": {
+                category: "framework",
+                tags: ["Knowledge", "Enhancement"],
+                description: "Combine LLM with knowledge retrieval. Current knowledge, proprietary data, real-time info.",
+                details: "Process: Query → Search knowledge base → Retrieve → Augment prompt → Generate. Reduces hallucination."
+            },
+            "Vector Databases": {
+                category: "tool",
+                tags: ["Storage"],
+                description: "Store and search embeddings at scale. Semantic search foundation.",
+                details: "Pinecone, Weaviate, Milvus, Qdrant, Chroma, FAISS, Supabase (pgvector)"
+            },
+            "Pinecone": {
+                category: "database",
+                tags: ["Managed", "Scalable"],
+                description: "Managed vector DB. $0.04-0.35 per 1M vectors/month. Cloud-hosted. Easy API.",
+                details: "Production-ready. Pod-based infrastructure. Scales to billions of vectors."
+            },
+            "Weaviate": {
+                category: "database",
+                tags: ["Open Source", "Flexible"],
+                description: "Open-source vector DB. Self-hosted or cloud. Free tier available. GraphQL API.",
+                details: "Runs in Docker. Hybrid search. Good for startups."
+            },
+            "Milvus": {
+                category: "database",
+                tags: ["Distributed", "High-Performance"],
+                description: "Distributed vector DB. Handles billions of vectors. Self-hosted. Enterprise-grade.",
+                details: "Used by major companies. Python SDK. Kubernetes support."
+            },
+            "Qdrant": {
+                category: "database",
+                tags: ["Vector Search", "Modern"],
+                description: "Vector search engine. Written in Rust. Real-time search. Cloud or self-hosted.",
+                details: "Fast, efficient. Payload filtering. Growing adoption."
+            },
+            "Chroma": {
+                category: "database",
+                tags: ["Lightweight", "Local"],
+                description: "Lightweight vector DB. In-memory or persistent. Perfect for local RAG. No external DB needed.",
+                details: "Embedded in Python. Great for development and testing."
+            },
+            "FAISS": {
+                category: "database",
+                tags: ["Local", "Free"],
+                description: "Facebook AI Similarity Search. In-memory vector search. No external DB. Zero cost.",
+                details: "Good for local RAG. Embedded search option."
+            },
+            "Semantic Search": {
+                category: "technique",
+                tags: ["Core", "RAG"],
+                description: "Find similar documents using embeddings. Matches meaning, not just keywords.",
+                details: "Embedding model: text-embedding-3, bge-large-en, etc. Cosine similarity search."
+            },
+            
+            // ============ REAL-TIME AI APPLICATIONS ============
+            "Real-Time AI Chat": {
+                category: "realtime",
+                tags: ["Live", "Streaming"],
+                description: "Streaming responses. Token-by-token output. Low latency (100-200ms). WebSocket support.",
+                details: "Used in ChatGPT, Claude.ai, Perplexity. Better UX. Immediate feedback."
+            },
+            "Real-Time Code Generation": {
+                category: "realtime",
+                tags: ["Live", "Developer"],
+                description: "Generate code in real-time. GitHub Copilot, Cursor IDE. As-you-type suggestions.",
+                details: "Streaming completion. Context from open files. Inline replacement."
+            },
+            "Real-Time Data Analysis": {
+                category: "realtime",
+                tags: ["Live", "Analytics"],
+                description: "Live data processing with AI. Real-time insights. Streaming LLM processing.",
+                details: "Process data streams. Immediate analysis. Pattern detection."
+            },
+            "Voice AI & Real-Time Speech": {
+                category: "realtime",
+                tags: ["Voice", "Live"],
+                description: "Real-time speech-to-text and text-to-speech. Whisper (OpenAI), ElevenLabs.",
+                details: "Streaming transcription. Natural voice synthesis. Multi-language support."
+            },
+            "Live Video Analysis": {
+                category: "realtime",
+                tags: ["Video", "Vision"],
+                description: "Analyze video streams in real-time. Object detection, activity recognition.",
+                details: "RTMP streaming support. Immediate analysis. Multi-frame processing."
+            },
+            "Real-Time Search": {
+                category: "realtime",
+                tags: ["Search", "Live"],
+                description: "Search web/knowledge base during response. Perplexity, SearchGPT models.",
+                details: "Live result integration. Citations included. Current information."
+            },
+            
+            // ============ INDUSTRY APPLICATIONS ============
+            "Healthcare & Medical AI": {
+                category: "application",
+                tags: ["Industry", "Enterprise"],
+                description: "Diagnostic assistance, clinical documentation, medical image analysis. FDA regulations apply.",
+                details: "Models: Med-PaLM, Llama-Med. Applications: X-ray analysis, EHR automation, drug discovery."
+            },
+            "Finance & Trading": {
+                category: "application",
+                tags: ["Industry", "Enterprise"],
+                description: "Financial analysis, risk assessment, portfolio management, market prediction.",
+                details: "Real-time market analysis. Regulatory compliance. Risk modeling."
+            },
+            "Legal Tech": {
+                category: "application",
+                tags: ["Industry", "Enterprise"],
+                description: "Contract analysis, document review, legal research, compliance checking.",
+                details: "Long-context models: Claude excels here. Reduces hours of manual review."
+            },
+            "Content Generation & Marketing": {
+                category: "application",
+                tags: ["Industry", "Commercial"],
+                description: "Blog posts, social media, ads, copywriting. Content quality improving fast.",
+                details: "SEO optimization, brand voice consistency, multi-format generation."
+            },
+            "Software Development": {
+                category: "application",
+                tags: ["Industry", "Developer"],
+                description: "Code generation, debugging, testing, documentation. GitHub Copilot, Cursor.",
+                details: "Function generation to full projects. Test case generation. Architecture suggestions."
+            },
+            "Customer Service": {
+                category: "application",
+                tags: ["Industry", "Commercial"],
+                description: "Chatbots, automated support, ticket routing, sentiment analysis.",
+                details: "24/7 availability. Multilingual support. Escalation to humans."
+            },
+            "Education & Learning": {
+                category: "application",
+                tags: ["Industry", "Social"],
+                description: "Personalized tutoring, homework assistance, curriculum design, assessment.",
+                details: "Adaptive learning paths. Instant feedback. Multi-language support."
+            },
+            "Research & Academia": {
+                category: "application",
+                tags: ["Industry", "Academic"],
+                description: "Literature review, hypothesis generation, data analysis, paper writing.",
+                details: "Citation generation, research paper analysis, experimental design suggestions."
+            },
+            "Cybersecurity": {
+                category: "application",
+                tags: ["Security", "Enterprise"],
+                description: "Threat detection, vulnerability analysis, incident response automation.",
+                details: "Log analysis, anomaly detection, attack pattern recognition."
+            },
+            "E-Commerce": {
+                category: "application",
+                tags: ["Industry", "Commercial"],
+                description: "Product recommendations, dynamic pricing, customer insights, catalog management.",
+                details: "Personalized experience. Inventory optimization. Churn prediction."
+            },
+            
+            // ============ CURRENT TRENDS 2026 ============
+            "Multimodal Everything": {
+                category: "trend",
+                tags: ["Current", "2026"],
+                description: "All models becoming multimodal. Text + Image + Video + Audio. Unified interfaces.",
+                details: "No more single-modality models. Foundation models handle everything. Emerging video understanding."
+            },
+            "Open Source Convergence": {
+                category: "trend",
+                tags: ["Current", "2026"],
+                description: "Open models (Llama 3.1 405B) approaching proprietary quality. Commoditization happening.",
+                details: "Local deployment becoming standard. Ollama adoption skyrocketing."
+            },
+            "Reasoning & Test-Time Compute": {
+                category: "trend",
+                tags: ["Current", "2026"],
+                description: "Models that take time to think (o1, DeepSeek R1). Better reasoning than scaling. New paradigm.",
+                details: "Complex reasoning possible without huge scale. Chain-of-thought built into architecture."
+            },
+            "Real-Time AI Integration": {
+                category: "trend",
+                tags: ["Current", "2026"],
+                description: "AI embedded in every application. Streaming, live analysis, low latency critical.",
+                details: "Latency expectations: <200ms for chat, <500ms for analysis."
+            },
+            "Privacy & On-Device AI": {
+                category: "trend",
+                tags: ["Current", "2026"],
+                description: "Edge inference growing. Phi-4 on phones. No data sent to servers. Privacy-first architecture.",
+                details: "Regulations forcing local processing. Cost savings from edge inference."
+            },
+            "Enterprise Adoption at Scale": {
+                category: "trend",
+                tags: ["Current", "2026"],
+                description: "From pilots to production. Thousands of companies with AI agents in production.",
+                details: "Integration with existing systems. Security/compliance addressed. ROI proven."
+            },
+            "Specialized Models Over Foundation Models": {
+                category: "trend",
+                tags: ["Current", "2026"],
+                description: "Fine-tuned, domain-specific models outperforming general models. Cost-effective.",
+                details: "Medical models, legal models, coding models. Better ROI than generic models."
+            },
+            "Agentic AI Boom": {
+                category: "trend",
+                tags: ["Current", "2026"],
+                description: "From chat to autonomous agents. Task automation. Tool use becoming standard.",
+                details: "Agents handling complex workflows. Multi-step reasoning. Replacing traditional automation."
+            },
+            "AI Safety & Alignment Focus": {
+                category: "trend",
+                tags: ["Current", "2026"],
+                description: "Safety research accelerating. Red teaming standard. Regulatory frameworks emerging.",
+                details: "Constitutional AI, watermarking, interpretability all active areas."
+            },
+            "Cost & Efficiency War": {
+                category: "trend",
+                tags: ["Current", "2026"],
+                description: "Price wars. 90% drops in 18 months. Competition intense. Margins compressing.",
+                details: "API costs: $0.00001 per 1K tokens for cheap models. Self-hosting cheaper than API."
+            },
+            
+            // ============ ENTERPRISE SOLUTIONS ============
+            "Enterprise LLM Platforms": {
+                category: "enterprise",
+                tags: ["Business", "Production"],
+                description: "Full-stack solutions: Models, infrastructure, security, compliance. Databricks, Hugging Face Enterprise.",
+                details: "MLflow, UC catalog, governance. SOC2, HIPAA compliance. 24/7 support."
+            },
+            "LLM Ops & Monitoring": {
+                category: "enterprise",
+                tags: ["Operations"],
+                description: "Monitor LLM performance in production. Cost tracking, quality metrics, latency monitoring.",
+                details: "Tools: Helicone, Langsmith, Traceloop. Real-time dashboards. Alerting systems."
+            },
+            "Fine-Tuning Services": {
+                category: "enterprise",
+                tags: ["Customization"],
+                description: "Fine-tune models on proprietary data. OpenAI, Anthropic offer services. Custom domain expertise.",
+                details: "Training infrastructure provided. No data leaves your org. Licensing included."
+            },
+            "Model Deployment & Serving": {
+                category: "enterprise",
+                tags: ["Infrastructure"],
+                description: "Deploy models at scale. Kubernetes, serverless, dedicated instances. Auto-scaling.",
+                details: "AWS SageMaker, Google Vertex, Azure ML. Managed services with guarantees."
+            },
+            "RAG Enterprise Solutions": {
+                category: "enterprise",
+                tags: ["Knowledge", "Production"],
+                description: "Secure, scalable RAG. Private data handling. Compliance-first. Full audit trails.",
+                details: "Solutions: Unstructured.io, Pathway, LangSmith. Data security critical."
+            },
+            
+            // ============ SECURITY THREATS ============
+            "Prompt Injection": {
+                category: "security",
+                tags: ["Critical", "Threat"],
+                description: "Malicious instructions injected into inputs. LLM follows attacker's commands.",
+                details: "Defense: Input validation, prompt guardrails, constitutional AI."
+            },
+            "Model Extraction": {
+                category: "security",
+                tags: ["Critical", "IP Theft"],
+                description: "Replicate model through repeated queries. Steal weights, behavior, architecture.",
+                details: "Defense: Rate limiting, query tracking, watermarking, DP."
+            },
+            "Data Poisoning": {
+                category: "security",
+                tags: ["Critical", "Training"],
+                description: "Corrupt training data. Model learns malicious behavior or backdoors.",
+                details: "Defense: Data validation, clean sources, robust training, model verification."
+            },
+            "Membership Inference": {
+                category: "security",
+                tags: ["Privacy", "Threat"],
+                description: "Determine if specific data in training set. Privacy violation.",
+                details: "Defense: Differential privacy, anonymization, privacy-preserving training."
+            },
+            "Adversarial Attacks": {
+                category: "security",
+                tags: ["Threat"],
+                description: "Crafted inputs cause LLM failures. Jailbreaking, toxic output generation.",
+                details: "Defense: Robust training, input filtering, detection systems."
+            },
+            "DoS Attacks": {
+                category: "security",
+                tags: ["Availability"],
+                description: "Flood API with requests. Service unavailable. Expensive: Each token costs.",
+                details: "Defense: Rate limiting, DDoS protection, request validation."
+            },
+            
+            // ============ SECURITY DEFENSES ============
+            "Rate Limiting": {
+                category: "security",
+                tags: ["Defense"],
+                description: "Limit requests per user/IP. Prevents DoS and extraction. Cost control.",
+                details: "Implementation: 100 req/min per user. Exponential backoff."
+            },
+            "Input Validation": {
+                category: "security",
+                tags: ["Defense"],
+                description: "Check inputs before sending to LLM. Block injections, size limits, malicious patterns.",
+                details: "Regex patterns, semantic analysis, prompt validators."
+            },
+            "Output Filtering": {
+                category: "security",
+                tags: ["Defense"],
+                description: "Monitor LLM outputs. Detect data leaks, toxic content, code injection.",
+                details: "Content filters, PII detection, semantic analysis."
+            },
+            "Constitutional AI": {
+                category: "security",
+                tags: ["Defense", "Safety"],
+                description: "Define safety principles. Train LLM to self-improve based on principles.",
+                details: "Used in Claude. Scalable safety training. Ethical criteria enforcement."
+            },
+            "Differential Privacy": {
+                category: "security",
+                tags: ["Defense", "Privacy"],
+                description: "Add noise during training. Prevent privacy attacks.",
+                details: "DP-SGD training. Privacy-accuracy trade-off. Critical for sensitive data."
+            },
+            "Model Watermarking": {
+                category: "security",
+                tags: ["Defense", "IP"],
+                description: "Embed hidden identifiers in model. Prove ownership. Detect unauthorized copies.",
+                details: "Trigger-set watermarking, backdoor watermarking."
+            },
+            "Encryption & TLS": {
+                category: "security",
+                tags: ["Defense"],
+                description: "HTTPS/TLS for data in transit. AES-256 for at-rest data.",
+                details: "Industry standard. Mandatory for production."
+            },
+            "Access Control": {
+                category: "security",
+                tags: ["Defense"],
+                description: "API keys, OAuth, MFA. Least privilege principle. Who can access what.",
+                details: "Role-based access control. Audit logs. Regular access review."
+            }
+        };
+        
+        function renderContent() {
+            const mainContent = document.getElementById('mainContent');
+            const mainGrid = document.createElement('div');
+            mainGrid.className = 'main-grid';
+            
+            const sections = {
+                '🧠 CORE CONCEPTS': Object.entries(knowledgeBase).filter(([_, v]) => v.category === 'core'),
+                '🤖 LLM MODELS (2026)': Object.entries(knowledgeBase).filter(([_, v]) => v.category === 'model'),
+                '🛠️ TOOLS & PLATFORMS': Object.entries(knowledgeBase).filter(([_, v]) => v.category === 'tool'),
+                '🎯 FRAMEWORKS': Object.entries(knowledgeBase).filter(([_, v]) => v.category === 'framework'),
+                '🔍 RAG & KNOWLEDGE': Object.entries(knowledgeBase).filter(([_, v]) => v.category === 'database'),
+                '⚡ REAL-TIME SYSTEMS': Object.entries(knowledgeBase).filter(([_, v]) => v.category === 'realtime'),
+                '🏢 APPLICATIONS': Object.entries(knowledgeBase).filter(([_, v]) => v.category === 'application'),
+                '🔥 TRENDS 2026': Object.entries(knowledgeBase).filter(([_, v]) => v.category === 'trend'),
+                '🏭 ENTERPRISE': Object.entries(knowledgeBase).filter(([_, v]) => v.category === 'enterprise'),
+                '🔒 SECURITY': Object.entries(knowledgeBase).filter(([_, v]) => v.category === 'security')
+            };
+            
+            let sectionHTML = '';
+            for (const [sectionName, items] of Object.entries(sections)) {
+                if (items.length === 0) continue;
+                
+                sectionHTML += `<div class="section">
+                    <div class="section-title">${sectionName}</div>
+                    <div class="node-list">`;
+                
+                items.forEach(([nodeName, nodeData]) => {
+                    sectionHTML += `<div class="node ${nodeData.category}" onclick="showDetails('${nodeName}')">${nodeName}</div>`;
+                });
+                
+                sectionHTML += `</div></div>`;
+            }
+            
+            sectionHTML += `<div class="details-panel empty" id="detailsPanel" style="grid-column: 1/-1;">
+                <div>⚡ CLICK_NODE_FOR_DETAILS ⚡</div>
+            </div>`;
+            
+            mainContent.innerHTML = sectionHTML;
+        }
+        
+        function showDetails(nodeName) {
+            const panel = document.getElementById('detailsPanel');
+            const nodeData = knowledgeBase[nodeName];
+            
+            if (!nodeData) return;
+            
+            let html = `<div class="detail-title">→ ${nodeName}</div>`;
+            
+            if (nodeData.tags) {
+                html += `<div style="margin-bottom: 12px;">`;
+                nodeData.tags.forEach(tag => {
+                    html += `<span class="tag ${tag === 'Critical' ? 'critical' : ''}">${tag}</span>`;
+                });
+                html += `</div>`;
+            }
+            
+            html += `<div class="detail-content">${nodeData.description}</div>`;
+            html += `<div class="detail-category">📋 DETAILS</div>
+                    <div class="detail-content">${nodeData.details}</div>`;
+            
+            html += `<div class="detail-category">🔗 EXPLORE RELATED</div><div class="related-items">`;
+            
+            const allNodeNames = Object.keys(knowledgeBase);
+            allNodeNames.slice(0, 6).forEach(name => {
+                if (name !== nodeName) {
+                    html += `<div class="related-item" onclick="showDetails('${name}')">${name}</div>`;
+                }
+            });
+            html += `</div>`;
+            
+            panel.className = 'details-panel';
+            panel.innerHTML = html;
+            panel.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        document.getElementById('searchBox').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const nodes = document.querySelectorAll('.node');
+            nodes.forEach(node => {
+                node.style.display = (query === '' || node.textContent.toLowerCase().includes(query)) ? 'inline-block' : 'none';
+            });
+        });
+        
+        function filterByCategory(category) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            const nodes = document.querySelectorAll('.node');
+            nodes.forEach(node => {
+                node.style.display = (category === '' || node.classList.contains(category)) ? 'inline-block' : 'none';
+            });
+        }
+        
+        function switchTab(tab) {
+            document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById('content' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tab !== 'all' && !document.getElementById('content' + tab.charAt(0).toUpperCase() + tab.slice(1)).innerHTML.includes('section')) {
+                renderTabContent(tab);
+            }
+        }
+        
+        function renderTabContent(tab) {
+            const contentId = 'content' + tab.charAt(0).toUpperCase() + tab.slice(1);
+            const container = document.getElementById(contentId);
+            const categoryMap = {
+                'applications': 'application',
+                'realtime': 'realtime',
+                'trends': 'trend',
+                'enterprise': 'enterprise'
+            };
+            
+            const items = Object.entries(knowledgeBase).filter(([_, v]) => v.category === categoryMap[tab]);
+            let html = '';
+            
+            items.forEach(([nodeName, nodeData]) => {
+                html += `<div class="section">
+                    <div class="section-title">${nodeName}</div>
+                    <div class="detail-content">${nodeData.description}</div>
+                    <div style="margin-top: 10px;">`;
+                if (nodeData.tags) {
+                    nodeData.tags.forEach(tag => {
+                        html += `<span class="tag">${tag}</span>`;
+                    });
+                }
+                html += `</div></div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        window.addEventListener('load', renderContent);
+    </script>
+</body>
+</html>

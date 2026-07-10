@@ -1,0 +1,475 @@
+VM1083:7 Console was cleared
+0ezw0xqwdne5s.js:10 🧪 GROK SCRAPER QUICK TEST
+0ezw0xqwdne5s.js:10 
+1️⃣  SELECTORS
+0ezw0xqwdne5s.js:10 User messages: 14
+0ezw0xqwdne5s.js:10 Assistant messages: 14
+0ezw0xqwdne5s.js:10 Message bubbles: 28
+0ezw0xqwdne5s.js:10 Main container: ✅
+0ezw0xqwdne5s.js:10 
+2️⃣  STREAMING CHECK
+0ezw0xqwdne5s.js:10 Streaming messages: 0
+0ezw0xqwdne5s.js:10 
+3️⃣  CONTENT EXTRACTION
+0ezw0xqwdne5s.js:10 User: "Full Vision: All Features in ContextForge (Long-term Product..."
+0ezw0xqwdne5s.js:10 Assistant: "ok
+I understand everything clearly.
+The full vision for Cont..."
+0ezw0xqwdne5s.js:10 
+4️⃣  SUMMARY
+0ezw0xqwdne5s.js:10 ✅ SUCCESS: 28 messages (14 user, 14 assistant)
+0ezw0xqwdne5s.js:10 
+For full test, run: GROK_TEST_SCRIPT.js
+undefined
+/**
+ * GROK SCRAPER TEST SCRIPT
+ * 
+ * Run this in the browser console on grok.com to test the scraper
+ * Copy the entire script and paste it into the DevTools console
+ */
+
+console.log('========== GROK SCRAPER TEST SCRIPT ==========\n');
+
+// ─────────────────────────────────────────────────────────────────────────
+// 1. TEST SELECTORS
+// ─────────────────────────────────────────────────────────────────────────
+
+console.log('1️⃣  TESTING SELECTORS\n');
+
+const selectors = {
+  'data-testid="user-message"': '[data-testid="user-message"]',
+  'data-testid="assistant-message"': '[data-testid="assistant-message"]',
+  'message-bubble class': '[class*="message-bubble"]',
+  'main root': 'main',
+};
+
+Object.entries(selectors).forEach(([name, sel]) => {
+  const els = document.querySelectorAll(sel);
+  const withText = [...els].filter(el => (el.textContent?.trim().length ?? 0) > 0);
+  console.log(`✅ "${name}" → ${els.length} total, ${withText.length} with text`);
+  if (withText.length > 0) {
+    console.log(`   First element text: "${withText[0].textContent?.trim().slice(0, 80)}..."`);
+  }
+});
+
+console.log('\n');
+
+// ─────────────────────────────────────────────────────────────────────────
+// 2. TEST MESSAGE EXTRACTION
+// ─────────────────────────────────────────────────────────────────────────
+
+console.log('2️⃣  TESTING MESSAGE EXTRACTION\n');
+
+function extractContent(el) {
+  if (!el) return '';
+  const clone = el.cloneNode(true);
+  // Remove script/style tags
+  clone.querySelectorAll('script, style').forEach(s => s.remove());
+  // Get text content
+  return clone.textContent?.trim() || '';
+}
+
+function testMessageExtraction() {
+  const userEls = document.querySelectorAll('[data-testid="user-message"]');
+  const assistantEls = document.querySelectorAll('[data-testid="assistant-message"]');
+  
+  console.log(`Found ${userEls.length} user messages:`);
+  userEls.forEach((el, i) => {
+    const content = extractContent(el);
+    const preview = content.slice(0, 60);
+    console.log(`  [${i}] "${preview}${content.length > 60 ? '...' : ''}"`);
+  });
+  
+  console.log(`\nFound ${assistantEls.length} assistant messages:`);
+  assistantEls.forEach((el, i) => {
+    const content = extractContent(el);
+    const preview = content.slice(0, 60);
+    console.log(`  [${i}] "${preview}${content.length > 60 ? '...' : ''}"`);
+  });
+}
+
+testMessageExtraction();
+
+console.log('\n');
+
+// ─────────────────────────────────────────────────────────────────────────
+// 3. TEST MESSAGE-BUBBLE FALLBACK
+// ─────────────────────────────────────────────────────────────────────────
+
+console.log('3️⃣  TESTING MESSAGE-BUBBLE FALLBACK\n');
+
+function testMessageBubbleFallback() {
+  const bubbles = [...document.querySelectorAll('[class*="message-bubble"]')]
+    .filter(el => (el.textContent?.trim().length ?? 0) > 30);
+  
+  console.log(`Found ${bubbles.length} message-bubble elements with >30 chars text\n`);
+  
+  const messages = {
+    user: [],
+    assistant: [],
+    unknown: []
+  };
+  
+  bubbles.forEach((el, i) => {
+    const testid = el.getAttribute('data-testid') || '';
+    const content = extractContent(el).slice(0, 60);
+    
+    if (testid.includes('user')) {
+      messages.user.push({ el, testid, content });
+      console.log(`  [${i}] USER (testid="${testid}"): "${content}..."`);
+    } else if (testid.includes('assistant')) {
+      messages.assistant.push({ el, testid, content });
+      console.log(`  [${i}] ASSISTANT (testid="${testid}"): "${content}..."`);
+    } else {
+      messages.unknown.push({ el, testid, content });
+      console.log(`  [${i}] UNKNOWN (testid="${testid}"): "${content}..."`);
+    }
+  });
+  
+  console.log(`\nSummary: ${messages.user.length} user, ${messages.assistant.length} assistant, ${messages.unknown.length} unknown`);
+  return messages;
+}
+
+const messages = testMessageBubbleFallback();
+
+console.log('\n');
+
+// ─────────────────────────────────────────────────────────────────────────
+// 4. TEST STREAMING DETECTION
+// ─────────────────────────────────────────────────────────────────────────
+
+console.log('4️⃣  TESTING STREAMING DETECTION\n');
+
+function isStreaming(el) {
+  return (
+    el.getAttribute('data-streaming') === 'true' ||
+    el.closest('[data-streaming="true"]') !== null ||
+    el.closest('[class*="streaming"]') !== null ||
+    el.closest('[class*="loading"]') !== null
+  );
+}
+
+const allMessages = document.querySelectorAll('[data-testid*="message"]');
+const streamingCount = [...allMessages].filter(isStreaming).length;
+const nonStreamingCount = allMessages.length - streamingCount;
+
+console.log(`Total messages: ${allMessages.length}`);
+console.log(`Streaming: ${streamingCount}`);
+console.log(`Non-streaming: ${nonStreamingCount}`);
+
+if (streamingCount > 0) {
+  console.log('\n⚠️  WARNING: Some messages are still streaming. Wait for them to complete.');
+}
+
+console.log('\n');
+
+// ─────────────────────────────────────────────────────────────────────────
+// 5. TEST ROOT CONTAINER
+// ─────────────────────────────────────────────────────────────────────────
+
+console.log('5️⃣  TESTING ROOT CONTAINER\n');
+
+const mainEl = document.querySelector('main');
+if (mainEl) {
+  const messageCount = mainEl.querySelectorAll('[data-testid*="message"]').length;
+  console.log(`✅ <main> found`);
+  console.log(`   Contains ${messageCount} message elements`);
+  console.log(`   Class: "${mainEl.className.slice(0, 80)}..."`);
+} else {
+  console.log(`❌ <main> NOT found`);
+}
+
+console.log('\n');
+
+// ─────────────────────────────────────────────────────────────────────────
+// 6. SIMULATE FULL SCRAPE
+// ─────────────────────────────────────────────────────────────────────────
+
+console.log('6️⃣  SIMULATING FULL SCRAPE\n');
+
+function simulateScrape() {
+  const found = [];
+  
+  // Strategy 1: data-testid
+  const userEls = document.querySelectorAll('[data-testid="user-message"]');
+  const assistantEls = document.querySelectorAll('[data-testid="assistant-message"]');
+  
+  userEls.forEach(el => {
+    if (!isStreaming(el)) {
+      found.push({ el, role: 'user' });
+    }
+  });
+  
+  assistantEls.forEach(el => {
+    if (!isStreaming(el)) {
+      found.push({ el, role: 'assistant' });
+    }
+  });
+  
+  // Convert to messages
+  const messages = found.map(({ el, role }) => ({
+    role,
+    content: extractContent(el),
+    timestamp: Date.now()
+  })).filter(m => m.content.trim().length > 0);
+  
+  // Sort by document order
+  found.sort((a, b) =>
+    a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+  );
+  
+  return messages;
+}
+
+const scrapedMessages = simulateScrape();
+console.log(`✅ Scraped ${scrapedMessages.length} messages\n`);
+
+scrapedMessages.forEach((msg, i) => {
+  const preview = msg.content.slice(0, 70);
+  console.log(`[${i}] ${msg.role.toUpperCase()}: "${preview}${msg.content.length > 70 ? '...' : ''}"`);
+});
+
+console.log('\n');
+
+// ─────────────────────────────────────────────────────────────────────────
+// 7. FINAL REPORT
+// ─────────────────────────────────────────────────────────────────────────
+
+console.log('7️⃣  FINAL REPORT\n');
+
+const userCount = scrapedMessages.filter(m => m.role === 'user').length;
+const assistantCount = scrapedMessages.filter(m => m.role === 'assistant').length;
+
+console.log(`Total messages: ${scrapedMessages.length}`);
+console.log(`User messages: ${userCount}`);
+console.log(`Assistant messages: ${assistantCount}`);
+console.log(`Balance: ${userCount > 0 && assistantCount > 0 ? '✅ GOOD' : '❌ IMBALANCED'}`);
+
+if (scrapedMessages.length === 0) {
+  console.log('\n❌ NO MESSAGES FOUND - Check:');
+  console.log('   1. Are you on a Grok conversation page?');
+  console.log('   2. Does the page have any messages visible?');
+  console.log('   3. Are messages still streaming? Wait for them to complete.');
+} else if (userCount === 0 || assistantCount === 0) {
+  console.log('\n⚠️  IMBALANCED - Only one role found');
+  console.log('   Check if selectors are matching correctly');
+} else {
+  console.log('\n✅ SUCCESS - Scraper should work!');
+}
+
+console.log('\n========== END TEST SCRIPT ==========\n');
+
+// ─────────────────────────────────────────────────────────────────────────
+// HELPER: Export data for debugging
+// ─────────────────────────────────────────────────────────────────────────
+
+window.grokTestData = {
+  scrapedMessages,
+  userCount,
+  assistantCount,
+  messageElements: {
+    user: document.querySelectorAll('[data-testid="user-message"]').length,
+    assistant: document.querySelectorAll('[data-testid="assistant-message"]').length,
+  },
+  extractContent,
+  isStreaming,
+};
+
+console.log('💾 Test data saved to window.grokTestData');
+console.log('   Access with: window.grokTestData');
+
+ ========== GROK SCRAPER TEST SCRIPT ==========
+
+ 1️⃣  TESTING SELECTORS
+
+ ✅ "data-testid="user-message"" → 14 total, 14 with text
+    First element text: "Full Vision: All Features in ContextForge (Long-term Product)
+Core Purpose: A li..."
+ ✅ "data-testid="assistant-message"" → 14 total, 14 with text
+    First element text: "ok
+I understand everything clearly.
+The full vision for ContextForge, the phased..."
+ ✅ "message-bubble class" → 28 total, 28 with text
+    First element text: "Full Vision: All Features in ContextForge (Long-term Product)
+Core Purpose: A li..."
+0ezw0xqwdne5s.js:10 ✅ "main root" → 1 total, 1 with text
+0ezw0xqwdne5s.js:10    First element text: "Full Vision: All Features in ContextForge (Long-term Product)
+Core Purpose: A li..."
+0ezw0xqwdne5s.js:10 
+
+0ezw0xqwdne5s.js:10 2️⃣  TESTING MESSAGE EXTRACTION
+
+0ezw0xqwdne5s.js:10 Found 14 user messages:
+0ezw0xqwdne5s.js:10   [0] "Full Vision: All Features in ContextForge (Long-term Product..."
+0ezw0xqwdne5s.js:10   [1] "give me full prompt for claude"
+0ezw0xqwdne5s.js:10   [2] "give me prompt for claude to build the chrome extention"
+0ezw0xqwdne5s.js:10   [3] "ok"
+0ezw0xqwdne5s.js:10   [4] "tell me what whre I am standing
+and what is standing between..."
+0ezw0xqwdne5s.js:10   [5] "claude recommend me this
+and tell me if there is existing pr..."
+0ezw0xqwdne5s.js:10   [6] "(i am working on the UI for web right now , consider it done..."
+0ezw0xqwdne5s.js:10   [7] "most realistic technologies to mearge with my tech. ,,, like..."
+0ezw0xqwdne5s.js:10   [8] "I was also thinking few more features too add on
+tell me how..."
+0ezw0xqwdne5s.js:10   [9] "I was also thinking few more features too add on
+tell me how..."
+0ezw0xqwdne5s.js:10   [10] "I was also thinking few more features too add on
+tell me how..."
+0ezw0xqwdne5s.js:10   [11] "create a report
+about my game plan
+and also include the pric..."
+0ezw0xqwdne5s.js:10   [12] "detail focus mode Implemenataion
+explore AI context tools
+Re..."
+0ezw0xqwdne5s.js:10   [13] "ok"
+0ezw0xqwdne5s.js:10 
+Found 14 assistant messages:
+0ezw0xqwdne5s.js:10   [0] "ok
+I understand everything clearly.
+The full vision for Cont..."
+0ezw0xqwdne5s.js:10   [1] "Here's the full, ready-to-use prompt optimized specifically ..."
+0ezw0xqwdne5s.js:10   [2] "Here's a complete, ready-to-use prompt you can give to Claud..."
+0ezw0xqwdne5s.js:10   [3] "No response."
+0ezw0xqwdne5s.js:10   [4] "Thought for 3sYou're standing at a very strong MVP / early b..."
+0ezw0xqwdne5s.js:10   [5] "Thought for 29sGot it. Claude’s screenshot is spot-on advice..."
+0ezw0xqwdne5s.js:10   [6] "Thought for 18sContextForge Strategic Report & Action Plan
+D..."
+0ezw0xqwdne5s.js:10   [7] "Thought for 17sContextForge — Merging Strategy Report
+“Most ..."
+0ezw0xqwdne5s.js:10   [8] "ThoughtsRequest was interrupted by the user."
+0ezw0xqwdne5s.js:10   [9] "Thought for 5s✅ Full Feedback on Your 6 Future Features + Ma..."
+0ezw0xqwdne5s.js:10   [10] "Thought for 13s✅ Updated April 26, 2026 Feedback on Your 6 F..."
+0ezw0xqwdne5s.js:10   [11] "Thought for 18sContextForge — Full Game Plan Report
+Date: Ap..."
+0ezw0xqwdne5s.js:10   [12] "Thought for 16sContextForge — Detailed Focus Mode Implementa..."
+0ezw0xqwdne5s.js:10   [13] "Thought for 13sGot it — “ok” received ✅
+You’ve read the full..."
+0ezw0xqwdne5s.js:10 
+
+0ezw0xqwdne5s.js:10 3️⃣  TESTING MESSAGE-BUBBLE FALLBACK
+
+0ezw0xqwdne5s.js:10 Found 24 message-bubble elements with >30 chars text
+
+0ezw0xqwdne5s.js:10   [0] USER (testid="user-message"): "Full Vision: All Features in ContextForge (Long-term Product..."
+0ezw0xqwdne5s.js:10   [1] ASSISTANT (testid="assistant-message"): "ok
+I understand everything clearly.
+The full vision for Cont..."
+0ezw0xqwdne5s.js:10   [2] ASSISTANT (testid="assistant-message"): "Here's the full, ready-to-use prompt optimized specifically ..."
+0ezw0xqwdne5s.js:10   [3] USER (testid="user-message"): "give me prompt for claude to build the chrome extention..."
+0ezw0xqwdne5s.js:10   [4] ASSISTANT (testid="assistant-message"): "Here's a complete, ready-to-use prompt you can give to Claud..."
+0ezw0xqwdne5s.js:10   [5] USER (testid="user-message"): "tell me what whre I am standing
+and what is standing between..."
+0ezw0xqwdne5s.js:10   [6] ASSISTANT (testid="assistant-message"): "Thought for 3sYou're standing at a very strong MVP / early b..."
+0ezw0xqwdne5s.js:10   [7] USER (testid="user-message"): "claude recommend me this
+and tell me if there is existing pr..."
+0ezw0xqwdne5s.js:10   [8] ASSISTANT (testid="assistant-message"): "Thought for 29sGot it. Claude’s screenshot is spot-on advice..."
+0ezw0xqwdne5s.js:10   [9] USER (testid="user-message"): "(i am working on the UI for web right now , consider it done..."
+0ezw0xqwdne5s.js:10   [10] ASSISTANT (testid="assistant-message"): "Thought for 18sContextForge Strategic Report & Action Plan
+D..."
+0ezw0xqwdne5s.js:10   [11] USER (testid="user-message"): "most realistic technologies to mearge with my tech. ,,, like..."
+0ezw0xqwdne5s.js:10   [12] ASSISTANT (testid="assistant-message"): "Thought for 17sContextForge — Merging Strategy Report
+“Most ..."
+0ezw0xqwdne5s.js:10   [13] USER (testid="user-message"): "I was also thinking few more features too add on
+tell me how..."
+0ezw0xqwdne5s.js:10   [14] ASSISTANT (testid="assistant-message"): "ThoughtsRequest was interrupted by the user...."
+0ezw0xqwdne5s.js:10   [15] USER (testid="user-message"): "I was also thinking few more features too add on
+tell me how..."
+0ezw0xqwdne5s.js:10   [16] ASSISTANT (testid="assistant-message"): "Thought for 5s✅ Full Feedback on Your 6 Future Features + Ma..."
+0ezw0xqwdne5s.js:10   [17] USER (testid="user-message"): "I was also thinking few more features too add on
+tell me how..."
+0ezw0xqwdne5s.js:10   [18] ASSISTANT (testid="assistant-message"): "Thought for 13s✅ Updated April 26, 2026 Feedback on Your 6 F..."
+0ezw0xqwdne5s.js:10   [19] USER (testid="user-message"): "create a report
+about my game plan
+and also include the pric..."
+0ezw0xqwdne5s.js:10   [20] ASSISTANT (testid="assistant-message"): "Thought for 18sContextForge — Full Game Plan Report
+Date: Ap..."
+0ezw0xqwdne5s.js:10   [21] USER (testid="user-message"): "detail focus mode Implemenataion
+explore AI context tools
+Re..."
+0ezw0xqwdne5s.js:10   [22] ASSISTANT (testid="assistant-message"): "Thought for 16sContextForge — Detailed Focus Mode Implementa..."
+0ezw0xqwdne5s.js:10   [23] ASSISTANT (testid="assistant-message"): "Thought for 13sGot it — “ok” received ✅
+You’ve read the full..."
+0ezw0xqwdne5s.js:10 
+Summary: 11 user, 13 assistant, 0 unknown
+0ezw0xqwdne5s.js:10 
+
+0ezw0xqwdne5s.js:10 4️⃣  TESTING STREAMING DETECTION
+
+0ezw0xqwdne5s.js:10 Total messages: 28
+0ezw0xqwdne5s.js:10 Streaming: 0
+0ezw0xqwdne5s.js:10 Non-streaming: 28
+0ezw0xqwdne5s.js:10 
+
+0ezw0xqwdne5s.js:10 5️⃣  TESTING ROOT CONTAINER
+
+0ezw0xqwdne5s.js:10 ✅ <main> found
+0ezw0xqwdne5s.js:10    Contains 28 message elements
+0ezw0xqwdne5s.js:10    Class: "h-full flex-grow flex-shrink relative selection:bg-highlight w-0 @container isol..."
+0ezw0xqwdne5s.js:10 
+
+0ezw0xqwdne5s.js:10 6️⃣  SIMULATING FULL SCRAPE
+
+0ezw0xqwdne5s.js:10 ✅ Scraped 28 messages
+
+0ezw0xqwdne5s.js:10 [0] USER: "Full Vision: All Features in ContextForge (Long-term Product)
+Core Pur..."
+0ezw0xqwdne5s.js:10 [1] USER: "give me full prompt for claude"
+0ezw0xqwdne5s.js:10 [2] USER: "give me prompt for claude to build the chrome extention"
+0ezw0xqwdne5s.js:10 [3] USER: "ok"
+0ezw0xqwdne5s.js:10 [4] USER: "tell me what whre I am standing
+and what is standing between me and mi..."
+0ezw0xqwdne5s.js:10 [5] USER: "claude recommend me this
+and tell me if there is existing products lik..."
+0ezw0xqwdne5s.js:10 [6] USER: "(i am working on the UI for web right now , consider it done )
+give me..."
+0ezw0xqwdne5s.js:10 [7] USER: "most realistic technologies to mearge with my tech. ,,, like I should ..."
+0ezw0xqwdne5s.js:10 [8] USER: "I was also thinking few more features too add on
+tell me how they look..."
+0ezw0xqwdne5s.js:10 [9] USER: "I was also thinking few more features too add on
+tell me how they look..."
+0ezw0xqwdne5s.js:10 [10] USER: "I was also thinking few more features too add on
+tell me how they look..."
+0ezw0xqwdne5s.js:10 [11] USER: "create a report
+about my game plan
+and also include the pricing of tho..."
+0ezw0xqwdne5s.js:10 [12] USER: "detail focus mode Implemenataion
+explore AI context tools
+Revise Prici..."
+0ezw0xqwdne5s.js:10 [13] USER: "ok"
+0ezw0xqwdne5s.js:10 [14] ASSISTANT: "ok
+I understand everything clearly.
+The full vision for ContextForge, ..."
+0ezw0xqwdne5s.js:10 [15] ASSISTANT: "Here's the full, ready-to-use prompt optimized specifically for Claude..."
+0ezw0xqwdne5s.js:10 [16] ASSISTANT: "Here's a complete, ready-to-use prompt you can give to Claude (or any ..."
+0ezw0xqwdne5s.js:10 [17] ASSISTANT: "No response."
+0ezw0xqwdne5s.js:10 [18] ASSISTANT: "Thought for 3sYou're standing at a very strong MVP / early beta stage...."
+0ezw0xqwdne5s.js:10 [19] ASSISTANT: "Thought for 29sGot it. Claude’s screenshot is spot-on advice — and it ..."
+0ezw0xqwdne5s.js:10 [20] ASSISTANT: "Thought for 18sContextForge Strategic Report & Action Plan
+Date: April..."
+0ezw0xqwdne5s.js:10 [21] ASSISTANT: "Thought for 17sContextForge — Merging Strategy Report
+“Most Realistic ..."
+0ezw0xqwdne5s.js:10 [22] ASSISTANT: "ThoughtsRequest was interrupted by the user."
+0ezw0xqwdne5s.js:10 [23] ASSISTANT: "Thought for 5s✅ Full Feedback on Your 6 Future Features + Market Timin..."
+0ezw0xqwdne5s.js:10 [24] ASSISTANT: "Thought for 13s✅ Updated April 26, 2026 Feedback on Your 6 Features + ..."
+0ezw0xqwdne5s.js:10 [25] ASSISTANT: "Thought for 18sContextForge — Full Game Plan Report
+Date: April 26, 20..."
+0ezw0xqwdne5s.js:10 [26] ASSISTANT: "Thought for 16sContextForge — Detailed Focus Mode Implementation + AI ..."
+0ezw0xqwdne5s.js:10 [27] ASSISTANT: "Thought for 13sGot it — “ok” received ✅
+You’ve read the full Focus Mod..."
+0ezw0xqwdne5s.js:10 
+
+0ezw0xqwdne5s.js:10 7️⃣  FINAL REPORT
+
+0ezw0xqwdne5s.js:10 Total messages: 28
+0ezw0xqwdne5s.js:10 User messages: 14
+0ezw0xqwdne5s.js:10 Assistant messages: 14
+0ezw0xqwdne5s.js:10 Balance: ✅ GOOD
+0ezw0xqwdne5s.js:10 
+✅ SUCCESS - Scraper should work!
+0ezw0xqwdne5s.js:10 
+========== END TEST SCRIPT ==========
+
+0ezw0xqwdne5s.js:10 💾 Test data saved to window.grokTestData
+0ezw0xqwdne5s.js:10    Access with: window.grokTestData
+undefined

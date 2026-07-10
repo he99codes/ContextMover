@@ -1,0 +1,262 @@
+/* Shadow DOM — page styles cannot bleed in */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Pulsing glow keyframes ─────────────────────────────────────────────────── */
+@keyframes cm-idle-pulse {
+  0%, 100% {
+    box-shadow:
+      -3px 0 14px rgba(0, 255, 136, 0.25),
+      -1px 0 5px  rgba(0, 255, 136, 0.15),
+      inset 0 0 8px rgba(0, 255, 136, 0.04);
+  }
+  50% {
+    box-shadow:
+      -5px 0 22px rgba(0, 255, 136, 0.45),
+      -2px 0 9px  rgba(0, 255, 136, 0.28),
+      inset 0 0 14px rgba(0, 255, 136, 0.07);
+  }
+}
+
+@keyframes cm-open-pulse {
+  0%, 100% {
+    box-shadow:
+      -4px 0 22px rgba(0, 255, 136, 0.55),
+      -2px 0 10px rgba(0, 255, 136, 0.38),
+      inset 0 0 12px rgba(0, 255, 136, 0.08);
+  }
+  50% {
+    box-shadow:
+      -7px 0 36px rgba(0, 255, 136, 0.85),
+      -3px 0 14px rgba(0, 255, 136, 0.60),
+      inset 0 0 20px rgba(0, 255, 136, 0.12);
+  }
+}
+
+/* ── Base button ─────────────────────────────────────────────────────────────── */
+.cf-toggle {
+  /* Position within shadow host */
+  position: absolute;
+  top: 0;
+  right: 0;
+
+  /* Size & shape — D-tab sticking out from right edge */
+  width: 44px;
+  height: 60px;
+  border-radius: 14px 0 0 14px;
+
+  /* Visual */
+  background: linear-gradient(160deg, #0f1f0f 0%, #091509 60%, #060e06 100%);
+  border: 1.5px solid rgba(0, 255, 136, 0.45);
+  border-right: none;
+  outline: none;
+
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0;
+
+  /* CRITICAL: host is pointer-events:none; button must be auto */
+  pointer-events: auto;
+  cursor: pointer;
+
+  /* Glow + animation */
+  box-shadow:
+    -3px 0 14px rgba(0, 255, 136, 0.25),
+    -1px 0 5px  rgba(0, 255, 136, 0.15),
+    inset 0 0 8px rgba(0, 255, 136, 0.04);
+  opacity: 1;
+  animation: cm-idle-pulse 3s ease-in-out infinite;
+
+  transition:
+    background 200ms ease,
+    border-color 200ms ease,
+    transform 120ms ease;
+}
+
+.cf-toggle:hover {
+  background: linear-gradient(160deg, #162816 0%, #0e1e0e 60%, #09150a 100%);
+  border-color: rgba(0, 255, 136, 0.75);
+  box-shadow:
+    -5px 0 28px rgba(0, 255, 136, 0.65),
+    -2px 0 12px rgba(0, 255, 136, 0.45),
+    inset 0 0 16px rgba(0, 255, 136, 0.10);
+  animation: none; /* stop pulse on hover, use hover shadow */
+}
+
+.cf-toggle:active {
+  transform: scaleX(0.88);
+}
+
+.cf-toggle:focus-visible {
+  outline: 2px solid #00FF88;
+  outline-offset: 2px;
+}
+
+/* ── Logo image ──────────────────────────────────────────────────────────────── */
+.cf-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 0 4px rgba(0, 255, 136, 0.5));
+  flex-shrink: 0;
+}
+
+/* ── Chevron direction indicator ─────────────────────────────────────────────── */
+.cf-chevron {
+  display: block;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  pointer-events: none;
+  position: relative;
+}
+
+/* Draw the chevron via pseudo-element */
+.cf-chevron::before {
+  content: "";
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid rgba(0, 255, 136, 0.75);
+  border-bottom: 2px solid rgba(0, 255, 136, 0.75);
+  /* Default (closed): arrow pointing RIGHT (into the sidebar) */
+  transform: rotate(-45deg) translate(-1px, 1px);
+  transition: transform 250ms ease, border-color 250ms ease;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin-left: -4px;
+  margin-top: -4px;
+}
+
+/* ── Capture status dot ──────────────────────────────────────────────────────── */
+.cf-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.cf-dot--idle {
+  background: rgba(0, 255, 136, 0.18);
+  border: 1px solid rgba(0, 255, 136, 0.30);
+}
+
+.cf-dot--active {
+  background: #00FF88;
+  box-shadow: 0 0 7px rgba(0, 255, 136, 0.8);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   OPEN STATE — stronger glow, reversed chevron, different tint
+   ══════════════════════════════════════════════════════════════════════════════ */
+.cf-toggle--open {
+  background: linear-gradient(160deg, #0d2018 0%, #091a12 60%, #060f0a 100%);
+  border-color: rgba(0, 255, 136, 0.70);
+  animation: cm-open-pulse 2.5s ease-in-out infinite;
+}
+
+.cf-toggle--open .cf-logo {
+  filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.75));
+}
+
+/* Chevron flips to point LEFT when sidebar is open (click = close) */
+.cf-toggle--open .cf-chevron::before {
+  transform: rotate(135deg) translate(-1px, 1px);
+  border-color: rgba(0, 255, 136, 1);
+}
+
+.cf-toggle--open .cf-dot--idle {
+  background: rgba(0, 255, 136, 0.35);
+  border-color: rgba(0, 255, 136, 0.55);
+}
+
+.cf-toggle--open:hover {
+  box-shadow:
+    -6px 0 38px rgba(0, 255, 136, 0.90),
+    -3px 0 16px rgba(0, 255, 136, 0.65),
+    inset 0 0 22px rgba(0, 255, 136, 0.14);
+  animation: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   BUSY STATE — dim + no-cursor
+   ══════════════════════════════════════════════════════════════════════════════ */
+.cf-toggle--busy {
+  opacity: 0.55;
+  cursor: wait;
+  animation: none;
+}
+
+.cf-toggle--busy:hover {
+  box-shadow:
+    -3px 0 14px rgba(0, 255, 136, 0.25),
+    -1px 0 5px  rgba(0, 255, 136, 0.15);
+  animation: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   LEFT SIDE VARIANT — mirrors everything horizontally
+   ══════════════════════════════════════════════════════════════════════════════ */
+.cf-toggle--left {
+  right: auto;
+  left: 0;
+  border-radius: 0 14px 14px 0;
+  border-left: none;
+  border-right: 1.5px solid rgba(0, 255, 136, 0.45);
+  box-shadow:
+    3px 0 14px rgba(0, 255, 136, 0.25),
+    1px 0 5px  rgba(0, 255, 136, 0.15),
+    inset 0 0 8px rgba(0, 255, 136, 0.04);
+}
+
+/* Chevron on left side: closed = points LEFT, open = points RIGHT */
+.cf-toggle--left .cf-chevron::before {
+  transform: rotate(135deg) translate(-1px, 1px); /* Points left */
+}
+
+.cf-toggle--left.cf-toggle--open .cf-chevron::before {
+  transform: rotate(-45deg) translate(-1px, 1px); /* Points right */
+}
+
+.cf-toggle--left:hover {
+  box-shadow:
+    5px 0 28px rgba(0, 255, 136, 0.65),
+    2px 0 12px rgba(0, 255, 136, 0.45),
+    inset 0 0 16px rgba(0, 255, 136, 0.10);
+  animation: none;
+}
+
+.cf-toggle--left.cf-toggle--open {
+  border-right-color: rgba(0, 255, 136, 0.70);
+  box-shadow:
+    4px 0 22px rgba(0, 255, 136, 0.55),
+    2px 0 10px rgba(0, 255, 136, 0.38),
+    inset 0 0 12px rgba(0, 255, 136, 0.08);
+}
+
+.cf-toggle--left.cf-toggle--open:hover {
+  box-shadow:
+    6px 0 38px rgba(0, 255, 136, 0.90),
+    3px 0 16px rgba(0, 255, 136, 0.65),
+    inset 0 0 22px rgba(0, 255, 136, 0.14);
+  animation: none;
+}
+
+.cf-toggle--left.cf-toggle--busy:hover {
+  box-shadow:
+    3px 0 14px rgba(0, 255, 136, 0.25),
+    1px 0 5px  rgba(0, 255, 136, 0.15);
+}

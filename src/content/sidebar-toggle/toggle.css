@@ -1,0 +1,166 @@
+/* Shadow DOM — page styles cannot affect this */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.cf-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+
+  /* Size and shape */
+  width: 48px;
+  height: 48px;
+  border-radius: 50% 0 0 50%;
+
+  /* Colors */
+  background: #0A0A0A;
+  border: none;
+  outline: none;
+
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+
+  /* CRITICAL: must be auto — host is pointer-events: none */
+  pointer-events: auto;
+  cursor: pointer;
+
+  /* Effects */
+  box-shadow: -2px 0 12px rgba(0, 255, 120, 0.15);
+  opacity: 0.85;
+  transition:
+    box-shadow 200ms ease,
+    opacity 150ms ease,
+    background 150ms ease;
+}
+
+.cf-toggle:hover {
+  opacity: 1;
+  box-shadow: -2px 0 20px rgba(0, 255, 120, 0.35);
+}
+
+.cf-toggle:active {
+  opacity: 0.9;
+  transform: scale(0.96);
+}
+
+.cf-toggle:focus-visible {
+  outline: 2px solid #00D26A;
+  outline-offset: 2px;
+}
+
+/* Sidebar open state */
+.cf-toggle--open {
+  opacity: 1;
+  box-shadow: -2px 0 24px rgba(0, 255, 120, 0.50);
+  background: #0F1A0F;
+}
+
+.cf-toggle--open:hover {
+  box-shadow: -2px 0 32px rgba(0, 255, 120, 0.65);
+}
+
+/* Logo image */
+.cf-toggle img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  /* CRITICAL: must not intercept clicks */
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Capture status dot */
+.cf-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.cf-dot--idle {
+  background: #2A2A2A;
+}
+
+.cf-dot--active {
+  background: #00D26A;
+  box-shadow: 0 0 6px rgba(0, 210, 106, 0.6);
+}
+
+/* Open state dot contrast */
+.cf-toggle--open .cf-dot--idle {
+  background: rgba(0, 255, 120, 0.2);
+}
+
+.cf-toggle--open .cf-dot--active {
+  background: #00FF88;
+}
+
+/* Busy state */
+.cf-toggle--busy {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.cf-toggle--busy:hover {
+  opacity: 0.6;
+  box-shadow: -2px 0 12px rgba(0, 255, 120, 0.15);
+}
+
+/* Left side positioning */
+.cf-toggle--left {
+  right: auto;
+  left: 0;
+  border-radius: 0 50% 50% 0;
+  box-shadow: 2px 0 12px rgba(0, 255, 120, 0.15);
+}
+
+.cf-toggle--left:hover {
+  box-shadow: 2px 0 20px rgba(0, 255, 120, 0.35);
+}
+
+.cf-toggle--open.cf-toggle--left {
+  box-shadow: 2px 0 24px rgba(0, 255, 120, 0.50);
+}
+
+.cf-toggle--open.cf-toggle--left:hover {
+  box-shadow: 2px 0 32px rgba(0, 255, 120, 0.65);
+}
+
+.cf-toggle--busy.cf-toggle--left:hover {
+  box-shadow: 2px 0 12px rgba(0, 255, 120, 0.15);
+}
+
+/* Overrides for left-side snapping */
+.cf-toggle--left {
+  right: auto;
+  left: 0;
+  border-radius: 0 50% 50% 0;
+  box-shadow: 2px 0 12px rgba(0, 255, 120, 0.15);
+}
+
+.cf-toggle--left:hover {
+  box-shadow: 2px 0 20px rgba(0, 255, 120, 0.35);
+}
+
+.cf-toggle--open.cf-toggle--left {
+  box-shadow: 2px 0 24px rgba(0, 255, 120, 0.50);
+}
+
+.cf-toggle--open.cf-toggle--left:hover {
+  box-shadow: 2px 0 32px rgba(0, 255, 120, 0.65);
+}
+
+.cf-toggle--busy.cf-toggle--left:hover {
+  box-shadow: 2px 0 12px rgba(0, 255, 120, 0.15);
+}

@@ -1,0 +1,268 @@
+ [ContextMover:fetch] XMLHttpRequest override installed
+ [ContextMover:fetch] window.fetch override installed
+ [ContextMover:fetch] WebSocket override installed (Perplexity socket.io)
+ Uncaught 
+ [ContextMover:fetch] XMLHttpRequest override installed
+ [ContextMover:fetch] window.fetch override installed
+ [ContextMover:fetch] WebSocket override installed (Perplexity socket.io)
+ [ContextMover:bridge] installed
+997f0901-fe73-446a-8fce-bc13aa9603ba:1 Access to script at 'https://perplexity-ai.cloudflareaccess.com/cdn-cgi/access/login/pplx-next-static-public.perplexity.ai?kid=10cf053f9ad67f99b8e50476420ebedcbf95828e029c66575f4893be97b04930&meta=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImFhNzQwZmU4MjZlZjQwOTIyZTNhODdjM2QxMjIwN2VhMTRhZGE1MjVmZTUxNWNhYmU0Y2JkODZjMzQ5Yjg0MTgifQ.eyJ0eXBlIjoibWV0YSIsImF1ZCI6IjEwY2YwNTNmOWFkNjdmOTliOGU1MDQ3NjQyMGViZWRjYmY5NTgyOGUwMjljNjY1NzVmNDg5M2JlOTdiMDQ5MzAiLCJob3N0bmFtZSI6InBwbHgtbmV4dC1zdGF0aWMtcHVibGljLnBlcnBsZXhpdHkuYWkiLCJyZWRpcmVjdF91cmwiOiIvX3NwYS9hc3NldHMvX3Jlc3RyaWN0ZWQvcmVzdHJpY3RlZC1mZWF0dXJlLWxvYWRlci1DaXRyWEhINS5qcyIsInNlcnZpY2VfdG9rZW5fc3RhdHVzIjpmYWxzZSwiaXNfd2FycCI6ZmFsc2UsImlzX2dhdGV3YXkiOmZhbHNlLCJleHAiOjE3ODA1NDY2ODYsIm5iZiI6MTc4MDU0NjM4NiwiaWF0IjoxNzgwNTQ2Mzg2LCJhdXRoX3N0YXR1cyI6Ik5PTkUiLCJtdGxzX2F1dGgiOnsiY2VydF9pc3N1ZXJfZG4iOiIiLCJjZXJ0X3NlcmlhbCI6IiIsImNlcnRfaXNzdWVyX3NraSI6IiIsImNlcnRfcHJlc2VudGVkIjpmYWxzZSwiY29tbW9uX25hbWUiOiIiLCJhdXRoX3N0YXR1cyI6Ik5PTkUifSwicmVhbF9jb3VudHJ5IjoiSU4iLCJhcHBfc2Vzc2lvbl9oYXNoIjoiNjYxMTk4NDE3YjZjMDM0NTNjOTg2NGU5ZjcyZjg1MDkyY2UyOWFmYzY1ZTE0NWVjNTFjMmI4NGU0MWRjM2EyMSJ9.r_1WhHBctIpv1zvB5qAThQiEo0sY2k_xTzklY9cHtmg-GCNLrsK9urYgDq2dW3U2mQZ9lgVa5DGyhIk-Kl4Xlx76sTuIlSzSBNz8AA6O3SVpK5Ayh-Gk4DW1X9PL23ONG5JRaH3-zFv-E7s2JZwQRbL-2qo5MbXVLLjl8siSk4N7uz9WS2OZXSzok4I5m1QiWFGqlsKcU5JmnQ3ZecDNigZq6xZr1sS_9yR3X7VfQ4HX-Jtj15GzQhYZlXMvUhNuov9C-3ef1vSZaUuYo6-QvyO7XtvtRIBgtlhb5AmuH4CPa4RQPdPeFmRqX2cynDY7WmG7Wswk-57f5rBzAyNvqg&redirect_url=%2F_spa%2Fassets%2F_restricted%2Frestricted-feature-loader-CitrXHH5.js' (redirected from 'https://pplx-next-static-public.perplexity.ai/_spa/assets/_restricted/restricted-feature-loader-CitrXHH5.js') from origin 'https://www.perplexity.ai' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+perplexity-ai.cloudflareaccess.com/cdn-cgi/access/login/pplx-next-static-public.perplexity.ai?kid=10cf053f9ad67f99b8e50476420ebedcbf95828e029c66575f4893be97b04930&meta=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImFhNzQwZmU4MjZlZjQwOTIyZTNhODdjM2QxMjIwN2VhMTRhZGE1MjVmZTUxNWNhYmU0Y2JkODZjMzQ5Yjg0MTgifQ.eyJ0eXBlIjoibWV0YSIsImF1ZCI6IjEwY2YwNTNmOWFkNjdmOTliOGU1MDQ3NjQyMGViZWRjYmY5NTgyOGUwMjljNjY1NzVmNDg5M2JlOTdiMDQ5MzAiLCJob3N0bmFtZSI6InBwbHgtbmV4dC1zdGF0aWMtcHVibGljLnBlcnBsZXhpdHkuYWkiLCJyZWRpcmVjdF91cmwiOiIvX3NwYS9hc3NldHMvX3Jlc3RyaWN0ZWQvcmVzdHJpY3RlZC1mZWF0dXJlLWxvYWRlci1DaXRyWEhINS5qcyIsInNlcnZpY2VfdG9rZW5fc3RhdHVzIjpmYWxzZSwiaXNfd2FycCI6ZmFsc2UsImlzX2dhdGV3YXkiOmZhbHNlLCJleHAiOjE3ODA1NDY2ODYsIm5iZiI6MTc4MDU0NjM4NiwiaWF0IjoxNzgwNTQ2Mzg2LCJhdXRoX3N0YXR1cyI6Ik5PTkUiLCJtdGxzX2F1dGgiOnsiY2VydF9pc3N1ZXJfZG4iOiIiLCJjZXJ0X3NlcmlhbCI6IiIsImNlcnRfaXNzdWVyX3NraSI6IiIsImNlcnRfcHJlc2VudGVkIjpmYWxzZSwiY29tbW9uX25hbWUiOiIiLCJhdXRoX3N0YXR1cyI6Ik5PTkUifSwicmVhbF9jb3VudHJ5IjoiSU4iLCJhcHBfc2Vzc2lvbl9oYXNoIjoiNjYxMTk4NDE3YjZjMDM0NTNjOTg2NGU5ZjcyZjg1MDkyY2UyOWFmYzY1ZTE0NWVjNTFjMmI4NGU0MWRjM2EyMSJ9.r_1WhHBctIpv1zvB5qAThQiEo0sY2k_xTzklY9cHtmg-GCNLrsK9urYgDq2dW3U2mQZ9lgVa5DGyhIk-Kl4Xlx76sTuIlSzSBNz8AA6O3SVpK5Ayh-Gk4DW1X9PL23ONG5JRaH3-zFv-E7s2JZwQRbL-2qo5MbXVLLjl8siSk4N7uz9WS2OZXSzok4I5m1QiWFGqlsKcU5JmnQ3ZecDNigZq6xZr1sS_9yR3X7VfQ4HX-Jtj15GzQhYZlXMvUhNuov9C-3ef1vSZaUuYo6-QvyO7XtvtRIBgtlhb5AmuH4CPa4RQPdPeFmRqX2cynDY7WmG7Wswk-57f5rBzAyNvqg&redirect_url=%2F_spa%2Fassets%2F_restricted%2Frestricted-feature-loader-CitrXHH5.js:1  Failed to load resource: net::ERR_FAILED
+ [ContextMover] Perplexity content script loaded
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=0 asst=0
+ [ContextMover:perplexity] C thread-items: 0 turns
+ [ContextMover:perplexity] D prose/markdown: 0
+ [ContextMover:perplexity] E aria+role: user=0 asst=0
+ [ContextMover:perplexity] NO messages found. Top candidate classes: Array(0)
+ [CM:validate] perplexity: Object
+ [CM:perplexity] Registry strategies empty — trying structural detection
+ [CM:structural] perplexity: attempting structural detection
+ [CM:structural] perplexity: too few substantial elements (0), skipping
+ [CM:validate] perplexity: Object
+ [ContextMover] No messages found, skipping capture
+ [CM:perplexity] scrollback: starting — loading lazy history
+ [CM:perplexity] scrollback: DOM settled — running full capture
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=0 asst=0
+ [ContextMover:perplexity] C thread-items: 0 turns
+ [ContextMover:perplexity] D prose/markdown: 0
+ [ContextMover:perplexity] E aria+role: user=0 asst=0
+ [ContextMover:perplexity] NO messages found. Top candidate classes: Array(0)
+ [CM:validate] perplexity: Object
+ [CM:perplexity] Registry strategies empty — trying structural detection
+ [CM:structural] perplexity: attempting structural detection
+ [CM:structural] perplexity: too few substantial elements (0), skipping
+ [CM:validate] perplexity: Object
+ [ContextMover] No messages found, skipping capture
+ [ContextMover:fetch] perplexity WS: attached listener on wss://suggest.perplexity.ai/suggest/ws
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=6 asst=0
+ [CM:capture] perplexity Object
+ [ContextMover:perplexity] ASSISTANT MESSAGES MISSING
+ [CM:validate] perplexity: Object
+ [CM:validate] perplexity: Object
+ [ContextMover] Skipping capture — 6 user-only messages (awaiting assistant response)
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=6 asst=0
+ [CM:capture] perplexity Object
+ [ContextMover:perplexity] ASSISTANT MESSAGES MISSING
+ [CM:validate] perplexity: Object
+ [CM:validate] perplexity: Object
+ [ContextMover] Skipping capture — 6 user-only messages (awaiting assistant response)
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=6 asst=0
+ [CM:capture] perplexity Object
+ [ContextMover:perplexity] ASSISTANT MESSAGES MISSING
+ [CM:validate] perplexity: Object
+ [CM:validate] perplexity: Object
+ [ContextMover] Skipping capture — 6 user-only messages (awaiting assistant response)
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=6 asst=0
+ [CM:capture] perplexity Object
+ [ContextMover:perplexity] ASSISTANT MESSAGES MISSING
+ [CM:validate] perplexity: Object
+ [CM:validate] perplexity: Object
+ [ContextMover] Skipping capture — 6 user-only messages (awaiting assistant response)
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=6 asst=0
+ [CM:capture] perplexity Object
+ [ContextMover:perplexity] ASSISTANT MESSAGES MISSING
+ [CM:validate] perplexity: Object
+ [CM:validate] perplexity: Object
+ [ContextMover] Skipping capture — 6 user-only messages (awaiting assistant response)
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=6 asst=0
+ [CM:capture] perplexity Object
+ [ContextMover:perplexity] ASSISTANT MESSAGES MISSING
+ [CM:validate] perplexity: Object
+ [CM:validate] perplexity: Object
+ [ContextMover] Skipping capture — 6 user-only messages (awaiting assistant response)
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=6 asst=0
+ [CM:capture] perplexity Object
+ [ContextMover:perplexity] ASSISTANT MESSAGES MISSING
+ [CM:validate] perplexity: Object
+ [CM:validate] perplexity: Object
+ [ContextMover] Skipping capture — 6 user-only messages (awaiting assistant response)
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=6 asst=0
+ [CM:capture] perplexity Object
+ [ContextMover:perplexity] ASSISTANT MESSAGES MISSING
+ [CM:validate] perplexity: Object
+ [CM:validate] perplexity: Object
+ [ContextMover] Skipping capture — 6 user-only messages (awaiting assistant response)
+ [CM:health] perplexity: success=70% assistant=70%
+ [CM:health] ALERT: perplexity capture rate dropped to 70% — selectors may be broken
+ [CM:health] perplexity: success=70% assistant=70%
+ [CM:health] ALERT: perplexity capture rate dropped to 70% — selectors may be broken
+/rest/billing/credits/computer-submit-gate?version=2.18&source=default:1  Failed to load resource: the server responded with a status of 404 ()
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=6 asst=0
+ [CM:capture] perplexity Object
+ [ContextMover:perplexity] ASSISTANT MESSAGES MISSING
+ [CM:validate] perplexity: Object
+ [CM:validate] perplexity: Object
+ [ContextMover] Skipping capture — 6 user-only messages (awaiting assistant response)
+ [CM:health] perplexity: success=70% assistant=70%
+ [CM:health] ALERT: perplexity capture rate dropped to 70% — selectors may be broken
+ [CM:health] perplexity: success=70% assistant=70%
+ [CM:health] ALERT: perplexity capture rate dropped to 70% — selectors may be broken
+ [CM:health] perplexity: success=70% assistant=70%
+ [CM:health] ALERT: perplexity capture rate dropped to 70% — selectors may be broken
+ [CM:health] perplexity: success=70% assistant=70%
+ [CM:health] ALERT: perplexity capture rate dropped to 70% — selectors may be broken
+ [CM:health] perplexity: success=70% assistant=70%
+ [CM:health] ALERT: perplexity capture rate dropped to 70% — selectors may be broken
+ [CM:health] perplexity: success=70% assistant=70%
+ [CM:health] ALERT: perplexity capture rate dropped to 70% — selectors may be broken
+ [CM:health] perplexity: success=70% assistant=70%
+ [CM:health] ALERT: perplexity capture rate dropped to 70% — selectors may be broken
+ [CM:health] perplexity: success=70% assistant=70%
+ [CM:health] ALERT: perplexity capture rate dropped to 70% — selectors may be broken
+ [CM:health] perplexity: success=70% assistant=70%
+ [CM:health] ALERT: perplexity capture rate dropped to 70% — selectors may be broken
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=6 asst=0
+ [CM:capture] perplexity Object
+ [ContextMover:perplexity] ASSISTANT MESSAGES MISSING
+ [CM:validate] perplexity: Object
+ [CM:validate] perplexity: Object
+ [ContextMover] Skipping capture — 6 user-only messages (awaiting assistant response)
+ [CM:health] perplexity: success=60% assistant=60%
+ [CM:health] ALERT: perplexity capture rate dropped to 60% — selectors may be broken
+t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://ssd.jpl.nasa.gov&size=128:1  Failed to load resource: the server responded with a status of 404 ()
+t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://ssd-api.jpl.nasa.gov&size=128:1  Failed to load resource: the server responded with a status of 404 ()
+t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://docs.sunpy.org&size=128:1  Failed to load resource: the server responded with a status of 404 ()
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=6 asst=6
+ [CM:capture] perplexity Object
+ [CM:validate] perplexity: Object
+ [CM:validate] perplexity: Object
+ [ContextMover] perplexity: resolved sessionId=perplexity-0bb8f6bdbd
+ [ContextMover] Sending CAPTURE_SESSION for session: perplexity-0bb8f6bdbd
+ [CM:health] perplexity: success=60% assistant=60%
+ [CM:health] ALERT: perplexity capture rate dropped to 60% — selectors may be broken
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=6 asst=6
+ [CM:capture] perplexity Object
+ [CM:validate] perplexity: Object
+ [CM:validate] perplexity: Object
+ [ContextMover] Snapshot hash unchanged, skipping
+ [CM:health] perplexity: success=60% assistant=60%
+ [CM:health] ALERT: perplexity capture rate dropped to 60% — selectors may be broken
+ [ContextMover] Capture triggered for perplexity (DOM fallback)
+ [ContextMover:perplexity] A data-message-role: 0
+ [ContextMover:perplexity] B class-substr: user=6 asst=6
+ [CM:capture] perplexity Object
+ [CM:validate] perplexity: Object
+ [CM:validate] perplexity: Object
+ [ContextMover] Snapshot hash unchanged, skipping
+ [CM:health] perplexity: success=60% assistant=60%
+ [CM:health] ALERT: perplexity capture rate dropped to 60% — selectors may be broken
+ [ContextMover:fetch] perplexity WS: attached listener on wss://suggest.perplexity.ai/suggest/ws
+ [ContextMover] URL changed — keeping sessionId (had messages)
+t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://ssd-api.jpl.nasa.gov&size=128:1  Failed to load resource: the server responded with a status of 404 ()
+t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://ssd.jpl.nasa.gov&size=128:1  Failed to load resource: the server responded with a status of 404 ()
+t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://docs.sunpy.org&size=128:1  Failed to load resource: the server responded with a status of 404 ()
+/rest/billing/credits/computer-submit-gate?version=2.18&source=default:1  Failed to load resource: the server responded with a status of 404 ()
+shared-cCiZdcZm.js:9 [ContextMover] Capture triggered for perplexity (DOM fallback)
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] A data-message-role: 0
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] B class-substr: user=3 asst=4
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] empty content for role=assistant
+scrapeMessages @ perplexity-CQHqdfFF.js:5
+perplexity-CQHqdfFF.js:5 [CM:capture] perplexity Object
+shared-cCiZdcZm.js:3 [CM:validate] perplexity: Object
+shared-cCiZdcZm.js:3 [CM:validate] perplexity: Object
+shared-cCiZdcZm.js:9 [ContextMover] perplexity: suppressed shrinking scrape (12→6) — likely virtual scroll eviction
+shared-cCiZdcZm.js:7 [CM:health] perplexity: success=60% assistant=60%
+shared-cCiZdcZm.js:7 [CM:health] ALERT: perplexity capture rate dropped to 60% — selectors may be broken
+checkHealth @ shared-cCiZdcZm.js:7
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity WS: attached listener on wss://suggest.perplexity.ai/suggest/ws
+shared-cCiZdcZm.js:9 [ContextMover] URL changed — keeping sessionId (had messages)
+/rest/billing/credits/computer-submit-gate?version=2.18&source=default:1  Failed to load resource: the server responded with a status of 404 ()
+shared-cCiZdcZm.js:9 [ContextMover] Capture triggered for perplexity (DOM fallback)
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] A data-message-role: 0
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] B class-substr: user=1 asst=1
+perplexity-CQHqdfFF.js:5 [CM:capture] perplexity Object
+shared-cCiZdcZm.js:3 [CM:validate] perplexity: Object
+shared-cCiZdcZm.js:3 [CM:validate] perplexity: Object
+shared-cCiZdcZm.js:9 [ContextMover] perplexity: suppressed shrinking scrape (12→2) — likely virtual scroll eviction
+shared-cCiZdcZm.js:7 [CM:health] perplexity: success=60% assistant=60%
+shared-cCiZdcZm.js:7 [CM:health] ALERT: perplexity capture rate dropped to 60% — selectors may be broken
+checkHealth @ shared-cCiZdcZm.js:7
+t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://utep.edu&size=128:1  Failed to load resource: the server responded with a status of 404 ()
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity WS: attached listener on wss://suggest.perplexity.ai/suggest/ws
+shared-cCiZdcZm.js:9 [ContextMover] URL changed — keeping sessionId (had messages)
+shared-cCiZdcZm.js:9 [ContextMover] Capture triggered for perplexity (DOM fallback)
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] A data-message-role: 0
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] B class-substr: user=1 asst=1
+perplexity-CQHqdfFF.js:5 [CM:capture] perplexity Object
+shared-cCiZdcZm.js:3 [CM:validate] perplexity: Object
+shared-cCiZdcZm.js:3 [CM:validate] perplexity: Object
+shared-cCiZdcZm.js:9 [ContextMover] perplexity: suppressed shrinking scrape (12→2) — likely virtual scroll eviction
+shared-cCiZdcZm.js:7 [CM:health] perplexity: success=60% assistant=60%
+shared-cCiZdcZm.js:7 [CM:health] ALERT: perplexity capture rate dropped to 60% — selectors may be broken
+checkHealth @ shared-cCiZdcZm.js:7
+/rest/billing/credits/computer-submit-gate?version=2.18&source=default:1  Failed to load resource: the server responded with a status of 404 ()
+shared-cCiZdcZm.js:9 [ContextMover] Capture triggered for perplexity (DOM fallback)
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] A data-message-role: 0
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] B class-substr: user=2 asst=3
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] empty content for role=assistant
+scrapeMessages @ perplexity-CQHqdfFF.js:5
+perplexity-CQHqdfFF.js:5 [CM:capture] perplexity Object
+shared-cCiZdcZm.js:3 [CM:validate] perplexity: Object
+shared-cCiZdcZm.js:3 [CM:validate] perplexity: Object
+shared-cCiZdcZm.js:9 [ContextMover] perplexity: suppressed shrinking scrape (12→4) — likely virtual scroll eviction
+shared-cCiZdcZm.js:7 [CM:health] perplexity: success=70% assistant=70%
+shared-cCiZdcZm.js:7 [CM:health] ALERT: perplexity capture rate dropped to 70% — selectors may be broken
+checkHealth @ shared-cCiZdcZm.js:7
+shared-cCiZdcZm.js:9 [ContextMover] Capture triggered for perplexity (DOM fallback)
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] A data-message-role: 0
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] B class-substr: user=3 asst=4
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] empty content for role=assistant
+scrapeMessages @ perplexity-CQHqdfFF.js:5
+perplexity-CQHqdfFF.js:5 [CM:capture] perplexity Object
+shared-cCiZdcZm.js:3 [CM:validate] perplexity: Object
+shared-cCiZdcZm.js:3 [CM:validate] perplexity: Object
+shared-cCiZdcZm.js:9 [ContextMover] perplexity: suppressed shrinking scrape (12→6) — likely virtual scroll eviction
+shared-cCiZdcZm.js:7 [CM:health] perplexity: success=80% assistant=80%
+shared-cCiZdcZm.js:9 [ContextMover] Capture triggered for perplexity (DOM fallback)
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] A data-message-role: 0
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] B class-substr: user=3 asst=4
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] empty content for role=assistant
+scrapeMessages @ perplexity-CQHqdfFF.js:5
+perplexity-CQHqdfFF.js:5 [CM:capture] perplexity Object
+shared-cCiZdcZm.js:3 [CM:validate] perplexity: Object
+shared-cCiZdcZm.js:3 [CM:validate] perplexity: Object
+shared-cCiZdcZm.js:9 [ContextMover] perplexity: suppressed shrinking scrape (12→6) — likely virtual scroll eviction
+shared-cCiZdcZm.js:7 [CM:health] perplexity: success=90% assistant=90%
+/rest/billing/credits/computer-submit-gate?version=2.18&source=default:1  Failed to load resource: the server responded with a status of 404 ()
+shared-cCiZdcZm.js:9 [ContextMover] Capture triggered for perplexity (DOM fallback)
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] A data-message-role: 0
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] B class-substr: user=3 asst=4
+perplexity-CQHqdfFF.js:5 [ContextMover:perplexity] empty content for role=assistant
+scrapeMessages @ perplexity-CQHqdfFF.js:5
+vDmxK @ shared-cCiZdcZm.js:9
+runCapturePipeline @ shared-cCiZdcZm.js:9
+scrapeMessages @ perplexity-CQHqdfFF.js:5
+_0x10c1d4 @ shared-cCiZdcZm.js:9
+perplexity-CQHqdfFF.js:5 [CM:capture] perplexity {total: 6, user: 3, assistant: 3, preview: Array(6)}
+shared-cCiZdcZm.js:3 [CM:validate] perplexity: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-cCiZdcZm.js:3 [CM:validate] perplexity: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-cCiZdcZm.js:9 [ContextMover] perplexity: suppressed shrinking scrape (12→6) — likely virtual scroll eviction
+shared-cCiZdcZm.js:7 [CM:health] perplexity: success=100% assistant=100%

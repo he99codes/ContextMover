@@ -1,0 +1,919 @@
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] XMLHttpRequest override installed
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] window.fetch override installed
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] WebSocket override installed (Perplexity socket.io)
+gemini.google.com/:1 Loading the script 'https://www.googletagmanager.com/gtm.js?id=GTM-KKRLL9S' violates the following Content Security Policy directive: "script-src 'unsafe-inline' 'unsafe-eval' blob: data: https://www.googleadservices.com/pagead/conversion/ https://www.googletagmanager.com/gtag/js https://www.googletagmanager.com/gtag/destination https://www.google.com/js/bg/ https://www.gstatic.com/external_hosted/highlightjs/highlight.pack.js https://www.gstatic.com/monaco_editor/ https://fonts.gstatic.com/s/e/notoemoji/search/wrapper.js https://www.youtube.com/iframe_api https://translate.google.com/translate_a/element.js https://www-onepick-opensocial.googleusercontent.com/gadgets/js/rpc.js https://www.gstatic.com/_/mss/boq-one-google/_/ https://www.gstatic.com/og/_/js/ https://apis.google.com/js/api.js https://apis.google.com/js/client.js https://www.google.com/tools/feedback/chat_load.js https://www.google.com/tools/feedback/help_api.js https://www.google.com/tools/feedback/load.js https://www.google.com/tools/feedback/open.js https://www.google.com/tools/feedback/open_to_help_guide_lazy.js https://www.gstatic.com/feedback/js/ https://www.gstatic.com/feedback/js/help/prod/service/lazy.min.js https://www.gstatic.com/inproduct_help/api/main.min.js https://www.gstatic.com/inproduct_help/chatsupport/chatsupport_button_v2.js https://www.gstatic.com/inproduct_help/service/lazy.min.js https://www.gstatic.com/uservoice/feedback/client/web/live/ https://www.gstatic.com/uservoice/surveys/resources/prod/js/survey/ https://maps.googleapis.com/maps/api/js https://gemini.gstatic.com/_/mss/boq-bard-web/_/js/k=boq-bard-web.BardChatUi.en_GB.k-YxUI-1oDc.2018.O/ https://apis.google.com/_/scs/abc-static/_/js/ https://maps.googleapis.com/maps-api-v3/api/js/ https://maps.googleapis.com/maps/vt https://maps.googleapis.com/maps/api/js/ https://maps.googleapis.com/maps/api/place/js/ https://www.youtube.com/s/player/ https://translate.googleapis.com/_/translate_http/_/js/". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The policy is report-only, so the violation has been logged but no further action has been taken.
+interceptor-bridge-C_-YXGcN.js:3 [ContextMover:bridge] installed
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] no root found — falling back to document.body
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div style="display: none"></div>
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(12)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] No messages found, skipping capture
+shared-CtdzbVwW.js:9 [CM:gemini] scrollback: starting — loading lazy history
+shared-CtdzbVwW.js:9 [CM:gemini] scrollback: DOM settled — running full capture
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] no root found — falling back to document.body
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div style="display: none"></div>
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(12)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] No messages found, skipping capture
+fetch-interceptor-DOShBb3L.js:1 Connecting to 'https://www.googleadservices.com/pagead/set_partitioned_cookie?rcb=8&frm=0&apvc=1&ae=g&auid=1787365390.1780542804&dt=%E2%80%8EGoogle%20Gemini&en=page_view&ref=www.google.com&url=https%3A%2F%2Fgemini.google.com%2F&scrsrc=www.googletagmanager.com&lps=1&rnd=1417085503.1780542804&navt=n&npa=0&ep.ads_data_redaction=0&gtm=45He6621v9113054662za200zd9113054662xea&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115616985~115938465~115938469~118228215~119027222&tft=1780542804364&tfd=1011&apve=1&apvf=f' violates the following Content Security Policy directive: "connect-src 'self' https://*.google.com https://*.gstatic.com https://*.google-analytics.com https://csp.withgoogle.com/csp/proto/BardChatUi https://content-push.googleapis.com/upload/ https://*.googleusercontent.com https://ogads-pa.googleapis.com/ https://*.youtube.com https://*.youtube-nocookie.com https://*.googlevideo.com data: https://static.corp.google.com/external_content/scs_corp/bard/artifacts https://*.googleapis.com". The action has been blocked.
+dNNdP @ fetch-interceptor-DOShBb3L.js:1
+fetch-interceptor-DOShBb3L.js:1 Fetch API cannot load https://www.googleadservices.com/pagead/set_partitioned_cookie?rcb=8&frm=0&apvc=1&ae=g&auid=1787365390.1780542804&dt=%E2%80%8EGoogle%20Gemini&en=page_view&ref=www.google.com&url=https%3A%2F%2Fgemini.google.com%2F&scrsrc=www.googletagmanager.com&lps=1&rnd=1417085503.1780542804&navt=n&npa=0&ep.ads_data_redaction=0&gtm=45He6621v9113054662za200zd9113054662xea&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115616985~115938465~115938469~118228215~119027222&tft=1780542804364&tfd=1011&apve=1&apvf=f. Refused to connect because it violates the document's Content Security Policy.
+dNNdP @ fetch-interceptor-DOShBb3L.js:1
+gemini.google.com/:1 Loading the image 'https://www.googleadservices.com/pagead/set_partitioned_cookie?rcb=8&frm=0&apvc=1&ae=g&auid=1787365390.1780542804&dt=%E2%80%8EGoogle%20Gemini&en=page_view&ref=www.google.com&url=https%3A%2F%2Fgemini.google.com%2F&scrsrc=www.googletagmanager.com&lps=1&rnd=1417085503.1780542804&navt=n&npa=0&ep.ads_data_redaction=0&gtm=45He6621v9113054662za200zd9113054662xea&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115616985~115938465~115938469~118228215~119027222&tft=1780542804364&tfd=1011&apve=1&apvf=f&img=1' violates the following Content Security Policy directive: "img-src https://*.google.com https://*.googleusercontent.com https://*.gstatic.com https://*.youtube.com https://*.youtube-nocookie.com https://*.ytimg.com https://*.ggpht.com https://bard.datacommons.org blob: data: https://*.googleapis.com https://*.googletagmanager.com https://www.google.com https://google.com https://googleads.g.doubleclick.net". The action has been blocked.
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] no root found — falling back to document.body
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div style="display: none"></div>
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(13)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] No messages found, skipping capture
+gemini.google.com/:1 Access to fetch at 'https://contextmover.com/api/scraper-admin/configs' from origin 'https://gemini.google.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+contextmover.com/api/scraper-admin/configs:1  Failed to load resource: net::ERR_FAILED
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] no root found — falling back to document.body
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div style="display: none"></div>
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(14)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: too few substantial elements (0), skipping
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] No messages found, skipping capture
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=0%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] no root found — falling back to document.body
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div style="display: none"></div>
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(14)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: too few substantial elements (0), skipping
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] No messages found, skipping capture
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=0%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] no root found — falling back to document.body
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div style="display: none"></div>
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(15)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: too few substantial elements (0), skipping
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] No messages found, skipping capture
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=0%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] URL changed — re-resolving sessionId
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div _ngcontent-ng-c1883998186="" file-drop-zone="!inGemsMode" trace="ChatContainer" class="xap-uploader-dropzone chat-container ng-tns-c1883998186-1 ng-trigger ng-trigger-chatHistoryImmersiveTransitions" jslog="173898;track:impression,attention"><!----><!----><!----><!----><!----><input-container _ngcontent-ng-c1883998186="" trace="" _nghost-ng-c3776168325="" class="ng-tns-c3776168325-2 ng-tns-c1883998186-1 input-gradient ui-improvements-phase-1 edge-to-edge lm-input-redesign ng-star-inserted" 
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(1)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: too few substantial elements (0), skipping
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] No messages found, skipping capture
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=0%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div _ngcontent-ng-c1883998186="" file-drop-zone="!inGemsMode" trace="ChatContainer" class="xap-uploader-dropzone chat-container ng-tns-c1883998186-1 ng-trigger ng-trigger-chatHistoryImmersiveTransitions" jslog="173898;track:impression,attention" data-hveid="0" decode-data-ved="1" data-ved="0CAAQys4KahcKEwiPnY3rzuyUAxUAAAAAHQAAAAAQAw"><!----><chat-window-content _ngcontent-ng-c1883998186="" trace="" _nghost-ng-c3091545854="" class="ng-tns-c1883998186-1 ui-improvements-phase-1 ng-star-inserted" s
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(1)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: too few substantial elements (2), skipping
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] No messages found, skipping capture
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div _ngcontent-ng-c1883998186="" file-drop-zone="!inGemsMode" trace="ChatContainer" class="xap-uploader-dropzone chat-container ng-tns-c1883998186-1 ng-trigger ng-trigger-chatHistoryImmersiveTransitions" jslog="173898;track:impression,attention" data-hveid="0" decode-data-ved="1" data-ved="0CAAQys4KahcKEwiPnY3rzuyUAxUAAAAAHQAAAAAQAw"><!----><chat-window-content _ngcontent-ng-c1883998186="" trace="" _nghost-ng-c3091545854="" class="ng-tns-c1883998186-1 ui-improvements-phase-1 ng-star-inserted" s
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(1)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: too few substantial elements (2), skipping
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] No messages found, skipping capture
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div _ngcontent-ng-c1883998186="" file-drop-zone="!inGemsMode" trace="ChatContainer" class="xap-uploader-dropzone chat-container ng-tns-c1883998186-1 ng-trigger ng-trigger-chatHistoryImmersiveTransitions" jslog="173898;track:impression,attention" data-hveid="0" decode-data-ved="1" data-ved="0CAAQys4KahcKEwiPnY3rzuyUAxUAAAAAHQAAAAAQAw"><!----><chat-window-content _ngcontent-ng-c1883998186="" trace="" _nghost-ng-c3091545854="" class="ng-tns-c1883998186-1 ui-improvements-phase-1 ng-star-inserted" s
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(1)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: too few substantial elements (2), skipping
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] No messages found, skipping capture
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div _ngcontent-ng-c1883998186="" file-drop-zone="!inGemsMode" trace="ChatContainer" class="xap-uploader-dropzone chat-container ng-tns-c1883998186-1 ng-trigger ng-trigger-chatHistoryImmersiveTransitions" jslog="173898;track:impression,attention" data-hveid="0" decode-data-ved="1" data-ved="0CAAQys4KahcKEwiPnY3rzuyUAxUAAAAAHQAAAAAQAw"><!----><chat-window-content _ngcontent-ng-c1883998186="" trace="" _nghost-ng-c3091545854="" class="ng-tns-c1883998186-1 ui-improvements-phase-1 ng-star-inserted" s
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(1)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: too few substantial elements (2), skipping
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] No messages found, skipping capture
+destination?id=G-BF8Q35BMLM&cx=c&gtm=4e6621:220 Connecting to 'https://stats.g.doubleclick.net/g/collect?v=2&tid=G-BF8Q35BMLM&cid=793044590.1780542805&gtm=45je6621v9229664005z89113054662za20gzb9113054662zd9113054662&rcb=11&aip=1&dma=0&gcd=13l3l3l3l1l1&npa=0&frm=0&tag_exp=0~115616985~115938465~115938469~118228215~119027222' violates the following Content Security Policy directive: "connect-src 'self' https://*.google.com https://*.gstatic.com https://*.google-analytics.com https://csp.withgoogle.com/csp/proto/BardChatUi https://content-push.googleapis.com/upload/ https://*.googleusercontent.com https://ogads-pa.googleapis.com/ https://*.youtube.com https://*.youtube-nocookie.com https://*.googlevideo.com data: https://static.corp.google.com/external_content/scs_corp/bard/artifacts https://*.googleapis.com". The action has been blocked.
+nd @ destination?id=G-BF8Q35BMLM&cx=c&gtm=4e6621:220
+/app:1 Loading the image 'https://www.google.co.in/ads/ga-audiences?v=1&t=sr&slf_rd=1&_r=4&tid=G-BF8Q35BMLM&cid=793044590.1780542805&gtm=45je6621v9229664005z89113054662za20gzb9113054662zd9113054662&rcb=11&aip=1&dma=0&gcd=13l3l3l3l1l1&npa=0&frm=0&tag_exp=0~115616985~115938465~115938469~118228215~119027222&z=1942301266' violates the following Content Security Policy directive: "img-src https://*.google.com https://*.googleusercontent.com https://*.gstatic.com https://*.youtube.com https://*.youtube-nocookie.com https://*.ytimg.com https://*.ggpht.com https://bard.datacommons.org blob: data: https://*.googleapis.com https://*.googletagmanager.com https://www.google.com https://google.com https://googleads.g.doubleclick.net". The action has been blocked.
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=0%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=0%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=0%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=0%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div _ngcontent-ng-c1883998186="" file-drop-zone="!inGemsMode" trace="ChatContainer" class="xap-uploader-dropzone chat-container ng-tns-c1883998186-1 ng-trigger ng-trigger-chatHistoryImmersiveTransitions" jslog="173898;track:impression,attention" data-hveid="0" decode-data-ved="1" data-ved="0CAAQys4KahcKEwiPnY3rzuyUAxUAAAAAHQAAAAAQAw"><!----><chat-window-content _ngcontent-ng-c1883998186="" trace="" _nghost-ng-c3091545854="" class="ng-tns-c1883998186-1 ui-improvements-phase-1 ng-star-inserted" s
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(1)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: too few substantial elements (2), skipping
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] No messages found, skipping capture
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=0%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div _ngcontent-ng-c1883998186="" file-drop-zone="!inGemsMode" trace="ChatContainer" class="xap-uploader-dropzone chat-container ng-tns-c1883998186-1 ng-trigger ng-trigger-chatHistoryImmersiveTransitions" jslog="173898;track:impression,attention" data-hveid="0" decode-data-ved="1" data-ved="0CAAQys4KahcKEwiPnY3rzuyUAxUAAAAAHQAAAAAQAw"><!----><chat-window-content _ngcontent-ng-c1883998186="" trace="" _nghost-ng-c3091545854="" class="ng-tns-c1883998186-1 ui-improvements-phase-1 ng-star-inserted" s
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(1)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: too few long elements (0), skipping
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] No messages found, skipping capture
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=0%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div _ngcontent-ng-c1883998186="" file-drop-zone="!inGemsMode" trace="ChatContainer" class="xap-uploader-dropzone chat-container ng-tns-c1883998186-1 ng-trigger ng-trigger-chatHistoryImmersiveTransitions" jslog="173898;track:impression,attention" data-hveid="0" decode-data-ved="1" data-ved="0CAAQys4KahcKEwiPnY3rzuyUAxUAAAAAHQAAAAAQAw"><!----><chat-window-content _ngcontent-ng-c1883998186="" trace="" _nghost-ng-c3091545854="" class="ng-tns-c1883998186-1 ui-improvements-phase-1 ng-star-inserted" s
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(1)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: strategy 2 (alignment) found 1 messages
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=10%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] gemini: resolved sessionId=gemini-aa01d9fbc2
+shared-CtdzbVwW.js:9 [ContextMover] Sending CAPTURE_SESSION for session: gemini-aa01d9fbc2
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div _ngcontent-ng-c1883998186="" file-drop-zone="!inGemsMode" trace="ChatContainer" class="xap-uploader-dropzone chat-container ng-tns-c1883998186-1 ng-trigger ng-trigger-chatHistoryImmersiveTransitions" jslog="173898;track:impression,attention" data-hveid="0" decode-data-ved="1" data-ved="0CAAQys4KahcKEwiPnY3rzuyUAxUAAAAAHQAAAAAQAw"><!----><chat-window-content _ngcontent-ng-c1883998186="" trace="" _nghost-ng-c3091545854="" class="ng-tns-c1883998186-1 ui-improvements-phase-1 ng-star-inserted" s
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(1)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: strategy 2 (alignment) found 1 messages
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=20%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div _ngcontent-ng-c1883998186="" file-drop-zone="!inGemsMode" trace="ChatContainer" class="xap-uploader-dropzone chat-container ng-tns-c1883998186-1 ng-trigger ng-trigger-chatHistoryImmersiveTransitions" jslog="173898;track:impression,attention" data-hveid="0" decode-data-ved="1" data-ved="0CAAQys4KahcKEwiPnY3rzuyUAxUAAAAAHQAAAAAQAw"><!----><chat-window-content _ngcontent-ng-c1883998186="" trace="" _nghost-ng-c3091545854="" class="ng-tns-c1883998186-1 ui-improvements-phase-1 ng-star-inserted" s
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(1)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: strategy 2 (alignment) found 1 messages
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Sending CAPTURE_SESSION for session: gemini-aa01d9fbc2
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=30%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div _ngcontent-ng-c1883998186="" file-drop-zone="!inGemsMode" trace="ChatContainer" class="xap-uploader-dropzone chat-container ng-tns-c1883998186-1 ng-trigger ng-trigger-chatHistoryImmersiveTransitions" jslog="173898;track:impression,attention" data-hveid="0" decode-data-ved="1" data-ved="0CAAQys4KahcKEwiPnY3rzuyUAxUAAAAAHQAAAAAQAw"><!----><chat-window-content _ngcontent-ng-c1883998186="" trace="" _nghost-ng-c3091545854="" class="ng-tns-c1883998186-1 ui-improvements-phase-1 ng-star-inserted" s
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(1)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: strategy 2 (alignment) found 1 messages
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=40%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div _ngcontent-ng-c1883998186="" file-drop-zone="!inGemsMode" trace="ChatContainer" class="xap-uploader-dropzone chat-container ng-tns-c1883998186-1 ng-trigger ng-trigger-chatHistoryImmersiveTransitions" jslog="173898;track:impression,attention" data-hveid="0" decode-data-ved="1" data-ved="0CAAQys4KahcKEwiPnY3rzuyUAxUAAAAAHQAAAAAQAw"><!----><chat-window-content _ngcontent-ng-c1883998186="" trace="" _nghost-ng-c3091545854="" class="ng-tns-c1883998186-1 ui-improvements-phase-1 ng-star-inserted" s
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(1)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: too few long elements (0), skipping
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] gemini: 0 messages after 1 — retry 1/3
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=40%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=0 asst=0 selectorHits(u=0 a=0)
+gemini-CB0PIvGw.js:5 [CM:Debug] ZERO-SCRAPE: no selectors matched any nodes.
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] DOM snippet (first 500 chars):
+ <div _ngcontent-ng-c1883998186="" file-drop-zone="!inGemsMode" trace="ChatContainer" class="xap-uploader-dropzone chat-container ng-tns-c1883998186-1 ng-trigger ng-trigger-chatHistoryImmersiveTransitions" jslog="173898;track:impression,attention" data-hveid="0" decode-data-ved="1" data-ved="0CAAQys4KahcKEwiPnY3rzuyUAxUAAAAAHQAAAAAQAw"><!----><chat-window-content _ngcontent-ng-c1883998186="" trace="" _nghost-ng-c3091545854="" class="ng-tns-c1883998186-1 ui-improvements-phase-1 ng-star-inserted" s
+scrapeMessages @ gemini-CB0PIvGw.js:5
+gemini-CB0PIvGw.js:5 [CM:Debug] scope> direct children: Array(1)
+scrapeMessages @ gemini-CB0PIvGw.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [CM:gemini] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:5 [CM:structural] gemini: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:5 [CM:structural] gemini: too few long elements (0), skipping
+detectByStructure @ shared-CtdzbVwW.js:5
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] gemini: 0 messages after 1 — retry 2/3
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=40%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486 No ID or name found in config.
+sFb @ m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=1 asst=0 selectorHits(u=1 a=0)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Skipping capture — 1 user-only messages (awaiting assistant response)
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=40%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=1 asst=0 selectorHits(u=1 a=0)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Skipping capture — 1 user-only messages (awaiting assistant response)
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=40%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=1 asst=0 selectorHits(u=1 a=0)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Skipping capture — 1 user-only messages (awaiting assistant response)
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=40%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=1 asst=0 selectorHits(u=1 a=0)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Skipping capture — 1 user-only messages (awaiting assistant response)
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=40%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=1 asst=0 selectorHits(u=1 a=0)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Skipping capture — 1 user-only messages (awaiting assistant response)
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=0% assistant=30%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486 No ID or name found in config.
+sFb @ m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486
+shared-CtdzbVwW.js:9 [ContextMover] URL changed — keeping sessionId (had messages)
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=1 asst=1 selectorHits(u=1 a=1)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Sending CAPTURE_SESSION for session: gemini-aa01d9fbc2
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=10% assistant=30%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 10% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=1 asst=1 selectorHits(u=1 a=1)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover:capture] Skipped duplicate for gemini-aa01d9fbc2 (hash changed but 253ms since last send)
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=20% assistant=30%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 20% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=1 asst=1 selectorHits(u=1 a=1)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover:capture] Skipped duplicate for gemini-aa01d9fbc2 (hash changed but 793ms since last send)
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=30% assistant=30%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 30% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=1 asst=1 selectorHits(u=1 a=1)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover:capture] Skipped duplicate for gemini-aa01d9fbc2 (hash changed but 1503ms since last send)
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=40% assistant=40%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 40% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=1 asst=1 selectorHits(u=1 a=1)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover:capture] Skipped duplicate for gemini-aa01d9fbc2 (hash changed but 1755ms since last send)
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=50% assistant=50%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 50% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=1 asst=1 selectorHits(u=1 a=1)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Sending CAPTURE_SESSION for session: gemini-aa01d9fbc2
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=60% assistant=60%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 60% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=1 asst=1 selectorHits(u=1 a=1)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=70% assistant=70%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: gemini capture rate dropped to 70% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486 No ID or name found in config.
+sFb @ m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=2 asst=1 selectorHits(u=2 a=1)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Sending CAPTURE_SESSION for session: gemini-aa01d9fbc2
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=80% assistant=80%
+m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486 No ID or name found in config.
+sFb @ m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=2 asst=2 selectorHits(u=2 a=2)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Sending CAPTURE_SESSION for session: gemini-aa01d9fbc2
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=90% assistant=90%
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=2 asst=2 selectorHits(u=2 a=2)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=100% assistant=100%
+m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486 No ID or name found in config.
+sFb @ m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=3 asst=2 selectorHits(u=3 a=2)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Sending CAPTURE_SESSION for session: gemini-aa01d9fbc2
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=100% assistant=100%
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=3 asst=2 selectorHits(u=3 a=2)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=100% assistant=100%
+m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486 No ID or name found in config.
+sFb @ m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486
+m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486 No ID or name found in config.
+sFb @ m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=4 asst=3 selectorHits(u=4 a=3)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Sending CAPTURE_SESSION for session: gemini-aa01d9fbc2
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=100% assistant=100%
+m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486 No ID or name found in config.
+sFb @ m=LQaXg?wli=BardChatUi.W_mCXSikGy8.libheifWasm.O%3A%3BBardChatUi.LFd6ZVkPZ50.loadWasmSipCoca.O%3A%3B:1486
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=4 asst=4 selectorHits(u=4 a=4)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Sending CAPTURE_SESSION for session: gemini-aa01d9fbc2
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=100% assistant=100%
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=4 asst=4 selectorHits(u=4 a=4)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover:capture] Skipped duplicate for gemini-aa01d9fbc2 (hash changed but 496ms since last send)
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=100% assistant=100%
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=4 asst=4 selectorHits(u=4 a=4)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Sending CAPTURE_SESSION for session: gemini-aa01d9fbc2
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=100% assistant=100%
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=4 asst=4 selectorHits(u=4 a=4)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:3 [CM:validate] gemini: Object
+shared-CtdzbVwW.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=100% assistant=100%
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for gemini (DOM fallback)
+gemini-CB0PIvGw.js:5 [CM:gemini] root found: chat-window
+gemini-CB0PIvGw.js:5 [CM:Debug] Scraper Search
+gemini-CB0PIvGw.js:5 [CM:diag:gemini] strategy=1 user=4 asst=4 selectorHits(u=4 a=4)
+shared-CtdzbVwW.js:3 [CM:validate] gemini: {valid: true, errors: Array(0), warnings: Array(0), stats: {…}}
+shared-CtdzbVwW.js:3 [CM:validate] gemini: {valid: true, errors: Array(0), warnings: Array(0), stats: {…}}
+shared-CtdzbVwW.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-CtdzbVwW.js:7 [CM:health] gemini: success=100% assistant=100%
+(function geminiDOMProbe() {
+  const sessionType = document.querySelector('model-response, user-query') ? 'LIKELY-EXISTING' : 'LIKELY-NEW';
+  console.log(`\n========== CONTEXTMOVER: GEMINI DOM PROBE [${sessionType}] ==========\n`);
+
+  // ── SECTION 1: Custom web component scan (Gemini uses Angular custom elements) 
+  const customTags = [...new Set([...document.querySelectorAll('*')]
+    .filter(el => el.tagName.includes('-'))
+    .map(el => el.tagName.toLowerCase())
+  )].sort();
+  console.log('CUSTOM ELEMENTS (web components) on page:');
+  customTags.forEach(tag => {
+    const count = document.querySelectorAll(tag).length;
+    if (count > 0) console.log(`  ${count}x <${tag}>`);
+  });
+
+  // ── SECTION 2: Test known Gemini selectors ─────────────────────────────────
+  const candidates = [
+    'model-response', 'user-query', 'response-container',
+    'message-content', 'chat-message', 'conversation-container',
+    '[data-message-author]', '[data-turn-id]', '[data-chunk-index]',
+    '[class*="response"]', '[class*="query"]', '[class*="user-query"]',
+    '[class*="model-response"]', '[class*="conversation-turn"]',
+    '[class*="message"]', '[class*="turn"]',
+    '.response-content', '.query-content',
+    '[jsname]', '[jsaction]',
+    'infinite-scroller', 'chat-history',
+  ];
+
+  console.log('\nSELECTOR TEST RESULTS:');
+  candidates.forEach(sel => {
+    try {
+      const els = [...document.querySelectorAll(sel)];
+      if (els.length > 0) {
+        console.log(`\n  ✅ "${sel}" → ${els.length} elements`);
+        els.slice(0, 2).forEach((el, i) => {
+          const text = el.textContent.trim().replace(/\s+/g,' ').slice(0,100);
+          const allAttrs = [...el.attributes].map(a=>`${a.name}="${a.value.slice(0,40)}"`).join(' ');
+          console.log(`     [${i}] <${el.tagName.toLowerCase()}> attrs: ${allAttrs.slice(0,150)}`);
+          console.log(`     [${i}] text: "${text}"`);
+        });
+      }
+    } catch(e) {}
+  });
+
+  // ── SECTION 3: Scan for jsname / jsaction attributes (Angular pattern) ─────
+  console.log('\nJSNAME ATTRIBUTES (Angular internal identifiers):');
+  const jsnames = [...new Set([...document.querySelectorAll('[jsname]')].map(el => el.getAttribute('jsname')))];
+  console.log('  All jsname values (first 20):', jsnames.slice(0,20).join(', '));
+
+  // ── SECTION 4: Find conversation root ─────────────────────────────────────
+  console.log('\nCONVERSATION ROOT SEARCH:');
+  ['chat-history', 'infinite-scroller', 'conversation-container',
+   'chat-window', '[role="main"]', 'main',
+   '[class*="conversation"]', '[class*="history"]',
+   '[class*="chat-body"]', '[class*="ChatBody"]'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) {
+      console.log(`  "${sel}" → <${el.tagName.toLowerCase()}> | children: ${el.children.length} | scrollHeight: ${el.scrollHeight}`);
+    }
+  });
+
+  // ── SECTION 5: Shadow DOM check (important for custom elements) ────────────
+  console.log('\nSHADOW DOM CHECK:');
+  ['model-response', 'user-query', 'response-container', 'chat-history'].forEach(tag => {
+    const el = document.querySelector(tag);
+    if (el) {
+      const hasShadow = !!el.shadowRoot;
+      console.log(`  <${tag}> has shadowRoot: ${hasShadow}`);
+      if (hasShadow) {
+        const shadowChildren = [...el.shadowRoot.querySelectorAll('*')].slice(0,5).map(c => c.tagName.toLowerCase()).join(', ');
+        console.log(`    shadowRoot children (first 5): ${shadowChildren}`);
+      }
+    }
+  });
+
+  // ── SECTION 6: Text content sampling ──────────────────────────────────────
+  console.log('\nTEXT CONTENT SAMPLING (first 5 substantial text blocks):');
+  let count = 0;
+  document.querySelectorAll('*').forEach(el => {
+    if (count >= 5) return;
+    const text = el.textContent.trim();
+    if (text.length > 100 && text.length < 2000 && el.children.length <= 2) {
+      console.log(`  <${el.tagName.toLowerCase()}> class="${el.className?.toString().slice(0,60)}" → "${text.slice(0,80)}..."`);
+      count++;
+    }
+  });
+
+  console.log(`\n========== END GEMINI DOM PROBE [${sessionType}] ==========\n`);
+})();
+ 
+========== CONTEXTMOVER: GEMINI DOM PROBE [LIKELY-EXISTING] ==========
+
+ CUSTOM ELEMENTS (web components) on page:
+   1x <at-mentions-menu>
+   1x <auto-suggest>
+   1x <bard-mode-switcher>
+   1x <bot-banner>
+   1x <chat-app>
+   1x <chat-app-announcement-banners>
+   1x <chat-app-banners>
+   1x <chat-app-side-nav-menu-button>
+   1x <chat-app-tooltips>
+   1x <chat-loading-animation>
+   1x <chat-notifications>
+   1x <chat-window>
+   1x <chat-window-content>
+   1x <condensed-tos-disclaimer>
+   1x <conversation-action-menu>
+   1x <conversation-actions-icon>
+   1x <conversations-list>
+   4x <copy-button>
+   1x <crust-task>
+   2x <expandable-section>
+   1x <file-drop-indicator>
+   1x <freemium-file-upload-near-quota-disclaimer>
+   1x <freemium-file-upload-quota-exceeded-disclaimer>
+   4x <freemium-rag-disclaimer>
+   1x <g1-dynamic-upsell-button>
+   1x <gem-button>
+   44x <gem-icon>
+   32x <gem-icon-button>
+   6x <gem-nav-list-item>
+   7x <gem-popover>
+   2x <hallucination-disclaimer>
+   2x <infinite-scroller>
+   1x <input-area-v2>
+   1x <input-container>
+   1x <mat-action-list>
+   46x <mat-icon>
+   15x <mat-menu>
+   5x <mat-nav-list>
+   2x <mat-progress-spinner>
+   1x <mat-sidenav>
+   1x <mat-sidenav-container>
+   1x <mat-sidenav-content>
+   4x <message-actions>
+   4x <message-content>
+   4x <model-response>
+   1x <new-chat-button>
+   1x <project-sidenav-list>
+   1x <regenerate-button>
+   4x <response-container>
+   1x <rich-textarea>
+   1x <router-outlet>
+   4x <sensitive-memories-banner>
+   1x <side-nav-menu-button>
+   1x <side-nav-sparkle-button>
+   1x <side-navigation-content>
+   1x <side-navigation-v2>
+   1x <sidenav-mavatar-footer>
+   1x <simplified-input-menu>
+   4x <sources-list>
+   1x <speech-dictation-mic-button>
+   4x <structured-content-container>
+   4x <thinking-overlay>
+   4x <thumb-down-button>
+   4x <thumb-up-button>
+   1x <top-bar-actions>
+   1x <tts-control-v2>
+   1x <user-profile-picture>
+   4x <user-query>
+   4x <user-query-content>
+   1x <xap-count-badge>
+ 
+SELECTOR TEST RESULTS:
+ 
+  ✅ "model-response" → 4 elements
+      [0] <model-response> attrs: _ngcontent-ng-c3091545854="" _nghost-ng-c2169594278="" class="enable-lr26-response-chrome-updates ng-s"
+      [0] text: "Gemini saidHii! How's it going? What's on your mind today?"
+      [1] <model-response> attrs: _ngcontent-ng-c3091545854="" _nghost-ng-c2169594278="" class="enable-lr26-response-chrome-updates ng-s"
+      [1] text: "Gemini saidI'm listening! What's up?"
+VM668:34 
+  ✅ "user-query" → 4 elements
+VM668:38      [0] <user-query> attrs: _ngcontent-ng-c3091545854="" _nghost-ng-c4059923229="" class="ng-star-inserted"
+VM668:39      [0] text: "You said hii"
+VM668:38      [1] <user-query> attrs: _ngcontent-ng-c3091545854="" _nghost-ng-c4059923229="" class="ng-star-inserted"
+VM668:39      [1] text: "You said hellolisten"
+VM668:34 
+  ✅ "response-container" → 4 elements
+VM668:38      [0] <response-container> attrs: _ngcontent-ng-c2169594278="" _nghost-ng-c3511524645="" class="ng-tns-c3511524645-12 reduced-bottom-pad" jslog="188576;track:impression,attention;BardV
+VM668:39      [0] text: "Gemini saidHii! How's it going? What's on your mind today?"
+VM668:38      [1] <response-container> attrs: _ngcontent-ng-c2169594278="" _nghost-ng-c3511524645="" class="ng-tns-c3511524645-16 reduced-bottom-pad" jslog="188576;track:impression,attention;BardV
+VM668:39      [1] text: "Gemini saidI'm listening! What's up?"
+VM668:34 
+  ✅ "message-content" → 4 elements
+VM668:38      [0] <message-content> attrs: _ngcontent-ng-c587905618="" _nghost-ng-c587149462="" id="message-content-id-r_779c2502c69da77b" class="ng-star-inserted"
+VM668:39      [0] text: "Hii! How's it going? What's on your mind today?"
+VM668:38      [1] <message-content> attrs: _ngcontent-ng-c587905618="" _nghost-ng-c587149462="" id="message-content-id-r_2228fd5f09f34cab" class="ng-star-inserted"
+VM668:39      [1] text: "I'm listening! What's up?"
+VM668:34 
+  ✅ "[class*="response"]" → 60 elements
+VM668:38      [0] <div> attrs: _ngcontent-ng-c3322900915="" class="response-tts-container hidden ng-star-in"
+VM668:39      [0] text: ""
+VM668:38      [1] <model-response> attrs: _ngcontent-ng-c3091545854="" _nghost-ng-c2169594278="" class="enable-lr26-response-chrome-updates ng-s"
+VM668:39      [1] text: "Gemini saidHii! How's it going? What's on your mind today?"
+VM668:34 
+  ✅ "[class*="query"]" → 32 elements
+VM668:38      [0] <span> attrs: _ngcontent-ng-c4059923229="" class="user-query-container"
+VM668:39      [0] text: "You said hii"
+VM668:38      [1] <user-query-content> attrs: _ngcontent-ng-c4059923229="" class="user-query-container enable-luminous-pro" _nghost-ng-c3195099594="" style="--max-lines-for-collapse-count: 5;"
+VM668:39      [1] text: "You said hii"
+VM668:34 
+  ✅ "[class*="user-query"]" → 20 elements
+VM668:38      [0] <span> attrs: _ngcontent-ng-c4059923229="" class="user-query-container"
+VM668:39      [0] text: "You said hii"
+VM668:38      [1] <user-query-content> attrs: _ngcontent-ng-c4059923229="" class="user-query-container enable-luminous-pro" _nghost-ng-c3195099594="" style="--max-lines-for-collapse-count: 5;"
+VM668:39      [1] text: "You said hii"
+VM668:34 
+  ✅ "[class*="model-response"]" → 8 elements
+VM668:38      [0] <h2> attrs: _ngcontent-ng-c2169594278="" class="cdk-visually-hidden screen-reader-model-"
+VM668:39      [0] text: "Gemini said"
+VM668:38      [1] <structured-content-container> attrs: _ngcontent-ng-c2169594278="" class="model-response-text processing-state-vis" _nghost-ng-c587905618="" style="height: auto;"
+VM668:39      [1] text: "Hii! How's it going? What's on your mind today?"
+VM668:34 
+  ✅ "[class*="message"]" → 5 elements
+VM668:38      [0] <div> attrs: _ngcontent-ng-c3091545854="" class="conversation-container message-actions-h" id="779c2502c69da77b" style=""
+VM668:39      [0] text: "You said hii Gemini saidHii! How's it going? What's on your mind today?"
+VM668:38      [1] <div> attrs: _ngcontent-ng-c3091545854="" class="conversation-container message-actions-h" id="2228fd5f09f34cab" style=""
+VM668:39      [1] text: "You said hellolisten Gemini saidI'm listening! What's up?"
+VM668:34 
+  ✅ ".response-content" → 4 elements
+VM668:38      [0] <div> attrs: _ngcontent-ng-c2169594278="" class="response-content ng-tns-c3511524645-12"
+VM668:39      [0] text: "Gemini saidHii! How's it going? What's on your mind today?"
+VM668:38      [1] <div> attrs: _ngcontent-ng-c2169594278="" class="response-content ng-tns-c3511524645-16"
+VM668:39      [1] text: "Gemini saidI'm listening! What's up?"
+VM668:34 
+  ✅ ".query-content" → 4 elements
+VM668:38      [0] <div> attrs: _ngcontent-ng-c3195099594="" class="query-content ng-star-inserted verticle-" id="user-query-content-0" jslog="275422;track:impression,attention" data
+VM668:39      [0] text: "You said hii"
+VM668:38      [1] <div> attrs: _ngcontent-ng-c3195099594="" class="query-content ng-star-inserted verticle-" id="user-query-content-1" jslog="275422;track:impression,attention" data
+VM668:39      [1] text: "You said hellolisten"
+VM668:34 
+  ✅ "infinite-scroller" → 2 elements
+VM668:38      [0] <infinite-scroller> attrs: _ngcontent-ng-c825628007="" _nghost-ng-c727933417="" class="lr26-theme ng-star-inserted"
+VM668:39      [0] text: "LibraryNotebooksNew notebookRecenthii"
+VM668:38      [1] <infinite-scroller> attrs: _ngcontent-ng-c3091545854="" data-test-id="chat-history-container" class="chat-history enable-lr26-markdown-stylin" _nghost-ng-c727933417="" jslog="26
+VM668:39      [1] text: "You said hii Gemini saidHii! How's it going? What's on your mind today?You said hellolisten Gemini s"
+VM668:46 
+JSNAME ATTRIBUTES (Angular internal identifiers):
+VM668:48   All jsname values (first 20): 
+VM668:51 
+CONVERSATION ROOT SEARCH:
+VM668:58   "infinite-scroller" → <infinite-scroller> | children: 7 | scrollHeight: 379
+VM668:58   "chat-window" → <chat-window> | children: 1 | scrollHeight: 581
+VM668:58   "main" → <main> | children: 4 | scrollHeight: 581
+VM668:58   "[class*="conversation"]" → <span> | children: 0 | scrollHeight: 24
+VM668:58   "[class*="history"]" → <div> | children: 2 | scrollHeight: 649
+VM668:63 
+SHADOW DOM CHECK:
+VM668:68   <model-response> has shadowRoot: false
+VM668:68   <user-query> has shadowRoot: false
+VM668:68   <response-container> has shadowRoot: false
+VM668:77 
+TEXT CONTENT SAMPLING (first 5 substantial text blocks):
+VM668:83   <script> class="" → "window["_F_toggles_default_BardChatUi"] = [0x6840021, 0x2ff3140f, 0x278614d, 0x2..."
+VM668:83   <script> class="" → "var _F_cssRowKey = 'boq-bard-web.BardChatUi.FwbtNzIGSDQ.L.B1.O';var _F_combinedS..."
+VM668:83   <script> class="" → "(window.dataLayer=window.dataLayer||[]).push({"gtm.start": new Date().getTime(),..."
+VM668:83   <script> class="" → "{"@context" : "https://schema.org", "@type" : "WebSite", "name" : "Gemini", "url..."
+VM668:83   <script> class="" → "var AF_initDataKeys = []; var AF_dataServiceRequests = {}; var AF_initDataChunkQ..."
+VM668:88 
+========== END GEMINI DOM PROBE [LIKELY-EXISTING] ==========
+
+undefined

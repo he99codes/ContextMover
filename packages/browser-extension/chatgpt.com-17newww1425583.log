@@ -1,0 +1,1123 @@
+VM337:14 Console was cleared
+VM337:15 ========== CONTEXTMOVER: CHATGPT DIAGNOSTIC ==========
+
+VM337:21 PART A: DOM PROBE RESULTS
+
+VM337:36 Testing selectors:
+
+VM337:44 ✅ "[data-message-author-role]" → 8 elements
+VM337:45    [0] role="user" testid="N/A"
+VM337:46    text: "hii..."
+
+VM337:44 ✅ "[data-message-author-role="user"]" → 4 elements
+VM337:45    [0] role="user" testid="N/A"
+VM337:46    text: "hii..."
+
+VM337:44 ✅ "[data-message-author-role="assistant"]" → 4 elements
+VM337:45    [0] role="assistant" testid="N/A"
+VM337:46    text: "Hi! How can I help you today? 😊..."
+
+VM337:44 ✅ "[data-testid^="conversation-turn"]" → 8 elements
+VM337:45    [0] role="N/A" testid="conversation-turn-1"
+VM337:46    text: "You said:hii..."
+
+VM337:44 ✅ "[class*="message"]" → 28 elements
+VM337:45    [0] role="N/A" testid="N/A"
+VM337:46    text: "hii..."
+
+VM337:44 ✅ "[class*="text-message"]" → 8 elements
+VM337:45    [0] role="user" testid="N/A"
+VM337:46    text: "hii..."
+
+VM337:44 ✅ "[class*="agent-turn"]" → 4 elements
+VM337:45    [0] role="N/A" testid="N/A"
+VM337:46    text: "Hi! How can I help you today? 😊..."
+
+VM337:44 ✅ "[class*="group"]" → 33 elements
+VM337:45    [0] role="N/A" testid="N/A"
+VM337:46    text: "Open sidebarChatGPTLog inSign up for freeYou said:hiiChatGPT..."
+
+VM337:48 ❌ "[role="article"]" → 0 elements
+
+VM337:48 ❌ "main [role="region"]" → 0 elements
+
+VM337:56 
+PART B: MESSAGE EXTRACTION BY ROLE
+
+VM337:61 User messages: 4
+VM337:62 Assistant messages: 4
+VM337:63 Total: 8
+
+VM337:66 Sample USER message:
+VM337:68   data-message-id: 72c595f7-15a0-496a-9551-ed876b457a54
+VM337:69   text: "hii..."
+
+VM337:73 Sample ASSISTANT message:
+VM337:75   data-message-id: d8e9a1ed-e9d6-4ca0-8127-0b2d0bb70b54
+VM337:76   data-message-model-slug: gpt-5-5
+VM337:77   text: "Hi! How can I help you today? 😊..."
+
+VM337:84 
+PART C: VIRTUAL SCROLL / CONTAINER DETECTION
+
+VM337:100 thread container:
+VM337:101   overflow-y: visible
+VM337:102   height: 886px, scrollHeight: 886px
+VM337:103   children: 1
+
+VM337:100 overflow-y-auto:
+VM337:101   overflow-y: auto
+VM337:102   height: 649px, scrollHeight: 938px
+VM337:103   children: 2
+
+VM337:100 main element:
+VM337:101   overflow-y: visible
+VM337:102   height: 597px, scrollHeight: 886px
+VM337:103   children: 1
+
+VM337:111 
+PART D: FETCH INTERCEPTOR STATUS
+
+VM337:119 ⚠️  Fetch interceptor: No capture flag set yet
+
+VM337:126 
+PART E: STREAMING MESSAGE CHECK
+
+VM337:129 Streaming messages: 0
+VM337:133 ✅ No streaming messages — conversation is stable
+
+VM337:140 
+PART F: SIMULATED DOM SCRAPE
+
+VM337:169 Scraped: 8 total messages
+VM337:170   User: 4
+VM337:171   Assistant: 4
+
+VM337:174 Sample scraped message:
+VM337:175   role: user
+VM337:176   content: "hii..."
+
+VM337:183 
+PART G: RECOMMENDATIONS
+
+VM337:208 ✅ All checks passed! DOM scrape should work correctly.
+VM337:213 
+========== END DIAGNOSTIC ==========
+
+VM337:219 EXPORT RESULTS (copy this for the developer):
+
+VM337:234 {
+  "timestamp": "2026-06-04T02:45:48.715Z",
+  "url": "https://chatgpt.com/?utm_source=google&utm_medium=paid_search&utm_campaign=GOOG_C_SEM_GBR_Core_CHT_BAU_ACQ_PER_MIX_ALL_APAC_IN_EN_032525&c_id=22370388714&c_agid=177344203135&c_crid=741704613486&c_kwid=kwd-1927227100722&c_ims=&c_pms=9303694&c_nw=g&c_dvc=c&gad_source=1&gad_campaignid=22370388714&gbraid=0AAAAA-I0E5dvtIdShF_3UXSb5sZXM6COO&gclid=Cj0KCQjwof_QBhCgARIsADaMzOfoymtGWGuNWoUE6hEiSfkpvSyMnl9HmEiKgm0HBMRdQ0h--BH5BGwaAoz6EALw_wcB",
+  "userMessages": 4,
+  "assistantMessages": 4,
+  "streamingMessages": 0,
+  "scrapedMessages": 8,
+  "scrapedUserCount": 4,
+  "scrapedAssistantCount": 4,
+  "fetchInterceptorActive": false,
+  "fetchInterceptorCount": 0,
+  "issues": []
+}
+VM337:235 
+✅ Diagnostic complete. Share the JSON above with the developer.
+undefined
+shared-BCeDZ6eT.js:9 [ContextMover] Capture triggered for chatgpt (DOM fallback)
+chatgpt-Dri7vtI3.js:5 [CM:diag:chatgpt] strategy=1 user=4 asst=4
+shared-BCeDZ6eT.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-BCeDZ6eT.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-BCeDZ6eT.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-BCeDZ6eT.js:7 [CM:health] chatgpt: success=90% assistant=100%
+shared-BCeDZ6eT.js:9 [ContextMover] Capture triggered for chatgpt (DOM fallback)
+chatgpt-Dri7vtI3.js:5 [CM:diag:chatgpt] strategy=1 user=4 asst=4
+shared-BCeDZ6eT.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-BCeDZ6eT.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-BCeDZ6eT.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-BCeDZ6eT.js:7 [CM:health] chatgpt: success=90% assistant=100%
+const originalFetch = window.fetch;
+let fetchCount = 0;
+window.fetch = function(...args) {
+  const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || String(args[0]);
+  fetchCount++;
+  if (url.includes('chatgpt.com') || url.includes('chat.openai.com') || url.includes('openai')) {
+    console.log(`%c[FETCH #${fetchCount}] CHATGPT URL:`, 'color: red; font-weight: bold;', url);
+  }
+  return originalFetch.apply(this, args);
+};
+console.log("✅ Fetch hook installed. Send a message now...");
+VM358:11 ✅ Fetch hook installed. Send a message now...
+undefined
+hii
+VM370:1 Uncaught ReferenceError: hii is not defined
+    at <anonymous>:1:1
+(anonymous) @ VM370:1
+const originalFetch = window.fetch;
+let fetchCount = 0;
+window.fetch = function(...args) {
+  const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || String(args[0]);
+  fetchCount++;
+  if (url.includes('chatgpt.com') || url.includes('chat.openai.com') || url.includes('openai')) {
+    console.log(`%c[FETCH #${fetchCount}] CHATGPT URL:`, 'color: red; font-weight: bold;', url);
+  }
+  return originalFetch.apply(this, args);
+};
+console.log("✅ Fetch hook installed. Send a message now...");
+VM374:11 ✅ Fetch hook installed. Send a message now...
+undefined
+shared-BCeDZ6eT.js:9 [ContextMover] Capture triggered for chatgpt (DOM fallback)
+ [CM:diag:chatgpt] strategy=1 user=4 asst=4
+ [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+ [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+ [ContextMover] Snapshot hash unchanged, skipping
+ [FETCH #1] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #2] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #3] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #4] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #5] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #6] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #7] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #8] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #9] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #10] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #11] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #12] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #13] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #14] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #15] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #16] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #17] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #18] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #19] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #20] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #21] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #22] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #23] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #24] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #25] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #26] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #27] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #28] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #29] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #30] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #31] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #32] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #33] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #34] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #35] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #36] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #37] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #38] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #39] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #40] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #41] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #42] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #43] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #44] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #45] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #46] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #47] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #48] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #49] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #50] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #51] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #52] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #53] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #54] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #55] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #56] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #57] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #58] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #59] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #60] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #61] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #62] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #63] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #64] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #65] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #66] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #67] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #68] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #69] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #70] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #71] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #72] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #73] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #74] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #75] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #76] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #77] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #78] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #79] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #80] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #81] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #82] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #83] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #84] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #85] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #86] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #87] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #88] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #89] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #90] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #91] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #92] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #93] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #94] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #95] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #96] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #97] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #98] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #99] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #100] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #101] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #102] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #103] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #104] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #105] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #106] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #107] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #108] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #109] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #110] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #111] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #112] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #113] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #114] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #115] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #116] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #117] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #118] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #119] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #120] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #121] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #122] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #123] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #124] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #125] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #126] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #127] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #128] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #129] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #130] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #131] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #132] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #133] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #134] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #135] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #136] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #137] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #138] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #139] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #140] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #141] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #142] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #143] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #144] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #145] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #146] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #147] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #148] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #149] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #150] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #151] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #152] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #153] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #154] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #155] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #156] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #157] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #158] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #159] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #160] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #161] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #162] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #163] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #164] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #165] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #166] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #167] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #168] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #169] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #170] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #171] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #172] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #173] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #174] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #175] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #176] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #177] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #178] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #179] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #180] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #181] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #182] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #183] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #184] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #185] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #186] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #187] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #188] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #189] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #190] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #191] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #192] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #193] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #194] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #195] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #196] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #197] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #198] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #199] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #200] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #201] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #202] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #203] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #204] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #205] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #206] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #207] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #208] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #209] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #210] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #211] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #212] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #213] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #214] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #215] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #216] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #217] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #218] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #219] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #220] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #221] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #222] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #223] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #224] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #225] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #226] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #227] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #228] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #229] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #230] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #231] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #232] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #233] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #234] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #235] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #236] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #237] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #238] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #239] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #240] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #241] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #242] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #243] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #244] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #245] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #246] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #247] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #248] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #249] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #250] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #251] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #252] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #253] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #254] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #255] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #256] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #257] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #258] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #259] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #260] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #261] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #262] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #263] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #264] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #265] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #266] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #267] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #268] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #269] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #270] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #271] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #272] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #273] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #274] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #275] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #276] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #277] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #278] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #279] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #280] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #281] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #282] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #283] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #284] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #285] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #286] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #287] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #288] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #289] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #290] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #291] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #292] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #293] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #294] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #295] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #296] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #297] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #298] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #299] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #300] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #301] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #302] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #303] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #304] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #305] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #306] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #307] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #308] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #309] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #310] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #311] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #312] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #313] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #314] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #315] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #316] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #317] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #318] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #319] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #320] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #321] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #322] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #323] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #324] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #325] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #326] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #327] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #328] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #329] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #330] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #331] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #332] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #333] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #334] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #335] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #336] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #337] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #338] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #339] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #340] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #341] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #342] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #343] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #344] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #345] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #346] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #347] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #348] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #349] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #350] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #351] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #352] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #353] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #354] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #355] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #356] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #357] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #358] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #359] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #360] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #361] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #362] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #363] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #364] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #365] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #366] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #367] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #368] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #369] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #370] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #371] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #372] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #373] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #374] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #375] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #376] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #377] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #378] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #379] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #380] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #381] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #382] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #383] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #384] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #385] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #386] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #387] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #388] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #389] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #390] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #391] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #392] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #393] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #394] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #395] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #396] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #397] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #398] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #399] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #400] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #401] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #402] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #403] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #404] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #405] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #406] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #407] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #408] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #409] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #410] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #411] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #412] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #413] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #414] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #415] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #416] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #417] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #418] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #419] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #420] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #421] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #422] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #423] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #424] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #425] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #426] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #427] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #428] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #429] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #430] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #431] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #432] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #433] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #434] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #435] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #436] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #437] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #438] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #439] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #440] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #441] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #442] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #443] CHATGPT URL: https://chatgpt.com/ces/v1/t
+VM358:7 [FETCH #444] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #445] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #446] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #447] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #448] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #449] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #450] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #451] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #452] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #453] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #454] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #455] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #456] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #457] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #458] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #459] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #460] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #461] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #462] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #463] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #464] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #465] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #466] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #467] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #468] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #469] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #470] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #471] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #472] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #473] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #474] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #475] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #476] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #477] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #478] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #479] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #480] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #481] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #482] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #483] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #484] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #485] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #486] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #487] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #488] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #489] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #490] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #491] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #492] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #493] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #494] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #495] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #496] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #497] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #498] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #499] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #500] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #501] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #502] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #503] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #504] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #505] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #506] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #507] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #508] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #509] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #510] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #511] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #512] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #513] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #514] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #515] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #516] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #517] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #518] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #519] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #520] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #521] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #522] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #523] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #524] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #525] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #526] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #527] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #528] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #529] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #530] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #531] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #532] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #533] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #534] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #535] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #536] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #537] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #538] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #539] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #540] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #541] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #542] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #543] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #544] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #545] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #546] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #547] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #548] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #549] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #550] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #551] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #552] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #553] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #554] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #555] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #556] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #557] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #558] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #559] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #560] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #561] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #562] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #563] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #564] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #565] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #566] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #567] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #568] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #569] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #570] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #571] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #572] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #573] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #574] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #575] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #576] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #577] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #578] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #579] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #580] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #581] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #582] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #583] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #584] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #585] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #586] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #587] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #588] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #589] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #590] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #591] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #592] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #593] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #594] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #595] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #596] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #597] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #598] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #599] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #600] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #601] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #602] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #603] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #604] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #605] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #606] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #607] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #608] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #609] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #610] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #611] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #612] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #613] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #614] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #615] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #616] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #617] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #618] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #619] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #620] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #621] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #622] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #623] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #624] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #625] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #626] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #627] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #628] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #629] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #630] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #631] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #632] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #633] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #634] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #635] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #636] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #637] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #638] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #639] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #640] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #641] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #642] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #643] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #644] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #645] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #646] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #647] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #648] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #649] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #650] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #651] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #652] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #653] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #654] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #655] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #656] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #657] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #658] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #659] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #660] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #661] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #662] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #663] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #664] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #665] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #666] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #667] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #668] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #669] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #670] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #671] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #672] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #673] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #674] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #675] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #676] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #677] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #678] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #679] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #680] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #681] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #682] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #683] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #684] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #685] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #686] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #687] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #688] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #689] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #690] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #691] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #692] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #693] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #694] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #695] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #696] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #697] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #698] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #699] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #700] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #701] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #702] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #703] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #704] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #705] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #706] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #707] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #708] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #709] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #710] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #711] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #712] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #713] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #714] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #715] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #716] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #717] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #718] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #719] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #720] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #721] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #722] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #723] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #724] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #725] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #726] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #727] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #728] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #729] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #730] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #731] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #732] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #733] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #734] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #735] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #736] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #737] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #738] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #739] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #740] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #741] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #742] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #743] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #744] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #745] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #746] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #747] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #748] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #749] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #750] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #751] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #752] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #753] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #754] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #755] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #756] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #757] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #758] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #759] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #760] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #761] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #762] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #763] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #764] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #765] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #766] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #767] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #768] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #769] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #770] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #771] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #772] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #773] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #774] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #775] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #776] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #777] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #778] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #779] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #780] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #781] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #782] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #783] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #784] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #785] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #786] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #787] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #788] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #789] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #790] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #791] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #792] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #793] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #794] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #795] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #796] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #797] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #798] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #799] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #800] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #801] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #802] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #803] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #804] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #805] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #806] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #807] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #808] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #809] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #810] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #811] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #812] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #813] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #814] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #815] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #816] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #817] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #818] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #819] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #820] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #821] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #822] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #823] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #824] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #825] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #826] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #827] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #828] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #829] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #830] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #831] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #832] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #833] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #834] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #835] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #836] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #837] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #838] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #839] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #840] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #841] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #842] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #843] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #844] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #845] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #846] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #847] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #848] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #849] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #850] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #851] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #852] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #853] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #854] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #855] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #856] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #857] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #858] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #859] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #860] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #861] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #862] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #863] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #864] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #865] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #866] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #867] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #868] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #869] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #870] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #871] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #872] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #873] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #874] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #875] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #876] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #877] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #878] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #879] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #880] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #881] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #882] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #883] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #884] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #885] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #886] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #887] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #888] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #889] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #890] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #891] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #892] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #893] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #894] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #895] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #896] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #897] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #898] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #899] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #900] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #901] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #902] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #903] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #904] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #905] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #906] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #907] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #908] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #909] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #910] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #911] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #912] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #913] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #914] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #915] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #916] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #917] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #918] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #919] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #920] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #921] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #922] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #923] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #924] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #925] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #926] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #927] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #928] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #929] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #930] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #931] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #932] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #933] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #934] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #935] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #936] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #937] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #938] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #939] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #940] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #941] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #942] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #943] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #944] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #945] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #946] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #947] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #948] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #949] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #950] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #951] CHATGPT URL: https://chatgpt.com/ces/v1/t
+ [FETCH #952] CHATGPT URL: https://chatgpt.com/ces/v1/t

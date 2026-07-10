@@ -1,0 +1,520 @@
+ [ContextMover:fetch] XMLHttpRequest override installed
+ [ContextMover:fetch] window.fetch override installed
+ [ContextMover:fetch] WebSocket override installed (Perplexity socket.io)
+  [instance: default] appid: 20006317, userInfo:{"user_unique_id":"7641598249605925639","web_id":"7641598249605925639"}
+  [instance: default] appid: 20006317, sdk is ready, version is 5.2.11_tob, you can report now !!!
+ [ContextMover:bridge] installed
+ [ContextMover] DeepSeek content script loaded
+ [CM:deepseek] scrollback: starting — loading lazy history
+ [CM:deepseek] scrollback: DOM settled — running full capture
+  [instance: default] appid: 20006317 token change, new userInfo:{"user_unique_id":"dfeb63dc-5d5a-49ec-b4e4-0a9f098c62e1","web_id":"7641598249605925639"}
+ [ContextMover] URL changed — re-resolving sessionId
+ [ContextMover] Capture triggered for deepseek (DOM fallback)
+ [ContextMover:deepseek] A data-author-role: 0
+ [ContextMover:deepseek] B class-substr: user=0 asst=0
+ [ContextMover:deepseek] C data-role: 0
+ [ContextMover:deepseek] D structural: 0
+ [ContextMover:deepseek] NO messages found. Top candidate classes: Array(2)
+ [CM:validate] deepseek: Object
+ [CM:validate] deepseek: Object
+ [ContextMover] No messages found, skipping capture
+ [CM:health] deepseek: success=20% assistant=20%
+ [CM:health] ALERT: deepseek capture rate dropped to 20% — selectors may be broken
+ `WebAssembly.instantiateStreaming` failed because your server does not serve Wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:
+ TypeError: Failed to execute 'compile' on 'WebAssembly': Incorrect response MIME type. Expected 'application/wasm'.
+ [ContextMover] Capture triggered for deepseek (DOM fallback)
+ [ContextMover:deepseek] A data-author-role: 0
+ [ContextMover:deepseek] B class-substr: user=0 asst=0
+ [ContextMover:deepseek] C data-role: 0
+ [ContextMover:deepseek] D structural: 0
+ [ContextMover:deepseek] NO messages found. Top candidate classes: Array(2)
+ [CM:validate] deepseek: Object
+ [CM:validate] deepseek: Object
+ [ContextMover] No messages found, skipping capture
+ [ContextMover] Capture triggered for deepseek (DOM fallback)
+ [ContextMover:deepseek] A data-author-role: 0
+ [ContextMover:deepseek] B class-substr: user=0 asst=0
+ [ContextMover:deepseek] C data-role: 0
+ [ContextMover:deepseek] D structural: 0
+ [ContextMover:deepseek] NO messages found. Top candidate classes: Array(2)
+ [CM:validate] deepseek: Object
+ [CM:validate] deepseek: Object
+ [ContextMover] No messages found, skipping capture
+ [ContextMover] Capture triggered for deepseek (DOM fallback)
+ [ContextMover:deepseek] A data-author-role: 0
+ [ContextMover:deepseek] B class-substr: user=0 asst=0
+ [ContextMover:deepseek] C data-role: 0
+ [ContextMover:deepseek] D structural: 0
+ [ContextMover:deepseek] NO messages found. Top candidate classes: Array(2)
+ [CM:validate] deepseek: Object
+ [CM:validate] deepseek: Object
+ [ContextMover] No messages found, skipping capture
+ [CM:health] deepseek: success=20% assistant=20%
+ [CM:health] ALERT: deepseek capture rate dropped to 20% — selectors may be broken
+ [CM:health] deepseek: success=20% assistant=20%
+ [CM:health] ALERT: deepseek capture rate dropped to 20% — selectors may be broken
+ [CM:health] deepseek: success=20% assistant=20%
+ [CM:health] ALERT: deepseek capture rate dropped to 20% — selectors may be broken
+ [ContextMover] Capture triggered for deepseek (DOM fallback)
+ [ContextMover:deepseek] A data-author-role: 0
+ [ContextMover:deepseek] B class-substr: user=0 asst=0
+ [ContextMover:deepseek] C data-role: 0
+ [ContextMover:deepseek] D structural: 0
+ [ContextMover:deepseek] NO messages found. Top candidate classes: Array(2)
+ [CM:validate] deepseek: Object
+ [CM:validate] deepseek: Object
+ [ContextMover] No messages found, skipping capture
+ [ContextMover] Capture triggered for deepseek (DOM fallback)
+ [ContextMover:deepseek] A data-author-role: 0
+ [ContextMover:deepseek] B class-substr: user=0 asst=0
+ [ContextMover:deepseek] C data-role: 0
+ [ContextMover:deepseek] D structural: 0
+ [ContextMover:deepseek] NO messages found. Top candidate classes: Array(2)
+ [CM:validate] deepseek: Object
+ [CM:validate] deepseek: Object
+ [ContextMover] No messages found, skipping capture
+ [ContextMover] Capture triggered for deepseek (DOM fallback)
+ [ContextMover:deepseek] A data-author-role: 0
+ [ContextMover:deepseek] B class-substr: user=0 asst=0
+ [ContextMover:deepseek] C data-role: 0
+ [ContextMover:deepseek] D structural: 0
+ [ContextMover:deepseek] NO messages found. Top candidate classes: Array(2)
+ [CM:validate] deepseek: Object
+ [CM:validate] deepseek: Object
+ [ContextMover] No messages found, skipping capture
+ [ContextMover] Capture triggered for deepseek (DOM fallback)
+ [ContextMover:deepseek] A data-author-role: 0
+ [ContextMover:deepseek] B class-substr: user=0 asst=0
+ [ContextMover:deepseek] C data-role: 0
+ [ContextMover:deepseek] D structural: 0
+ [ContextMover:deepseek] NO messages found. Top candidate classes: Array(2)
+ [CM:validate] deepseek: Object
+ [CM:validate] deepseek: Object
+ [ContextMover] No messages found, skipping capture
+ [ContextMover] Capture triggered for deepseek (DOM fallback)
+ [ContextMover:deepseek] A data-author-role: 0
+ [ContextMover:deepseek] B class-substr: user=0 asst=0
+ [ContextMover:deepseek] C data-role: 0
+ [ContextMover:deepseek] D structural: 0
+ [ContextMover:deepseek] NO messages found. Top candidate classes: Array(2)
+ [CM:validate] deepseek: Object
+ [CM:validate] deepseek: Object
+ [ContextMover] No messages found, skipping capture
+ [CM:health] deepseek: success=20% assistant=20%
+ [CM:health] ALERT: deepseek capture rate dropped to 20% — selectors may be broken
+shared-rVciaVpA.js:7 [CM:health] deepseek: success=20% assistant=20%
+shared-rVciaVpA.js:7 [CM:health] ALERT: deepseek capture rate dropped to 20% — selectors may be broken
+checkHealth @ shared-rVciaVpA.js:7
+shared-rVciaVpA.js:7 [CM:health] deepseek: success=20% assistant=20%
+shared-rVciaVpA.js:7 [CM:health] ALERT: deepseek capture rate dropped to 20% — selectors may be broken
+checkHealth @ shared-rVciaVpA.js:7
+shared-rVciaVpA.js:7 [CM:health] deepseek: success=20% assistant=20%
+shared-rVciaVpA.js:7 [CM:health] ALERT: deepseek capture rate dropped to 20% — selectors may be broken
+checkHealth @ shared-rVciaVpA.js:7
+shared-rVciaVpA.js:7 [CM:health] deepseek: success=20% assistant=20%
+shared-rVciaVpA.js:7 [CM:health] ALERT: deepseek capture rate dropped to 20% — selectors may be broken
+checkHealth @ shared-rVciaVpA.js:7
+shared-rVciaVpA.js:9 [ContextMover] Capture triggered for deepseek (DOM fallback)
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] A data-author-role: 0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] B class-substr: user=0 asst=0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] C data-role: 0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] D structural: 0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] NO messages found. Top candidate classes: Array(2)
+scrapeMessages @ deepseek-BmJ3eyH0.js:5
+shared-rVciaVpA.js:3 [CM:validate] deepseek: Object
+shared-rVciaVpA.js:3 [CM:validate] deepseek: Object
+shared-rVciaVpA.js:9 [ContextMover] No messages found, skipping capture
+shared-rVciaVpA.js:7 [CM:health] deepseek: success=20% assistant=20%
+shared-rVciaVpA.js:7 [CM:health] ALERT: deepseek capture rate dropped to 20% — selectors may be broken
+checkHealth @ shared-rVciaVpA.js:7
+shared-rVciaVpA.js:9 [ContextMover] Capture triggered for deepseek (DOM fallback)
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] A data-author-role: 0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] B class-substr: user=0 asst=0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] C data-role: 0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] D structural: 0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] NO messages found. Top candidate classes: Array(2)
+scrapeMessages @ deepseek-BmJ3eyH0.js:5
+shared-rVciaVpA.js:3 [CM:validate] deepseek: Object
+shared-rVciaVpA.js:3 [CM:validate] deepseek: Object
+shared-rVciaVpA.js:9 [ContextMover] No messages found, skipping capture
+shared-rVciaVpA.js:7 [CM:health] deepseek: success=10% assistant=10%
+shared-rVciaVpA.js:7 [CM:health] ALERT: deepseek capture rate dropped to 10% — selectors may be broken
+checkHealth @ shared-rVciaVpA.js:7
+ `WebAssembly.instantiateStreaming` failed because your server does not serve Wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:
+ TypeError: Failed to execute 'compile' on 'WebAssembly': Incorrect response MIME type. Expected 'application/wasm'.
+p @ fe-static.deepseek.com/chat/static/37627.ebf6d8f55d.js:1
+ `WebAssembly.instantiateStreaming` failed because your server does not serve Wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:
+ TypeError: Failed to execute 'compile' on 'WebAssembly': Incorrect response MIME type. Expected 'application/wasm'.
+p @ fe-static.deepseek.com/chat/static/37627.ebf6d8f55d.js:1
+shared-rVciaVpA.js:9 [ContextMover] Capture triggered for deepseek (DOM fallback)
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] A data-author-role: 0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] B class-substr: user=0 asst=0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] C data-role: 0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] D structural: 0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] NO messages found. Top candidate classes: Array(2)
+scrapeMessages @ deepseek-BmJ3eyH0.js:5
+shared-rVciaVpA.js:3 [CM:validate] deepseek: Object
+shared-rVciaVpA.js:3 [CM:validate] deepseek: Object
+shared-rVciaVpA.js:9 [ContextMover] No messages found, skipping capture
+shared-rVciaVpA.js:7 [CM:health] deepseek: success=0% assistant=0%
+shared-rVciaVpA.js:7 [CM:health] ALERT: deepseek capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-rVciaVpA.js:7
+shared-rVciaVpA.js:9 [ContextMover] URL changed — re-resolving sessionId
+shared-rVciaVpA.js:9 [ContextMover] Capture triggered for deepseek (DOM fallback)
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] A data-author-role: 0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] B class-substr: user=0 asst=0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] C data-role: 0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] D structural: 0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] NO messages found. Top candidate classes: Array(2)
+scrapeMessages @ deepseek-BmJ3eyH0.js:5
+shared-rVciaVpA.js:3 [CM:validate] deepseek: Object
+shared-rVciaVpA.js:3 [CM:validate] deepseek: Object
+shared-rVciaVpA.js:9 [ContextMover] No messages found, skipping capture
+shared-rVciaVpA.js:7 [CM:health] deepseek: success=0% assistant=0%
+shared-rVciaVpA.js:7 [CM:health] ALERT: deepseek capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-rVciaVpA.js:7
+shared-rVciaVpA.js:9 [ContextMover] Capture triggered for deepseek (DOM fallback)
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] A data-author-role: 0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] B class-substr: user=1 asst=17
+deepseek-BmJ3eyH0.js:5 [CM:diag:deepseek] strategy=B user=1 asst=17
+deepseek-BmJ3eyH0.js:5 [CM:capture] deepseek Object
+shared-rVciaVpA.js:3 [CM:validate] deepseek: Object
+shared-rVciaVpA.js:3 [CM:validate] deepseek: Object
+session-id-BRp-U81Q.js:1 [CM:session-id] deepseek: URL key "deepseek::chat.deepseek.com/a/chat/s/07e2b642-0895-4616-abfb-03097b16eac8" NOT in map. Current map size: 16
+session-id-BRp-U81Q.js:1 [CM:session-id] deepseek: Current mappings: Array(5)
+shared-rVciaVpA.js:7 [CM:health] deepseek: success=10% assistant=10%
+shared-rVciaVpA.js:7 [CM:health] ALERT: deepseek capture rate dropped to 10% — selectors may be broken
+checkHealth @ shared-rVciaVpA.js:7
+session-id-BRp-U81Q.js:1 [CM:session-id] deepseek: URL key "deepseek::chat.deepseek.com/a/chat/s/07e2b642-0895-4616-abfb-03097b16eac8" → NEW sessionId=deepseek-0440d91854
+session-id-BRp-U81Q.js:1 [CM:session-id] deepseek: Saved mapping: "deepseek::chat.deepseek.com/a/chat/s/07e2b642-0895-4616-abfb-03097b16eac8" → "deepseek-0440d91854"
+shared-rVciaVpA.js:9 [ContextMover] deepseek: resolved sessionId=deepseek-0440d91854 for URL=https://chat.deepseek.com/a/chat/s/07e2b642-0895-4616-abfb-03097b16eac8
+shared-rVciaVpA.js:9 [ContextMover] Sending CAPTURE_SESSION for session: deepseek-0440d91854
+shared-rVciaVpA.js:9 [ContextMover] Capture triggered for deepseek (DOM fallback)
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] A data-author-role: 0
+deepseek-BmJ3eyH0.js:5 [ContextMover:deepseek] B class-substr: user=1 asst=17
+deepseek-BmJ3eyH0.js:5 [CM:diag:deepseek] strategy=B user=1 asst=17
+deepseek-BmJ3eyH0.js:5 [CM:capture] deepseek Object
+shared-rVciaVpA.js:3 [CM:validate] deepseek: Object
+shared-rVciaVpA.js:3 [CM:validate] deepseek: Object
+shared-rVciaVpA.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-rVciaVpA.js:7 [CM:health] deepseek: success=20% assistant=20%
+shared-rVciaVpA.js:7 [CM:health] ALERT: deepseek capture rate dropped to 20% — selectors may be broken
+checkHealth @ shared-rVciaVpA.js:7
+(function deepseekDOMProbe() {
+  const msgCount = document.querySelectorAll('[class*="message"],[class*="Message"]').length;
+  const sessionType = msgCount > 2 ? 'EXISTING' : 'NEW-EMPTY';
+  console.log(`\n========== CONTEXTMOVER: DEEPSEEK DOM PROBE [${sessionType}] ==========\n`);
+  console.log('URL:', window.location.href);
+  console.log('Rough message count estimate:', msgCount);
+
+  // ── SECTION 1: data-* attributes ───────────────────────────────────────────
+  const allTestIds = [...new Set(
+    [...document.querySelectorAll('[data-testid],[data-v-*]')].map(el => el.dataset.testid || [...el.attributes].find(a=>a.name.startsWith('data-v-'))?.name)
+  )].filter(Boolean).sort();
+  console.log('data-testid values:', allTestIds.join(', ') || '(none)');
+
+  const roleAttrs = {};
+  document.querySelectorAll('*').forEach(el => {
+    [...el.attributes].forEach(attr => {
+      if (/role|author|turn|human|assistant|user|message|ds-/i.test(attr.name + attr.value)) {
+        const key = `${attr.name}="${attr.value.slice(0,30)}"`;
+        roleAttrs[key] = (roleAttrs[key]||0)+1;
+      }
+    });
+  });
+  console.log('\nROLE-RELATED ATTRS:');
+  Object.entries(roleAttrs).sort((a,b)=>b[1]-a[1]).slice(0,15)
+    .forEach(([k,n]) => console.log(`  ${n}x  ${k}`));
+
+  // ── SECTION 2: selector tests ──────────────────────────────────────────────
+  const candidates = [
+    '[class*="message"]', '[class*="Message"]',
+    '[class*="human"]', '[class*="Human"]',
+    '[class*="assistant"]', '[class*="Assistant"]',
+    '[class*="user-message"]', '[class*="bot-message"]',
+    '[class*="UserMessage"]', '[class*="BotMessage"]',
+    '[class*="chat-message"]', '[class*="ChatMessage"]',
+    '[class*="ds-message"]', '[class*="md-content"]',
+    '[class*="question"]', '[class*="answer"]',
+    '[class*="bubble"]', '[class*="Bubble"]',
+    'article', '[role="article"]',
+    '[data-message-author-role]',
+    'main', '[role="main"]',
+  ];
+
+  console.log('\nSELECTOR TEST RESULTS:');
+  candidates.forEach(sel => {
+    try {
+      const els = [...document.querySelectorAll(sel)];
+      if (els.length > 0) {
+        const withText = els.filter(el => el.textContent.trim().length > 30);
+        if (withText.length > 0) {
+          console.log(`\n  ✅ "${sel}" → ${els.length} total, ${withText.length} with text`);
+          withText.slice(0,2).forEach((el,i) => {
+            const text = el.textContent.trim().replace(/\s+/g,' ').slice(0,100);
+            const dataAttrs = [...el.attributes].filter(a=>/^data-/.test(a.name)).map(a=>`${a.name}="${a.value.slice(0,30)}"`).join(' ');
+            console.log(`     [${i}] <${el.tagName.toLowerCase()}> | data: {${dataAttrs}} | class: "${el.className?.toString().slice(0,80)}"`);
+            console.log(`     [${i}] text: "${text}"`);
+          });
+        }
+      }
+    } catch(e) {}
+  });
+
+  // ── SECTION 3: Root container ──────────────────────────────────────────────
+  console.log('\nROOT CONTAINER:');
+  ['main', '[role="main"]', '[class*="chat"]', '[class*="Chat"]',
+   '[class*="conversation"]', '[class*="messages"]',
+   '[class*="scrollable"]', '[class*="Scrollable"]'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) console.log(`  "${sel}" → <${el.tagName.toLowerCase()}> class="${el.className?.toString().slice(0,80)}" h=${el.scrollHeight}px children=${el.children.length}`);
+  });
+
+  // ── SECTION 4: New conversation DOM (what renders when chat is empty) ──────
+  console.log('\nEMPTY STATE ELEMENTS (present in new conversation):');
+  ['[class*="empty"]', '[class*="Empty"]', '[class*="welcome"]', '[class*="Welcome"]',
+   '[class*="placeholder"]', '[class*="start"]', '[class*="Start"]',
+   '[class*="intro"]', '[class*="hero"]'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) console.log(`  "${sel}" → "${el.textContent.trim().slice(0,60)}"`);
+  });
+
+  console.log(`\n========== END DEEPSEEK DOM PROBE [${sessionType}] ==========\n`);
+})();
+VM135:4 
+========== CONTEXTMOVER: DEEPSEEK DOM PROBE [EXISTING] ==========
+
+VM135:5 URL: https://chat.deepseek.com/a/chat/s/07e2b642-0895-4616-abfb-03097b16eac8
+VM135:6 Rough message count estimate: 5
+VM135:10 Uncaught SyntaxError: Failed to execute 'querySelectorAll' on 'Document': '[data-testid],[data-v-*]' is not a valid selector.
+    at deepseekDOMProbe (<anonymous>:10:18)
+    at <anonymous>:81:3
+deepseekDOMProbe @ VM135:10
+(anonymous) @ VM135:81
+(function deepseekDOMProbe() {
+  const msgCount = document.querySelectorAll('[class*="message"],[class*="Message"]').length;
+  const sessionType = msgCount > 2 ? 'EXISTING' : 'NEW-EMPTY';
+  console.log(`\n========== CONTEXTMOVER: DEEPSEEK DOM PROBE [${sessionType}] ==========\n`);
+  console.log('URL:', window.location.href);
+  console.log('Rough message count estimate:', msgCount);
+
+  // ── SECTION 1: data-* attributes ───────────────────────────────────────────
+  const allTestIds = [...new Set(
+    [...document.querySelectorAll('[data-testid],[data-v-*]')].map(el => el.dataset.testid || [...el.attributes].find(a=>a.name.startsWith('data-v-'))?.name)
+  )].filter(Boolean).sort();
+  console.log('data-testid values:', allTestIds.join(', ') || '(none)');
+
+  const roleAttrs = {};
+  document.querySelectorAll('*').forEach(el => {
+    [...el.attributes].forEach(attr => {
+      if (/role|author|turn|human|assistant|user|message|ds-/i.test(attr.name + attr.value)) {
+        const key = `${attr.name}="${attr.value.slice(0,30)}"`;
+        roleAttrs[key] = (roleAttrs[key]||0)+1;
+      }
+    });
+  });
+  console.log('\nROLE-RELATED ATTRS:');
+  Object.entries(roleAttrs).sort((a,b)=>b[1]-a[1]).slice(0,15)
+    .forEach(([k,n]) => console.log(`  ${n}x  ${k}`));
+
+  // ── SECTION 2: selector tests ──────────────────────────────────────────────
+  const candidates = [
+    '[class*="message"]', '[class*="Message"]',
+    '[class*="human"]', '[class*="Human"]',
+    '[class*="assistant"]', '[class*="Assistant"]',
+    '[class*="user-message"]', '[class*="bot-message"]',
+    '[class*="UserMessage"]', '[class*="BotMessage"]',
+    '[class*="chat-message"]', '[class*="ChatMessage"]',
+    '[class*="ds-message"]', '[class*="md-content"]',
+    '[class*="question"]', '[class*="answer"]',
+    '[class*="bubble"]', '[class*="Bubble"]',
+    'article', '[role="article"]',
+    '[data-message-author-role]',
+    'main', '[role="main"]',
+  ];
+
+  console.log('\nSELECTOR TEST RESULTS:');
+  candidates.forEach(sel => {
+    try {
+      const els = [...document.querySelectorAll(sel)];
+      if (els.length > 0) {
+        const withText = els.filter(el => el.textContent.trim().length > 30);
+        if (withText.length > 0) {
+          console.log(`\n  ✅ "${sel}" → ${els.length} total, ${withText.length} with text`);
+          withText.slice(0,2).forEach((el,i) => {
+            const text = el.textContent.trim().replace(/\s+/g,' ').slice(0,100);
+            const dataAttrs = [...el.attributes].filter(a=>/^data-/.test(a.name)).map(a=>`${a.name}="${a.value.slice(0,30)}"`).join(' ');
+            console.log(`     [${i}] <${el.tagName.toLowerCase()}> | data: {${dataAttrs}} | class: "${el.className?.toString().slice(0,80)}"`);
+            console.log(`     [${i}] text: "${text}"`);
+          });
+        }
+      }
+    } catch(e) {}
+  });
+
+  // ── SECTION 3: Root container ──────────────────────────────────────────────
+  console.log('\nROOT CONTAINER:');
+  ['main', '[role="main"]', '[class*="chat"]', '[class*="Chat"]',
+   '[class*="conversation"]', '[class*="messages"]',
+   '[class*="scrollable"]', '[class*="Scrollable"]'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) console.log(`  "${sel}" → <${el.tagName.toLowerCase()}> class="${el.className?.toString().slice(0,80)}" h=${el.scrollHeight}px children=${el.children.length}`);
+  });
+
+  // ── SECTION 4: New conversation DOM (what renders when chat is empty) ──────
+  console.log('\nEMPTY STATE ELEMENTS (present in new conversation):');
+  ['[class*="empty"]', '[class*="Empty"]', '[class*="welcome"]', '[class*="Welcome"]',
+   '[class*="placeholder"]', '[class*="start"]', '[class*="Start"]',
+   '[class*="intro"]', '[class*="hero"]'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) console.log(`  "${sel}" → "${el.textContent.trim().slice(0,60)}"`);
+  });
+
+  console.log(`\n========== END DEEPSEEK DOM PROBE [${sessionType}] ==========\n`);
+})();
+VM138:4 
+========== CONTEXTMOVER: DEEPSEEK DOM PROBE [EXISTING] ==========
+
+VM138:5 URL: https://chat.deepseek.com/a/chat/s/07e2b642-0895-4616-abfb-03097b16eac8
+VM138:6 Rough message count estimate: 5
+VM138:10 Uncaught SyntaxError: Failed to execute 'querySelectorAll' on 'Document': '[data-testid],[data-v-*]' is not a valid selector.
+    at deepseekDOMProbe (<anonymous>:10:18)
+    at <anonymous>:81:3
+deepseekDOMProbe @ VM138:10
+(anonymous) @ VM138:81
+(function deepseekDOMProbe() {
+  const msgCount = document.querySelectorAll('[class*="message"],[class*="Message"]').length;
+  const sessionType = msgCount > 2 ? 'EXISTING' : 'NEW-EMPTY';
+  console.log(`\n========== CONTEXTMOVER: DEEPSEEK DOM PROBE [${sessionType}] ==========\n`);
+  console.log('URL:', window.location.href);
+  console.log('Rough message count estimate:', msgCount);
+
+  // ── SECTION 1: data-* attributes ───────────────────────────────────────────
+  const allTestIds = [...new Set(
+    [...document.querySelectorAll('[data-testid]')].map(el => el.dataset.testid)
+      .concat([...document.querySelectorAll('[data-v]')].map(el => 
+        [...el.attributes].find(a=>a.name.startsWith('data-v'))?.name
+      ))
+  )].filter(Boolean).sort();
+  console.log('data-testid values:', allTestIds.join(', ') || '(none)');
+
+  const roleAttrs = {};
+  document.querySelectorAll('*').forEach(el => {
+    [...el.attributes].forEach(attr => {
+      if (/role|author|turn|human|assistant|user|message|ds-/i.test(attr.name + attr.value)) {
+        const key = `${attr.name}="${attr.value.slice(0,30)}"`;
+        roleAttrs[key] = (roleAttrs[key]||0)+1;
+      }
+    });
+  });
+  console.log('\nROLE-RELATED ATTRS:');
+  Object.entries(roleAttrs).sort((a,b)=>b[1]-a[1]).slice(0,15)
+    .forEach(([k,n]) => console.log(`  ${n}x  ${k}`));
+
+  // ── SECTION 2: selector tests ──────────────────────────────────────────────
+  const candidates = [
+    '[class*="message"]', '[class*="Message"]',
+    '[class*="human"]', '[class*="Human"]',
+    '[class*="assistant"]', '[class*="Assistant"]',
+    '[class*="user-message"]', '[class*="bot-message"]',
+    '[class*="UserMessage"]', '[class*="BotMessage"]',
+    '[class*="chat-message"]', '[class*="ChatMessage"]',
+    '[class*="ds-message"]', '[class*="md-content"]',
+    '[class*="question"]', '[class*="answer"]',
+    '[class*="bubble"]', '[class*="Bubble"]',
+    'article', '[role="article"]',
+    '[data-message-author-role]',
+    'main', '[role="main"]',
+  ];
+
+  console.log('\nSELECTOR TEST RESULTS:');
+  candidates.forEach(sel => {
+    try {
+      const els = [...document.querySelectorAll(sel)];
+      if (els.length > 0) {
+        const withText = els.filter(el => el.textContent.trim().length > 30);
+        if (withText.length > 0) {
+          console.log(`\n  ✅ "${sel}" → ${els.length} total, ${withText.length} with text`);
+          withText.slice(0,2).forEach((el,i) => {
+            const text = el.textContent.trim().replace(/\s+/g,' ').slice(0,100);
+            const dataAttrs = [...el.attributes].filter(a=>/^data-/.test(a.name)).map(a=>`${a.name}="${a.value.slice(0,30)}"`).join(' ');
+            console.log(`     [${i}] <${el.tagName.toLowerCase()}> | data: {${dataAttrs}} | class: "${el.className?.toString().slice(0,80)}"`);
+            console.log(`     [${i}] text: "${text}"`);
+          });
+        }
+      }
+    } catch(e) {}
+  });
+
+  // ── SECTION 3: Root container ──────────────────────────────────────────────
+  console.log('\nROOT CONTAINER:');
+  ['main', '[role="main"]', '[class*="chat"]', '[class*="Chat"]',
+   '[class*="conversation"]', '[class*="messages"]',
+   '[class*="scrollable"]', '[class*="Scrollable"]'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) console.log(`  "${sel}" → <${el.tagName.toLowerCase()}> class="${el.className?.toString().slice(0,80)}" h=${el.scrollHeight}px children=${el.children.length}`);
+  });
+
+  // ── SECTION 4: New conversation DOM (what renders when chat is empty) ──────
+  console.log('\nEMPTY STATE ELEMENTS (present in new conversation):');
+  ['[class*="empty"]', '[class*="Empty"]', '[class*="welcome"]', '[class*="Welcome"]',
+   '[class*="placeholder"]', '[class*="start"]', '[class*="Start"]',
+   '[class*="intro"]', '[class*="hero"]'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) console.log(`  "${sel}" → "${el.textContent.trim().slice(0,60)}"`);
+  });
+
+  console.log(`\n========== END DEEPSEEK DOM PROBE [${sessionType}] ==========\n`);
+})();
+
+VM147:4 
+========== CONTEXTMOVER: DEEPSEEK DOM PROBE [EXISTING] ==========
+
+VM147:5 URL: https://chat.deepseek.com/a/chat/s/07e2b642-0895-4616-abfb-03097b16eac8
+VM147:6 Rough message count estimate: 5
+VM147:15 data-testid values: (none)
+VM147:26 
+ROLE-RELATED ATTRS:
+VM147:28   41x  class="ds-markdown-paragraph"
+VM147:28   35x  role="button"
+VM147:28   35x  class="ds-button__background"
+VM147:28   35x  class="ds-button__icon ds-button__ico"
+VM147:28   35x  class="ds-icon"
+VM147:28   33x  class="ds-button ds-button--iconLabel"
+VM147:28   16x  class="ds-focus-ring"
+VM147:28   15x  class="ds-markdown"
+VM147:28   13x  class="e1675d8b ds-think-content"
+VM147:28   11x  class="ds-icon _59be4b3"
+VM147:28   5x  class="ds-markdown-cite"
+VM147:28   4x  class="ds-scroll-area__gutters"
+VM147:28   4x  class="ds-scroll-area__horizontal-gut"
+VM147:28   4x  class="ds-scroll-area__horizontal-bar"
+VM147:28   4x  class="ds-scroll-area__vertical-gutte"
+VM147:46 
+SELECTOR TEST RESULTS:
+VM147:53 
+  ✅ "[class*="message"]" → 5 total, 5 with text
+VM147:57      [0] <div> | data: {} | class: "ds-message _63c77b1"
+VM147:58      [0] text: "Thought for 25 secondsThe user is frustrated, claiming Lenovo's education discount is a "scam" becau"
+VM147:57      [1] <div> | data: {} | class: "ds-markdown ds-assistant-message-main-content"
+VM147:58      [1] text: "You're right to be frustrated—it's a very common issue, and you've cut right to the heart of the pro"
+VM147:53 
+  ✅ "[class*="assistant"]" → 2 total, 2 with text
+VM147:57      [0] <div> | data: {} | class: "ds-markdown ds-assistant-message-main-content"
+VM147:58      [0] text: "You're right to be frustrated—it's a very common issue, and you've cut right to the heart of the pro"
+VM147:57      [1] <div> | data: {} | class: "ds-markdown ds-assistant-message-main-content"
+VM147:58      [1] text: "Totally fair decision—it's smart to wait for the right moment. Since you have the time, you can be s"
+VM147:53 
+  ✅ "[class*="ds-message"]" → 3 total, 3 with text
+VM147:57      [0] <div> | data: {} | class: "ds-message _63c77b1"
+VM147:58      [0] text: "Thought for 25 secondsThe user is frustrated, claiming Lenovo's education discount is a "scam" becau"
+VM147:57      [1] <div> | data: {} | class: "d29f3d7d ds-message _63c77b1"
+VM147:58      [1] text: "ok so i am not buying it right now"
+VM147:66 
+ROOT CONTAINER:
+VM147:75 
+EMPTY STATE ELEMENTS (present in new conversation):
+VM147:83 
+========== END DEEPSEEK DOM PROBE [EXISTING] ==========
+
+undefined

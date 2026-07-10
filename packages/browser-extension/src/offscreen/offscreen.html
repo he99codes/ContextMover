@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ContextMover Offscreen</title>
+  </head>
+  <body>
+    <!--
+      Hidden offscreen document.
+      Hosts the indexing worker so the service worker doesn't block.
+      Lifetime is managed by service-worker.ts (created on demand,
+      kept alive while indexing or migrating).
+    -->
+    <script type="module" src="./offscreen.ts"></script>
+  </body>
+</html>

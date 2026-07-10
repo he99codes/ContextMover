@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "contextmover": {
+      "command": "npx",
+      "args": ["-y", "@contextmover/mcp-server"],
+      "description": "ContextMover — captured AI chat session context"
+    }
+  }
+}
