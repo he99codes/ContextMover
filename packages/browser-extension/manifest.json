@@ -186,12 +186,19 @@
     "web_accessible_resources": [
         {
             "resources": [
-                "src/content/fetch-interceptor.ts",
                 "assets/*.js",
                 "assets/*.css",
                 "assets/*.png",
                 "assets/*.svg",
-                "assets/*.woff2",
+                "assets/*.woff2"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        },
+        {
+            "resources": [
+                "src/content/fetch-interceptor.ts",
                 "wasm/*"
             ],
             "matches": [

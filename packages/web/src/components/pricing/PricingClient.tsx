@@ -148,6 +148,10 @@ export function PricingClient() {
         toast.success(data.message ?? "🎉 Promo applied — Pro activated for 60 days!");
         setPromoCode("");
         setShowPromo(false);
+        
+        // Force refresh subscription state immediately
+        void refreshSubscription(true);
+
         // Poll for updated subscription status
         let attempts = 0;
         const poll = setInterval(() => {
@@ -156,6 +160,11 @@ export function PricingClient() {
           if (attempts >= 6) clearInterval(poll);
         }, 1500);
         router.refresh();
+
+        // Redirect to analytics page after 2 seconds
+        setTimeout(() => {
+          router.push("/analytics");
+        }, 2000);
       } else {
         toast.error(data.error ?? "Invalid promo code.");
       }
@@ -262,7 +271,7 @@ export function PricingClient() {
             {!showPromo ? (
               <button
                 onClick={() => setShowPromo(true)}
-                className="flex items-center gap-1.5 text-xs text-[#555] hover:text-[#00FF88] transition-colors"
+                className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full border border-[#00FF88]/30 bg-[#00FF88]/5 text-[#00FF88] hover:bg-[#00FF88]/10 hover:border-[#00FF88]/60 hover:shadow-[0_0_15px_rgba(0,255,136,0.3)] transition-all duration-300"
               >
                 <Tag size={11} />
                 Have a promo code?

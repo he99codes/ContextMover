@@ -29,15 +29,15 @@ function getValidCodes(): Set<string> {
 const PROMO_DURATION_DAYS = 60; // 2 months
 
 export async function POST(req: NextRequest) {
-  // Rate limit: max 5 redemption attempts per user/IP per window
-  const rl = await checkRateLimit(req, undefined, 5);
-  if (!rl.ok) return rl.response;
-
   // Auth
   const user = await getAuthUser(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Rate limit: max 15 redemption attempts per user per window
+  const rl = await checkRateLimit(req, user.id, 15);
+  if (!rl.ok) return rl.response;
 
   // Parse body
   let body: { code?: string };
