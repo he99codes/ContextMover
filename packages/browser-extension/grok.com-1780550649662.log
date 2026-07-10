@@ -1,0 +1,471 @@
+ [ContextMover:fetch] XMLHttpRequest override installed
+ [ContextMover:fetch] window.fetch override installed
+ [ContextMover:fetch] WebSocket override installed (Perplexity socket.io)
+ [ContextMover:bridge] installed
+ [ContextMover] Grok content script loaded
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+ [CM:diag:grok] S2 human-turn class: user=0 asst=0
+ [CM:diag:grok] S3 legacy+role: user=0 asst=0
+ [CM:diag:grok] S4 aria+structural: user=0 asst=0
+ [CM:diag:grok] final: user=0 asst=0
+ [CM:validate] grok: Object
+ [CM:validate] grok: Object
+ [ContextMover] No messages found, skipping capture
+ [CM:grok] scrollback: starting — loading lazy history
+ [CM:grok] scrollback: DOM settled — running full capture
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+ [CM:diag:grok] S2 human-turn class: user=0 asst=0
+ [CM:diag:grok] S3 legacy+role: user=0 asst=0
+ [CM:diag:grok] S4 aria+structural: user=0 asst=0
+ [CM:diag:grok] final: user=0 asst=0
+ [CM:validate] grok: Object
+ [CM:validate] grok: Object
+ [ContextMover] No messages found, skipping capture
+ [CM:health] grok: success=0% assistant=0%
+ [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+ [CM:health] grok: success=0% assistant=0%
+ [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+ react-i18next:: useTranslation: You will need to pass in an i18next instance by using initReactI18next Object
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+ [CM:diag:grok] S2 human-turn class: user=0 asst=0
+ [CM:diag:grok] S3 legacy+role: user=0 asst=0
+ [CM:diag:grok] S4 aria+structural: user=0 asst=0
+ [CM:diag:grok] final: user=0 asst=0
+ [CM:validate] grok: Object
+ [CM:validate] grok: Object
+ [ContextMover] No messages found, skipping capture
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+ [CM:diag:grok] S2 human-turn class: user=0 asst=0
+ [CM:diag:grok] S3 legacy+role: user=0 asst=0
+ [CM:diag:grok] S4 aria+structural: user=0 asst=0
+ [CM:diag:grok] final: user=0 asst=0
+ [CM:validate] grok: Object
+ [CM:validate] grok: Object
+ [ContextMover] No messages found, skipping capture
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+ [CM:diag:grok] S2 human-turn class: user=0 asst=0
+ [CM:diag:grok] S3 legacy+role: user=0 asst=0
+ [CM:diag:grok] S4 aria+structural: user=0 asst=0
+ [CM:diag:grok] final: user=0 asst=0
+ [CM:validate] grok: Object
+ [CM:validate] grok: Object
+ [ContextMover] No messages found, skipping capture
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+ [CM:diag:grok] S2 human-turn class: user=0 asst=0
+ [CM:diag:grok] S3 legacy+role: user=0 asst=0
+ [CM:diag:grok] S4 aria+structural: user=0 asst=0
+ [CM:diag:grok] final: user=0 asst=0
+ [CM:validate] grok: Object
+ [CM:validate] grok: Object
+ [ContextMover] No messages found, skipping capture
+ [CM:health] grok: success=0% assistant=0%
+ [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+ [CM:health] grok: success=0% assistant=0%
+ [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+ [CM:health] grok: success=0% assistant=0%
+ [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+ [CM:health] grok: success=0% assistant=0%
+ [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+ [CM:diag:grok] S2 human-turn class: user=0 asst=0
+ [CM:diag:grok] S3 legacy+role: user=0 asst=0
+ [CM:diag:grok] S4 aria+structural: user=0 asst=0
+ [CM:diag:grok] final: user=0 asst=0
+ [CM:validate] grok: Object
+ [CM:validate] grok: Object
+ [ContextMover] No messages found, skipping capture
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+ [CM:diag:grok] S2 human-turn class: user=0 asst=0
+ [CM:diag:grok] S3 legacy+role: user=0 asst=0
+ [CM:diag:grok] S4 aria+structural: user=0 asst=0
+ [CM:diag:grok] final: user=0 asst=0
+ [CM:validate] grok: Object
+ [CM:validate] grok: Object
+ [ContextMover] No messages found, skipping capture
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+ [CM:diag:grok] S2 human-turn class: user=0 asst=0
+ [CM:diag:grok] S3 legacy+role: user=0 asst=0
+ [CM:diag:grok] S4 aria+structural: user=0 asst=0
+ [CM:diag:grok] final: user=0 asst=0
+ [CM:validate] grok: Object
+ [CM:validate] grok: Object
+ [ContextMover] No messages found, skipping capture
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+ [CM:diag:grok] S2 human-turn class: user=0 asst=0
+ [CM:diag:grok] S3 legacy+role: user=0 asst=0
+ [CM:diag:grok] S4 aria+structural: user=0 asst=0
+ [CM:diag:grok] final: user=0 asst=0
+ [CM:validate] grok: Object
+ [CM:validate] grok: Object
+ [ContextMover] No messages found, skipping capture
+ [CM:health] grok: success=0% assistant=0%
+ [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+ [CM:health] grok: success=0% assistant=0%
+ [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+ [CM:health] grok: success=0% assistant=0%
+ [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+ [CM:health] grok: success=0% assistant=0%
+ [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+ 
+█░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▓
+░                                        ░
+░                                        ░
+░                                 ░▒░    ░
+░                ░░▒▒▒▒▒░░░     ░█░      ░
+░            ░▒████████████▓░ ▒██░       ░
+░          ░████▓░         ░▓███░        ░
+░         ░███▒          ░▓█████░        ░
+░         ███░         ░██▒  ▓███░       ░
+░        ░███░       ▒█▒      ███░       ░
+░         ███░     ▒░░       ▒███░       ░
+░         ▒███░             ░███░        ░
+░         ░███▓░         ░▒████░         ░
+░         ▓█░ ░▒▓████████████░           ░
+░       ▒▒░     ░░▒█████▒░░              ░
+░     ▒░                                 ░
+░                                        ░
+░                                        ░
+█░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▓
+
+Curious? Join us at https://x.ai/careers
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+ [CM:diag:grok] S2 human-turn class: user=0 asst=0
+ [CM:diag:grok] S3 legacy+role: user=0 asst=0
+ [CM:diag:grok] S4 aria+structural: user=0 asst=1
+ [CM:diag:grok] final: user=0 asst=1
+ [CM:diag:grok] user=0 — selectors tried: S1=[data-testid*=human], S2=[class*=human-turn], S3=[class*=user-message]
+ [CM:diag:grok] Candidate user classes: Array(1)
+ [CM:diag:grok] Candidate user testids/roles: Array(0)
+ [CM:validate] grok: Object
+ [CM:grok] Registry strategies empty — trying structural detection
+ [CM:structural] grok: attempting structural detection
+ [CM:structural] grok: too few substantial elements (0), skipping
+ [CM:validate] grok: Object
+ [ContextMover] No messages found, skipping capture
+ [CM:health] grok: success=0% assistant=0%
+ [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+ [ContextMover] URL changed — re-resolving sessionId
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+ [CM:diag:grok] S2 human-turn class: user=0 asst=0
+ [CM:diag:grok] S3 legacy+role: user=0 asst=0
+ [CM:diag:grok] S4 aria+structural: user=0 asst=1
+ [CM:diag:grok] final: user=0 asst=1
+ [CM:diag:grok] user=0 — selectors tried: S1=[data-testid*=human], S2=[class*=human-turn], S3=[class*=user-message]
+ [CM:diag:grok] Candidate user classes: Array(1)
+ [CM:diag:grok] Candidate user testids/roles: Array(0)
+ [CM:validate] grok: Object
+ [CM:grok] Registry strategies empty — trying structural detection
+ [CM:structural] grok: attempting structural detection
+ [CM:structural] grok: too few substantial elements (0), skipping
+ [CM:validate] grok: Object
+ [ContextMover] No messages found, skipping capture
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+ [CM:diag:grok] S2 human-turn class: user=0 asst=0
+ [CM:diag:grok] S3 legacy+role: user=0 asst=0
+ [CM:diag:grok] S4 aria+structural: user=0 asst=1
+ [CM:diag:grok] final: user=0 asst=1
+ [CM:diag:grok] user=0 — selectors tried: S1=[data-testid*=human], S2=[class*=human-turn], S3=[class*=user-message]
+ [CM:diag:grok] Candidate user classes: Array(1)
+ [CM:diag:grok] Candidate user testids/roles: Array(0)
+ [CM:validate] grok: Object
+ [CM:grok] Registry strategies empty — trying structural detection
+ [CM:structural] grok: attempting structural detection
+ [CM:structural] grok: too few substantial elements (0), skipping
+ [CM:validate] grok: Object
+ [ContextMover] No messages found, skipping capture
+ [CM:health] grok: success=0% assistant=0%
+ [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+ [CM:health] grok: success=0% assistant=0%
+ [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+ [CM:diag:grok] S2 human-turn class: user=0 asst=0
+ [CM:diag:grok] S3 legacy+role: user=0 asst=0
+ [CM:diag:grok] S4 aria+structural: user=0 asst=1
+ [CM:diag:grok] final: user=0 asst=1
+ [CM:diag:grok] user=0 — selectors tried: S1=[data-testid*=human], S2=[class*=human-turn], S3=[class*=user-message]
+ [CM:diag:grok] Candidate user classes: Array(1)
+ [CM:diag:grok] Candidate user testids/roles: Array(0)
+ [CM:validate] grok: Object
+ [CM:grok] Registry strategies empty — trying structural detection
+ [CM:structural] grok: attempting structural detection
+ [CM:structural] grok: too few substantial elements (0), skipping
+ [CM:validate] grok: Object
+ [ContextMover] No messages found, skipping capture
+ [CM:health] grok: success=0% assistant=0%
+ [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+ [ContextMover] URL changed — re-resolving sessionId
+ [ContextMover] Capture triggered for grok (DOM fallback)
+ [CM:diag:grok] S1 testid: user=0 asst=0
+grok-BbGYeb4z.js:5 [CM:diag:grok] S2 human-turn class: user=0 asst=0
+grok-BbGYeb4z.js:5 [CM:diag:grok] S3 legacy+role: user=0 asst=0
+grok-BbGYeb4z.js:5 [CM:diag:grok] S4 aria+structural: user=0 asst=1
+grok-BbGYeb4z.js:5 [CM:diag:grok] final: user=0 asst=1
+grok-BbGYeb4z.js:5 [CM:diag:grok] user=0 — selectors tried: S1=[data-testid*=human], S2=[class*=human-turn], S3=[class*=user-message]
+scrapeMessages @ grok-BbGYeb4z.js:5
+grok-BbGYeb4z.js:5 [CM:diag:grok] Candidate user classes: Array(1)
+scrapeMessages @ grok-BbGYeb4z.js:5
+grok-BbGYeb4z.js:5 [CM:diag:grok] Candidate user testids/roles: Array(0)
+scrapeMessages @ grok-BbGYeb4z.js:5
+shared-Dyj2XGT1.js:3 [CM:validate] grok: Object
+shared-Dyj2XGT1.js:9 [CM:grok] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-Dyj2XGT1.js:9
+shared-Dyj2XGT1.js:5 [CM:structural] grok: attempting structural detection
+detectByStructure @ shared-Dyj2XGT1.js:5
+shared-Dyj2XGT1.js:5 [CM:structural] grok: too few substantial elements (0), skipping
+detectByStructure @ shared-Dyj2XGT1.js:5
+shared-Dyj2XGT1.js:3 [CM:validate] grok: Object
+shared-Dyj2XGT1.js:9 [ContextMover] No messages found, skipping capture
+shared-Dyj2XGT1.js:9 [ContextMover] Capture triggered for grok (DOM fallback)
+grok-BbGYeb4z.js:5 [CM:diag:grok] S1 testid: user=0 asst=0
+grok-BbGYeb4z.js:5 [CM:diag:grok] S2 human-turn class: user=0 asst=0
+grok-BbGYeb4z.js:5 [CM:diag:grok] S3 legacy+role: user=0 asst=0
+grok-BbGYeb4z.js:5 [CM:diag:grok] S4 aria+structural: user=0 asst=1
+grok-BbGYeb4z.js:5 [CM:diag:grok] final: user=0 asst=1
+grok-BbGYeb4z.js:5 [CM:diag:grok] user=0 — selectors tried: S1=[data-testid*=human], S2=[class*=human-turn], S3=[class*=user-message]
+scrapeMessages @ grok-BbGYeb4z.js:5
+grok-BbGYeb4z.js:5 [CM:diag:grok] Candidate user classes: Array(1)
+scrapeMessages @ grok-BbGYeb4z.js:5
+grok-BbGYeb4z.js:5 [CM:diag:grok] Candidate user testids/roles: Array(0)
+scrapeMessages @ grok-BbGYeb4z.js:5
+shared-Dyj2XGT1.js:3 [CM:validate] grok: Object
+shared-Dyj2XGT1.js:9 [CM:grok] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-Dyj2XGT1.js:9
+shared-Dyj2XGT1.js:5 [CM:structural] grok: attempting structural detection
+detectByStructure @ shared-Dyj2XGT1.js:5
+shared-Dyj2XGT1.js:5 [CM:structural] grok: too few substantial elements (0), skipping
+detectByStructure @ shared-Dyj2XGT1.js:5
+shared-Dyj2XGT1.js:3 [CM:validate] grok: Object
+shared-Dyj2XGT1.js:9 [ContextMover] No messages found, skipping capture
+shared-Dyj2XGT1.js:7 [CM:health] grok: success=0% assistant=0%
+shared-Dyj2XGT1.js:7 [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-Dyj2XGT1.js:7
+shared-Dyj2XGT1.js:7 [CM:health] grok: success=0% assistant=0%
+shared-Dyj2XGT1.js:7 [CM:health] ALERT: grok capture rate dropped to 0% — selectors may be broken
+checkHealth @ shared-Dyj2XGT1.js:7
+shared-Dyj2XGT1.js:9 [ContextMover] Capture triggered for grok (DOM fallback)
+grok-BbGYeb4z.js:5 [CM:diag:grok] S1 testid: user=14 asst=14
+grok-BbGYeb4z.js:5 [CM:diag:grok] final: user=14 asst=14
+shared-Dyj2XGT1.js:3 [CM:validate] grok: Object
+shared-Dyj2XGT1.js:3 [CM:validate] grok: Object
+shared-Dyj2XGT1.js:9 [ContextMover] grok: capture already in flight, skipping
+shared-Dyj2XGT1.js:9 [ContextMover] grok: capture already in flight, skipping
+t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://contextmover.com&size=256:1  Failed to load resource: the server responded with a status of 404 ()
+t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://policies.google.com&size=256:1  Failed to load resource: the server responded with a status of 404 ()
+shared-Dyj2XGT1.js:7 [CM:health] grok: success=10% assistant=10%
+shared-Dyj2XGT1.js:7 [CM:health] ALERT: grok capture rate dropped to 10% — selectors may be broken
+checkHealth @ shared-Dyj2XGT1.js:7
+session-id-11NDYD8M.js:1 [CM:session-id] grok: URL key "grok::grok.com/c/f3c7cf14-9816-46a2-ac16-9de321e952f9?rid=da1b459e-8629-4b72-bc12-afe202417cb5" → NEW sessionId=grok-ce2868a5ae
+session-id-11NDYD8M.js:1 [CM:session-id] grok: Saved mapping: "grok::grok.com/c/f3c7cf14-9816-46a2-ac16-9de321e952f9?rid=da1b459e-8629-4b72-bc12-afe202417cb5" → "grok-ce2868a5ae"
+shared-Dyj2XGT1.js:9 [ContextMover] grok: resolved sessionId=grok-ce2868a5ae for URL=https://grok.com/c/f3c7cf14-9816-46a2-ac16-9de321e952f9?rid=da1b459e-8629-4b72-bc12-afe202417cb5
+shared-Dyj2XGT1.js:9 [ContextMover] Sending CAPTURE_SESSION for session: grok-ce2868a5ae
+shared-Dyj2XGT1.js:9 [ContextMover] URL changed — re-resolving sessionId
+shared-Dyj2XGT1.js:9 [ContextMover] Capture triggered for grok (DOM fallback)
+grok-BbGYeb4z.js:5 [CM:diag:grok] S1 testid: user=14 asst=14
+grok-BbGYeb4z.js:5 [CM:diag:grok] final: user=14 asst=14
+shared-Dyj2XGT1.js:3 [CM:validate] grok: Object
+shared-Dyj2XGT1.js:3 [CM:validate] grok: Object
+shared-Dyj2XGT1.js:9 [ContextMover] grok: capture already in flight, skipping
+shared-Dyj2XGT1.js:7 [CM:health] grok: success=20% assistant=20%
+shared-Dyj2XGT1.js:7 [CM:health] ALERT: grok capture rate dropped to 20% — selectors may be broken
+checkHealth @ shared-Dyj2XGT1.js:7
+session-id-11NDYD8M.js:1 [CM:session-id] grok: URL key "grok::grok.com/c/14c48e08-e8be-4e9e-9693-f0d027c0b787" → NEW sessionId=grok-529391ba01
+session-id-11NDYD8M.js:1 [CM:session-id] grok: Saved mapping: "grok::grok.com/c/14c48e08-e8be-4e9e-9693-f0d027c0b787" → "grok-529391ba01"
+shared-Dyj2XGT1.js:9 [ContextMover] grok: resolved sessionId=grok-529391ba01 for URL=https://grok.com/c/14c48e08-e8be-4e9e-9693-f0d027c0b787
+shared-Dyj2XGT1.js:9 [ContextMover] Sending CAPTURE_SESSION for session: grok-529391ba01
+shared-Dyj2XGT1.js:9 [ContextMover] Capture triggered for grok (DOM fallback)
+grok-BbGYeb4z.js:5 [CM:diag:grok] S1 testid: user=14 asst=14
+grok-BbGYeb4z.js:5 [CM:diag:grok] final: user=14 asst=14
+shared-Dyj2XGT1.js:3 [CM:validate] grok: Object
+shared-Dyj2XGT1.js:3 [CM:validate] grok: Object
+shared-Dyj2XGT1.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-Dyj2XGT1.js:7 [CM:health] grok: success=30% assistant=30%
+shared-Dyj2XGT1.js:7 [CM:health] ALERT: grok capture rate dropped to 30% — selectors may be broken
+checkHealth @ shared-Dyj2XGT1.js:7
+shared-Dyj2XGT1.js:9 [ContextMover] URL changed — re-resolving sessionId
+shared-Dyj2XGT1.js:9 [ContextMover] URL changed — re-resolving sessionId
+shared-Dyj2XGT1.js:9 [ContextMover] Capture triggered for grok (DOM fallback)
+grok-BbGYeb4z.js:5 [CM:diag:grok] S1 testid: user=6 asst=6
+grok-BbGYeb4z.js:5 [CM:diag:grok] final: user=6 asst=6
+shared-Dyj2XGT1.js:3 [CM:validate] grok: Object
+shared-Dyj2XGT1.js:3 [CM:validate] grok: Object
+shared-Dyj2XGT1.js:9 [ContextMover] grok: suppressed shrinking scrape (28→12) — likely virtual scroll eviction
+shared-Dyj2XGT1.js:7 [CM:health] grok: success=40% assistant=40%
+shared-Dyj2XGT1.js:7 [CM:health] ALERT: grok capture rate dropped to 40% — selectors may be broken
+checkHealth @ shared-Dyj2XGT1.js:7
+shared-Dyj2XGT1.js:9 [ContextMover] URL changed — re-resolving sessionId
+t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://contextmover.com&size=256:1  Failed to load resource: the server responded with a status of 404 ()
+t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://policies.google.com&size=256:1  Failed to load resource: the server responded with a status of 404 ()
+(function grokDOMProbe() {
+  console.log('\n========== CONTEXTMOVER: GROK DOM PROBE ==========\n');
+  console.log('URL:', window.location.href);
+
+  // ── SECTION 1: data-* and role attributes scan ─────────────────────────────
+  const roleAttrs = {};
+  document.querySelectorAll('*').forEach(el => {
+    [...el.attributes].forEach(attr => {
+      if (/role|author|turn|human|grok|assistant|user|message|speaker/i.test(attr.name + attr.value)) {
+        const key = `${attr.name}="${attr.value}"`;
+        roleAttrs[key] = (roleAttrs[key]||0)+1;
+      }
+    });
+  });
+  console.log('ROLE-RELATED ATTRIBUTES (attr=value : count):');
+  Object.entries(roleAttrs).sort((a,b)=>b[1]-a[1]).slice(0,20)
+    .forEach(([k,n]) => console.log(`  ${n}x  ${k}`));
+
+  // ── SECTION 2: data-testid scan ────────────────────────────────────────────
+  const allTestIds = [...new Set(
+    [...document.querySelectorAll('[data-testid]')].map(el => el.dataset.testid)
+  )].sort();
+  console.log('\nALL data-testid VALUES:\n' + (allTestIds.join('\n') || '(none)'));
+
+  // ── SECTION 3: Test selector patterns ─────────────────────────────────────
+  const candidates = [
+    '[data-message-author-role]',
+    '[data-testid*="message"]', '[data-testid*="turn"]', '[data-testid*="response"]',
+    '[class*="message"]', '[class*="Message"]',
+    '[class*="response"]', '[class*="Response"]',
+    '[class*="human"]', '[class*="Human"]',
+    '[class*="grok"]', '[class*="Grok"]',
+    '[class*="UserMessage"]', '[class*="BotMessage"]',
+    '[class*="AssistantMessage"]', '[class*="ConversationTurn"]',
+    '[class*="turn"]', '[class*="Turn"]',
+    'article', '[role="article"]',
+    '[class*="chat"]', '[class*="Chat"]',
+  ];
+
+  console.log('\nSELECTOR TEST RESULTS:');
+  candidates.forEach(sel => {
+    try {
+      const els = [...document.querySelectorAll(sel)];
+      if (els.length > 0 && els.some(el => el.textContent.trim().length > 30)) {
+        const withText = els.filter(el => el.textContent.trim().length > 30);
+        console.log(`\n  ✅ "${sel}" → ${els.length} total, ${withText.length} with text`);
+        withText.slice(0,2).forEach((el,i) => {
+          const text = el.textContent.trim().replace(/\s+/g,' ').slice(0,100);
+          const dataAttrs = [...el.attributes].filter(a=>/^data-/.test(a.name)).map(a=>`${a.name}="${a.value}"`).join(' ');
+          console.log(`     [${i}] <${el.tagName.toLowerCase()}> | data: {${dataAttrs}} | class: "${el.className?.toString().slice(0,80)}"`);
+          console.log(`     [${i}] text: "${text}"`);
+        });
+      }
+    } catch(e) {}
+  });
+
+  // ── SECTION 4: Root container ──────────────────────────────────────────────
+  console.log('\nROOT CONTAINER CANDIDATES:');
+  ['main', '[role="main"]', '[class*="conversation"]', '[class*="Conversation"]',
+   '[class*="thread"]', '[class*="Thread"]', '[class*="messages"]',
+   '[class*="ChatContainer"]', '[class*="chat-container"]',
+   '[class*="overflow-y"]'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) {
+      const msgNodes = el.querySelectorAll('[class*="message"],[class*="turn"],[data-message-author-role]').length;
+      console.log(`  "${sel}" → <${el.tagName.toLowerCase()}> class="${el.className?.toString().slice(0,80)}" | msg-like nodes: ${msgNodes}`);
+    }
+  });
+
+  // ── SECTION 5: Virtual scroll detection ───────────────────────────────────
+  console.log('\nVIRTUAL SCROLL CHECK:');
+  document.querySelectorAll('*').forEach(el => {
+    const style = window.getComputedStyle(el);
+    if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+      const h = el.scrollHeight;
+      if (h > 500) {
+        console.log(`  overflow-y:${style.overflowY} scrollHeight:${h}px → <${el.tagName.toLowerCase()}> class="${el.className?.toString().slice(0,60)}"`);
+      }
+    }
+  });
+
+  console.log('\n========== END GROK DOM PROBE ==========\n');
+})();
+0ezw0xqwdne5s.js:10 
+========== CONTEXTMOVER: GROK DOM PROBE ==========
+
+0ezw0xqwdne5s.js:10 URL: https://grok.com/c/f3c7cf14-9816-46a2-ac16-9de321e952f9?rid=da1b459e-8629-4b72-bc12-afe202417cb5
+0ezw0xqwdne5s.js:10 ROLE-RELATED ATTRIBUTES (attr=value : count):
+0ezw0xqwdne5s.js:10   23x  role="presentation"
+0ezw0xqwdne5s.js:10   14x  data-testid="user-message"
+0ezw0xqwdne5s.js:10   14x  class="message-bubble relative rounded-3xl text-primary min-h-7 prose dark:prose-invert break-words prose-p:opacity-100 prose-strong:opacity-100 prose-li:opacity-100 prose-ul:opacity-100 prose-ol:opacity-100 prose-ul:my-1 prose-ol:my-1 prose-li:my-2 last:prose-li:mb-3 prose-li:ps-1 prose-li:ms-1 bg-surface-l1 border border-border-l1 max-w-[100%] @sm/mainview:max-w-[90%] has-[pre]:w-full px-4 rounded-br-lg overflow-x-auto"
+0ezw0xqwdne5s.js:10   14x  data-testid="assistant-message"
+0ezw0xqwdne5s.js:10   14x  class="message-bubble relative rounded-3xl text-primary min-h-7 prose dark:prose-invert break-words prose-p:opacity-100 prose-strong:opacity-100 prose-li:opacity-100 prose-ul:opacity-100 prose-ol:opacity-100 prose-ul:my-1 prose-ol:my-1 prose-li:my-2 last:prose-li:mb-3 prose-li:ps-1 prose-li:ms-1 w-full max-w-none"
+0ezw0xqwdne5s.js:10   7x  role="button"
+0ezw0xqwdne5s.js:10   3x  content="Grok is an AI assistant built by xAI. Chat, create images, write code, and get real-time answers from the web and X."
+0ezw0xqwdne5s.js:10   3x  content="Grok"
+0ezw0xqwdne5s.js:10   2x  href="https://assets.grok.com/users/6ba90c45-c587-4ac9-9917-3c2759747101/n0GYTdALnn0ly3Ty-profile-picture.webp"
+0ezw0xqwdne5s.js:10   2x  content="https://grok.com/icon-512x512.png"
+0ezw0xqwdne5s.js:10   2x  content="@grok"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/media/UniversalSans_Text_400.p.06he22w9ae9uz.woff2"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/media/UniversalSans_Text_400Italic.p.0t4u8oqlw5.9..woff2"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/media/UniversalSans_Text_550.p.0v0vvoupxwn1c.woff2"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/media/UniversalSans_Text_550Italic.p.1255s5ghf7uud.woff2"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/chunks/0ha20356~d7dj.css"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/chunks/10njmvx0ao~lw.css"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/chunks/0mi~xfmeq7o9_.css"
+0ezw0xqwdne5s.js:10   1x  href="https://cdn.grok.com/_next/static/chunks/0-nt7.8hplhm5.js"
+0ezw0xqwdne5s.js:10   1x  src="https://cdn.grok.com/_next/static/chunks/07vlc.33b90yz.js"
+0ezw0xqwdne5s.js:10 
+ALL data-testid VALUES:
+assistant-message
+attach-button
+chat-input
+code-block
+drop-container
+drop-ui
+new-chat
+user-message
+0ezw0xqwdne5s.js:10 
+SELECTOR TEST RESULTS:
+0ezw0xqwdne5s.js:10 
+  ✅ "[data-testid*="message"]" → 28 total, 26 with text
+0ezw0xqwdne5s.js:10      [0] <div> | data: {data-testid="user-message"} | class: "message-bubble relative rounded-3xl text-primary min-h-7 prose dark:prose-invert"
+0ezw0xqwdne5s.js:10      [0] text: "contextmover.com look at this web"
+0ezw0xqwdne5s.js:10      [1] <div> | data: {data-testid="assistant-message"} | class: "message-bubble relative rounded-3xl text-primary min-h-7 prose dark:prose-invert"
+0ezw0xqwdne5s.js:10      [1] text: "Thought for 3sGot it! I checked out contextmover.com. Quick Summary: ContextMover is a Chrome extens"
+0ezw0xqwdne5s.js:10 
+  ✅ "[class*="message"]" → 28 total, 26 with text
+0ezw0xqwdne5s.js:10      [0] <div> | data: {data-testid="user-message"} | class: "message-bubble relative rounded-3xl text-primary min-h-7 prose dark:prose-invert"
+0ezw0xqwdne5s.js:10      [0] text: "contextmover.com look at this web"
+0ezw0xqwdne5s.js:10      [1] <div> | data: {data-testid="assistant-message"} | class: "message-bubble relative rounded-3xl text-primary min-h-7 prose dark:prose-invert"
+0ezw0xqwdne5s.js:10      [1] text: "Thought for 3sGot it! I checked out contextmover.com. Quick Summary: ContextMover is a Chrome extens"
+0ezw0xqwdne5s.js:10 
+  ✅ "[class*="response"]" → 142 total, 26 with text
+0ezw0xqwdne5s.js:10      [0] <div> | data: {} | class: "relative response-content-markdown markdown [&_a:not(.not-prose)]:text-current ["
+0ezw0xqwdne5s.js:10      [0] text: "contextmover.com look at this web"
+0ezw0xqwdne5s.js:10      [1] <div> | data: {} | class: "relative response-content-markdown markdown [&_a:not(.not-prose)]:text-current ["
+0ezw0xqwdne5s.js:10      [1] text: "Got it! I checked out contextmover.com. Quick Summary: ContextMover is a Chrome extension that solve"
+0ezw0xqwdne5s.js:10 
+  ✅ "[class*="grok"]" → 1 total, 1 with text
+0ezw0xqwdne5s.js:10      [0] <div> | data: {} | class: "flex w-full h-full overflow-hidden @container/mainview relative [anchor-name:--g"
+0ezw0xqwdne5s.js:10      [0] text: "contextmover.com look at this webThought for 3sGot it! I checked out contextmover.com. Quick Summary"
+0ezw0xqwdne5s.js:10 
+  ✅ "[class*="chat"]" → 17 total, 1 with text
+0ezw0xqwdne5s.js:10      [0] <div> | data: {} | class: "relative flex h-full flex-col items-center @container/chat min-w-[340px] [--cont"
+0ezw0xqwdne5s.js:10      [0] text: "contextmover.com look at this webThought for 3sGot it! I checked out contextmover.com. Quick Summary"
+0ezw0xqwdne5s.js:10 
+ROOT CONTAINER CANDIDATES:
+0ezw0xqwdne5s.js:10   "main" → <main> class="h-full flex-grow flex-shrink relative selection:bg-highlight w-0 @container isol" | msg-like nodes: 28
+0ezw0xqwdne5s.js:10   "[class*="overflow-y"]" → <div> class="flex min-h-0 flex-col overflow-auto grow group-data-[collapsible=icon]:overflow-" | msg-like nodes: 0
+0ezw0xqwdne5s.js:10 
+VIRTUAL SCROLL CHECK:
+0ezw0xqwdne5s.js:10   overflow-y:auto scrollHeight:649px → <body> class="antialiased font-body text-fg-primary bg-surface-base overfl"
+0ezw0xqwdne5s.js:10   overflow-y:auto scrollHeight:23078px → <div> class="w-full h-full overflow-y-auto overflow-x-hidden scrollbar-gu"
+0ezw0xqwdne5s.js:10   overflow-y:auto scrollHeight:868px → <div> class="shiki not-prose relative [&_pre]:overflow-auto [&_pre]:round"
+0ezw0xqwdne5s.js:10   overflow-y:auto scrollHeight:858px → <pre> class="shiki slack-ochin"
+0ezw0xqwdne5s.js:10 
+========== END GROK DOM PROBE ==========
+
+undefined

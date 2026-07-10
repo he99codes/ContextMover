@@ -1,0 +1,41 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-06-27",
+  "platforms": {
+    "claude": {
+      "userSelector": "[data-testid=\"human-turn\"]",
+      "assistantSelector": "[data-testid=\"ai-turn\"]",
+      "inputSelector": ".ProseMirror[contenteditable=\"true\"]",
+      "messageScope": "main"
+    },
+    "chatgpt": {
+      "messageSelector": "[data-message-author-role]",
+      "contentSelector": ".markdown, .whitespace-pre-wrap",
+      "inputSelector": "#prompt-textarea"
+    },
+    "gemini": {
+      "userSelector": "user-query, user-chunk, [class*='user-query-container']",
+      "assistantSelector": "model-response, ms-chat-turn[type='model'], [class*='model-response-text'], response-element",
+      "inputSelector": "rich-textarea .ql-editor, rich-textarea [contenteditable]",
+      "observerTarget": "chat-window, main, [class*='chat-container']",
+      "captureMethod": "fetch_intercept"
+    },
+    "grok": {
+      "userSelector": "[data-testid=\"user-message\"], [data-testid=\"human-turn\"], [class*=\"human-turn\"], [class*=\"usermessage\"], [class*=\"user-message\"]",
+      "assistantSelector": "[data-testid=\"assistant-message\"], [data-testid*=\"grok-response\"], [class*=\"response-content-markdown\"], [class*=\"grok-response\"], [class*=\"GrokResponse\"]",
+      "inputSelector": "[data-testid=\"chat-input\"] [contenteditable=\"true\"]"
+    },
+    "perplexity": {
+      "messageSelector": "[data-message-role]",
+      "userSelector": "[class*=\"group/query\"], [class*=\"UserMessage\"], [data-testid=\"user-message\"], [aria-label*=\"question\" i]",
+      "assistantSelector": "[class*=\"prose\"]:not([class*=\"sidebar\"]):not(nav):not(footer):not(aside), [class*=\"AnswerText\"], [class*=\"answer-text\"], [data-testid*=\"answer\"], [class*=\"answer-block\"]",
+      "inputSelector": "textarea#ask"
+    },
+    "deepseek": {
+      "messageSelector": "[data-message-author-role]",
+      "userSelector": "[data-message-author-role=\"user\"], [class*=\"userMessage\"], [class*=\"user-message\"], [class*=\"ds-message\"]:not([class*=\"ds-assistant\"])",
+      "assistantSelector": "[data-message-author-role=\"assistant\"], [class*=\"ds-assistant-message-main-content\"], [class*=\"ds-markdown\"], [class*=\"assistant-message\"]",
+      "inputSelector": "textarea[placeholder*=\"Message\"]"
+    }
+  }
+}

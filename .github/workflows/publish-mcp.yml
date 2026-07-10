@@ -1,0 +1,83 @@
+# Auto-publishes packages/mcp-server to npm on `mcp-v*` tags.
+#
+# To release:
+#   git tag mcp-v0.1.0
+#   git push origin mcp-v0.1.0
+#
+# Requires repo secret NPM_TOKEN (Settings → Secrets → Actions).
+
+name: Publish MCP Server to npm
+
+on:
+  push:
+    tags:
+      - "mcp-v*"
+
+jobs:
+  publish:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed for GitHub Release creation
+      id-token: write   # provenance support (npm)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
+
+      - name: Install dependencies (workspace)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build MCP server
+        working-directory: packages/mcp-server
+        run: pnpm build
+
+      - name: Verify build artifacts
+        working-directory: packages/mcp-server
+        run: |
+          test -f dist/index.js || (echo "Missing dist/index.js" && exit 1)
+          ls -la dist/
+          # Smoke-test the entry point — must exit cleanly without an MCP client.
+          node dist/index.js --self-test
+
+      - name: Publish to npm
+        working-directory: packages/mcp-server
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: MCP Server ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          body: |
+            ContextMover MCP Server release.
+
+            Install:
+            ```bash
+            npx -y @contextmover/mcp-server
+            ```
+
+            Or globally:
+            ```bash
+            npm install -g @contextmover/mcp-server
+            ```
+
+            See [SETUP.md](https://github.com/${{ github.repository }}/blob/main/packages/mcp-server/SETUP.md) for IDE configuration.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

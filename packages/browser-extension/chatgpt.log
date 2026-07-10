@@ -1,0 +1,1540 @@
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] XMLHttpRequest override installed
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] window.fetch override installed
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] WebSocket override installed (Perplexity socket.io)
+interceptor-bridge-C_-YXGcN.js:3 [ContextMover:bridge] installed
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for chatgpt (DOM fallback)
+chatgpt-DOFdUa7N.js:5 [CM:diag:chatgpt] strategy=1 user=0 asst=0
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: false, errors: Array(1), warnings: Array(0), stats: {…}}
+shared-CtdzbVwW.js:9 [CM:chatgpt] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+JLbet @ shared-CtdzbVwW.js:9
+startSessionCapture @ shared-CtdzbVwW.js:9
+(anonymous) @ chatgpt-DOFdUa7N.js:5
+shared-CtdzbVwW.js:5 [CM:structural] chatgpt: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+Jyctt @ shared-CtdzbVwW.js:9
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+JLbet @ shared-CtdzbVwW.js:9
+startSessionCapture @ shared-CtdzbVwW.js:9
+(anonymous) @ chatgpt-DOFdUa7N.js:5
+shared-CtdzbVwW.js:5 [CM:structural] chatgpt: strategy 2 (alignment) found 1 messages
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: false, errors: Array(1), warnings: Array(0), stats: {…}}
+shared-CtdzbVwW.js:9 [CM:chatgpt] scrollback: starting — loading lazy history
+shared-CtdzbVwW.js:9 [ContextMover] chatgpt: resolved sessionId=chatgpt-d53b2dd974
+shared-CtdzbVwW.js:9 [ContextMover] Sending CAPTURE_SESSION for session: chatgpt-d53b2dd974
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for chatgpt (DOM fallback)
+chatgpt-DOFdUa7N.js:5 [CM:diag:chatgpt] strategy=1 user=0 asst=0
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: false, errors: Array(1), warnings: Array(0), stats: {…}}
+shared-CtdzbVwW.js:9 [CM:chatgpt] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+setTimeout
+bgqMv @ shared-CtdzbVwW.js:9
+startSessionCapture @ shared-CtdzbVwW.js:9
+(anonymous) @ chatgpt-DOFdUa7N.js:5
+shared-CtdzbVwW.js:5 [CM:structural] chatgpt: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+Jyctt @ shared-CtdzbVwW.js:9
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+setTimeout
+bgqMv @ shared-CtdzbVwW.js:9
+startSessionCapture @ shared-CtdzbVwW.js:9
+(anonymous) @ chatgpt-DOFdUa7N.js:5
+shared-CtdzbVwW.js:5 [CM:structural] chatgpt: strategy 2 (alignment) found 1 messages
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: false, errors: Array(1), warnings: Array(0), stats: {…}}
+shared-CtdzbVwW.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-CtdzbVwW.js:9 [CM:chatgpt] scrollback: DOM settled — running full capture
+shared-CtdzbVwW.js:7 [CM:health] chatgpt: success=70% assistant=100%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: chatgpt capture rate dropped to 70% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+record @ shared-CtdzbVwW.js:7
+await in record
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+JLbet @ shared-CtdzbVwW.js:9
+startSessionCapture @ shared-CtdzbVwW.js:9
+(anonymous) @ chatgpt-DOFdUa7N.js:5
+6a20e89e-6a3c-8320-90e4-5e46649f4c1d:1 Access to fetch at 'https://contextmover.com/api/scraper-admin/configs' from origin 'https://chatgpt.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+remote-config-aPbEkRZB.js:1  GET https://contextmover.com/api/scraper-admin/configs net::ERR_FAILED 307 (Temporary Redirect)
+NxAgg @ remote-config-aPbEkRZB.js:1
+fetchConfig @ remote-config-aPbEkRZB.js:1
+cRqKH @ remote-config-aPbEkRZB.js:1
+getRemoteConfig @ remote-config-aPbEkRZB.js:1
+await in getRemoteConfig
+fSUBq @ remote-config-aPbEkRZB.js:1
+getPlatformSelectors @ remote-config-aPbEkRZB.js:1
+(anonymous) @ chatgpt-DOFdUa7N.js:5
+shared-CtdzbVwW.js:7 [CM:health] chatgpt: success=70% assistant=100%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: chatgpt capture rate dropped to 70% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+record @ shared-CtdzbVwW.js:7
+await in record
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+setTimeout
+bgqMv @ shared-CtdzbVwW.js:9
+startSessionCapture @ shared-CtdzbVwW.js:9
+(anonymous) @ chatgpt-DOFdUa7N.js:5
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/accounts/optimized/check
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/rgstr?k=client-nb0qtYlZuy2tCMN5s5ncnuIBCJncjRViT0IzFm7GqST&st=javascript-client&sv=3.32.6&t=1
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/user_system_messages
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/user_granular_consent
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/settings/is_adult
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/me
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/settings/user
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/rgstr?k=client-nb0qtYlZuy2tCMN5s5ncnuIBCJncjRViT0IzFm7GqST&st=javascript-client&sv=3.32.6&t=1
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/projects/oai/settings
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/sentinel/chat-requirements/prepare
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=79)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/system_hints?mode=basic
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/system_hints?mode=custom_agents
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/system_hints?mode=connectors
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/accounts/check/v4-2023-04-27?timezone_offset_min=-330
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/sentinel/chat-requirements/finalize
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/models?iim=false&is_gizmo=false
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/calpico/chatgpt/rooms/summary?limit=10&include_pinned=true
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/user_segments/codex_surface_usage
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/checkout_pricing_config/countries
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/settings/voices
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/aip/connectors/list_accessible?skip_actions=true&external_logos=true&skip_directory=true
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/client/strings
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/conversations?offset=0&limit=28&order=updated&is_archived=false&is_starred=false
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/user_segments
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/beacons/home?conversation_id=6a20e89e-6a3c-8320-90e4-5e46649f4c1d
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/apps/sources_dropdown
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/gizmos/snorlax/sidebar?owned_only=true&conversations_per_gizmo=5&limit=20
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/conversation/6a20e89e-6a3c-8320-90e4-5e46649f4c1d
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/amphora/notifications?limit=20
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/conversation/6a20e89e-6a3c-8320-90e4-5e46649f4c1d/stream_status
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/conversation/init
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/aip/connectors/links/list_accessible
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/aip/connectors/links/list_accessible
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/images/bootstrap
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/tasks
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/pins
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/memories?exclusive_to_gizmo=false&include_memory_entries=false
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for chatgpt (DOM fallback)
+chatgpt-DOFdUa7N.js:5 [CM:diag:chatgpt] strategy=1 user=0 asst=0
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: false, errors: Array(1), warnings: Array(0), stats: {…}}
+conversation-small-neg0e7ybougruymu.js:305 [CM:chatgpt] Registry strategies empty — trying structural detection
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+setTimeout
+bsnXk @ shared-CtdzbVwW.js:9
+_0x4ad612 @ shared-CtdzbVwW.js:9
+childList
+onChange @ conversation-small-neg0e7ybougruymu.js:305
+(anonymous) @ 4813494d-haio6wfxj1qf9tid.js:58
+(anonymous) @ 4813494d-haio6wfxj1qf9tid.js:58
+conversation-small-neg0e7ybougruymu.js:305 [CM:structural] chatgpt: attempting structural detection
+detectByStructure @ shared-CtdzbVwW.js:5
+Jyctt @ shared-CtdzbVwW.js:9
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+setTimeout
+bsnXk @ shared-CtdzbVwW.js:9
+_0x4ad612 @ shared-CtdzbVwW.js:9
+childList
+onChange @ conversation-small-neg0e7ybougruymu.js:305
+(anonymous) @ 4813494d-haio6wfxj1qf9tid.js:58
+(anonymous) @ 4813494d-haio6wfxj1qf9tid.js:58
+shared-CtdzbVwW.js:5 [CM:structural] chatgpt: strategy 2 (alignment) found 1 messages
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: false, errors: Array(1), warnings: Array(0), stats: {…}}
+shared-CtdzbVwW.js:9 [ContextMover] Snapshot hash unchanged, skipping
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/celsius/ws/user
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/rgstr?k=client-nb0qtYlZuy2tCMN5s5ncnuIBCJncjRViT0IzFm7GqST&st=javascript-client&sv=3.32.6&t=1
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/rgstr?k=client-nb0qtYlZuy2tCMN5s5ncnuIBCJncjRViT0IzFm7GqST&st=javascript-client&sv=3.32.6&t=1
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=1519)
+fetch-interceptor-DOShBb3L.js:1 [CM:diag:chatgpt] fetch-tap user=4 asst=4 fullHistory=true
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=21)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=557)
+shared-CtdzbVwW.js:7 [CM:health] chatgpt: success=70% assistant=100%
+conversation-small-neg0e7ybougruymu.js:305 [CM:health] ALERT: chatgpt capture rate dropped to 70% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+record @ shared-CtdzbVwW.js:7
+await in record
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+setTimeout
+bsnXk @ shared-CtdzbVwW.js:9
+_0x4ad612 @ shared-CtdzbVwW.js:9
+childList
+onChange @ conversation-small-neg0e7ybougruymu.js:305
+(anonymous) @ 4813494d-haio6wfxj1qf9tid.js:58
+(anonymous) @ 4813494d-haio6wfxj1qf9tid.js:58
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:bridge] fullHistory event received, count=8 vs existing=0
+(anonymous) @ interceptor-bridge-C_-YXGcN.js:3
+await in (anonymous)
+_0x1c499f @ interceptor-bridge-C_-YXGcN.js:3
+SkPAH @ interceptor-bridge-C_-YXGcN.js:3
+(anonymous) @ interceptor-bridge-C_-YXGcN.js:3
+_0x40c6da @ fetch-interceptor-DOShBb3L.js:1
+_0x164b79 @ fetch-interceptor-DOShBb3L.js:1
+await in _0x164b79
+AtQuZ @ fetch-interceptor-DOShBb3L.js:1
+(anonymous) @ fetch-interceptor-DOShBb3L.js:1
+interceptor-bridge-C_-YXGcN.js:3 [ContextMover:bridge] chatgpt: forwarding 8 msg(s) (user=4 asst=4) → service worker
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+shared-CtdzbVwW.js:9 [ContextMover] chatgpt: fetch-intercept active (count=8, age=42ms), skipping DOM scrape
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/statsc/flush
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/m
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/checkout_pricing_config/configs/IN
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/i
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/p
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/files/library
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/conversation/6a20e89e-6a3c-8320-90e4-5e46649f4c1d/textdocs
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/rgstr?k=client-nb0qtYlZuy2tCMN5s5ncnuIBCJncjRViT0IzFm7GqST&st=javascript-client&sv=3.32.6&t=1
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=2)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/telemetry/intake?ddforward=%2Fapi%2Fv2%2Flogs%3Fddsource%3Dbrowser%26dd-api-key%3Dpub1f79f8ac
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=24)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+shared-CtdzbVwW.js:9 [ContextMover] chatgpt: fetch-intercept active (count=8, age=18129ms), skipping DOM scrape
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/rgstr?k=client-nb0qtYlZuy2tCMN5s5ncnuIBCJncjRViT0IzFm7GqST&st=javascript-client&sv=3.32.6&t=1
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+shared-CtdzbVwW.js:9 [ContextMover] chatgpt: fetch-intercept active (count=8, age=27025ms), skipping DOM scrape
+conversation-small-neg0e7ybougruymu.js:73 The `beforetoggle` event handler for a popover triggered another popover to be shown, or a `loseinterest` event handler was cancelled. This is not recommended.
+D @ conversation-small-neg0e7ybougruymu.js:73
+_l @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+shared-CtdzbVwW.js:9 [ContextMover] chatgpt: fetch-intercept active (count=8, age=28209ms), skipping DOM scrape
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/m
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/f/conversation/prepare
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for chatgpt (DOM fallback)
+chatgpt-DOFdUa7N.js:5 [CM:diag:chatgpt] strategy=1 user=4 asst=4
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-CtdzbVwW.js:9 [ContextMover] Sending CAPTURE_SESSION for session: chatgpt-d53b2dd974
+shared-CtdzbVwW.js:7 [CM:health] chatgpt: success=70% assistant=100%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: chatgpt capture rate dropped to 70% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+record @ shared-CtdzbVwW.js:7
+await in record
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+setTimeout
+bsnXk @ shared-CtdzbVwW.js:9
+_0x4ad612 @ shared-CtdzbVwW.js:9
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for chatgpt (DOM fallback)
+chatgpt-DOFdUa7N.js:5 [CM:diag:chatgpt] strategy=1 user=4 asst=4
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-CtdzbVwW.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-CtdzbVwW.js:7 [CM:health] chatgpt: success=70% assistant=100%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: chatgpt capture rate dropped to 70% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+record @ shared-CtdzbVwW.js:7
+await in record
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+setTimeout
+bsnXk @ shared-CtdzbVwW.js:9
+_0x4ad612 @ shared-CtdzbVwW.js:9
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/statsc/flush
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/f/conversation
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/sentinel/chat-requirements/prepare
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/sentinel/ping
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for chatgpt (DOM fallback)
+chatgpt-DOFdUa7N.js:5 [CM:diag:chatgpt] strategy=1 user=5 asst=5
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-CtdzbVwW.js:9 [ContextMover] Sending CAPTURE_SESSION for session: chatgpt-d53b2dd974
+shared-CtdzbVwW.js:7 [CM:health] chatgpt: success=70% assistant=100%
+2340486e-ehd3xhcbon9q7g9v.js:8 [CM:health] ALERT: chatgpt capture rate dropped to 70% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+record @ shared-CtdzbVwW.js:7
+await in record
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+setTimeout
+bsnXk @ shared-CtdzbVwW.js:9
+_0x4ad612 @ shared-CtdzbVwW.js:9
+characterData
+fn @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Jf @ 2340486e-ehd3xhcbon9q7g9v.js:9
+Zf @ 2340486e-ehd3xhcbon9q7g9v.js:9
+wl @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+postMessage
+D @ 2340486e-ehd3xhcbon9q7g9v.js:1
+ee @ 2340486e-ehd3xhcbon9q7g9v.js:1
+postMessage
+D @ 2340486e-ehd3xhcbon9q7g9v.js:1
+e.unstable_scheduleCallback @ 2340486e-ehd3xhcbon9q7g9v.js:1
+uf @ 2340486e-ehd3xhcbon9q7g9v.js:8
+qd @ 2340486e-ehd3xhcbon9q7g9v.js:8
+kd @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Od @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cf @ 2340486e-ehd3xhcbon9q7g9v.js:8
+vf @ 2340486e-ehd3xhcbon9q7g9v.js:8
+bf @ 2340486e-ehd3xhcbon9q7g9v.js:8
+(anonymous) @ 2340486e-ehd3xhcbon9q7g9v.js:8
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for chatgpt (DOM fallback)
+chatgpt-DOFdUa7N.js:5 [CM:diag:chatgpt] strategy=1 user=5 asst=5
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-CtdzbVwW.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-CtdzbVwW.js:7 [CM:health] chatgpt: success=70% assistant=100%
+4813494d-haio6wfxj1qf9tid.js:72 [CM:health] ALERT: chatgpt capture rate dropped to 70% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+record @ shared-CtdzbVwW.js:7
+await in record
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+JLbet @ shared-CtdzbVwW.js:9
+dnXnr @ shared-CtdzbVwW.js:9
+(anonymous) @ shared-CtdzbVwW.js:9
+setTimeout
+vTZmX @ shared-CtdzbVwW.js:9
+(anonymous) @ shared-CtdzbVwW.js:9
+setInterval
+syIph @ shared-CtdzbVwW.js:9
+_0x4dd699 @ shared-CtdzbVwW.js:9
+setTimeout
+bsnXk @ shared-CtdzbVwW.js:9
+_0x4ad612 @ shared-CtdzbVwW.js:9
+childList
+jct @ 4813494d-haio6wfxj1qf9tid.js:72
+updateChildren @ 4813494d-haio6wfxj1qf9tid.js:76
+updateInner @ 4813494d-haio6wfxj1qf9tid.js:76
+update @ 4813494d-haio6wfxj1qf9tid.js:76
+updateNextNode @ 4813494d-haio6wfxj1qf9tid.js:76
+(anonymous) @ 4813494d-haio6wfxj1qf9tid.js:76
+Rct @ 4813494d-haio6wfxj1qf9tid.js:72
+updateChildren @ 4813494d-haio6wfxj1qf9tid.js:76
+updateInner @ 4813494d-haio6wfxj1qf9tid.js:76
+update @ 4813494d-haio6wfxj1qf9tid.js:76
+updateStateInner @ 4813494d-haio6wfxj1qf9tid.js:76
+updateState @ 4813494d-haio6wfxj1qf9tid.js:76
+dispatchTransaction @ 4813494d-haio6wfxj1qf9tid.js:79
+dispatch @ 4813494d-haio6wfxj1qf9tid.js:76
+Qot @ 4813494d-haio6wfxj1qf9tid.js:68
+Zot @ 4813494d-haio6wfxj1qf9tid.js:68
+qc @ 8b34dbc2-e2194lnwc8kepqg0.js:21
+(anonymous) @ 8b34dbc2-e2194lnwc8kepqg0.js:21
+(anonymous) @ 4813494d-haio6wfxj1qf9tid.js:147
+e.with @ 4813494d-haio6wfxj1qf9tid.js:147
+e.with @ 4813494d-haio6wfxj1qf9tid.js:147
+e.startActiveSpan @ 4813494d-haio6wfxj1qf9tid.js:147
+e.startActiveSpan @ 4813494d-haio6wfxj1qf9tid.js:147
+yan @ 4813494d-haio6wfxj1qf9tid.js:147
+withSpan @ 4813494d-haio6wfxj1qf9tid.js:147
+i @ 8b34dbc2-e2194lnwc8kepqg0.js:21
+postTask
+postTask @ 4813494d-haio6wfxj1qf9tid.js:2
+(anonymous) @ 8b34dbc2-e2194lnwc8kepqg0.js:21
+(anonymous) @ 4813494d-haio6wfxj1qf9tid.js:147
+e.with @ 4813494d-haio6wfxj1qf9tid.js:147
+e.with @ 4813494d-haio6wfxj1qf9tid.js:147
+e.startActiveSpan @ 4813494d-haio6wfxj1qf9tid.js:147
+e.startActiveSpan @ 4813494d-haio6wfxj1qf9tid.js:147
+yan @ 4813494d-haio6wfxj1qf9tid.js:147
+withSpan @ 4813494d-haio6wfxj1qf9tid.js:147
+xan @ 4813494d-haio6wfxj1qf9tid.js:147
+fl @ 8b34dbc2-e2194lnwc8kepqg0.js:21
+(anonymous) @ 4813494d-haio6wfxj1qf9tid.js:36
+Gl @ 8b34dbc2-e2194lnwc8kepqg0.js:21
+(anonymous) @ 4813494d-haio6wfxj1qf9tid.js:36
+cDn @ 4813494d-haio6wfxj1qf9tid.js:158
+ql @ 8b34dbc2-e2194lnwc8kepqg0.js:21
+(anonymous) @ 4813494d-haio6wfxj1qf9tid.js:36
+handleKeyDown @ 4813494d-haio6wfxj1qf9tid.js:76
+(anonymous) @ 4813494d-haio6wfxj1qf9tid.js:76
+someProp @ 4813494d-haio6wfxj1qf9tid.js:76
+vV.keydown @ 4813494d-haio6wfxj1qf9tid.js:76
+e.dom.addEventListener.e.input.eventHandlers.<computed> @ 4813494d-haio6wfxj1qf9tid.js:75
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/sentinel/ping
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/lat/r
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/sentinel/ping
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/sentinel/ping
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/f/conversation/prepare
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/sentinel/chat-requirements/finalize
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/telemetry/intake?ddforward=%2Fapi%2Fv2%2Flogs%3Fddsource%3Dbrowser%26dd-api-key%3Dpub1f79f8ac
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=24)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/sentinel/ping
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/sentinel/ping
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/m
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/statsc/flush
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/rgstr?k=client-nb0qtYlZuy2tCMN5s5ncnuIBCJncjRViT0IzFm7GqST&st=javascript-client&sv=3.32.6&t=1
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+conversation-small-neg0e7ybougruymu.js:73 The `beforetoggle` event handler for a popover triggered another popover to be shown, or a `loseinterest` event handler was cancelled. This is not recommended.
+D @ conversation-small-neg0e7ybougruymu.js:73
+_l @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+uu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Au @ 2340486e-ehd3xhcbon9q7g9v.js:8
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for chatgpt (DOM fallback)
+chatgpt-DOFdUa7N.js:5 [CM:diag:chatgpt] strategy=1 user=5 asst=5
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-CtdzbVwW.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-CtdzbVwW.js:7 [CM:health] chatgpt: success=70% assistant=100%
+2340486e-ehd3xhcbon9q7g9v.js:8 [CM:health] ALERT: chatgpt capture rate dropped to 70% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+record @ shared-CtdzbVwW.js:7
+await in record
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+setTimeout
+bsnXk @ shared-CtdzbVwW.js:9
+_0x4ad612 @ shared-CtdzbVwW.js:9
+childList
+vu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+_u @ 2340486e-ehd3xhcbon9q7g9v.js:8
+vu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+_u @ 2340486e-ehd3xhcbon9q7g9v.js:8
+vu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+_u @ 2340486e-ehd3xhcbon9q7g9v.js:8
+vu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+_u @ 2340486e-ehd3xhcbon9q7g9v.js:8
+vu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Tu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Cu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+postMessage
+D @ 2340486e-ehd3xhcbon9q7g9v.js:1
+e.unstable_scheduleCallback @ 2340486e-ehd3xhcbon9q7g9v.js:1
+xf @ 2340486e-ehd3xhcbon9q7g9v.js:8
+bf @ 2340486e-ehd3xhcbon9q7g9v.js:8
+(anonymous) @ 2340486e-ehd3xhcbon9q7g9v.js:8
+setTimeout
+k @ conversation-small-neg0e7ybougruymu.js:73
+_l @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Fu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+Pu @ 2340486e-ehd3xhcbon9q7g9v.js:8
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/sentinel/ping
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/t
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/rgstr?k=client-nb0qtYlZuy2tCMN5s5ncnuIBCJncjRViT0IzFm7GqST&st=javascript-client&sv=3.32.6&t=1
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/m
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/sentinel/ping
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/statsc/flush
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+shared-CtdzbVwW.js:9 [ContextMover] Capture triggered for chatgpt (DOM fallback)
+chatgpt-DOFdUa7N.js:5 [CM:diag:chatgpt] strategy=1 user=5 asst=5
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-CtdzbVwW.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-CtdzbVwW.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-CtdzbVwW.js:7 [CM:health] chatgpt: success=70% assistant=100%
+shared-CtdzbVwW.js:7 [CM:health] ALERT: chatgpt capture rate dropped to 70% — selectors may be broken
+checkHealth @ shared-CtdzbVwW.js:7
+record @ shared-CtdzbVwW.js:7
+await in record
+runCapturePipeline @ shared-CtdzbVwW.js:9
+scrapeMessages @ chatgpt-DOFdUa7N.js:5
+_0x4dd699 @ shared-CtdzbVwW.js:9
+(anonymous) @ shared-CtdzbVwW.js:9
+setTimeout
+uOJLl @ shared-CtdzbVwW.js:9
+(anonymous) @ shared-CtdzbVwW.js:9
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/aip/connectors/links/list_accessible
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/backend-api/aip/connectors/links/list_accessible
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ⚠️ URL matched ChatGPT domain but detectPlatform returned null
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] [DIAG] ChatGPT-like URL detected: https://chatgpt.com/ces/v1/rgstr?k=client-nb0qtYlZuy2tCMN5s5ncnuIBCJncjRViT0IzFm7GqST&st=javascript-client&sv=3.32.6&t=1
+fetch-interceptor-DOShBb3L.js:1 [ContextMover:fetch] chatgpt: no messages parsed (body length=16)

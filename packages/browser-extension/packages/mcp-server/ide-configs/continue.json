@@ -1,0 +1,13 @@
+{
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "transport": {
+          "type": "stdio",
+          "command": "npx",
+          "args": ["-y", "@contextmover/mcp-server"]
+        }
+      }
+    ]
+  }
+}

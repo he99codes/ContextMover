@@ -1,0 +1,58 @@
+ContextMover captures your AI conversations and migrates the full context to any other AI platform in one click — no copying, no pasting, no starting over.
+
+How It Works
+
+ContextMover intercepts the API responses that AI platforms send to your own browser — the same responses that render on your screen. It captures those responses locally in your browser's IndexedDB and makes them available for migration at any time.
+
+When you migrate, context is formatted specifically for the destination model to maximize comprehension. The receiving model picks up naturally where the previous one left off.
+
+The Attention Engine
+
+Long conversations can contain hundreds of messages that would exceed any model's context window. ContextMover includes a local Attention Engine — a transformer-based semantic indexing system that runs entirely in your browser via WebAssembly. It identifies the most relevant messages for your current task and compresses context intelligently before migration. No conversation data leaves your device for this analysis.
+
+Zero-Knowledge Architecture
+
+Your conversations are yours. All capture happens locally. The Attention Engine runs locally. Sessions are stored in your browser's IndexedDB. When you migrate, context travels directly from your browser to the destination platform — it never passes through ContextMover servers. Our servers only handle account authentication, usage counters, and subscription status.
+
+Features
+
+One-Click Migration — Select a session, choose a destination, click Migrate. Context is injected automatically.
+
+Automatic Session Capture — Every conversation is captured as you chat. No manual steps required.
+
+Smart Context Compression — The Attention Engine compresses long sessions to fit destination context windows using semantic similarity scoring.
+
+Session Library — Browse, search, and revisit all your AI conversations in one unified local library.
+
+Semantic Search — Search across all captured sessions using natural language. Finds relevant messages across all platforms ranked by semantic relevance. Runs entirely locally.
+
+Knowledge Synthesizer — Pull specific context chunks from multiple sessions and combine them into a single custom migration. (Coming in v3)
+
+Google Drive Backup — Optional bidirectional sync across devices using Google Drive's private appdata folder. Fully optional — ContextMover works completely offline without it.
+
+Export Sessions — Export any session as XML, Markdown, or plain text for use in your own tools.
+
+Three Migration Tiers
+
+Tier 1 — Full Context: The entire conversation is packaged and injected into the destination. Best for short sessions.
+
+Tier 2 — Smart Summary: An intelligent summary extracts goals, key decisions, and recent thread. Best for medium-length sessions.
+
+Tier 3 — Attention Engine: The local model scores every segment for relevance, selects the highest-value chunks, and compresses everything to fit the destination's context window. Best for long sessions.
+
+Plans
+
+Free: 10 migrations per month, full session capture, local library, search, and export.
+
+Pro: Unlimited migrations, Google Drive backup, semantic search, Knowledge Synthesizer, advanced Attention Engine controls, and cloud backup with zero-knowledge encryption.
+
+Privacy
+
+No conversation content is stored or transmitted to ContextMover servers. Credential patterns are automatically redacted before storage. All cloud sync data is encrypted client-side. Full privacy policy: https://contextmover.com/privacy
+
+Support
+
+Documentation and bug reports: https://contextmover.com/support
+Email: support@contextmover.com — responses within 48 hours. 7-day refund on Pro subscriptions.
+
+ContextMover contains no remote code. All JavaScript is bundled in the extension package. No eval(), no external scripts, no dynamically loaded code.

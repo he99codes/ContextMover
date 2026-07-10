@@ -1,0 +1,388 @@
+Store listing
+Product details
+For all languages
+
+Title from package
+
+ContextMover
+
+Summary from package
+
+Never lose coding context again. One layer. Any agent. Zero friction.
+
+Description
+ContextMover is the missing layer between AI platforms. It captures your conversations from Claude, ChatGPT, Gemini, Grok, DeepSeek, and Perplexity — then lets you migrate the full context to any other platform in one click. No copying. No pasting. No starting over.
+
+─────────────────────────────────────
+WHY CONTEXTMOVER EXISTS
+─────────────────────────────────────
+
+Every AI platform has different strengths. Claude is exceptional at reasoning and long documents. ChatGPT has the largest plugin ecosystem. Gemini integrates with Google Workspace. Grok has real-time web access. DeepSeek excels at code. Perplexity specializes in research.
+
+Power users don't live on one platform. They switch based on the task. But every switch means losing context — re-explaining your project, your constraints, your history. That friction kills productivity.
+
+ContextMover eliminates that friction entirely.
+
+─────────────────────────────────────
+HOW IT WORKS
+─────────────────────────────────────
+
+ContextMover works by intercepting the API responses that AI platforms send to your own browser — the same responses that render on your screen. It captures those responses locally, stores them in your browser's IndexedDB, and makes them available for migration.
+
+When you migrate to a new platform, ContextMover formats the captured context optimally for the destination model:
+- Claude receives context in structured XML format
+- ChatGPT receives context in Markdown
+- Gemini and others receive clean plain text
+
+This format-aware migration means the receiving model understands the context as naturally as possible — not as a raw dump, but as a structured conversation it can immediately build on.
+
+─────────────────────────────────────
+THE ATTENTION ENGINE
+─────────────────────────────────────
+
+Long AI conversations can contain hundreds of messages. Migrating all of them verbatim would exceed context window limits and overwhelm the receiving model with irrelevant detail.
+
+ContextMover includes a local Attention Engine — a transformer-based semantic indexing system that runs entirely in your browser using WebAssembly. It analyzes your conversation, identifies the most relevant messages for your current task, and compresses the context intelligently before migration.
+
+The Attention Engine runs in an offscreen document so it never affects your browser's main thread performance. On low-end hardware it yields between processing batches to keep your browser responsive.
+
+No conversation data is sent to ContextMover servers for this analysis. The ML model runs locally on your device.
+
+─────────────────────────────────────
+ZERO-KNOWLEDGE ARCHITECTURE
+─────────────────────────────────────
+
+ContextMover is built on a zero-knowledge principle: your conversations are yours.
+
+- All session capture happens locally in your browser
+- The Attention Engine runs locally via WebAssembly
+- Captured sessions are stored in your browser's local IndexedDB
+- When you migrate, the context is sent directly from your browser to the destination AI platform — it does not pass through ContextMover servers
+- ContextMover servers only handle: account authentication, usage counters, and subscription status
+
+We cannot read your conversations. We do not want to. The architecture makes it technically impossible even if we did.
+
+─────────────────────────────────────
+FEATURES
+─────────────────────────────────────
+
+ONE-CLICK MIGRATION
+Switch AI platforms without losing your work. Select a captured session in the side panel, choose the destination platform, and click Migrate. ContextMover opens the destination platform and injects the context automatically.
+
+AUTOMATIC SESSION CAPTURE
+Every conversation on every supported platform is captured automatically as you chat. No manual steps. Open the side panel to see your full session library organized by platform and date.
+
+SMART CONTEXT COMPRESSION
+The Attention Engine compresses long conversations to fit destination context windows, preserving the most relevant information for your current task using semantic similarity scoring.
+
+FORMAT-AWARE MIGRATION
+Context is formatted specifically for each destination model. Claude gets XML. ChatGPT gets Markdown. This maximizes comprehension quality at the destination.
+
+SESSION LIBRARY
+Browse, search, and revisit all your AI conversations across all platforms in one unified library. Sessions are stored locally and persist across browser restarts.
+
+EXPORT SESSIONS
+Export any captured session as XML, Markdown, or plain text. Use them in your own tools, feed them into scripts, archive them, or share them with teammates.
+
+PRIORITY MIGRATION QUEUE
+User-triggered migrations run immediately on a priority lane. Background sync operations pause and resume automatically, ensuring migrations are always fast regardless of background activity.
+
+PARTIAL SYNC FOR NEW ACCOUNTS
+When you sign in on a new device, ContextMover syncs your 3 most recent sessions immediately so you can work right away, then syncs older sessions in the background without blocking the UI.
+
+USAGE TRANSPARENCY
+Free tier users can see exactly how many migrations remain this month directly in the extension badge. Warnings appear at 3 remaining. Hard limits are enforced server-side with row-level locking — no silent overages.
+
+─────────────────────────────────────
+SUPPORTED PLATFORMS
+─────────────────────────────────────
+
+- Claude — claude.ai
+- ChatGPT — chatgpt.com / chat.openai.com
+- Google Gemini — gemini.google.com
+- Grok — grok.com
+- DeepSeek — chat.deepseek.com
+- Perplexity — perplexity.ai (fetch + WebSocket)
+
+─────────────────────────────────────
+PLANS
+─────────────────────────────────────
+
+FREE
+- 10 migrations per month
+- Full session capture on all platforms
+- Local session library
+- Export to XML, Markdown, plain text
+
+PRO
+- Unlimited migrations
+- Priority sync queue
+- Advanced Attention Engine controls
+- Cloud session backup (zero-knowledge encrypted)
+
+─────────────────────────────────────
+WHO IS THIS FOR
+─────────────────────────────────────
+
+DEVELOPERS
+You start architecting a system in ChatGPT, realize Claude handles the nuance better, but don't want to re-explain 40 messages of context. ContextMover migrates it instantly.
+
+RESEARCHERS
+You're deep in a research thread on Perplexity and want Claude's analytical depth on the same topic. One click — full context transferred.
+
+WRITERS
+You draft with ChatGPT's creativity, edit with Claude's precision, and fact-check with Perplexity. ContextMover keeps the thread continuous across all three.
+
+POWER USERS
+You evaluate AI models constantly and need to run the same conversation through multiple models for comparison. ContextMover makes this effortless.
+
+TEAMS
+Share exported session files with teammates. Everyone starts from the same context regardless of which AI platform they prefer.
+
+─────────────────────────────────────
+PRIVACY & SECURITY
+─────────────────────────────────────
+
+ContextMover takes a minimal-data approach by design:
+
+- No conversation content is stored on ContextMover servers
+- No conversation content is transmitted to ContextMover servers during capture or migration
+- Credential patterns (API keys, Bearer tokens) are automatically redacted from captured content before storage
+- Payloads over 500KB are dropped to prevent memory exhaustion
+- All Supabase credentials (for users who enable cloud sync) are encrypted client-side before storage — ContextMover servers never see them in plaintext
+
+Full privacy policy: https://contextmover.com/privacy
+
+─────────────────────────────────────
+SUPPORT
+─────────────────────────────────────
+
+Documentation: https://contextmover.com/support
+Bug reports: https://contextmover.com/support?bug=true
+Email: support@contextmover.com
+
+We respond within 48 hours. A 7-day refund policy applies to all Pro subscriptions.
+
+─────────────────────────────────────
+OPEN SOURCE & TRANSPARENCY
+─────────────────────────────────────
+
+The fetch interceptor and session capture logic are designed to be fully auditable. We welcome security researchers to review the extension. Contact support@contextmover.com for responsible disclosure.
+
+ContextMover does not contain any remote code. All JavaScript is bundled and included in the extension package. No eval(), no external script tags, no dynamically loaded code.
+8,307/16,0008307 of 16000 characters entered
+Focus on explaining what the item does and why users should install it
+Category
+Developer Tools
+Language
+English
+Specifying your item’s language will help users find it. If you support multiple languages, then you should internationalize your item. Learn more
+Graphic assets
+Store icon
+
+128x128 pixels
+
+Please ensure icon follows image guidelines
+
+Store icon
+Global assets
+Global promo video
+Youtube URL
+Enter a YouTube video URL. Example: https://www.youtube.com/watch?v=1234567890A
+
+Screenshots
+
+Up to a maximum of 5
+
+1280x800 or 640x400
+
+JPEG or 24-bit PNG (no alpha)
+
+At least one is required 
+
+Screenshot 1
+Screenshot 2
+Screenshot 3
+Screenshot 4
+Drop image here
+
+Small promo tile
+
+440x280 Canvas
+
+JPEG or 24-bit PNG (no alpha)
+
+Small promo tile
+Marquee promo tile
+
+1400x560 Canvas
+
+JPEG or 24-bit PNG (no alpha)
+
+Marquee promo tile
+Additional fields
+Official URL
+None
+Or Add a new site
+If your item is associated with a website that you own, select that website from the list. You can register as the owner for a site using Google Search Console.
+Homepage URL
+https://contextmover.com
+Link to website for your item
+
+24/2,04824 of 2048 characters entered
+Support URL
+https://contextmover.com/support
+32/2,04832 of 2048 characters entered
+Providing the URLs for description and support pages can improve your users’ experience and help make this item’s ratings and comments more meaningful.
+Mature content
+
+Examples of mature content include sexual and suggestive content, strong language, violence, or a focus on the consumption or sale of alcohol, tobacco, or drugs. Learn more
+Item support
+Privacy
+To facilitate the compliance of your extension with the Chrome Web Store Developer Program Policies, you are required to provide the information listed below. The information provided in this form will be shared with the Chrome Web Store team. Please ensure that the information provided is accurate, as it will improve the review time of your extension and decrease the risk of this version being rejected.
+
+Single purpose
+An extension must have a single purpose that is narrow and easy-to-understand. Learn more
+
+Single purpose description
+ContextMover has one purpose: to capture AI conversation sessions from supported platforms (Claude, ChatGPT, Gemini, Grok, DeepSeek, Perplexity) and enable users to migrate the full conversation context to any other supported platform. Capture happens locally via fetch interception — the same API responses that render on the user's screen. Migration formats the captured context for the destination model and injects it directly from the user's browser. No conversation data passes through ContextMover servers at any point. All semantic processing (the Attention Engine) runs locally in the browser via WebAssembly. The extension does not modify, block, or interfere with any AI platform's functionality. It only reads responses already rendered to the user and stores them locally in IndexedDB. Every permission requested exists solely to fulfill this single capture-and-migrate purpose.
+891/1,000891 of 1000 characters entered
+Permission justification
+A permission is either one of a list of known strings, such as "activeTab", or a match pattern giving access to one or more hosts.
+Remove any permission that is not needed to fulfill the single purpose of your extension. Requesting an unnecessary permission will result in this version being rejected.
+
+Due to the Host Permission, your extension may require an in-depth review which will delay publishing.
+
+activeTab justification
+The activeTab permission is required to identify which AI platform the user is currently viewing so the extension can activate the correct session capture configuration for that platform. Each supported platform (Claude, ChatGPT, Gemini, Grok, DeepSeek, Perplexity) has a distinct API response format. When the user opens the side panel or triggers a capture action, the extension reads the active tab's URL to determine which parser to apply. This permission is also used when the user initiates a migration: the extension checks the active tab to confirm the destination platform before injecting the migrated context. activeTab is used only when the user directly interacts with the extension (clicking the icon or using the side panel). It is never used passively in the background. No data from the active tab is transmitted to ContextMover servers. The tab URL is used locally for platform detection only and is not stored.
+929/1,000929 of 1000 characters entered
+scripting justification
+Required to inject the fetch interceptor into supported AI platform pages. The interceptor must run in the page's MAIN world context because overriding window.fetch — the only reliable method to capture streaming SSE responses — requires running in the same JavaScript context as the page. DOM scraping cannot capture streaming content reliably. The injected script only reads response bodies already rendered to the user's screen. It does not modify page content, block requests, or alter response data. The original fetch is always called and returned unmodified. All injected code is statically bundled in the extension package. A lightweight toggle button is also injected on all pages via content_scripts to allow users to open the side panel from any website. It only renders a UI button and does not read page content. No remotely sourced code is ever injected or executed.
+880/1,000880 of 1000 characters entered
+storage justification
+Stores captured AI sessions, preferences, sync state, and usage counters locally. Uses two mechanisms: chrome.storage.local for lightweight state (platform detection, sync phase, usage warnings, queue checkpoints, remote config cache with 6-hour TTL) and IndexedDB for full session content including messages, timestamps, and semantic index checkpoints. The remote config cache prevents redundant network requests and ensures the extension works when the config endpoint is unreachable. Queue checkpoints allow interrupted background indexing jobs to resume from their last position rather than restarting. All data stays on the user's device. Cloud backup requires explicit user opt-in and uses client-side encryption before any data leaves the browser. No session content is transmitted automatically.
+803/1,000803 of 1000 characters entered
+unlimitedStorage justification
+ContextMover stores AI conversation sessions locally on the user's device using IndexedDB. Each captured session includes message text, semantic embeddings (vector representations for context search), and structured metadata. A single active developer may accumulate hundreds of sessions across six supported AI platforms (Claude, ChatGPT, Gemini, Grok, Perplexity, DeepSeek), with each session containing dozens of messages. The semantic embedding model (MiniLM-L6-v2) generates 384-dimensional float vectors per text chunk, which are stored locally for instant offline retrieval. Without unlimitedStorage, the default 10 MB quota would be exhausted within days of normal use, causing data loss and degraded functionality. All data remains on-device; no conversation content is transmitted to external servers. The extension never stores data beyond what the user explicitly captures through their own AI interactions.
+919/1,000919 of 1000 characters entered
+tabs justification
+The tabs permission is required for two specific functions. First, when the user initiates a migration from the side panel, the extension needs to open the destination AI platform in a new tab or focus an existing tab for that platform, then inject the migration context into that tab. This requires reading tab URLs to find an existing matching tab before deciding whether to open a new one. Second, the bug report button in the extension UI opens the ContextMover support page in a new tab, passing the current platform and extension version as URL parameters so the support form can be pre-populated. The tabs permission is not used for passive monitoring of user browsing. The extension does not track which websites users visit outside of the six supported AI platforms. Tab URL data is used only for platform detection and migration routing and is never transmitted to ContextMover servers.
+896/1,000896 of 1000 characters entered
+sidePanel justification
+The sidePanel permission is required to display the ContextMover session library and migration controls as a Chrome side panel. The side panel provides the primary user interface for the extension: it shows captured sessions organized by platform and date, allows users to search and filter sessions, displays migration controls, shows real-time sync progress during background indexing, and provides access to settings and the bug report button. Displaying the interface as a side panel rather than a popup is essential because users need to interact with ContextMover while simultaneously viewing the AI platform page — a popup closes when the user clicks elsewhere, making it impractical for multi-step workflows like selecting a session, reviewing it, and then triggering a migration. The side panel stays open while the user navigates between AI platforms, maintaining session context across tab switches.
+910/1,000910 of 1000 characters entered
+downloads justification
+The downloads permission is required to export captured AI sessions as files to the user's local device. When a user selects one or more sessions and chooses to export them, ContextMover generates the session content in the requested format (XML, Markdown, or plain text) and triggers a browser download using the chrome.downloads API. This allows users to archive their AI conversations, share them with teammates, import them into external tools, or use them as input for their own scripts and workflows. The downloads permission is used only in direct response to explicit user action — the user must click an Export button and select a format. The extension never initiates downloads automatically in the background. Downloaded files contain only conversation content that the user has already seen in their browser. No additional data is appended to exported files. The download destination is always the user's default browser download folder.
+949/1,000949 of 1000 characters entered
+offscreen justification
+Required to run the Attention Engine — a transformer-based ML model compiled to WebAssembly — in a separate offscreen document. The model generates semantic embeddings of captured messages to score relevance, compress long conversations before migration, and enable semantic search. Running this in an offscreen document is essential: the model is CPU-intensive and causes UI freezes when run on the main thread (observed on hardware processing 900+ chunks). The offscreen document yields between processing batches using explicit delays, respects a priority queue that pauses background indexing when the user triggers a migration, and operates entirely locally. No conversation content is sent to external servers. All ML processing happens on the user's device via WebAssembly.
+780/1,000780 of 1000 characters entered
+identity justification
+ContextMover uses the chrome.identity API exclusively for Google OAuth2 authentication. This serves two purposes: (1) User sign-in via Google to access their ContextMover account for subscription management and usage tracking, and (2) Google Drive AppData scope access to enable optional cross-device sync of conversation sessions. The extension requests only the drive.appdata scope, which limits access to a hidden application-specific folder that cannot read or modify any other files in the user's Google Drive. Authentication tokens are managed securely through Chrome's built-in identity system and are never exposed to web pages or third-party services. Users are prompted with Google's standard consent screen before any access is granted. No identity information is shared with third parties.
+801/1,000801 of 1000 characters entered
+alarms justification
+ContextMover uses the chrome.alarms API for two periodic background maintenance tasks: (1) Automatic refresh of remote platform configuration data (selector updates) once per hour to ensure the extension adapts to AI platform UI changes without requiring a store update, and (2) Periodic session data synchronization with Google Drive AppData for users who have opted into cross-device sync. These alarms run at low frequency (hourly intervals) to minimize resource usage and battery impact. The alarms API is used instead of setInterval because Chrome MV3 service workers are ephemeral and may be terminated between events. Alarms persist across service worker restarts, ensuring reliable scheduling. No alarms are used for tracking, analytics, or advertising purposes.
+770/1,000770 of 1000 characters entered
+Host permission justification
+Host permissions are requested for the following domains: claude.ai, chatgpt.com, chat.openai.com, gemini.google.com, grok.com, grok.x.ai (Grok's alternate domain), chat.deepseek.com, www.perplexity.ai — the six supported AI platforms where fetch interception and context injection occur. contextmover.com and *.contextmover.com are required to fetch a JSON configuration file (CSS selectors and URL patterns — no executable code) and to authenticate users via the extension's backend. huggingface.co and cdn.jsdelivr.net are used once on first run to download the MiniLM-L6-v2 ONNX model file (~23 MB), which is then cached locally in IndexedDB. All subsequent ML inference runs entirely offline via WebAssembly — no data is sent to these hosts after the initial download. www.googleapis.com and accounts.google.com are required for the chrome.identity OAuth2 flow. *.supabase.co is used for user authentication and subscription management via the extension backend. 
+968/1,000968 of 1000 characters entered
+A host permission is any match pattern specified in the "permissions" and "content_scripts" fields of the extension manifest
+Are you using remote code?
+
+No, I am not using Remote code
+
+Yes, I am using Remote code
+Justification
+0/1,0000 of 1000 characters entered
+Remote code is any JS or Wasm that is not included in the extension's package. This includes references to external files in <script> tags, modules pointing to external files, and strings evaluated through eval()
+Data usage
+The content of this form will be displayed publicly on the item detail page. By publishing your item, you are certifying that these disclosures reflect the most up-to-date content of your privacy policy.
+
+What user data do you plan to collect from users now or in the future? (See FAQ for more information)
+
+Personally identifiable information
+For example: name, address, email address, age, or identification number
+
+Health information
+For example: heart rate data, medical history, symptoms, diagnoses, or procedures
+
+Financial and payment information
+For example: transactions, credit card numbers, credit ratings, financial statements, or payment history
+
+Authentication information
+For example: passwords, credentials, security question, or personal identification number (PIN)
+
+Personal communications
+For example: emails, texts, or chat messages
+
+Location
+For example: region, IP address, GPS coordinates, or information about things near the user’s device
+
+Web history
+The list of web pages a user has visited, as well as associated data such as page title and time of visit
+
+User activity
+For example: network monitoring, clicks, mouse position, scroll, or keystroke logging
+
+Website content
+For example: text, images, sounds, videos, or hyperlinks
+I certify that the following disclosures are true:
+
+I do not sell or transfer user data to third parties, outside of the approved use cases
+
+I do not use or transfer user data for purposes that are unrelated to my item's single purpose
+
+I do not use or transfer user data to determine creditworthiness or for lending purposes
+You must certify all three disclosures to comply with our Developer Program Policies
+Privacy policy
+An extension must have a privacy policy if it collects user data. Learn more
+
+Privacy policy URL*
+https://contextmover.com/privacy
+32/2,04832 of 2048 characters entered
+Useful Resources
+Developer Guide
+Distribution
+Payments
+Select if your item will be free of charge or if it offers in-app purchases
+
+
+Free of charge
+Your item is free of charge and doesn't contain any functionality to purchase additional goods, content, services or functionality
+
+Contains in-app purchases
+Your item contains functionality to purchase items, additional features or subscriptions. Selecting this option will display an "in-app purchases" badge on the item detail page
+Visibility
+
+Public
+Everyone in selected countries can see it
+
+Unlisted
+Only people with the link can see it (Note: Item may still appear in web search engine results).
+
+Private
+Only trusted testers can see it. You can change your trusted testers on your settings page.
+You can also include members of a Google Group that you own or manage.
+None
+Test instructions
+Help us review your extension's core functionality by providing test instructions if login, authentication, or specific setup is required. Enter any necessary test account credentials and steps below. The information provided in this form will be shared with the Chrome Web Store team.
+
+Providing these details is essential for a complete evaluation and is required to qualify for the Featured badge if your extension's main features are gated behind a login. All information provided is confidential and used solely for review purposes.
+
+Test instructions were saved on June 8, 2026.
+Credentials
+Username
+ginnitwoginni@gmail.com
+Username for testing the extension
+
+23/10023 of 100 characters entered
+Password
+•••••••••••••••
+Password, if any, for the provided username
+
+15/10015 of 100 characters entered
+Additional instructions
+Additional instructions
+login is required to test core functionality. Install the extension, open any supported AI platform (claude.ai, chatgpt.com, gemini.google.com, grok.com, perplexity.ai, or chat.deepseek.com), and have a conversation. The extension automatically captures messages in the sidebar panel (right-click extension icon > Open Side Panel). To test migration: select a session in the sidebar, click "Migrate", choose a target platform and tier. 
+436/500436 of 500 characters entered
+Provide any instructions required to access core extension functionality if additional setup is required beyond entering the provided username and password

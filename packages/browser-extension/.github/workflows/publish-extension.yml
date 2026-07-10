@@ -1,0 +1,149 @@
+# Auto-publishes the browser extension to the Chrome Web Store on `ext-v*` tags.
+# Also updates public/extension-version.json on the web app so the in-extension
+# update banner fires for existing users.
+#
+# HOW TO RELEASE:
+#   1. Bump version in packages/browser-extension/manifest.json
+#   2. Commit: git commit -am "chore: bump extension to 1.0.1"
+#   3. Tag:    git tag ext-v1.0.1
+#   4. Push:   git push origin main --tags
+#
+# REQUIRED REPOSITORY SECRETS (Settings → Secrets → Actions):
+#   CHROME_EXTENSION_ID     — from Chrome Web Store dashboard URL
+#   CHROME_CLIENT_ID        — OAuth2 client ID (Google Cloud Console)
+#   CHROME_CLIENT_SECRET    — OAuth2 client secret
+#   CHROME_REFRESH_TOKEN    — OAuth2 refresh token (see SETUP below)
+#
+# SETUP (one-time):
+#   1. Google Cloud Console → Create OAuth2 client (Desktop app)
+#   2. Run: npx chrome-webstore-upload-cli@latest init
+#   3. Follow prompts → copy refresh token to repo secret
+
+name: Publish Extension to Chrome Web Store
+
+on:
+  push:
+    tags:
+      - "ext-v*"
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  publish:
+    name: Build, publish, update version file
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed for GitHub Release + version file commit
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ── Run tests before publishing ─────────────────────────────────────────
+      - name: Run tests
+        run: pnpm --filter browser-extension test
+
+      - name: TypeScript check
+        run: pnpm --filter browser-extension typecheck
+
+      # ── Extract version from tag (ext-v1.0.1 → 1.0.1) ──────────────────────
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#ext-v}" >> $GITHUB_OUTPUT
+
+      # ── Verify manifest.json version matches tag ─────────────────────────────
+      - name: Verify manifest version
+        run: |
+          MANIFEST_VERSION=$(node -e "const m=require('./packages/browser-extension/manifest.json'); console.log(m.version)")
+          TAG_VERSION="${{ steps.version.outputs.version }}"
+          if [ "$MANIFEST_VERSION" != "$TAG_VERSION" ]; then
+            echo "ERROR: manifest.json version ($MANIFEST_VERSION) does not match tag ($TAG_VERSION)"
+            echo "Update manifest.json before tagging."
+            exit 1
+          fi
+          echo "Version match: $MANIFEST_VERSION ✓"
+
+      # ── Build extension ──────────────────────────────────────────────────────
+      - name: Build extension
+        run: pnpm --filter browser-extension build
+
+      # ── Zip dist/ ───────────────────────────────────────────────────────────
+      - name: Create zip
+        run: |
+          cd packages/browser-extension
+          zip -r ../../contextmover-extension-${{ steps.version.outputs.version }}.zip dist/
+          echo "ZIP size: $(du -sh ../../contextmover-extension-${{ steps.version.outputs.version }}.zip | cut -f1)"
+
+      # ── Publish to Chrome Web Store ─────────────────────────────────────────
+      - name: Get CWS access token
+        id: cws_token
+        run: |
+          RESPONSE=$(curl -s -X POST https://oauth2.googleapis.com/token \
+            -d client_id=${{ secrets.CHROME_CLIENT_ID }} \
+            -d client_secret=${{ secrets.CHROME_CLIENT_SECRET }} \
+            -d refresh_token=${{ secrets.CHROME_REFRESH_TOKEN }} \
+            -d grant_type=refresh_token)
+          ACCESS_TOKEN=$(echo $RESPONSE | node -e "let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>console.log(JSON.parse(d).access_token))")
+          echo "access_token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Upload zip to CWS
+        run: |
+          curl -s -X PUT \
+            -H "Authorization: Bearer ${{ steps.cws_token.outputs.access_token }}" \
+            -H "x-goog-api-version: 2" \
+            -F "data=@contextmover-extension-${{ steps.version.outputs.version }}.zip" \
+            "https://www.googleapis.com/upload/chromewebstore/v1.1/items/${{ secrets.CHROME_EXTENSION_ID }}"
+
+      - name: Publish to CWS (all channels)
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ steps.cws_token.outputs.access_token }}" \
+            -H "x-goog-api-version: 2" \
+            -H "Content-Length: 0" \
+            "https://www.googleapis.com/chromewebstore/v1.1/items/${{ secrets.CHROME_EXTENSION_ID }}/publish"
+
+      # ── Update extension-version.json so in-extension banner fires ──────────
+      - name: Update extension-version.json
+        run: |
+          echo "{\"version\":\"${{ steps.version.outputs.version }}\"}" > packages/web/public/extension-version.json
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packages/web/public/extension-version.json
+          git commit -m "chore: bump extension-version.json to ${{ steps.version.outputs.version }} [skip ci]"
+          git push origin HEAD:main
+
+      # ── GitHub Release with zip attached ────────────────────────────────────
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Extension v${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          files: contextmover-extension-${{ steps.version.outputs.version }}.zip
+          body: |
+            ## ContextMover Extension v${{ steps.version.outputs.version }}
+
+            Published to the [Chrome Web Store](https://chrome.google.com/webstore/detail/${{ secrets.CHROME_EXTENSION_ID }}).
+
+            Chrome will auto-update the extension for all existing users within 24–48 hours.
+            Users will see an update banner in the sidebar on next open.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

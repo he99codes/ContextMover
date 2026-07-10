@@ -1,0 +1,204 @@
+fetch-interceptor-DCZ5boml.js:1 [ContextMover:fetch] XMLHttpRequest override installed
+fetch-interceptor-DCZ5boml.js:1 [ContextMover:fetch] window.fetch override installed
+fetch-interceptor-DCZ5boml.js:1 [ContextMover:fetch] WebSocket override installed (Perplexity socket.io)
+chrome-extension://cmidgaimkkipljfgkpbbegblbciiodag/assets/src/content/interceptor-bridge-Bf2bXBig.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+TypeError: Failed to fetch dynamically imported module: chrome-extension://cmidgaimkkipljfgkpbbegblbciiodag/assets/src/content/interceptor-bridge-Bf2bXBig.js
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity WS: attached listener on wss://suggest.perplexity.ai/suggest/ws
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity: no messages parsed (body length=227)
+chrome-extension://cmidgaimkkipljfgkpbbegblbciiodag/assets/src/content/perplexity-CtgioHdE.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+TypeError: Failed to fetch dynamically imported module: chrome-extension://cmidgaimkkipljfgkpbbegblbciiodag/assets/src/content/perplexity-CtgioHdE.js
+/?login-source=oneTapHome&login-new=false:1 Access to script at 'https://perplexity-ai.cloudflareaccess.com/cdn-cgi/access/login/pplx-next-static-public.perplexity.ai?kid=10cf053f9ad67f99b8e50476420ebedcbf95828e029c66575f4893be97b04930&meta=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImFhNzQwZmU4MjZlZjQwOTIyZTNhODdjM2QxMjIwN2VhMTRhZGE1MjVmZTUxNWNhYmU0Y2JkODZjMzQ5Yjg0MTgifQ.eyJ0eXBlIjoibWV0YSIsImF1ZCI6IjEwY2YwNTNmOWFkNjdmOTliOGU1MDQ3NjQyMGViZWRjYmY5NTgyOGUwMjljNjY1NzVmNDg5M2JlOTdiMDQ5MzAiLCJob3N0bmFtZSI6InBwbHgtbmV4dC1zdGF0aWMtcHVibGljLnBlcnBsZXhpdHkuYWkiLCJyZWRpcmVjdF91cmwiOiIvX3NwYS9hc3NldHMvX3Jlc3RyaWN0ZWQvcmVzdHJpY3RlZC1mZWF0dXJlLWxvYWRlci1DaXRyWEhINS5qcyIsInNlcnZpY2VfdG9rZW5fc3RhdHVzIjpmYWxzZSwiaXNfd2FycCI6ZmFsc2UsImlzX2dhdGV3YXkiOmZhbHNlLCJleHAiOjE3ODA1NDUzMjgsIm5iZiI6MTc4MDU0NTAyOCwiaWF0IjoxNzgwNTQ1MDI4LCJhdXRoX3N0YXR1cyI6Ik5PTkUiLCJtdGxzX2F1dGgiOnsiY2VydF9pc3N1ZXJfZG4iOiIiLCJjZXJ0X3NlcmlhbCI6IiIsImNlcnRfaXNzdWVyX3NraSI6IiIsImNlcnRfcHJlc2VudGVkIjpmYWxzZSwiY29tbW9uX25hbWUiOiIiLCJhdXRoX3N0YXR1cyI6Ik5PTkUifSwicmVhbF9jb3VudHJ5IjoiSU4iLCJhcHBfc2Vzc2lvbl9oYXNoIjoiNjYxMTk4NDE3YjZjMDM0NTNjOTg2NGU5ZjcyZjg1MDkyY2UyOWFmYzY1ZTE0NWVjNTFjMmI4NGU0MWRjM2EyMSJ9.tCmv3XXaQ3uxfpQvYmBHVSCLX5VtE7u4WJv4eu_M3Fh1uhTFGVXDZ5mfwzEWcAJhBiS-yBiHEMzHfqj5l54NDJM0G_YFhJoHwviIJyvNwOI46L4N0gPuXlI4vMOG13vPmSiehjUACpZPnBIVjq-i8FGX4sG05895ztX5X4n6XfTyopQwoqZhacyVC1NslLWJ41_Uk-3vKj61LS1PsFXJVL8DN_5wr22ormyCfHkHRdw0_gWsgGvXhV3SHvZohfZXkn3fR17LCuJ7DlD02yhgZIjdr3FoTUEGrwrJwwXza7TjPjjNkJlDSCmbmsiFdyW8tRcr_e9Iov_-mH9as9k43g&redirect_url=%2F_spa%2Fassets%2F_restricted%2Frestricted-feature-loader-CitrXHH5.js' (redirected from 'https://pplx-next-static-public.perplexity.ai/_spa/assets/_restricted/restricted-feature-loader-CitrXHH5.js') from origin 'https://www.perplexity.ai' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+perplexity-ai.cloudflareaccess.com/cdn-cgi/access/login/pplx-next-static-public.perplexity.ai?kid=10cf053f9ad67f99b8e50476420ebedcbf95828e029c66575f4893be97b04930&meta=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImFhNzQwZmU4MjZlZjQwOTIyZTNhODdjM2QxMjIwN2VhMTRhZGE1MjVmZTUxNWNhYmU0Y2JkODZjMzQ5Yjg0MTgifQ.eyJ0eXBlIjoibWV0YSIsImF1ZCI6IjEwY2YwNTNmOWFkNjdmOTliOGU1MDQ3NjQyMGViZWRjYmY5NTgyOGUwMjljNjY1NzVmNDg5M2JlOTdiMDQ5MzAiLCJob3N0bmFtZSI6InBwbHgtbmV4dC1zdGF0aWMtcHVibGljLnBlcnBsZXhpdHkuYWkiLCJyZWRpcmVjdF91cmwiOiIvX3NwYS9hc3NldHMvX3Jlc3RyaWN0ZWQvcmVzdHJpY3RlZC1mZWF0dXJlLWxvYWRlci1DaXRyWEhINS5qcyIsInNlcnZpY2VfdG9rZW5fc3RhdHVzIjpmYWxzZSwiaXNfd2FycCI6ZmFsc2UsImlzX2dhdGV3YXkiOmZhbHNlLCJleHAiOjE3ODA1NDUzMjgsIm5iZiI6MTc4MDU0NTAyOCwiaWF0IjoxNzgwNTQ1MDI4LCJhdXRoX3N0YXR1cyI6Ik5PTkUiLCJtdGxzX2F1dGgiOnsiY2VydF9pc3N1ZXJfZG4iOiIiLCJjZXJ0X3NlcmlhbCI6IiIsImNlcnRfaXNzdWVyX3NraSI6IiIsImNlcnRfcHJlc2VudGVkIjpmYWxzZSwiY29tbW9uX25hbWUiOiIiLCJhdXRoX3N0YXR1cyI6Ik5PTkUifSwicmVhbF9jb3VudHJ5IjoiSU4iLCJhcHBfc2Vzc2lvbl9oYXNoIjoiNjYxMTk4NDE3YjZjMDM0NTNjOTg2NGU5ZjcyZjg1MDkyY2UyOWFmYzY1ZTE0NWVjNTFjMmI4NGU0MWRjM2EyMSJ9.tCmv3XXaQ3uxfpQvYmBHVSCLX5VtE7u4WJv4eu_M3Fh1uhTFGVXDZ5mfwzEWcAJhBiS-yBiHEMzHfqj5l54NDJM0G_YFhJoHwviIJyvNwOI46L4N0gPuXlI4vMOG13vPmSiehjUACpZPnBIVjq-i8FGX4sG05895ztX5X4n6XfTyopQwoqZhacyVC1NslLWJ41_Uk-3vKj61LS1PsFXJVL8DN_5wr22ormyCfHkHRdw0_gWsgGvXhV3SHvZohfZXkn3fR17LCuJ7DlD02yhgZIjdr3FoTUEGrwrJwwXza7TjPjjNkJlDSCmbmsiFdyW8tRcr_e9Iov_-mH9as9k43g&redirect_url=%2F_spa%2Fassets%2F_restricted%2Frestricted-feature-loader-CitrXHH5.js:1  Failed to load resource: net::ERR_FAILED
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity: no messages parsed (body length=228)
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity: no messages parsed (body length=2)
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity: no messages parsed (body length=4051)
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity: no messages parsed (body length=31)
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity: no messages parsed (body length=2)
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity: no messages parsed (body length=2)
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity: no messages parsed (body length=147076)
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity WS: attached listener on wss://suggest.perplexity.ai/suggest/ws
+/rest/billing/credits/computer-submit-gate?version=2.18&source=default:1  Failed to load resource: the server responded with a status of 404 ()
+The resource <URL> was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+The resource <URL> was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+The resource <URL> was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+The resource <URL> was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+The resource <URL> was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+The resource <URL> was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+The resource <URL> was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+The resource <URL> was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+The resource <URL> was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+The resource <URL> was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+The resource <URL> was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+The resource <URL> was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity WS: attached listener on wss://suggest.perplexity.ai/suggest/ws
+/rest/billing/credits/computer-submit-gate?version=2.18&source=default:1  Failed to load resource: the server responded with a status of 404 ()
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity: no messages parsed (body length=98806)
+t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://ssd-api.jpl.nasa.gov&size=128:1  Failed to load resource: the server responded with a status of 404 ()
+t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://docs.sunpy.org&size=128:1  Failed to load resource: the server responded with a status of 404 ()
+t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://ssd.jpl.nasa.gov&size=128:1  Failed to load resource: the server responded with a status of 404 ()
+Node cannot be found in the current page.
+vendors-DwcbDYjC.js:5 [ContextMover:fetch] perplexity: no messages parsed (body length=228)
+fetch-interceptor-DCZ5boml.js:1  GET https://www.perplexity.ai/rest/billing/credits/computer-submit-gate?version=2.18&source=default 404 (Not Found)
+vCACT @ fetch-interceptor-DCZ5boml.js:1
+window.<computed> @ fetch-interceptor-DCZ5boml.js:1
+o @ vendors-DwcbDYjC.js:5
+bi @ platform-core-BPOTJzK1.js:6
+Mi @ platform-core-BPOTJzK1.js:6
+fetch @ platform-core-BPOTJzK1.js:6
+await in fetch
+u @ platform-core-BPOTJzK1.js:6
+GET @ platform-core-BPOTJzK1.js:6
+GET @ platform-core-BPOTJzK1.js:6
+v_ @ ask-input-kN0BE_tT.js:16
+queryFn @ ask-input-kN0BE_tT.js:16
+l @ react-query-C3uAph05.js:1
+i @ react-query-C3uAph05.js:1
+m @ react-query-C3uAph05.js:1
+start @ react-query-C3uAph05.js:1
+fetch @ react-query-C3uAph05.js:1
+#h @ react-query-C3uAph05.js:1
+fetch @ react-query-C3uAph05.js:1
+refetch @ react-query-C3uAph05.js:1
+onFocus @ react-query-C3uAph05.js:1
+(anonymous) @ react-query-C3uAph05.js:1
+(anonymous) @ react-query-C3uAph05.js:1
+batch @ react-query-C3uAph05.js:1
+onFocus @ react-query-C3uAph05.js:1
+(anonymous) @ react-query-C3uAph05.js:1
+await in (anonymous)
+(anonymous) @ react-query-C3uAph05.js:1
+onFocus @ react-query-C3uAph05.js:1
+(anonymous) @ react-query-C3uAph05.js:1
+t @ react-query-C3uAph05.js:1
+(function perplexityDOMProbe() {
+  console.log('\n========== CONTEXTMOVER: PERPLEXITY DOM PROBE ==========\n');
+
+  // ── SECTION 1: Verify we're on a search result page ───────────────────────
+  console.log('Current URL:', window.location.href);
+  console.log('Page title:', document.title.slice(0,80));
+  const hasMain = !!document.querySelector('main');
+  console.log(`<main> element exists: ${hasMain}`);
+  if (!hasMain) {
+    console.log('⚠️  NO <main> ELEMENT — this confirms the root cause of Prompt 9 bug');
+    // Find what IS the outermost content wrapper
+    ['#__next > div', '#app', '[id*="root"]', '#root > div', 
+     'body > div', '[class*="layout"]', '[class*="Layout"]'].forEach(sel => {
+      const el = document.querySelector(sel);
+      if (el) console.log(`  Alternative root: "${sel}" → height: ${el.offsetHeight}px, children: ${el.children.length}`);
+    });
+  }
+
+  // ── SECTION 2: Test known Perplexity selectors ─────────────────────────────
+  const candidates = [
+    '[data-testid]',
+    '[class*="prose"]',
+    '[class*="answer"]', '[class*="Answer"]',
+    '[class*="response"]', '[class*="Response"]',
+    '[class*="query"]', '[class*="Query"]',
+    '[class*="thread"]', '[class*="Thread"]',
+    '[class*="message"]', '[class*="Message"]',
+    '[class*="FollowupQuestion"]', '[class*="followup"]',
+    '[class*="UserMessage"]', '[class*="BotMessage"]',
+    '[class*="AssistantMessage"]',
+    'section', 'article',
+    '[role="article"]', '[role="region"]',
+  ];
+
+  console.log('\nSELECTOR TEST RESULTS:');
+  candidates.forEach(sel => {
+    try {
+      const els = [...document.querySelectorAll(sel)];
+      if (els.length > 0 && els.some(el => el.textContent.trim().length > 50)) {
+        const withText = els.filter(el => el.textContent.trim().length > 50);
+        console.log(`\n  ✅ "${sel}" → ${els.length} total, ${withText.length} with substantial text`);
+        withText.slice(0,2).forEach((el,i) => {
+          const text = el.textContent.trim().replace(/\s+/g,' ').slice(0,100);
+          const dataAttrs = [...el.attributes].filter(a=>/^data-/.test(a.name)).map(a=>`${a.name}="${a.value}"`).join(' ');
+          console.log(`     [${i}] <${el.tagName.toLowerCase()}> data: {${dataAttrs}} class: "${el.className?.toString().slice(0,80)}"`);
+          console.log(`     [${i}] text: "${text}"`);
+        });
+      }
+    } catch(e) {}
+  });
+
+  // ── SECTION 3: data-testid full scan ──────────────────────────────────────
+  const allTestIds = [...new Set(
+    [...document.querySelectorAll('[data-testid]')].map(el => el.dataset.testid)
+  )].sort();
+  console.log('\nALL data-testid VALUES ON PAGE:\n' + (allTestIds.join('\n') || '(none)'));
+
+  // ── SECTION 4: Find the actual page root (since <main> doesn't exist) ──────
+  console.log('\nPAGE STRUCTURE (top 3 levels):');
+  function describeNode(el, depth=0, maxDepth=3) {
+    if (depth > maxDepth) return;
+    const tag = el.tagName.toLowerCase();
+    const id = el.id ? `#${el.id}` : '';
+    const cls = [...el.classList].filter(c=>c.length>3&&c.length<40).slice(0,3).join('.');
+    const text = el.textContent.trim().length;
+    console.log(`${'  '.repeat(depth)}<${tag}${id}${cls ? '.'+cls : ''}> [textLen=${text}] [children=${el.children.length}]`);
+    if (depth < maxDepth) [...el.children].slice(0,4).forEach(c => describeNode(c, depth+1, maxDepth));
+  }
+  describeNode(document.body, 0, 3);
+
+  // ── SECTION 5: Sources / follow-up question structure ────────────────────
+  console.log('\nSPECIAL PERPLEXITY ELEMENTS:');
+  ['[class*="source"]', '[class*="citation"]', '[class*="followup"]', 
+   '[class*="FollowUp"]', '[class*="related"]', '[class*="SearchResult"]'].forEach(sel => {
+    const els = document.querySelectorAll(sel);
+    if (els.length) console.log(`  "${sel}" → ${els.length} elements`);
+  });
+
+  console.log('\n========== END PERPLEXITY DOM PROBE ==========\n');
+})();
+vendors-DwcbDYjC.js:5 
+========== CONTEXTMOVER: PERPLEXITY DOM PROBE ==========
+
+vendors-DwcbDYjC.js:5 Current URL: https://www.perplexity.ai/search/997f0901-fe73-446a-8fce-bc13aa9603ba
+vendors-DwcbDYjC.js:5 Page title: is horizon api from nasa working
+vendors-DwcbDYjC.js:5 <main> element exists: true
+vendors-DwcbDYjC.js:5 
+SELECTOR TEST RESULTS:
+vendors-DwcbDYjC.js:5 
+  ✅ "[class*="prose"]" → 31 total, 23 with substantial text
+vendors-DwcbDYjC.js:5      [0] <div> data: {data-renderer="lm"} class: "prose dark:prose-invert inline leading-relaxed break-words min-w-0 [word-break:b"
+vendors-DwcbDYjC.js:5      [0] text: "The NASA Horizons API is operational and provides access to JPL's Horizons system for obtaining sola"
+vendors-DwcbDYjC.js:5      [1] <div> data: {data-renderer="lm"} class: "prose dark:prose-invert inline leading-relaxed break-words min-w-0 [word-break:b"
+vendors-DwcbDYjC.js:5      [1] text: "To use the Horizons API for obtaining planetary positions, follow these steps:Access the API: You ca"
+vendors-DwcbDYjC.js:5 
+  ✅ "[class*="query"]" → 5 total, 2 with substantial text
+vendors-DwcbDYjC.js:5      [0] <div> data: {} class: "group/query relative whitespace-pre-line !text-wrap break-words [word-break:brea"
+vendors-DwcbDYjC.js:5      [0] text: "How can I use the Horizons API to get data on planetary positions"
+vendors-DwcbDYjC.js:5      [1] <div> data: {} class: "group/query relative whitespace-pre-line !text-wrap break-words [word-break:brea"
+vendors-DwcbDYjC.js:5      [1] text: "How do I convert a date to the format required by the Horizons API"
+vendors-DwcbDYjC.js:5 
+  ✅ "[class*="thread"]" → 2 total, 2 with substantial text
+vendors-DwcbDYjC.js:5      [0] <div> data: {} class: "mx-auto flex flex-col pointer-events-auto max-w-threadContentWidth gap-md md:gap"
+vendors-DwcbDYjC.js:5      [0] text: "is horizon api from nasa workingThe NASA Horizons API is operational and provides access to JPL's Ho"
+vendors-DwcbDYjC.js:5      [1] <div> data: {} class: "mx-auto flex flex-col pointer-events-auto max-w-threadContentWidth gap-sm"
+vendors-DwcbDYjC.js:5      [1] text: "ProFree preview of advanced search enabled.Learn moreAsk a follow-upSearch"
+vendors-DwcbDYjC.js:5 
+ALL data-testid VALUES ON PAGE:
+ask-input-mode-toggle-indicator
+code-language-indicator
+copy-code-button
+vendors-DwcbDYjC.js:5 
+PAGE STRUCTURE (top 3 levels):
+vendors-DwcbDYjC.js:5 <body.md:bg-underlay.bg-transparent> [textLen=6641] [children=21]
+vendors-DwcbDYjC.js:5   <div#root> [textLen=6641] [children=1]
+vendors-DwcbDYjC.js:5     <div.border-subtlest.ring-subtlest.divide-subtlest> [textLen=6641] [children=1]
+vendors-DwcbDYjC.js:5       <div.isolate.flex.h-dvh> [textLen=6641] [children=1]
+vendors-DwcbDYjC.js:5   <img> [textLen=0] [children=0]
+vendors-DwcbDYjC.js:5   <script> [textLen=0] [children=0]
+vendors-DwcbDYjC.js:5   <div#pplx-icon-sprites> [textLen=0] [children=1]
+vendors-DwcbDYjC.js:5     <svg> [textLen=0] [children=604]
+vendors-DwcbDYjC.js:5       <symbol#pplx-icon-abacus> [textLen=0] [children=1]
+vendors-DwcbDYjC.js:5       <symbol#pplx-icon-access-point> [textLen=0] [children=1]
+vendors-DwcbDYjC.js:5       <symbol#pplx-icon-activity> [textLen=0] [children=1]
+vendors-DwcbDYjC.js:5       <symbol#pplx-icon-ad-2> [textLen=0] [children=1]
+vendors-DwcbDYjC.js:5 
+SPECIAL PERPLEXITY ELEMENTS:
+vendors-DwcbDYjC.js:5   "[class*="citation"]" → 15 elements
+vendors-DwcbDYjC.js:5 
+========== END PERPLEXITY DOM PROBE ==========
+
+undefined

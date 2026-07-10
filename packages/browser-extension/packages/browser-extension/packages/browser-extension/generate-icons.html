@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head><title>Generate ContextMover Icons</title>
+<style>
+  body { font-family: monospace; background: #050505; color: #00FF88; padding: 32px; }
+  button { background: #00FF88; color: #000; border: none; padding: 10px 20px; cursor: pointer; border-radius: 6px; font-weight: bold; margin: 4px; }
+  canvas { display: none; }
+  .icon-preview { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin: 24px 0; }
+  .icon-preview img { border: 1px solid #00FF88; border-radius: 8px; }
+  p { color: #6B6B6B; }
+</style>
+</head>
+<body>
+<h2>ContextMover Icon Generator</h2>
+<p>Open this file in Chrome (drag it to a tab). Click each button to download the PNG.</p>
+
+<canvas id="c"></canvas>
+
+<div class="icon-preview" id="previews"></div>
+
+<div>
+  <button onclick="downloadAll()">⬇ Download All Icons</button>
+</div>
+
+<script>
+const SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="24" fill="#050505"/>
+  <polygon points="64,10 110,36 110,92 64,118 18,92 18,36"
+           fill="none" stroke="#00FF88" stroke-width="4" stroke-linejoin="round"/>
+  <polygon points="64,30 93,46 93,82 64,98 35,82 35,46"
+           fill="none" stroke="#00FF88" stroke-width="2.5" stroke-linejoin="round" opacity="0.5"/>
+  <circle cx="64" cy="64" r="10" fill="#00FF88"/>
+  <path d="M68 50 L58 67 H65 L60 82 L74 61 H67 Z" fill="#050505"/>
+</svg>`;
+
+const sizes = [16, 32, 48, 128];
+
+function drawToCanvas(size) {
+  return new Promise(resolve => {
+    const canvas = document.getElementById('c');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const blob = new Blob([SVG], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(img, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.src = url;
+  });
+}
+
+async function downloadIcon(size) {
+  const dataUrl = await drawToCanvas(size);
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = `icon${size}.png`;
+  a.click();
+}
+
+async function downloadAll() {
+  for (const size of sizes) {
+    await downloadIcon(size);
+    await new Promise(r => setTimeout(r, 300));
+  }
+  alert('Done! Move icon16.png, icon32.png, icon48.png, icon128.png into:\npackages/browser-extension/public/icons/');
+}
+
+// Show previews
+window.onload = async () => {
+  const div = document.getElementById('previews');
+  for (const size of sizes) {
+    const dataUrl = await drawToCanvas(size);
+    const label = document.createElement('div');
+    label.style.textAlign = 'center';
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.width = Math.max(size, 48);
+    img.height = Math.max(size, 48);
+    img.style.imageRendering = 'pixelated';
+    const txt = document.createElement('div');
+    txt.textContent = `${size}x${size}`;
+    txt.style.marginTop = '4px';
+    label.appendChild(img);
+    label.appendChild(txt);
+    div.appendChild(label);
+  }
+};
+</script>
+</body>
+</html>

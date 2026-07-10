@@ -1,0 +1,1074 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<contextmover_migration tier="1" type="full_context">
+
+  <meta>
+    <source_platform>claude</source_platform>
+    <session_title><![CDATA[this is basically the architecture of my application understand it now …]]></session_title>
+    <message_count>13</message_count>
+    <exported_at>2026-06-07T15:11:14.979Z</exported_at>
+    <tier>Full Context — all messages verbatim</tier>
+  </meta>
+
+  <instructions_for_ai>
+    This file contains the complete verbatim transcript of a previous AI conversation.
+    You are resuming this session. Read the full exchange below.
+    Then continue exactly where it left off — do not re-summarize, re-explain, or
+    re-introduce any previously established context, decisions, or code.
+    Your first response should be a direct continuation, not a recap.
+  </instructions_for_ai>
+
+  <conversation>
+
+    <message index="1" role="user">
+      <![CDATA[this is basically the architecture of my application understand it 
+now i have made a pretty big testing of my applicartion testing context is present in the testing_report.md
+and i made athis action plan using gemini 2.5 pro action_plan.md        
+
+i dont trust gemini 2.5 pro that much to execute every task properlyy because that lack instructs and strictness 
+so do deep dive in everything and give me a promtps]]>
+    </message>
+    <message index="2" role="assistant">
+      <![CDATA[Viewed 3 files
+
+Now I have everything I need. Let me synthesize all three documents and produce a rigorous set of execution prompts.
+
+Checking frontend design skill for the artifact
+
+Good — now I have every detail I need. Building the prompt document now.
+
+Strict agent execution prompts for ContextMover rehabilitation, one per task]]>
+    </message>
+    <message index="3" role="user">
+      <![CDATA[continue]]>
+    </message>
+    <message index="4" role="assistant">
+      <![CDATA[Verified comprehensive documentation coverage across all test cases
+
+Here's a summary of what's in the document — 14 self-contained prompts across 4 phases:
+
+Phase 1 (Prompts 1–4) — Core engine first:
+Prompt 1 fixes the admin 403 by forcing alignment with the existing _guard.ts pattern. Prompts 2 & 3 fix the two independent Attention Engine failures (WASM packaging and the offscreen race condition) separately — they have different root causes and must not be conflated. Prompt 4 replaces the brittle 3-retry drop with persistent Dexie-backed recovery.
+
+Phase 2 (Prompt 5) — The trigger fix, before touching any scraper:
+This is the most important sequencing constraint. Half the "scraper bugs" on Perplexity, Grok, and DeepSeek are actually the capture trigger never firing on existing sessions. Running the scraper prompts before this one will produce fixes that look correct but still fail in practice.
+
+Phase 3 (Prompts 6–11) — Per-platform scrapers:
+Each one includes a concrete DevTools probe the user needs to run and paste back, so the agent isn't guessing at DOM structure. The ChatGPT prompt has three sub-parts (selector, fetch interceptor format, virtual scroll merge) because those are three genuinely independent failures.
+
+Phase 4 (Prompts 12–14) — Remaining bugs:
+Gemini injection (Prompt 12) has a note to add real error logging first before guessing at a fix — the reason: unknown catch is swallowing the actual exception. The skipAutoInject prompt (13) is deliberately narrow so the agent doesn't rewrite the whole injection flow.
+
+A couple of things worth knowing as you run these:
+
+Prompts 2 and 3 need a pnpm run build in between — don't ask the agent to test before rebuilding.
+
+The DOM probe prompts (6–11) require the user to physically run JavaScript in DevTools and paste the output back. Build that expectation into your workflow with Gemini so it waits for your input instead of hallucinating selectors.
+
+Agent prompts
+
+Document · MD]]>
+    </message>
+    <message index="5" role="user">
+      <![CDATA[will gemini 2.5 pro or gemini 3.5 flash medium be able to do these tasks ?  pick one]]>
+    </message>
+    <message index="6" role="assistant">
+      <![CDATA[Neither of those model names are quite right — let me check what's actually current before giving you a recommendation.
+
+Searched the web
+
+Good, now I have a clear picture. Here's the honest answer:
+
+Use Gemini 2.5 Pro for these tasks. Not "Gemini 3.5 Flash" — that model doesn't exist. You were probably thinking of Gemini 3 Flash (Dec 2025) or the very new Gemini 3.5 Flash (May 2026).
+
+Here's why 2.5 Pro is still the right choice for YOUR specific work:
+
+The case for Gemini 2.5 Pro:
+Gemini 2.5 Pro was engineered for complex problem-solving — exploring multiple ideas simultaneously and choosing the best answer, which is critical for debugging and software. For your prompts specifically, you're asking for multi-step root cause analysis (e.g., tracing a 403 across middleware → guard → Supabase), strict adherence to constraints, and surgical diffs. That is exactly where 2.5 Pro's deeper reasoning justifies the cost. MuneebDev
+
+Why NOT Gemini 3 Flash despite the impressive benchmarks:
+Gemini 3 Flash achieves 78% on SWE-bench Verified, outperforming the 2.5 series and even Gemini 3 Pro. But SWE-bench measures autonomous issue resolution on isolated GitHub issues. Your prompts are NOT isolated issues — they're architecturally interlinked (e.g., Prompt 3's offscreen fix directly affects Prompt 4's queue behavior). Flash is optimized for throughput, not for single high-stakes queries needing the absolute best answer — for complex code architecture, Pro is the recommendation. GoogleTeamAI
+
+The real risk with any Gemini model on your prompts:
+The prompts are strict by design precisely because Gemini models tend to:
+
+Skip the "read these files first" steps and guess at file contents
+
+Over-fix — changing more than asked, especially in large files like service-worker.ts (2850 lines)
+
+Ignore the "STRICT CONSTRAINTS / Do NOT" sections when they conflict with what it thinks is a "better" solution
+
+To counteract this, add this line at the very top of every prompt you paste:
+
+```
+IMPORTANT: Do not write any code until you have read every file listed under 
+"Files to Read First" and explicitly confirmed what you found in each one. 
+If a file doesn't exist at the path listed, stop and tell me — do not guess 
+at its contents.
+```
+
+That single addition will prevent 80% of the hallucinated-diff problems you'd otherwise hit.]]>
+    </message>
+    <message index="7" role="user">
+      <![CDATA[i also have claude haiku 4.5]]>
+    </message>
+    <message index="8" role="assistant">
+      <![CDATA[Use Claude Haiku 4.5 for the scraper prompts (Phase 3, Prompts 6–11). Here's the precise split:
+
+Haiku 4.5 — Phase 3 scraper tasks (Prompts 6–11)
+These prompts are mechanical: read a file, look at DOM probe output you paste in, update CSS selectors, generate a SQL UPDATE. There's no deep architectural reasoning involved. Haiku 4.5 will be faster, cheaper, and just as accurate as 2.5 Pro for this pattern. It also follows explicit instructions more literally, which is exactly what you want when the prompt says "update only these selectors, touch nothing else."
+
+Gemini 2.5 Pro — everything else (Prompts 1–5, 12–14)
+The remaining prompts require holding the full mental model of your architecture across multiple files simultaneously — tracing a 403 through middleware → guard → Supabase client, implementing the offscreen queue fix across three files without breaking the priority queue, or diagnosing why skipAutoInject is incorrectly true without rewriting the injection flow. That's where 2.5 Pro's reasoning depth earns its cost.
+
+One caveat on Haiku 4.5 for scrapers:
+Haiku is more prone to going quiet on ambiguity — if the DOM probe output you paste is messy or has multiple candidate selectors, it may just pick one silently instead of asking you which is correct. Add this line to each scraper prompt when using Haiku:
+
+```
+If the DOM probe output shows more than one plausible selector for user 
+or assistant messages, list ALL candidates and ask me which to use 
+before writing any code.
+```
+
+That keeps it from making silent selector choices that look right but break on edge cases.]]>
+    </message>
+    <message index="9" role="user">
+      <![CDATA[how many of these prompts needs more context to work like some of them which is fixing the scrapper and the injection issues they will need the DOM of the LLMs etc...
+so plz if some need DOM then provide me DOM or scripts to run in each LLm console to provide DOM to each prompts andd also prvide other requirements if needed]]>
+    </message>
+    <message index="10" role="assistant">
+      <![CDATA[Good catch. Let me audit every prompt for missing context before writing anything.
+
+Re-reading the agent prompts file to audit each one for missing context
+
+Now I have a clear picture of every gap. Let me build the full context supplement document.
+
+Ran a command, read a file
+
+Here's the full breakdown of what's in it:
+
+9 prompts are self-sufficient (1–5, 13, 14) — they only need your codebase. Run them directly.
+
+7 prompts needed external context. Here's exactly what each script captures and why:
+
+Scripts A–F (scrapers): Each one uses 5 detection strategies simultaneously — data-testid scans, role attribute scans, explicit selector testing, root container discovery, and auto-discovery by repeated DOM patterns. This way the AI agent isn't guessing at selectors, it's reading a structured report of what's actually on the page.
+
+Script G (Gemini injection): Goes deeper than the scraper probe — it specifically tests whether the input is a native <textarea>, a [contenteditable] div, or a <rich-textarea> web component with a shadow DOM, and tells the agent WHICH injection method to use for each case. This is what's likely causing the reason: unknown error — the wrong event dispatch pattern.
+
+Two scripts need double runs (Gemini and DeepSeek) because both have different DOM structures for new vs existing sessions — the scraper needs to handle both variants, and the AI can only figure that out if it sees both outputs side by side.
+
+Note A and Note B (Admin 403 and ChatGPT network response) can't be captured by DOM scripts — they need the Network tab. The instructions are in the doc.
+
+Dom context supplement
+
+Document · MD]]>
+    </message>
+    <message index="11" role="user">
+      <![CDATA[i dont want to exaust my limit if there is alternative like we i can execute those prompt swith kimi k2.6 or swe 1.6   taht would be great help   can i use them in any of the prompts ?]]>
+    </message>
+    <message index="12" role="assistant">
+      <![CDATA[Searched the web
+
+Good news — both are real and usable, but they work in completely different ways, which changes how you'd use them.
+
+SWE-1.6 is not a chat model. It's built by Cognition and only available inside Windsurf IDE as a Cascade agent. You can't paste prompts into a chat window — it reads your actual codebase directly through the IDE. It uses parallel tool calls, loops less, and reaches for its own tools rather than dropping to the terminal — behaviors that matter for long multi-file tasks. It's currently free at 200 tok/s, with a paid 950 tok/s tier. Cognition + 2
+
+Kimi K2.6 IS a chat model you can paste prompts into. It's open-weights, has a 262K token context window, and is available via API at developer-friendly pricing. But the honest assessment from real users is stark: one HN user called it "below Sonnet and Opus 4.0 on capability" and noted it "struggles with domain-specific tasks." Your codebase is exactly that — domain-specific. AIMLAPIMedium
+
+Here's the routing that actually makes sense:
+
+PromptUseWhy
+
+1 — Admin 403Gemini 2.5 ProMulti-file auth trace, needs deep reasoning
+
+2 — WASM packagingSWE-1.6 (Windsurf)Reads vite.config.ts and manifest.json directly, surgical change
+
+3 — Offscreen timeoutGemini 2.5 Pro3-file coordinated change, race condition logic
+
+4 — Queue overflowGemini 2.5 ProArchitectural change to semantic-index/index.ts
+
+5 — Capture triggerSWE-1.6 (Windsurf)Multi-file content script edit, it can read all 6 platform files at once
+
+6 — Claude scraperSWE-1.6 (Windsurf) or Kimi K2.6Mechanical selector update
+
+7 — ChatGPT scraperSWE-1.6 (Windsurf)3-part fix but all surgical, reads the file directly
+
+8 — Gemini scraperSWE-1.6 (Windsurf) or Kimi K2.6Mechanical selector update
+
+9 — Perplexity scraperSWE-1.6 (Windsurf) or Kimi K2.6Mechanical selector update
+
+10 — Grok scraperSWE-1.6 (Windsurf) or Kimi K2.6Mechanical selector update
+
+11 — DeepSeek scraperSWE-1.6 (Windsurf) or Kimi K2.6Mechanical selector update
+
+12 — Gemini injectionSWE-1.6 (Windsurf)Reads gemini.ts and shared.ts directly
+
+13 — skipAutoInjectSWE-1.6 (Windsurf)service-worker.ts is 2850 lines — Windsurf handles this better than chat
+
+14 — DOM ProbeSWE-1.6 (Windsurf)Pure code chain-tracing
+
+One critical thing to know about using SWE-1.6 in Windsurf: since it reads your files directly, you need to strip the "Files to Read First" section from each prompt — Cascade already has access. What you KEEP is the Background, Investigation checklist, Fix Requirements, and especially the STRICT CONSTRAINTS sections. Those constraint sections are the most important part for Windsurf because Cascade tends to go broad — the length penalty during training discourages verbosity but not over-fixing. Your "Do NOT" lines are what keep it from rewriting half of service-worker.ts when you only need it to fix one condition. DEV Community
+
+Bottom line: Use Windsurf + SWE-1.6 for Prompts 2, 5–14 (it's free and reads your code directly), keep Gemini 2.5 Pro only for Prompts 1, 3, and 4 which need genuine architectural reasoning. Kimi K2.6 is a backup option for the scraper prompts (6–11) if you don't have Windsurf, but given it struggles with domain-specific codebases, SWE-1.6 is the safer pick there.]]>
+    </message>
+    <message index="13" role="assistant">
+      <![CDATA[ContextMover — DOM Context Supplement
+
+Run these scripts BEFORE executing the corresponding agent prompt.
+Paste the console output directly into the prompt where marked [PASTE DOM OUTPUT HERE].
+
+AUDIT: Which Prompts Need External Context
+
+PromptNeeds External Context?What's NeededSelf-sufficient?
+
+1 — Admin 403⚠️ PartialNetwork tab error bodyMostly — see Note A
+
+2 — web-tree-sitter WASM✅ NoCodebase onlyYes
+
+3 — Offscreen Timeout✅ NoCodebase onlyYes
+
+4 — Queue Overflow✅ NoCodebase onlyYes
+
+5 — Capture Trigger✅ NoCodebase onlyYes
+
+6 — Claude Scraper❌ YesClaude.ai live DOMScript A
+
+7 — ChatGPT Scraper❌ YesChatGPT live DOM + network responseScript B + Note B
+
+8 — Gemini Scraper❌ YesGemini DOM × 2 (existing + new session)Script C
+
+9 — Perplexity Scraper❌ YesPerplexity live DOMScript D
+
+10 — Grok Scraper❌ YesGrok live DOMScript E
+
+11 — DeepSeek Scraper❌ YesDeepSeek DOM × 2 (existing + new)Script F
+
+12 — Gemini Injection❌ YesGemini input field DOMScript G
+
+13 — skipAutoInject✅ NoCodebase onlyYes
+
+14 — DOM Probe✅ NoCodebase onlyYes
+
+Note A — Prompt 1: Capture the 403 Error Body
+
+Before running Prompt 1, do this once:
+
+Open contextmover.com (your web app) in Chrome, log in as admin
+
+Open DevTools → Network tab → check "Preserve log"
+
+Navigate to /admin/scrapers
+
+Click any action (e.g., try to save a scraper config)
+
+In the Network tab, find the failing request to /api/scraper-admin/...
+
+Click it → Response tab → copy the full response body
+
+Also note: the request headers (especially which auth headers are sent)
+
+Paste this into Prompt 1 under a new section:
+
+```
+## Actual 403 Response
+[paste response body here]
+
+## Headers sent on the failing request
+[paste relevant headers here]
+```
+
+Note B — Prompt 7: Capture ChatGPT API Response Format
+
+The ChatGPT fetch interceptor parses streaming API responses. The agent needs to see the actual format.
+
+Open chatgpt.com with DevTools → Network tab open
+
+Send a short message in any conversation
+
+Find the request to chatgpt.com/backend-api/conversation or similar
+
+Click it → Response tab → copy the first 30–40 lines of the response body
+
+Also grab any GET /backend-api/conversation/<id> request that loads history
+
+Paste into Prompt 7 under:
+
+```
+## ChatGPT API Response Sample (streaming)
+[paste first 30-40 lines here]
+
+## ChatGPT Conversation History Response Sample
+[paste first 30-40 lines here]
+```
+
+DOM COLLECTION SCRIPTS
+
+Paste each script into the browser DevTools console (F12 → Console tab).
+Copy the ENTIRE console output that appears and paste into the corresponding prompt.
+
+Script A — Claude.ai DOM Probe
+
+For: Prompt 6 (Claude Scraper)
+Run on: claude.ai — open a conversation with at least 4 messages (2 user, 2 assistant)
+
+javascript
+
+```javascript
+(function claudeDOMProbe() {
+  console.log('\n========== CONTEXTMOVER: CLAUDE DOM PROBE ==========\n');
+
+  // ── SECTION 1: All data-testid values on the page ──────────────────────────
+  const allTestIds = [...new Set(
+    [...document.querySelectorAll('[data-testid]')].map(el => el.dataset.testid)
+  )].sort();
+  console.log('ALL data-testid VALUES:\n' + allTestIds.join('\n') + '\n');
+
+  // ── SECTION 2: All data-* attributes that look role-related ────────────────
+  const roleAttrs = {};
+  document.querySelectorAll('*').forEach(el => {
+    [...el.attributes].forEach(attr => {
+      if (/role|author|turn|human|assistant|user|message/i.test(attr.name + attr.value)) {
+        const key = `${attr.name}="${attr.value}"`;
+        roleAttrs[key] = (roleAttrs[key] || 0) + 1;
+      }
+    });
+  });
+  console.log('ROLE-RELATED DATA ATTRIBUTES (attr=value : count):');
+  Object.entries(roleAttrs).sort((a,b)=>b[1]-a[1]).slice(0,20)
+    .forEach(([k,n]) => console.log(`  ${n}x  ${k}`));
+  console.log('');
+
+  // ── SECTION 3: Test known selector patterns ────────────────────────────────
+  const selectors = [
+    '[data-testid="human-turn"]', '[data-testid="ai-turn"]',
+    '[data-testid="user-message"]', '[data-testid="assistant-message"]',
+    '[data-testid="message"]', '[data-testid="chat-message"]',
+    '[data-message-author-role]',
+    '[class*="humanTurn"]', '[class*="HumanTurn"]', '[class*="human-turn"]',
+    '[class*="aiTurn"]', '[class*="AiTurn"]', '[class*="ai-turn"]',
+    '[class*="UserMessage"]', '[class*="AssistantMessage"]',
+    '[class*="userMessage"]', '[class*="assistantMessage"]',
+    '[class*="human-message"]', '[class*="ai-message"]',
+    '.font-claude-message', '[class*="ChatMessage"]',
+    '[class*="message-row"]', '[class*="MessageRow"]',
+    '[class*="ConversationTurn"]', '[class*="Turn"]',
+  ];
+
+  console.log('SELECTOR TEST RESULTS (showing those with count > 0):');
+  selectors.forEach(sel => {
+    try {
+      const els = [...document.querySelectorAll(sel)];
+      if (els.length > 0) {
+        console.log(`\n  ✅ "${sel}" → ${els.length} elements`);
+        els.slice(0, 2).forEach((el, i) => {
+          const text = el.textContent.trim().replace(/\s+/g,' ').slice(0,100);
+          const classes = el.className?.toString().slice(0,120) || '';
+          const attrs = [...el.attributes].filter(a => /data-/.test(a.name)).map(a=>`${a.name}="${a.value}"`).join(', ');
+          console.log(`     [${i}] tag=${el.tagName} | text="${text}" | data-attrs: ${attrs || 'none'}`);
+          if (classes) console.log(`     [${i}] classes: ${classes}`);
+        });
+      }
+    } catch(e) {}
+  });
+
+  // ── SECTION 4: Root conversation container ─────────────────────────────────
+  console.log('\n\nROOT CONTAINER SEARCH:');
+  [
+    '[data-testid="conversation"]', 'main', '[role="main"]',
+    '[class*="conversation"]', '[class*="Conversation"]',
+    '[class*="thread"]', '[class*="Thread"]',
+    '[class*="messages"]', '[class*="Messages"]',
+    '[class*="chat-content"]', '[class*="ChatContent"]',
+    '[class*="ScrollableArea"]', '[class*="scrollable"]',
+  ].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) {
+      const msgCount = el.querySelectorAll('p, [class*="message"], [class*="turn"]').length;
+      console.log(`  "${sel}" → <${el.tagName}> classes="${el.className?.toString().slice(0,80)}" | ~${msgCount} inner content nodes`);
+    }
+  });
+
+  // ── SECTION 5: Auto-discover repeated content-bearing elements ─────────────
+  console.log('\n\nAUTO-DISCOVERED REPEATED ELEMENTS (likely message containers):');
+  const freq = {};
+  document.querySelectorAll('*').forEach(el => {
+    const text = el.textContent.trim();
+    if (text.length > 60 && text.length < 4000 && el.children.length <= 4) {
+      const stableClasses = [...el.classList]
+        .filter(c => c.length > 4 && !/^(flex|grid|p-|m-|w-|h-|text-|font-|bg-|border|rounded|gap-|items-|justify-|overflow|cursor|pointer|relative|absolute|z-|opacity)/.test(c))
+        .join('.');
+      const key = `${el.tagName}.${stableClasses}`;
+      if (stableClasses) freq[key] = (freq[key]||0)+1;
+    }
+  });
+  Object.entries(freq).filter(([,n])=>n>=2).sort((a,b)=>b[1]-a[1]).slice(0,15)
+    .forEach(([k,n]) => {
+      const el = document.querySelector(k.replace(/([A-Z])/g, c => c));
+      const sample = el?.textContent.trim().replace(/\s+/g,' ').slice(0,60) || '';
+      console.log(`  ${String(n).padStart(2)}x  ${k}  |  sample: "${sample}"`);
+    });
+
+  console.log('\n========== END CLAUDE DOM PROBE ==========\n');
+})();
+```
+
+After running, add this block to the top of Prompt 6:
+
+```
+## Claude DOM Probe Output (run on existing conversation)
+[PASTE FULL CONSOLE OUTPUT HERE]
+```
+
+Script B — ChatGPT DOM Probe
+
+For: Prompt 7 (ChatGPT Scraper)
+Run on: chatgpt.com — open a conversation with at least 4 messages. Run ONCE.
+
+javascript
+
+```javascript
+(function chatgptDOMProbe() {
+  console.log('\n========== CONTEXTMOVER: CHATGPT DOM PROBE ==========\n');
+
+  // ── SECTION 1: data-message-author-role scan (ChatGPT's stable attribute) ──
+  const authorRoleEls = document.querySelectorAll('[data-message-author-role]');
+  console.log(`[data-message-author-role] elements found: ${authorRoleEls.length}`);
+  if (authorRoleEls.length > 0) {
+    const roles = [...new Set([...authorRoleEls].map(el => el.dataset.messageAuthorRole))];
+    console.log('  Role values present:', roles.join(', '));
+    roles.forEach(role => {
+      const matching = [...authorRoleEls].filter(el => el.dataset.messageAuthorRole === role);
+      const el = matching[0];
+      console.log(`\n  role="${role}" → ${matching.length} elements`);
+      console.log(`    tag: ${el.tagName}, classes: ${el.className?.toString().slice(0,100)}`);
+      console.log(`    text: "${el.textContent.trim().replace(/\s+/g,' ').slice(0,100)}"`);
+    });
+  }
+
+  // ── SECTION 2: data-testid scan ────────────────────────────────────────────
+  const testIds = [...new Set(
+    [...document.querySelectorAll('[data-testid]')].map(el => el.dataset.testid)
+  )].filter(t => /message|turn|conv|user|assistant|human|chat/i.test(t)).sort();
+  console.log('\nRELEVANT data-testid VALUES:\n' + (testIds.join('\n') || '(none found)'));
+
+  // ── SECTION 3: Test selector patterns ─────────────────────────────────────
+  const candidates = [
+    '[data-message-author-role="user"]',
+    '[data-message-author-role="assistant"]',
+    '[data-testid^="conversation-turn"]',
+    '[data-testid="user-message"]',
+    '[data-testid="assistant-message"]',
+    '[class*="message-content"]',
+    '[class*="MessageContent"]',
+    '[class*="ConversationItem"]',
+    '[class*="group/conversation"]',
+    '[class*="agent-turn"]',
+    '[class*="text-message"]',
+    'article',
+    '[role="article"]',
+  ];
+  
+  console.log('\nSELECTOR TEST RESULTS:');
+  candidates.forEach(sel => {
+    try {
+      const els = [...document.querySelectorAll(sel)];
+      if (els.length > 0) {
+        console.log(`\n  ✅ "${sel}" → ${els.length} elements`);
+        els.slice(0, 2).forEach((el, i) => {
+          const text = el.textContent.trim().replace(/\s+/g,' ').slice(0,100);
+          const dataAttrs = [...el.attributes].filter(a => /^data-/.test(a.name)).map(a=>`${a.name}="${a.value}"`).join(', ');
+          console.log(`     [${i}] ${el.tagName} | data: ${dataAttrs || 'none'} | text: "${text}"`);
+        });
+      }
+    } catch(e) {}
+  });
+
+  // ── SECTION 4: Virtual scroll container ───────────────────────────────────
+  console.log('\nVIRTUAL SCROLL / THREAD CONTAINER:');
+  ['#thread-messages', '[class*="thread"]', '[class*="overflow-y-auto"]',
+   'main', '[role="main"]', '[class*="ChatLayout"]', '[class*="conversation-container"]',
+   '[class*="react-scroll"]', '[data-testid="conversation"]'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) {
+      const style = window.getComputedStyle(el);
+      console.log(`  "${sel}" → overflow-y: ${style.overflowY}, height: ${style.height}, children: ${el.children.length}`);
+    }
+  });
+
+  // ── SECTION 5: Message count check ────────────────────────────────────────
+  console.log('\nMESSAGE COUNT SANITY CHECK:');
+  const totalMsgs = document.querySelectorAll('[data-message-author-role]').length;
+  const visibleMsgs = [...document.querySelectorAll('[data-message-author-role]')]
+    .filter(el => el.getBoundingClientRect().height > 0).length;
+  console.log(`  Total [data-message-author-role] in DOM: ${totalMsgs}`);
+  console.log(`  Visible (non-zero height): ${visibleMsgs}`);
+  console.log(`  → If visibleMsgs << totalMsgs, virtual scroll is hiding elements`);
+
+  console.log('\n========== END CHATGPT DOM PROBE ==========\n');
+})();
+```
+
+After running, add this block to the top of Prompt 7:
+
+```
+## ChatGPT DOM Probe Output
+[PASTE FULL CONSOLE OUTPUT HERE]
+```
+
+Script C — Gemini DOM Probe (Scraper)
+
+For: Prompt 8 (Gemini Scraper)
+Run TWICE:
+
+Run 1: On an EXISTING Gemini conversation (with messages already loaded). Label output "EXISTING SESSION"
+
+Run 2: Immediately after opening a BRAND NEW empty Gemini conversation. Label output "NEW SESSION"
+
+javascript
+
+```javascript
+(function geminiDOMProbe() {
+  const sessionType = document.querySelector('model-response, user-query') ? 'LIKELY-EXISTING' : 'LIKELY-NEW';
+  console.log(`\n========== CONTEXTMOVER: GEMINI DOM PROBE [${sessionType}] ==========\n`);
+
+  // ── SECTION 1: Custom web component scan (Gemini uses Angular custom elements) 
+  const customTags = [...new Set([...document.querySelectorAll('*')]
+    .filter(el => el.tagName.includes('-'))
+    .map(el => el.tagName.toLowerCase())
+  )].sort();
+  console.log('CUSTOM ELEMENTS (web components) on page:');
+  customTags.forEach(tag => {
+    const count = document.querySelectorAll(tag).length;
+    if (count > 0) console.log(`  ${count}x <${tag}>`);
+  });
+
+  // ── SECTION 2: Test known Gemini selectors ─────────────────────────────────
+  const candidates = [
+    'model-response', 'user-query', 'response-container',
+    'message-content', 'chat-message', 'conversation-container',
+    '[data-message-author]', '[data-turn-id]', '[data-chunk-index]',
+    '[class*="response"]', '[class*="query"]', '[class*="user-query"]',
+    '[class*="model-response"]', '[class*="conversation-turn"]',
+    '[class*="message"]', '[class*="turn"]',
+    '.response-content', '.query-content',
+    '[jsname]', '[jsaction]',
+    'infinite-scroller', 'chat-history',
+  ];
+
+  console.log('\nSELECTOR TEST RESULTS:');
+  candidates.forEach(sel => {
+    try {
+      const els = [...document.querySelectorAll(sel)];
+      if (els.length > 0) {
+        console.log(`\n  ✅ "${sel}" → ${els.length} elements`);
+        els.slice(0, 2).forEach((el, i) => {
+          const text = el.textContent.trim().replace(/\s+/g,' ').slice(0,100);
+          const allAttrs = [...el.attributes].map(a=>`${a.name}="${a.value.slice(0,40)}"`).join(' ');
+          console.log(`     [${i}] <${el.tagName.toLowerCase()}> attrs: ${allAttrs.slice(0,150)}`);
+          console.log(`     [${i}] text: "${text}"`);
+        });
+      }
+    } catch(e) {}
+  });
+
+  // ── SECTION 3: Scan for jsname / jsaction attributes (Angular pattern) ─────
+  console.log('\nJSNAME ATTRIBUTES (Angular internal identifiers):');
+  const jsnames = [...new Set([...document.querySelectorAll('[jsname]')].map(el => el.getAttribute('jsname')))];
+  console.log('  All jsname values (first 20):', jsnames.slice(0,20).join(', '));
+
+  // ── SECTION 4: Find conversation root ─────────────────────────────────────
+  console.log('\nCONVERSATION ROOT SEARCH:');
+  ['chat-history', 'infinite-scroller', 'conversation-container',
+   'chat-window', '[role="main"]', 'main',
+   '[class*="conversation"]', '[class*="history"]',
+   '[class*="chat-body"]', '[class*="ChatBody"]'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) {
+      console.log(`  "${sel}" → <${el.tagName.toLowerCase()}> | children: ${el.children.length} | scrollHeight: ${el.scrollHeight}`);
+    }
+  });
+
+  // ── SECTION 5: Shadow DOM check (important for custom elements) ────────────
+  console.log('\nSHADOW DOM CHECK:');
+  ['model-response', 'user-query', 'response-container', 'chat-history'].forEach(tag => {
+    const el = document.querySelector(tag);
+    if (el) {
+      const hasShadow = !!el.shadowRoot;
+      console.log(`  <${tag}> has shadowRoot: ${hasShadow}`);
+      if (hasShadow) {
+        const shadowChildren = [...el.shadowRoot.querySelectorAll('*')].slice(0,5).map(c => c.tagName.toLowerCase()).join(', ');
+        console.log(`    shadowRoot children (first 5): ${shadowChildren}`);
+      }
+    }
+  });
+
+  // ── SECTION 6: Text content sampling ──────────────────────────────────────
+  console.log('\nTEXT CONTENT SAMPLING (first 5 substantial text blocks):');
+  let count = 0;
+  document.querySelectorAll('*').forEach(el => {
+    if (count >= 5) return;
+    const text = el.textContent.trim();
+    if (text.length > 100 && text.length < 2000 && el.children.length <= 2) {
+      console.log(`  <${el.tagName.toLowerCase()}> class="${el.className?.toString().slice(0,60)}" → "${text.slice(0,80)}..."`);
+      count++;
+    }
+  });
+
+  console.log(`\n========== END GEMINI DOM PROBE [${sessionType}] ==========\n`);
+})();
+```
+
+After running BOTH times, add this block to the top of Prompt 8:
+
+```
+## Gemini DOM Probe — EXISTING SESSION
+[PASTE RUN 1 OUTPUT HERE]
+
+## Gemini DOM Probe — NEW EMPTY SESSION  
+[PASTE RUN 2 OUTPUT HERE]
+```
+
+Script D — Perplexity DOM Probe
+
+For: Prompt 9 (Perplexity Scraper)
+Run on: perplexity.ai — on a search result page that has at least one answer visible (NOT the home page)
+
+javascript
+
+```javascript
+(function perplexityDOMProbe() {
+  console.log('\n========== CONTEXTMOVER: PERPLEXITY DOM PROBE ==========\n');
+
+  // ── SECTION 1: Verify we're on a search result page ───────────────────────
+  console.log('Current URL:', window.location.href);
+  console.log('Page title:', document.title.slice(0,80));
+  const hasMain = !!document.querySelector('main');
+  console.log(`<main> element exists: ${hasMain}`);
+  if (!hasMain) {
+    console.log('⚠️  NO <main> ELEMENT — this confirms the root cause of Prompt 9 bug');
+    // Find what IS the outermost content wrapper
+    ['#__next > div', '#app', '[id*="root"]', '#root > div', 
+     'body > div', '[class*="layout"]', '[class*="Layout"]'].forEach(sel => {
+      const el = document.querySelector(sel);
+      if (el) console.log(`  Alternative root: "${sel}" → height: ${el.offsetHeight}px, children: ${el.children.length}`);
+    });
+  }
+
+  // ── SECTION 2: Test known Perplexity selectors ─────────────────────────────
+  const candidates = [
+    '[data-testid]',
+    '[class*="prose"]',
+    '[class*="answer"]', '[class*="Answer"]',
+    '[class*="response"]', '[class*="Response"]',
+    '[class*="query"]', '[class*="Query"]',
+    '[class*="thread"]', '[class*="Thread"]',
+    '[class*="message"]', '[class*="Message"]',
+    '[class*="FollowupQuestion"]', '[class*="followup"]',
+    '[class*="UserMessage"]', '[class*="BotMessage"]',
+    '[class*="AssistantMessage"]',
+    'section', 'article',
+    '[role="article"]', '[role="region"]',
+  ];
+
+  console.log('\nSELECTOR TEST RESULTS:');
+  candidates.forEach(sel => {
+    try {
+      const els = [...document.querySelectorAll(sel)];
+      if (els.length > 0 && els.some(el => el.textContent.trim().length > 50)) {
+        const withText = els.filter(el => el.textContent.trim().length > 50);
+        console.log(`\n  ✅ "${sel}" → ${els.length} total, ${withText.length} with substantial text`);
+        withText.slice(0,2).forEach((el,i) => {
+          const text = el.textContent.trim().replace(/\s+/g,' ').slice(0,100);
+          const dataAttrs = [...el.attributes].filter(a=>/^data-/.test(a.name)).map(a=>`${a.name}="${a.value}"`).join(' ');
+          console.log(`     [${i}] <${el.tagName.toLowerCase()}> data: {${dataAttrs}} class: "${el.className?.toString().slice(0,80)}"`);
+          console.log(`     [${i}] text: "${text}"`);
+        });
+      }
+    } catch(e) {}
+  });
+
+  // ── SECTION 3: data-testid full scan ──────────────────────────────────────
+  const allTestIds = [...new Set(
+    [...document.querySelectorAll('[data-testid]')].map(el => el.dataset.testid)
+  )].sort();
+  console.log('\nALL data-testid VALUES ON PAGE:\n' + (allTestIds.join('\n') || '(none)'));
+
+  // ── SECTION 4: Find the actual page root (since <main> doesn't exist) ──────
+  console.log('\nPAGE STRUCTURE (top 3 levels):');
+  function describeNode(el, depth=0, maxDepth=3) {
+    if (depth > maxDepth) return;
+    const tag = el.tagName.toLowerCase();
+    const id = el.id ? `#${el.id}` : '';
+    const cls = [...el.classList].filter(c=>c.length>3&&c.length<40).slice(0,3).join('.');
+    const text = el.textContent.trim().length;
+    console.log(`${'  '.repeat(depth)}<${tag}${id}${cls ? '.'+cls : ''}> [textLen=${text}] [children=${el.children.length}]`);
+    if (depth < maxDepth) [...el.children].slice(0,4).forEach(c => describeNode(c, depth+1, maxDepth));
+  }
+  describeNode(document.body, 0, 3);
+
+  // ── SECTION 5: Sources / follow-up question structure ────────────────────
+  console.log('\nSPECIAL PERPLEXITY ELEMENTS:');
+  ['[class*="source"]', '[class*="citation"]', '[class*="followup"]', 
+   '[class*="FollowUp"]', '[class*="related"]', '[class*="SearchResult"]'].forEach(sel => {
+    const els = document.querySelectorAll(sel);
+    if (els.length) console.log(`  "${sel}" → ${els.length} elements`);
+  });
+
+  console.log('\n========== END PERPLEXITY DOM PROBE ==========\n');
+})();
+```
+
+After running, add this block to the top of Prompt 9:
+
+```
+## Perplexity DOM Probe Output (on search result page with answer visible)
+[PASTE FULL CONSOLE OUTPUT HERE]
+```
+
+Script E — Grok DOM Probe
+
+For: Prompt 10 (Grok Scraper)
+Run on: grok.com — open a conversation with at least 3–4 exchanges
+
+javascript
+
+```javascript
+(function grokDOMProbe() {
+  console.log('\n========== CONTEXTMOVER: GROK DOM PROBE ==========\n');
+  console.log('URL:', window.location.href);
+
+  // ── SECTION 1: data-* and role attributes scan ─────────────────────────────
+  const roleAttrs = {};
+  document.querySelectorAll('*').forEach(el => {
+    [...el.attributes].forEach(attr => {
+      if (/role|author|turn|human|grok|assistant|user|message|speaker/i.test(attr.name + attr.value)) {
+        const key = `${attr.name}="${attr.value}"`;
+        roleAttrs[key] = (roleAttrs[key]||0)+1;
+      }
+    });
+  });
+  console.log('ROLE-RELATED ATTRIBUTES (attr=value : count):');
+  Object.entries(roleAttrs).sort((a,b)=>b[1]-a[1]).slice(0,20)
+    .forEach(([k,n]) => console.log(`  ${n}x  ${k}`));
+
+  // ── SECTION 2: data-testid scan ────────────────────────────────────────────
+  const allTestIds = [...new Set(
+    [...document.querySelectorAll('[data-testid]')].map(el => el.dataset.testid)
+  )].sort();
+  console.log('\nALL data-testid VALUES:\n' + (allTestIds.join('\n') || '(none)'));
+
+  // ── SECTION 3: Test selector patterns ─────────────────────────────────────
+  const candidates = [
+    '[data-message-author-role]',
+    '[data-testid*="message"]', '[data-testid*="turn"]', '[data-testid*="response"]',
+    '[class*="message"]', '[class*="Message"]',
+    '[class*="response"]', '[class*="Response"]',
+    '[class*="human"]', '[class*="Human"]',
+    '[class*="grok"]', '[class*="Grok"]',
+    '[class*="UserMessage"]', '[class*="BotMessage"]',
+    '[class*="AssistantMessage"]', '[class*="ConversationTurn"]',
+    '[class*="turn"]', '[class*="Turn"]',
+    'article', '[role="article"]',
+    '[class*="chat"]', '[class*="Chat"]',
+  ];
+
+  console.log('\nSELECTOR TEST RESULTS:');
+  candidates.forEach(sel => {
+    try {
+      const els = [...document.querySelectorAll(sel)];
+      if (els.length > 0 && els.some(el => el.textContent.trim().length > 30)) {
+        const withText = els.filter(el => el.textContent.trim().length > 30);
+        console.log(`\n  ✅ "${sel}" → ${els.length} total, ${withText.length} with text`);
+        withText.slice(0,2).forEach((el,i) => {
+          const text = el.textContent.trim().replace(/\s+/g,' ').slice(0,100);
+          const dataAttrs = [...el.attributes].filter(a=>/^data-/.test(a.name)).map(a=>`${a.name}="${a.value}"`).join(' ');
+          console.log(`     [${i}] <${el.tagName.toLowerCase()}> | data: {${dataAttrs}} | class: "${el.className?.toString().slice(0,80)}"`);
+          console.log(`     [${i}] text: "${text}"`);
+        });
+      }
+    } catch(e) {}
+  });
+
+  // ── SECTION 4: Root container ──────────────────────────────────────────────
+  console.log('\nROOT CONTAINER CANDIDATES:');
+  ['main', '[role="main"]', '[class*="conversation"]', '[class*="Conversation"]',
+   '[class*="thread"]', '[class*="Thread"]', '[class*="messages"]',
+   '[class*="ChatContainer"]', '[class*="chat-container"]',
+   '[class*="overflow-y"]'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) {
+      const msgNodes = el.querySelectorAll('[class*="message"],[class*="turn"],[data-message-author-role]').length;
+      console.log(`  "${sel}" → <${el.tagName.toLowerCase()}> class="${el.className?.toString().slice(0,80)}" | msg-like nodes: ${msgNodes}`);
+    }
+  });
+
+  // ── SECTION 5: Virtual scroll detection ───────────────────────────────────
+  console.log('\nVIRTUAL SCROLL CHECK:');
+  document.querySelectorAll('*').forEach(el => {
+    const style = window.getComputedStyle(el);
+    if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+      const h = el.scrollHeight;
+      if (h > 500) {
+        console.log(`  overflow-y:${style.overflowY} scrollHeight:${h}px → <${el.tagName.toLowerCase()}> class="${el.className?.toString().slice(0,60)}"`);
+      }
+    }
+  });
+
+  console.log('\n========== END GROK DOM PROBE ==========\n');
+})();
+```
+
+After running, add this block to the top of Prompt 10:
+
+```
+## Grok DOM Probe Output
+[PASTE FULL CONSOLE OUTPUT HERE]
+```
+
+Script F — DeepSeek DOM Probe (×2)
+
+For: Prompt 11 (DeepSeek Scraper)
+Run TWICE:
+
+Run 1: On an EXISTING DeepSeek conversation with at least 4 messages. Label "EXISTING"
+
+Run 2: Immediately after creating a NEW empty DeepSeek conversation (no messages sent yet). Label "NEW"
+
+javascript
+
+```javascript
+(function deepseekDOMProbe() {
+  const msgCount = document.querySelectorAll('[class*="message"],[class*="Message"]').length;
+  const sessionType = msgCount > 2 ? 'EXISTING' : 'NEW-EMPTY';
+  console.log(`\n========== CONTEXTMOVER: DEEPSEEK DOM PROBE [${sessionType}] ==========\n`);
+  console.log('URL:', window.location.href);
+  console.log('Rough message count estimate:', msgCount);
+
+  // ── SECTION 1: data-* attributes ───────────────────────────────────────────
+  const allTestIds = [...new Set(
+    [...document.querySelectorAll('[data-testid],[data-v-*]')].map(el => el.dataset.testid || [...el.attributes].find(a=>a.name.startsWith('data-v-'))?.name)
+  )].filter(Boolean).sort();
+  console.log('data-testid values:', allTestIds.join(', ') || '(none)');
+
+  const roleAttrs = {};
+  document.querySelectorAll('*').forEach(el => {
+    [...el.attributes].forEach(attr => {
+      if (/role|author|turn|human|assistant|user|message|ds-/i.test(attr.name + attr.value)) {
+        const key = `${attr.name}="${attr.value.slice(0,30)}"`;
+        roleAttrs[key] = (roleAttrs[key]||0)+1;
+      }
+    });
+  });
+  console.log('\nROLE-RELATED ATTRS:');
+  Object.entries(roleAttrs).sort((a,b)=>b[1]-a[1]).slice(0,15)
+    .forEach(([k,n]) => console.log(`  ${n}x  ${k}`));
+
+  // ── SECTION 2: selector tests ──────────────────────────────────────────────
+  const candidates = [
+    '[class*="message"]', '[class*="Message"]',
+    '[class*="human"]', '[class*="Human"]',
+    '[class*="assistant"]', '[class*="Assistant"]',
+    '[class*="user-message"]', '[class*="bot-message"]',
+    '[class*="UserMessage"]', '[class*="BotMessage"]',
+    '[class*="chat-message"]', '[class*="ChatMessage"]',
+    '[class*="ds-message"]', '[class*="md-content"]',
+    '[class*="question"]', '[class*="answer"]',
+    '[class*="bubble"]', '[class*="Bubble"]',
+    'article', '[role="article"]',
+    '[data-message-author-role]',
+    'main', '[role="main"]',
+  ];
+
+  console.log('\nSELECTOR TEST RESULTS:');
+  candidates.forEach(sel => {
+    try {
+      const els = [...document.querySelectorAll(sel)];
+      if (els.length > 0) {
+        const withText = els.filter(el => el.textContent.trim().length > 30);
+        if (withText.length > 0) {
+          console.log(`\n  ✅ "${sel}" → ${els.length} total, ${withText.length} with text`);
+          withText.slice(0,2).forEach((el,i) => {
+            const text = el.textContent.trim().replace(/\s+/g,' ').slice(0,100);
+            const dataAttrs = [...el.attributes].filter(a=>/^data-/.test(a.name)).map(a=>`${a.name}="${a.value.slice(0,30)}"`).join(' ');
+            console.log(`     [${i}] <${el.tagName.toLowerCase()}> | data: {${dataAttrs}} | class: "${el.className?.toString().slice(0,80)}"`);
+            console.log(`     [${i}] text: "${text}"`);
+          });
+        }
+      }
+    } catch(e) {}
+  });
+
+  // ── SECTION 3: Root container ──────────────────────────────────────────────
+  console.log('\nROOT CONTAINER:');
+  ['main', '[role="main"]', '[class*="chat"]', '[class*="Chat"]',
+   '[class*="conversation"]', '[class*="messages"]',
+   '[class*="scrollable"]', '[class*="Scrollable"]'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) console.log(`  "${sel}" → <${el.tagName.toLowerCase()}> class="${el.className?.toString().slice(0,80)}" h=${el.scrollHeight}px children=${el.children.length}`);
+  });
+
+  // ── SECTION 4: New conversation DOM (what renders when chat is empty) ──────
+  console.log('\nEMPTY STATE ELEMENTS (present in new conversation):');
+  ['[class*="empty"]', '[class*="Empty"]', '[class*="welcome"]', '[class*="Welcome"]',
+   '[class*="placeholder"]', '[class*="start"]', '[class*="Start"]',
+   '[class*="intro"]', '[class*="hero"]'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) console.log(`  "${sel}" → "${el.textContent.trim().slice(0,60)}"`);
+  });
+
+  console.log(`\n========== END DEEPSEEK DOM PROBE [${sessionType}] ==========\n`);
+})();
+```
+
+After running BOTH times, add this block to Prompt 11:
+
+```
+## DeepSeek DOM Probe — EXISTING SESSION
+[PASTE RUN 1 OUTPUT HERE]
+
+## DeepSeek DOM Probe — NEW EMPTY SESSION
+[PASTE RUN 2 OUTPUT HERE]
+```
+
+Script G — Gemini Input Field Probe
+
+For: Prompt 12 (Gemini Injection)
+Run on: gemini.google.com — on any conversation page (the input box must be visible)
+Note: This is separate from Script C. Script C is for the scraper selectors. This one is specifically for finding the input field structure.
+
+javascript
+
+```javascript
+(function geminiInputProbe() {
+  console.log('\n========== CONTEXTMOVER: GEMINI INPUT FIELD PROBE ==========\n');
+
+  // ── SECTION 1: Find all input-like elements ────────────────────────────────
+  console.log('ALL INPUT-LIKE ELEMENTS:');
+  const inputSelectors = [
+    'textarea',
+    'input[type="text"]',
+    '[contenteditable="true"]',
+    '[contenteditable]',
+    '[role="textbox"]',
+    'rich-textarea',
+    '[class*="input"]', '[class*="Input"]',
+    '[class*="textarea"]', '[class*="Textarea"]',
+    '[class*="prompt"]', '[class*="Prompt"]',
+    '[class*="composer"]', '[class*="Composer"]',
+    '[class*="query-input"]', '[class*="chat-input"]',
+  ];
+
+  inputSelectors.forEach(sel => {
+    try {
+      const els = [...document.querySelectorAll(sel)];
+      if (els.length > 0) {
+        els.forEach((el, i) => {
+          const rect = el.getBoundingClientRect();
+          const isVisible = rect.height > 0 && rect.width > 0;
+          const dataAttrs = [...el.attributes].map(a=>`${a.name}="${a.value.slice(0,40)}"`).join(' ');
+          console.log(`\n  ✅ "${sel}" [${i}] — visible: ${isVisible}`);
+          console.log(`     tag: <${el.tagName.toLowerCase()}>`);
+          console.log(`     attrs: ${dataAttrs.slice(0,200)}`);
+          console.log(`     class: ${el.className?.toString().slice(0,100)}`);
+          console.log(`     value/textContent: "${(el.value || el.textContent || '').trim().slice(0,60)}"`);
+          console.log(`     hasShadowRoot: ${!!el.shadowRoot}`);
+          if (el.shadowRoot) {
+            const shadowInputs = el.shadowRoot.querySelectorAll('textarea, [contenteditable], input');
+            console.log(`     shadowRoot inputs: ${shadowInputs.length}`);
+            shadowInputs.forEach((si,j) => {
+              console.log(`       shadow[${j}] <${si.tagName.toLowerCase()}> class="${si.className?.toString().slice(0,60)}"`);
+            });
+          }
+        });
+      }
+    } catch(e) {}
+  });
+
+  // ── SECTION 2: Submit button ───────────────────────────────────────────────
+  console.log('\n\nSUBMIT BUTTON:');
+  ['button[aria-label*="send" i]', 'button[aria-label*="submit" i]',
+   '[data-testid*="send"]', '[class*="send-button"]', '[class*="SendButton"]',
+   'button[type="submit"]', '[class*="submit"]',
+   'rich-textarea + button', '[class*="send"]'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) {
+      console.log(`  "${sel}" → <${el.tagName.toLowerCase()}> aria-label="${el.getAttribute('aria-label')}" disabled=${el.disabled} class="${el.className?.toString().slice(0,60)}"`);
+    }
+  });
+
+  // ── SECTION 3: Detect framework ───────────────────────────────────────────
+  console.log('\nFRAMEWORK DETECTION:');
+  const isAngular = !!document.querySelector('[ng-version], [_nghost], [ng-reflect]') || !!window.ng;
+  const isReact = !!(document.querySelector('[data-reactroot]') || window.__REACT_DEVTOOLS_GLOBAL_HOOK__);
+  const hasAngularCustomElements = !!document.querySelector('rich-textarea, model-response');
+  console.log(`  Angular detected: ${isAngular}`);
+  console.log(`  React detected: ${isReact}`);
+  console.log(`  Angular custom elements present: ${hasAngularCustomElements}`);
+
+  // ── SECTION 4: Try to set a test value (non-destructive) ─────────────────
+  console.log('\nINJECTION METHOD TEST (non-destructive — will not change visible content):');
+  const textarea = document.querySelector('textarea');
+  const richTextarea = document.querySelector('rich-textarea');
+  const contentEditable = document.querySelector('[contenteditable="true"]');
+  
+  if (textarea) {
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+    console.log(`  textarea found — nativeInputValueSetter available: ${!!nativeInputValueSetter}`);
+    console.log(`  Use: nativeInputValueSetter.call(el, text); el.dispatchEvent(new Event('input', {bubbles:true}))`);
+  }
+  if (richTextarea) {
+    console.log(`  <rich-textarea> found — check shadowRoot for inner textarea`);
+    const inner = richTextarea.shadowRoot?.querySelector('textarea, [contenteditable]');
+    console.log(`  Inner element in shadowRoot: ${inner ? inner.tagName : 'NOT FOUND'}`);
+  }
+  if (contentEditable) {
+    console.log(`  [contenteditable] found — use: el.textContent = text; el.dispatchEvent(new InputEvent('input', {bubbles:true, data:text}))`);
+  }
+
+  console.log('\n========== END GEMINI INPUT FIELD PROBE ==========\n');
+})();
+```
+
+After running, add this block to the top of Prompt 12:
+
+```
+## Gemini Input Field Probe Output
+[PASTE FULL CONSOLE OUTPUT HERE]
+```
+
+COMPLETE WORKFLOW CHECKLIST
+
+Before running each prompt, confirm you have:
+
+PromptPre-requisite
+
+1 — Admin 403Note A: grab the network tab 403 response body
+
+2 — WASMNothing extra needed
+
+3 — TimeoutNothing extra needed
+
+4 — QueueNothing extra needed
+
+5 — TriggerNothing extra needed
+
+6 — Claude✅ Run Script A on claude.ai (existing conversation)
+
+7 — ChatGPT✅ Run Script B + Note B: grab API response from Network tab
+
+8 — Gemini✅ Run Script C TWICE (existing + new session)
+
+9 — Perplexity✅ Run Script D on a search result page (not home page)
+
+10 — Grok✅ Run Script E on grok.com with conversation open
+
+11 — DeepSeek✅ Run Script F TWICE (existing + new session)
+
+12 — Gemini Inject✅ Run Script G on gemini.google.com with input box visible
+
+13 — skipAutoInjectNothing extra needed
+
+14 — DOM ProbeNothing extra needed]]>
+    </message>
+  </conversation>
+
+</contextmover_migration>

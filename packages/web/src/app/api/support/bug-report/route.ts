@@ -1,0 +1,55 @@
+// packages/web/src/app/api/support/bug-report/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { sendEmail, SENDERS, NOTIFY_EMAIL, escapeHtml } from "@/lib/mailer";
+import { checkRateLimit } from "@/lib/rate-limiter";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function POST(req: NextRequest) {
+  const rl = await checkRateLimit(req, undefined, 1);
+  if (!rl.ok) return rl.response;
+
+  try {
+    const body = (await req.json()) as {
+      email?: string; description: string; severity?: string;
+      version?: string; platform?: string;
+    };
+    if (!body.description || body.description.trim().length < 10)
+      return NextResponse.json({ error: "Description too short" }, { status: 400 });
+
+    const admin = createAdminClient();
+    let userId: string | null = null;
+    const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+    if (token) { const { data } = await admin.auth.getUser(token); userId = data?.user?.id ?? null; }
+
+    const severity = ["low","medium","high","critical"].includes(body.severity ?? "") ? body.severity! : "medium";
+
+    // Fetch email from auth if not provided in the request
+    let email = body.email ?? null;
+    if (!email && userId) {
+      const { data: userData } = await admin.auth.admin.getUserById(userId);
+      email = userData?.user?.email ?? null;
+    }
+
+    await admin.from("bug_reports").insert({
+      user_id: userId, email,
+      description: body.description.trim(), severity,
+      version: body.version ?? null, platform: body.platform ?? null,
+    });
+
+    if (process.env.ZEPTO_SMTP_PASSWORD) {
+      await sendEmail({
+        from: SENDERS.support, to: NOTIFY_EMAIL,
+        subject: `[BUG ${severity.toUpperCase()}] ${email ?? userId ?? "anon"}`,
+        html: `<pre>${escapeHtml(JSON.stringify({ userId, email, severity, version: body.version, platform: body.platform, description: body.description }, null, 2))}</pre>`,
+      }).catch((e: unknown) => console.warn("[bug-report] email failed:", e));
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[bug-report] error:", err);
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
+}

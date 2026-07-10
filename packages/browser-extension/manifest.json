@@ -1,0 +1,233 @@
+{
+    "manifest_version": 3,
+    "name": "Context Mover",
+    "version": "1.0.4",
+    "description": "Never lose coding context again. One layer. Any agent. Zero friction.",
+    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyApPGjeX14mNzHljCE/yzVN8OYGv+MVLMBovRArlGu7Y+i/N8r39s5o1kfk4pR4/5+SYWHRnO+3gDst6fhiWd/uSnUXhbIiSR4xs23KHnK+zmi6FP2TQAiIpIliE7J2/jJAHusAX9bEcr+qsGHIwUEksaWO6m7AhNDGsAkjY37Dv0fgY4OelKC5bG+dRk3JPyYzvUu4YG6eeQHsOd+jTinHcIf7KXEaxzv+X/yPVjJg77xHZFKaamkXwLEBrv8+5prGcvmtrPlXh1uTq1ExTrkpMbvO7cDbd94v55CcuTpa/GTf3lURwiV2Ibamf26VyacVn1AmGnXS+8VAWBdzneQIDAQAB",
+    "permissions": [
+        "activeTab",
+        "scripting",
+        "storage",
+        "unlimitedStorage",
+        "tabs",
+        "sidePanel",
+        "downloads",
+        "offscreen",
+        "identity",
+        "alarms"
+    ],
+    "oauth2": {
+        "client_id": "537316078537-hcpqdq1jsh3eh748071u0q4id7j1iivd.apps.googleusercontent.com",
+        "scopes": [
+            "https://www.googleapis.com/auth/drive.appdata",
+            "https://www.googleapis.com/auth/userinfo.email"
+        ]
+    },
+    "host_permissions": [
+        "https://claude.ai/*",
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://gemini.google.com/*",
+        "https://grok.com/*",
+        "https://grok.x.ai/*",
+        "https://www.perplexity.ai/*",
+        "https://chat.deepseek.com/*",
+        "https://contextmover.com/*",
+        "https://*.contextmover.com/*",
+        "https://huggingface.co/*",
+        "https://*.huggingface.co/*",
+        "https://cdn.jsdelivr.net/*",
+        "https://www.googleapis.com/*",
+        "https://accounts.google.com/*",
+        "https://*.supabase.co/*"
+    ],
+    "background": {
+        "service_worker": "src/background/service-worker.ts",
+        "type": "module"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://claude.ai/*",
+                "https://chatgpt.com/*",
+                "https://chat.openai.com/*",
+                "https://gemini.google.com/*",
+                "https://grok.com/*",
+                "https://grok.x.ai/*",
+                "https://www.perplexity.ai/*",
+                "https://chat.deepseek.com/*"
+            ],
+            "js": [
+                "src/content/fetch-interceptor.ts"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN"
+        },
+        {
+            "matches": [
+                "https://claude.ai/*",
+                "https://chatgpt.com/*",
+                "https://chat.openai.com/*",
+                "https://gemini.google.com/*",
+                "https://grok.com/*",
+                "https://grok.x.ai/*",
+                "https://www.perplexity.ai/*",
+                "https://chat.deepseek.com/*"
+            ],
+            "js": [
+                "src/content/interceptor-bridge.ts"
+            ],
+            "run_at": "document_start"
+        },
+        {
+            "matches": [
+                "https://claude.ai/*"
+            ],
+            "js": [
+                "src/content/claude.ts"
+            ],
+            "run_at": "document_start",
+            "all_frames": false
+        },
+        {
+            "matches": [
+                "https://chatgpt.com/*",
+                "https://chat.openai.com/*"
+            ],
+            "js": [
+                "src/content/chatgpt.ts"
+            ],
+            "run_at": "document_start"
+        },
+        {
+            "matches": [
+                "https://gemini.google.com/*"
+            ],
+            "js": [
+                "src/content/gemini.ts"
+            ],
+            "run_at": "document_start"
+        },
+        {
+            "matches": [
+                "https://grok.com/*",
+                "https://grok.x.ai/*"
+            ],
+            "js": [
+                "src/content/grok.ts"
+            ],
+            "run_at": "document_idle"
+        },
+        {
+            "matches": [
+                "https://www.perplexity.ai/*"
+            ],
+            "js": [
+                "src/content/perplexity.ts"
+            ],
+            "run_at": "document_idle"
+        },
+        {
+            "matches": [
+                "https://chat.deepseek.com/*"
+            ],
+            "js": [
+                "src/content/deepseek.ts"
+            ],
+            "run_at": "document_idle"
+        },
+        {
+            "matches": [
+                "https://claude.ai/*",
+                "https://chatgpt.com/*",
+                "https://chat.openai.com/*",
+                "https://gemini.google.com/*",
+                "https://grok.com/*",
+                "https://grok.x.ai/*",
+                "https://www.perplexity.ai/*",
+                "https://chat.deepseek.com/*"
+            ],
+            "js": [
+                "src/content/sidebar-toggle/toggle.ts"
+            ],
+            "run_at": "document_idle"
+        },
+        {
+            "matches": ["https://*/*", "http://*/*"],
+            "exclude_matches": [
+                "https://claude.ai/*",
+                "https://chatgpt.com/*",
+                "https://chat.openai.com/*",
+                "https://gemini.google.com/*",
+                "https://grok.com/*",
+                "https://grok.x.ai/*",
+                "https://www.perplexity.ai/*",
+                "https://chat.deepseek.com/*"
+            ],
+            "js": [
+                "src/content/sidebar-toggle/toggle.ts"
+            ],
+            "run_at": "document_idle",
+            "all_frames": false
+        }
+    ],
+    "action": {
+        "default_title": "ContextMover",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "32": "icons/icon32.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
+    },
+    "side_panel": {
+        "default_path": "src/sidebar/index.html"
+    },
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "src/content/fetch-interceptor.ts",
+                "assets/*.js",
+                "assets/*.css",
+                "assets/*.png",
+                "assets/*.svg",
+                "assets/*.woff2",
+                "wasm/*"
+            ],
+            "matches": [
+                "https://claude.ai/*",
+                "https://chatgpt.com/*",
+                "https://chat.openai.com/*",
+                "https://gemini.google.com/*",
+                "https://grok.com/*",
+                "https://grok.x.ai/*",
+                "https://www.perplexity.ai/*",
+                "https://chat.deepseek.com/*"
+            ]
+        },
+        {
+            "resources": [
+                "grammars/web-tree-sitter.wasm"
+            ],
+            "matches": [
+                "https://claude.ai/*",
+                "https://chatgpt.com/*",
+                "https://chat.openai.com/*",
+                "https://gemini.google.com/*",
+                "https://grok.com/*",
+                "https://grok.x.ai/*",
+                "https://www.perplexity.ai/*",
+                "https://chat.deepseek.com/*"
+            ]
+        }
+    ],
+    "content_security_policy": {
+        "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; base-uri 'none'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://contextmover.com https://*.contextmover.com https://huggingface.co https://*.huggingface.co https://cdn-lfs.huggingface.co https://cdn-lfs-us-1.huggingface.co https://*.hf.space https://cdn.jsdelivr.net https://*.jsdelivr.net https://www.googleapis.com https://*.xethub.hf.co; form-action 'none'; frame-src 'none'"
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "32": "icons/icon32.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    }
+}

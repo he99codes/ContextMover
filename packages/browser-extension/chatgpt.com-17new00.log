@@ -1,0 +1,130 @@
+VM337:14 Console was cleared
+VM337:15 ========== CONTEXTMOVER: CHATGPT DIAGNOSTIC ==========
+
+VM337:21 PART A: DOM PROBE RESULTS
+
+VM337:36 Testing selectors:
+
+VM337:44 ✅ "[data-message-author-role]" → 8 elements
+VM337:45    [0] role="user" testid="N/A"
+VM337:46    text: "hii..."
+
+VM337:44 ✅ "[data-message-author-role="user"]" → 4 elements
+VM337:45    [0] role="user" testid="N/A"
+VM337:46    text: "hii..."
+
+VM337:44 ✅ "[data-message-author-role="assistant"]" → 4 elements
+VM337:45    [0] role="assistant" testid="N/A"
+VM337:46    text: "Hi! How can I help you today? 😊..."
+
+VM337:44 ✅ "[data-testid^="conversation-turn"]" → 8 elements
+VM337:45    [0] role="N/A" testid="conversation-turn-1"
+VM337:46    text: "You said:hii..."
+
+VM337:44 ✅ "[class*="message"]" → 28 elements
+VM337:45    [0] role="N/A" testid="N/A"
+VM337:46    text: "hii..."
+
+VM337:44 ✅ "[class*="text-message"]" → 8 elements
+VM337:45    [0] role="user" testid="N/A"
+VM337:46    text: "hii..."
+
+VM337:44 ✅ "[class*="agent-turn"]" → 4 elements
+VM337:45    [0] role="N/A" testid="N/A"
+VM337:46    text: "Hi! How can I help you today? 😊..."
+
+VM337:44 ✅ "[class*="group"]" → 33 elements
+VM337:45    [0] role="N/A" testid="N/A"
+VM337:46    text: "Open sidebarChatGPTLog inSign up for freeYou said:hiiChatGPT..."
+
+VM337:48 ❌ "[role="article"]" → 0 elements
+
+VM337:48 ❌ "main [role="region"]" → 0 elements
+
+VM337:56 
+PART B: MESSAGE EXTRACTION BY ROLE
+
+VM337:61 User messages: 4
+VM337:62 Assistant messages: 4
+VM337:63 Total: 8
+
+VM337:66 Sample USER message:
+VM337:68   data-message-id: 72c595f7-15a0-496a-9551-ed876b457a54
+VM337:69   text: "hii..."
+
+VM337:73 Sample ASSISTANT message:
+VM337:75   data-message-id: d8e9a1ed-e9d6-4ca0-8127-0b2d0bb70b54
+VM337:76   data-message-model-slug: gpt-5-5
+VM337:77   text: "Hi! How can I help you today? 😊..."
+
+VM337:84 
+PART C: VIRTUAL SCROLL / CONTAINER DETECTION
+
+VM337:100 thread container:
+VM337:101   overflow-y: visible
+VM337:102   height: 886px, scrollHeight: 886px
+VM337:103   children: 1
+
+VM337:100 overflow-y-auto:
+VM337:101   overflow-y: auto
+VM337:102   height: 649px, scrollHeight: 938px
+VM337:103   children: 2
+
+VM337:100 main element:
+VM337:101   overflow-y: visible
+VM337:102   height: 597px, scrollHeight: 886px
+VM337:103   children: 1
+
+VM337:111 
+PART D: FETCH INTERCEPTOR STATUS
+
+VM337:119 ⚠️  Fetch interceptor: No capture flag set yet
+
+VM337:126 
+PART E: STREAMING MESSAGE CHECK
+
+VM337:129 Streaming messages: 0
+VM337:133 ✅ No streaming messages — conversation is stable
+
+VM337:140 
+PART F: SIMULATED DOM SCRAPE
+
+VM337:169 Scraped: 8 total messages
+VM337:170   User: 4
+VM337:171   Assistant: 4
+
+VM337:174 Sample scraped message:
+VM337:175   role: user
+VM337:176   content: "hii..."
+
+VM337:183 
+PART G: RECOMMENDATIONS
+
+VM337:208 ✅ All checks passed! DOM scrape should work correctly.
+VM337:213 
+========== END DIAGNOSTIC ==========
+
+VM337:219 EXPORT RESULTS (copy this for the developer):
+
+VM337:234 {
+  "timestamp": "2026-06-04T02:45:48.715Z",
+  "url": "https://chatgpt.com/?utm_source=google&utm_medium=paid_search&utm_campaign=GOOG_C_SEM_GBR_Core_CHT_BAU_ACQ_PER_MIX_ALL_APAC_IN_EN_032525&c_id=22370388714&c_agid=177344203135&c_crid=741704613486&c_kwid=kwd-1927227100722&c_ims=&c_pms=9303694&c_nw=g&c_dvc=c&gad_source=1&gad_campaignid=22370388714&gbraid=0AAAAA-I0E5dvtIdShF_3UXSb5sZXM6COO&gclid=Cj0KCQjwof_QBhCgARIsADaMzOfoymtGWGuNWoUE6hEiSfkpvSyMnl9HmEiKgm0HBMRdQ0h--BH5BGwaAoz6EALw_wcB",
+  "userMessages": 4,
+  "assistantMessages": 4,
+  "streamingMessages": 0,
+  "scrapedMessages": 8,
+  "scrapedUserCount": 4,
+  "scrapedAssistantCount": 4,
+  "fetchInterceptorActive": false,
+  "fetchInterceptorCount": 0,
+  "issues": []
+}
+VM337:235 
+✅ Diagnostic complete. Share the JSON above with the developer.
+undefined
+shared-BCeDZ6eT.js:9 [ContextMover] Capture triggered for chatgpt (DOM fallback)
+chatgpt-Dri7vtI3.js:5 [CM:diag:chatgpt] strategy=1 user=4 asst=4
+shared-BCeDZ6eT.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-BCeDZ6eT.js:3 [CM:validate] chatgpt: {valid: true, errors: Array(0), warnings: Array(1), stats: {…}}
+shared-BCeDZ6eT.js:9 [ContextMover] Snapshot hash unchanged, skipping
+shared-BCeDZ6eT.js:7 [CM:health] chatgpt: success=90% assistant=100%
