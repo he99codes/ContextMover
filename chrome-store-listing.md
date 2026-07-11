@@ -4,6 +4,23 @@ Copy-paste each section below into the corresponding field in the Chrome Web Sto
 
 ---
 
+## STOREFRONT METADATA
+
+### Recommended Title
+```
+ContextMover – Transfer AI Chats & Conversations
+```
+
+### Recommended Short Description
+```
+Transfer chats between ChatGPT, Claude, Gemini and Grok. Move AI conversations and continue with full context across platforms.
+```
+
+### Full Description
+Please refer to the file [CHROME_STORE_DESCRIPTION.txt](file:///C:/Users/priyanshu/Desktop/context_mover/ContextMover-main/CHROME_STORE_DESCRIPTION.txt) for the complete, SEO-optimized product description.
+
+---
+
 ## MISSING PERMISSION JUSTIFICATIONS
 
 ### unlimitedStorage justification
