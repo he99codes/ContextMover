@@ -763,6 +763,33 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return false;
   }
 
+  // [BUG-7 FIX] Cancel all offscreen jobs before wiping local DB to prevent zombie chunks
+  if (msg.type === "CANCEL_ALL_JOBS") {
+    // 1. Add all active requestIds to cancelledRequests so in-flight batches abort
+    for (const reqId of pendingResponses.keys()) {
+      cancelledRequests.add(reqId);
+    }
+    // 2. Drain all queues
+    const drainQueue = (queue: Job[]) => {
+      while (queue.length > 0) {
+        const job = queue.shift()!;
+        if (job.kind === 'batch') {
+          (job as BatchEmbedJob).sendResponse({ ok: false, error: 'cancelled' });
+        } else {
+          const respond = pendingResponses.get(job.requestId);
+          pendingResponses.delete(job.requestId);
+          respond?.({ ok: false, error: 'cancelled' });
+        }
+      }
+    };
+    drainQueue(urgentQueue);
+    drainQueue(priorityQueue);
+    drainQueue(backgroundQueue);
+    
+    sendResponse({ cancelled: true });
+    return false;
+  }
+
   if (msg.type === "OFFSCREEN_SEARCH_QUERY") {
     const { requestId, queryEmbedding, chunks, topK } = msg as {
       requestId:      string;

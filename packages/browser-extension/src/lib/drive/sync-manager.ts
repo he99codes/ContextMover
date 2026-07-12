@@ -181,6 +181,10 @@ class DriveSyncManager {
   // (e.g. DRIVE_CONNECT from sidebar) which would re-enable uploads before
   // the wipe completes, causing sessions to be re-uploaded immediately.
   private _wipingRemote = false;
+  // [BUG-4 FIX] Tracks if bootstrap failed specifically due to 'no token'.
+  private _bootstrapFailedNoToken = false;
+  // [BUG-6 FIX] Tracks sessions processed for phantom hash fix within a single bootstrap cycle
+  private _processedPhantoms: Set<string> = new Set();
   // [ISSUE-8] Cooldown for collision-detected sessions to prevent infinite pickBetter loops
   private _conflictCooldown: Map<string, number> = new Map();
   // ── In-memory cache layer (FAST MEMORY optimization) ──
@@ -557,6 +561,7 @@ class DriveSyncManager {
   async pullFromDrive(): Promise<{ added: number; updated: number }> {
     if (this.isPulling) return { added: 0, updated: 0 };
     this.isPulling = true;
+    this._processedPhantoms.clear();
     const _driveT0 = performance.now();
     try {
       if (!(await driveClient.isConnected())) return { added: 0, updated: 0 };
@@ -570,7 +575,10 @@ class DriveSyncManager {
       let index: Awaited<ReturnType<typeof driveClient.downloadIndex>>;
       try {
         index = await driveClient.downloadIndex();
-      } catch (fetchErr) {
+      } catch (fetchErr: any) {
+        if (fetchErr?.message && String(fetchErr.message).includes("no token")) {
+          this._bootstrapFailedNoToken = true;
+        }
         console.warn("[drive-sync] downloadIndex fetch failed — NOT bootstrapping (network error)", fetchErr);
         this.cachedIndexLastSync = null;
         return { added: 0, updated: 0 };
@@ -590,7 +598,11 @@ class DriveSyncManager {
       // [TOMBSTONE-FIX] Always refresh tombstone cache from the downloaded index,
       // even when we skip per-session iteration. This keeps queueUpload's tombstone
       // check accurate without needing a full pull.
-      this.cachedTombstones = new Set(index.tombstones ?? []);
+      const validTombstones = (index.tombstones ?? []).filter(t => {
+        if (typeof t === 'string') return true;
+        return t.reason === "user_deleted";
+      }).map(t => typeof t === 'string' ? t : t.sessionId);
+      this.cachedTombstones = new Set(validTombstones);
 
       // [BUG-9 FIX] Fresh sync detection: if sourcedIds is empty (e.g. after
       // WIPE_LOCAL_DATA), clear tombstones from the Drive index so re-captured
@@ -799,7 +811,7 @@ class DriveSyncManager {
       // the Drive index (but skip tombstoned ones to prevent resurrection).
       {
         const remoteIds = new Set(index.sessions.map(s => s.id));
-        const tombstoneSet = new Set(index.tombstones ?? []);
+        const tombstoneSet = new Set(this.cachedTombstones);
         const allLocal = await db.getAllSessions();
 
         // Tombstone processing: delete local sessions that were deleted on
@@ -1193,13 +1205,19 @@ class DriveSyncManager {
             const localChunkCount = await dexieDb.chunkEmbeddings
               .where('sessionId').equals(sessionId).count().catch(() => 0);
             if (localChunkCount === 0) {
-              console.warn(`[drive-sync] hash restore: ${sessionId} isComplete=true but 0 chunks — invalidating + uploading fix to Drive`);
-              remoteHash.isComplete = false;
-              hashWasInvalidated = true;
+              if (!this._processedPhantoms.has(sessionId)) {
+                console.warn(`[drive-sync] hash restore: ${sessionId} isComplete=true but 0 chunks — invalidating + uploading fix to Drive`);
+                remoteHash.isComplete = false;
+                hashWasInvalidated = true;
+                this._processedPhantoms.add(sessionId);
+              }
             } else if (localChunkCount < localSession.messages.length * 0.5) {
-              console.warn(`[drive-sync] hash restore: ${sessionId} isComplete=true but only ${localChunkCount} chunks for ${localSession.messages.length} msgs — invalidating`);
-              remoteHash.isComplete = false;
-              hashWasInvalidated = true;
+              if (!this._processedPhantoms.has(sessionId)) {
+                console.warn(`[drive-sync] hash restore: ${sessionId} isComplete=true but only ${localChunkCount} chunks for ${localSession.messages.length} msgs — invalidating`);
+                remoteHash.isComplete = false;
+                hashWasInvalidated = true;
+                this._processedPhantoms.add(sessionId);
+              }
             }
           }
           await dexieDb.sessionHashes.put(remoteHash);
@@ -1262,6 +1280,14 @@ class DriveSyncManager {
         console.log('[drive-sync] syncBidirectional skipped — Drive was wiped');
         return;
       }
+      
+      // [BUG-4 FIX] If bootstrap previously failed due to no token, and we are now connected, retry it.
+      if (this._bootstrapFailedNoToken) {
+        console.log('[drive-sync] Retrying bootstrap that previously failed due to no token');
+        this._bootstrapFailedNoToken = false;
+        await this.bootstrapInitialIndex();
+      }
+
       // Pull first (import remote changes), then flush any queued uploads.
       await this.pullFromDrive();
       // [FIX-J] Don't flush if Drive was just wiped — pullFromDrive already
@@ -1289,12 +1315,22 @@ class DriveSyncManager {
       index.sessions = index.sessions.filter((e) => e.id !== sessionId);
       // Add to tombstones so other profiles delete locally instead of re-uploading
       if (!index.tombstones) index.tombstones = [];
-      if (!index.tombstones.includes(sessionId)) index.tombstones.push(sessionId);
+      const profileId = this.cachedProfileId || "unknown"; // Fallback if missing
+      
+      // Filter out old tombstone for this ID if it exists
+      index.tombstones = index.tombstones.filter(t => (typeof t === 'string' ? t : t.sessionId) !== sessionId);
+      
+      index.tombstones.push({
+        sessionId,
+        profileId,
+        deletedAt: Date.now(),
+        reason: "user_deleted"
+      });
       // Cap tombstones at 200 to prevent unbounded growth
       if (index.tombstones.length > 200) index.tombstones = index.tombstones.slice(-200);
       // [TOMBSTONE-FIX] Update local cache so queueUpload skips this session
       // on subsequent captures from open tabs.
-      this.cachedTombstones = new Set(index.tombstones);
+      this.cachedTombstones = new Set(index.tombstones.map(t => typeof t === 'string' ? t : t.sessionId));
       index.lastSync = Date.now();
       await driveClient.uploadIndex(index);
       this.cachedIndexLastSync = index.lastSync;

@@ -8,12 +8,9 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-        const { billing, userId, userEmail } = await req.json();
+        const { billing, userId, userEmail, earlyBird: clientEarlyBird } = await req.json();
 
-    // Server-side validation for early bird pricing
-    const earlyBirdCutoff = new Date('2026-07-01T00:00:00Z');
-    const earlyBird = new Date() < earlyBirdCutoff;
-        if (!billing || !userId || !["monthly", "annual"].includes(billing)) {
+    if (!billing || !userId || !["monthly", "annual"].includes(billing)) {
       return NextResponse.json({ error: "billing (monthly|annual) and userId required" }, { status: 400 });
     }
 
@@ -45,6 +42,22 @@ export async function POST(req: NextRequest) {
     const rl = await checkRateLimit(req, user.id, 10);
     if (!rl.ok) return rl.response;
 
+    const admin = createAdminClient();
+    let earlyBird = false;
+
+    try {
+      const { count } = await admin
+        .from("subscriptions")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["created", "authenticated", "active"]);
+      
+      const EARLY_BIRD_LIMIT = 500;
+      earlyBird = (count ?? 0) < EARLY_BIRD_LIMIT;
+    } catch (err) {
+      console.error("[create-subscription] Error checking early bird status:", err);
+      earlyBird = clientEarlyBird === true;
+    }
+
     const planId = billing === "annual"
       ? (earlyBird ? process.env.RAZORPAY_PRO_ANNUAL_PLAN_ID : process.env.RAZORPAY_PRO_ANNUAL_REGULAR_PLAN_ID)
       : (earlyBird ? process.env.RAZORPAY_PRO_MONTHLY_PLAN_ID : process.env.RAZORPAY_PRO_MONTHLY_REGULAR_PLAN_ID);
@@ -68,7 +81,6 @@ export async function POST(req: NextRequest) {
       notes: { userId, userEmail: userEmail ?? "", billing, earlyBird: String(earlyBird) },
     });
 
-    const admin = createAdminClient();
     await admin.from("subscriptions").upsert({
       user_id: userId,
       razorpay_subscription_id: subscription.id,

@@ -3,7 +3,7 @@
     "name": "Context Mover",
     "version": "1.0.4",
     "description": "Never lose coding context again. One layer. Any agent. Zero friction.",
-    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyApPGjeX14mNzHljCE/yzVN8OYGv+MVLMBovRArlGu7Y+i/N8r39s5o1kfk4pR4/5+SYWHRnO+3gDst6fhiWd/uSnUXhbIiSR4xs23KHnK+zmi6FP2TQAiIpIliE7J2/jJAHusAX9bEcr+qsGHIwUEksaWO6m7AhNDGsAkjY37Dv0fgY4OelKC5bG+dRk3JPyYzvUu4YG6eeQHsOd+jTinHcIf7KXEaxzv+X/yPVjJg77xHZFKaamkXwLEBrv8+5prGcvmtrPlXh1uTq1ExTrkpMbvO7cDbd94v55CcuTpa/GTf3lURwiV2Ibamf26VyacVn1AmGnXS+8VAWBdzneQIDAQAB",
+    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlDj+Fa6rC3tqq3t3S08hPWdLm0MO37tEnqbLRLuHLBYX9EsdcUiRlipAPPdNArGkFnkPxLS+9cUCrRoVSmrUDDt9GR3geRHPqbp3q12ArV+iWvfSO4d2i4hDZEWaZXocmMkTMHkji7CQ56J98aH+nsULsuTzdvHkdaacdE52xqcVOwtRQv68te7WTBXJTpvo3XjanxXiYeWErGZGapvqHYOZRTkPNNtb70crlJxIwv4zm3ZqVbug53vz71LpEFJ8K/obT9vnC4SIeK8NOUNPOdJYFT+YkAv7s6kK91/5DQ7g1HFyRzxCLcOjdT7a1dwHncDd/8Ov/GYONn/hgRdxmwIDAQAB",
     "permissions": [
         "activeTab",
         "scripting",

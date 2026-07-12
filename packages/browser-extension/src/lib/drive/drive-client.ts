@@ -91,12 +91,19 @@ export interface DriveSessionIndexEntry {
   driveFileId: string;
 }
 
+export interface TombstoneEntry {
+  sessionId: string;
+  profileId: string;
+  deletedAt: number;
+  reason?: string;
+}
+
 export interface DriveIndex {
   version: number;
   lastSync: number;
   profileId: string;
   sessions: DriveSessionIndexEntry[];
-  tombstones?: string[];
+  tombstones?: (string | TombstoneEntry)[];
   bundleVersion?: number;       // [FAST-SYNC] bumped when sessions bundle changes
   // [OPTION-B] embeddingsVersion removed — embeddings not synced via Drive.
 }
@@ -613,6 +620,30 @@ class DriveClient {
         // deleted), clear the cache so the next call re-queries Drive.
         if (existingId && res.status === 404) {
           this.fileIdCache.delete(name);
+          console.warn(`[drive] upsert ${name} got 404 — retrying as CREATE`);
+          const retryMetadata = { name, parents: ["appDataFolder"] };
+          const retryMultipart =
+            `--${boundary}\r\n` +
+            `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+            `${JSON.stringify(retryMetadata)}\r\n` +
+            `--${boundary}\r\n` +
+            `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+            `${JSON.stringify(body)}\r\n` +
+            `--${boundary}--`;
+          
+          const retryRes = await this.apiCall(`${DRIVE_UPLOAD_BASE}?uploadType=multipart`, {
+            method: "POST",
+            headers: { "Content-Type": `multipart/related; boundary=${boundary}` },
+            body: retryMultipart,
+          });
+          
+          if (retryRes.ok) {
+            try {
+              const respJson = await retryRes.json();
+              if (respJson?.id) this.fileIdCache.set(name, respJson.id);
+            } catch { /* ignore */ }
+            return;
+          }
         }
         console.warn(
           `[drive] upsert ${name} failed: ${res.status} ${res.statusText}`

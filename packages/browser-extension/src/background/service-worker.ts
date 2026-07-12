@@ -943,6 +943,14 @@ supabase.auth.onAuthStateChange(async (event, session) => {
         semanticIndex.cancelBackgroundJobs();
         _indexingInFlight.clear();
         _indexDirty.clear();
+        try {
+          await new Promise<void>(resolve => {
+            chrome.runtime.sendMessage({ type: "CANCEL_ALL_JOBS" }, () => {
+              void chrome.runtime.lastError;
+              resolve();
+            });
+          });
+        } catch (e) {}
         await wipeAllLocalData();
         sessionCache.invalidate();
         getSessionsCache = null;
@@ -986,6 +994,14 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       semanticIndex.cancelBackgroundJobs();
       _indexingInFlight.clear();
       _indexDirty.clear();
+      try {
+        await new Promise<void>(resolve => {
+          chrome.runtime.sendMessage({ type: "CANCEL_ALL_JOBS" }, () => {
+            void chrome.runtime.lastError;
+            resolve();
+          });
+        });
+      } catch (e) {}
       await wipeAllLocalData();
       sessionCache.invalidate();
       getSessionsCache = null;
@@ -1219,7 +1235,8 @@ async function runSwDiag(): Promise<{ ok: boolean; health: number; results: Arra
       const tombCount = index?.tombstones?.length ?? 0;
       // Verify no tombstoned session is still present in the live session list.
       const liveIds = new Set((await db.getAllSessions()).map(s => s.id));
-      const resurrected = (index?.tombstones ?? []).filter(id => liveIds.has(id));
+      const tombstoneIds = (index?.tombstones ?? []).map(t => typeof t === 'string' ? t : t.sessionId);
+      const resurrected = tombstoneIds.filter(id => liveIds.has(id));
       if (resurrected.length > 0) rec('tombstone_cache', false, 2, `${resurrected.length} tombstoned session(s) still live: ${resurrected.slice(0, 3).join(',')}`);
       else rec('tombstone_cache', true, 2, `${tombCount} tombstones, none resurrected locally`);
     }
@@ -1276,6 +1293,8 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 // ── Message Router ─────────────────────────────────────────────────────────────
+let _lastDriveWipeAt = 0;
+const _wipeGuardMs = 60_000;
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (DEBUG_DIAG) console.log(`[ContextMover ServiceWorker] Received message: ${msg.type}`);
   (async () => {
@@ -1436,7 +1455,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sendResponse({ error: "Confirmation required — send { confirm: true } to wipe all Drive data" });
           break;
         }
-        console.log("[CM:sw] DRIVE_WIPE — wiping all remote Drive data");
+        const now = Date.now();
+        if (now - _lastDriveWipeAt < _wipeGuardMs) {
+          console.warn(`[CM:sw] DRIVE_WIPE skipped — already wiped ${(now - _lastDriveWipeAt) / 1000}s ago (reason: ${msg.reason || 'unknown'})`);
+          sendResponse({ ok: true, skipped: true });
+          return;
+        }
+        _lastDriveWipeAt = now;
+        console.log(`[CM:sw] DRIVE_WIPE — wiping all remote Drive data (reason: ${msg.reason || 'unknown'})`);
         // [FIX-Q] Stop the periodic sync alarm so syncBidirectional doesn't
         // fire during/after the wipe and re-upload sessions.
         chrome.alarms.clear("drive-sync-periodic");
@@ -1475,6 +1501,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         try {
           // Wipe Drive first (while token is still valid).
           const driveResult = await driveClient.wipeAllRemote();
+          // [BUG-7 FIX] Signal offscreen worker to cancel in-flight batches/indexes before wiping
+          try {
+            await new Promise<void>(resolve => {
+              chrome.runtime.sendMessage({ type: "CANCEL_ALL_JOBS" }, () => {
+                void chrome.runtime.lastError;
+                resolve();
+              });
+            });
+          } catch (e) { console.debug("[CM:sw] failed to send CANCEL_ALL_JOBS", e); }
           // Wipe local data.
           await wipeAllLocalData();
           await attentionEngine.clearIndex().catch(() => {});
@@ -1508,6 +1543,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           _indexDirty.clear();
           _bgIndexCooldown.clear();
           _bgIndexDeferred.clear();
+          // [BUG-7 FIX] Signal offscreen worker to cancel in-flight batches/indexes before wiping
+          try {
+            await new Promise<void>(resolve => {
+              chrome.runtime.sendMessage({ type: "CANCEL_ALL_JOBS" }, () => {
+                void chrome.runtime.lastError;
+                resolve();
+              });
+            });
+          } catch (e) { console.debug("[CM:sw] failed to send CANCEL_ALL_JOBS", e); }
           await wipeAllLocalData();
           await attentionEngine.clearIndex().catch(() => {});
           getSessionsCache = null;
