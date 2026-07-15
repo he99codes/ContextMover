@@ -791,7 +791,7 @@ export class SemanticIndex {
           _backgroundQueue.sort((a, b) => {
             const sizeDiff = b.session.messages.length - a.session.messages.length;
             if (sizeDiff !== 0) return sizeDiff;
-            return b.enqueuedAt - a.enqueuedAt; // recency tie-break
+            return a.enqueuedAt - b.enqueuedAt; // FIFO tie-break: oldest enqueued first
           });
           job = _backgroundQueue.shift()!;
         }
