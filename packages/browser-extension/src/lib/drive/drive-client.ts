@@ -131,6 +131,28 @@ class DriveClient {
   // Invalidated on 404 (file deleted) and on wipeAllRemote.
   private fileIdCache: Map<string, string> = new Map();
 
+  // [PHASE-6-FIX] Persist cache to session storage to survive service worker restarts.
+  private _cacheRestorePromise: Promise<void> | null = null;
+  private _ensureCacheRestored(): Promise<void> {
+    if (typeof chrome === "undefined" || !chrome.storage?.session) return Promise.resolve();
+    if (!this._cacheRestorePromise) {
+      this._cacheRestorePromise = chrome.storage.session.get("drive.fileIdCache").then(data => {
+        const stored = data["drive.fileIdCache"];
+        if (stored && typeof stored === "object") {
+          for (const [k, v] of Object.entries(stored)) {
+            if (!this.fileIdCache.has(k)) this.fileIdCache.set(k, v as string);
+          }
+        }
+      }).catch(() => {});
+    }
+    return this._cacheRestorePromise;
+  }
+
+  private _persistCache() {
+    if (typeof chrome === "undefined" || !chrome.storage?.session) return;
+    chrome.storage.session.set({ "drive.fileIdCache": Object.fromEntries(this.fileIdCache) }).catch(() => {});
+  }
+
   // Back-off timestamp to prevent rapid silent-refresh retry loops.
   // Set on silent refresh failure; cleared once 60s have elapsed.
   private _refreshFailureAt = 0;
@@ -557,6 +579,7 @@ class DriveClient {
       for (const [name, id] of this.fileIdCache) {
         if (url.includes(encodeURIComponent(id))) {
           this.fileIdCache.delete(name);
+          this._persistCache();
           console.debug(`[CM:drive] cleared stale fileIdCache entry for ${name}`);
           break;
         }
@@ -568,6 +591,7 @@ class DriveClient {
   /** Locate a file by exact name within the appDataFolder. */
   private async findFile(name: string): Promise<string | null> {
     try {
+      await this._ensureCacheRestored();
       // Check cache first — avoids an API call on every upsert.
       const cached = this.fileIdCache.get(name);
       if (cached) return cached;
@@ -579,7 +603,10 @@ class DriveClient {
       if (!res.ok) return null;
       const json = (await res.json()) as { files?: Array<{ id: string }> };
       const id = json.files?.[0]?.id ?? null;
-      if (id) this.fileIdCache.set(name, id);
+      if (id) {
+        this.fileIdCache.set(name, id);
+        this._persistCache();
+      }
       return id;
     } catch {
       return null;
@@ -620,6 +647,7 @@ class DriveClient {
         // deleted), clear the cache so the next call re-queries Drive.
         if (existingId && res.status === 404) {
           this.fileIdCache.delete(name);
+          this._persistCache();
           console.warn(`[drive] upsert ${name} got 404 — retrying as CREATE`);
           const retryMetadata = { name, parents: ["appDataFolder"] };
           const retryMultipart =
@@ -640,7 +668,10 @@ class DriveClient {
           if (retryRes.ok) {
             try {
               const respJson = await retryRes.json();
-              if (respJson?.id) this.fileIdCache.set(name, respJson.id);
+              if (respJson?.id) {
+                this.fileIdCache.set(name, respJson.id);
+                this._persistCache();
+              }
             } catch { /* ignore */ }
             return;
           }
@@ -652,11 +683,14 @@ class DriveClient {
         // Cache the file ID from the response to skip findFile next time.
         try {
           const respJson = await res.json();
-          if (respJson?.id) this.fileIdCache.set(name, respJson.id);
+          if (respJson?.id) {
+            this.fileIdCache.set(name, respJson.id);
+            this._persistCache();
+          }
         } catch { /* response parsing not critical */ }
       }
     } catch (e) {
-      console.warn(`[drive] upsert ${name} error:`, e);
+      console.warn(`[drive] upsert ${name} error:`, e instanceof Error ? e.message : String(e), e);
     }
   }
 
@@ -803,6 +837,7 @@ class DriveClient {
     if (!res.ok) {
       if (res.status === 404) {
         this.fileIdCache.delete(INDEX_FILE_NAME);
+        this._persistCache();
         return null;
       }
       throw new Error(`downloadIndex: HTTP ${res.status}`);
@@ -870,6 +905,7 @@ class DriveClient {
       );
       console.log(`[CM:drive] wipeAllRemote — deleted: ${deleted}, failed: ${failed}`);
       this.fileIdCache.clear();
+      this._persistCache();
     } catch (e) {
       console.warn("[CM:drive] wipeAllRemote failed:", e);
     }

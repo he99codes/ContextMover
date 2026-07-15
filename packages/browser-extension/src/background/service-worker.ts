@@ -942,7 +942,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
         console.log(`[CM:auth] account switch detected (${prevUserId} → ${newUserId}) — wiping local data`);
         semanticIndex.cancelBackgroundJobs();
         _indexingInFlight.clear();
-        _indexDirty.clear();
+        _indexDirty.clear(); _indexDirtyHash.clear();
         try {
           await new Promise<void>(resolve => {
             chrome.runtime.sendMessage({ type: "CANCEL_ALL_JOBS" }, () => {
@@ -993,7 +993,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       driveSyncManager.resetSyncCooldown();
       semanticIndex.cancelBackgroundJobs();
       _indexingInFlight.clear();
-      _indexDirty.clear();
+      _indexDirty.clear(); _indexDirtyHash.clear();
       try {
         await new Promise<void>(resolve => {
           chrome.runtime.sendMessage({ type: "CANCEL_ALL_JOBS" }, () => {
@@ -1028,15 +1028,19 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         // has its own guard, but this avoids a redundant isConnected
         // call and token refresh attempt.
         if (driveSyncManager.isDriveWiped()) return;
-        // [ISSUE-24] Throttle Drive sync during indexing backlog — IDB locks + SW CPU contention
+        // [ISSUE-24] Throttle Drive sync during indexing backlog — IDB locks + SW CPU contention.
+        // [SYNC-FIX] Old threshold (queueLen > 5) skipped almost every cycle during a post-wipe
+        // bulk re-index, starving sync indefinitely. Tightened to: only skip during an ACTIVE
+        // migration, or when queueLen > 20 (genuine saturation). The starvation guard now
+        // forces a sync after 2 skips (was 3) so a long bulk-index can't block sync > ~2 min.
         const queueLen = semanticIndex.getQueueLength();
-        if (queueLen > 5 || activeMigrationInProgress) {
+        if (activeMigrationInProgress || queueLen > 20) {
           _syncSkipCount++;
-          if (_syncSkipCount >= 3) {
+          if (_syncSkipCount >= 2) {
             console.log(`[CM:sw] drive-sync: forced after ${_syncSkipCount} skips (starvation prevention)`);
             _syncSkipCount = 0;
           } else {
-            console.log(`[CM:sw] drive-sync skipped — indexing backlog (${queueLen}) or migration active (skip #${_syncSkipCount})`);
+            console.log(`[CM:sw] drive-sync skipped — migration active=${activeMigrationInProgress} backlog=${queueLen} (skip #${_syncSkipCount})`);
             return;
           }
         } else {
@@ -1435,6 +1439,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         // [DEEP FIX F] Clear drive-wiped state so user-initiated sync works normally.
         driveSyncManager.clearDriveWipedState();
+        // [PHASE-7-FIX] Re-create periodic sync alarm if it was cleared by WIPE_LOCAL_DATA
+        chrome.alarms.create("drive-sync-periodic", { periodInMinutes: 0.5 });
         const result = await driveSyncManager.pullFromDrive();
         getSessionsCache = null;
         sendResponse({ ok: true, ...result });
@@ -1444,6 +1450,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         // [DEEP FIX F] Clear drive-wiped state so user-initiated sync works normally.
         driveSyncManager.clearDriveWipedState();
+        // [PHASE-7-FIX] Re-create periodic sync alarm if it was cleared by WIPE_LOCAL_DATA
+        chrome.alarms.create("drive-sync-periodic", { periodInMinutes: 0.5 });
         await driveSyncManager.syncBidirectional();
         getSessionsCache = null;
         sendResponse({ ok: true });
@@ -1493,7 +1501,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // Cancel all in-flight indexing.
         semanticIndex.cancelBackgroundJobs();
         _indexingInFlight.clear();
-        _indexDirty.clear();
+        _indexDirty.clear(); _indexDirtyHash.clear();
         _bgIndexCooldown.clear();
         _bgIndexDeferred.clear();
         // Mark Drive as wiped so sync stays blocked.
@@ -1540,7 +1548,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           // stale data overwrites the clean state.
           semanticIndex.cancelBackgroundJobs();
           _indexingInFlight.clear();
-          _indexDirty.clear();
+          _indexDirty.clear(); _indexDirtyHash.clear();
           _bgIndexCooldown.clear();
           _bgIndexDeferred.clear();
           // [BUG-7 FIX] Signal offscreen worker to cancel in-flight batches/indexes before wiping
@@ -1563,10 +1571,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           // The user clicked "Wipe local data" — they want it gone, not
           // immediately re-downloaded. Sessions will re-appear naturally
           // from page captures and the next periodic sync cycle.
-          // [FIX-R] Restart the periodic alarm so normal sync resumes
-          // after the wipe. fullReset() cleared _driveWiped so sync will
-          // work normally.
-          chrome.alarms.create("drive-sync-periodic", { periodInMinutes: 0.5 });
+          // [PHASE-7-FIX] Do NOT auto-restart periodic sync here. This prevents a race
+          // where the alarm fires and re-downloads sessions from Drive before the remote
+          // wipe completes. The alarm will be re-created on next DRIVE_CONNECT or manual sync.
           sendResponse({ ok: true });
         } catch (e) {
           sendResponse({ error: String(e) });
@@ -1745,6 +1752,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           break;
         }
         await db.deleteSession(msg.sessionId);
+        semanticIndex.cancelSessionJobs(msg.sessionId);
+        _indexingInFlight.delete(msg.sessionId);
+        _indexDirty.delete(msg.sessionId);
+        _bgIndexCooldown.delete(msg.sessionId);
+        _bgIndexDeferred.delete(msg.sessionId);
         await forgetSession(msg.sessionId);
         getSessionsCache = null;
         // [T2-FIX] Clean up all IDB artifacts — prevents orphaned chunks/hash/summaries
@@ -1893,45 +1905,34 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           accessToken = stored.accessToken as string | undefined;
         }
 
-        // [DRIVE-LICENSE] Drive pro license = unlimited migrations, skip usage check.
-        const _driveLicense = await chrome.storage.local.get("driveProLicense");
-        if (_driveLicense.driveProLicense === true) {
-          console.log(`[CM:sw] Drive pro license active — skipping usage check for tier ${_tier}`);
+        // [PRO-VERIFIED] First check if user is verified Pro via Drive seat, install ID, or subscription
+        const isProVerified = await verifyUserIsPro(accessToken);
+        if (isProVerified) {
+          console.log(`[CM:sw] Verified Pro seat active — skipping usage check for tier ${_tier}`);
         } else if (accessToken) {
           const usage = await checkMigrationAllowed(_tier, accessToken as string);
           if (!usage.allowed) {
-            sendResponse({
-              success: false,
-              error: "limit_reached",
-              limitData: {
-                tier: _tier,
-                used: usage.used,
-                limit: usage.limit,
-                daysUntilReset: usage.daysUntilReset ?? 0,
-                upgradeUrl: usage.upgradeUrl ?? "https://contextmover.com/pricing",
-              },
-            });
-            break;
-          }
-          // ── Subscription bypass (defense-in-depth) ──────────────────────────
-          // If usage API returned a fallback result (server error, 401 bug, etc.),
-          // confirm the user's plan via the subscription endpoint — which is on a
-          // different auth path and reliably returns 200. Pro users are allowed
-          // through unconditionally; free users fall back to local anon counters.
-          if (usage.fallback) {
-            let isPro = false;
-            try {
-              const subRes = await fetch(`${WEBAPP_URL}/api/payments/subscription`, {
-                headers: { authorization: `Bearer ${accessToken}` },
-                signal: AbortSignal.timeout(4000),
+            const isProDoubleCheck = await verifyUserIsPro(accessToken);
+            if (isProDoubleCheck) {
+              console.log(`[CM:sw] Usage API returned allowed=false but Pro verified — allowing tier ${_tier}`);
+            } else {
+              sendResponse({
+                success: false,
+                error: "limit_reached",
+                limitData: {
+                  tier: _tier,
+                  used: usage.used,
+                  limit: usage.limit,
+                  daysUntilReset: usage.daysUntilReset ?? 0,
+                  upgradeUrl: usage.upgradeUrl ?? "https://contextmover.com/pricing",
+                },
               });
-              if (subRes.ok) {
-                const subData = (await subRes.json()) as { isPro?: boolean };
-                isPro = Boolean(subData.isPro);
-              }
-            } catch { /* network issue — proceed as free */ }
-
-            if (!isPro) {
+              break;
+            }
+          }
+          if (usage.fallback) {
+            const isProFallback = await verifyUserIsPro(accessToken);
+            if (!isProFallback) {
               // Free user with a broken usage API — apply local counters as safety net
               const FREE_LIMITS: Record<number, number> = { 1: 8, 2: 3, 3: 3 };
               const fallbackLimit = FREE_LIMITS[_tier] ?? 3;
@@ -2125,6 +2126,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             void broadcastToViews({ type: "DRIVE_PRO_MISMATCH" } as any);
           }
           // [PERF-M4] Cache the successful response for 60s, keyed by token.
+          await chrome.storage.local.set({ isProUser: _subResponse.isPro });
           _subStatusCache = { token, at: Date.now(), data: _subResponse };
           sendResponse(_subResponse);
         } catch (e) {
@@ -2849,6 +2851,37 @@ async function checkMigrationAllowed(
   return checkUsage(tier, accessToken);
 }
 
+async function verifyUserIsPro(accessToken?: string): Promise<boolean> {
+  const local = await chrome.storage.local.get(["driveProLicense", "isProUser"]);
+  if (local.driveProLicense === true || local.isProUser === true) {
+    return true;
+  }
+  try {
+    const installId = await getInstallId();
+    const cachedDrive = await chrome.storage.local.get("driveEmail");
+    const driveEmail = cachedDrive.driveEmail as string | undefined;
+    const headers: Record<string, string> = {
+      "x-install-id": installId,
+    };
+    if (accessToken) headers.authorization = `Bearer ${accessToken}`;
+    if (driveEmail) headers["x-drive-email"] = driveEmail;
+
+    const subRes = await fetch(`${WEBAPP_URL}/api/payments/subscription`, {
+      headers,
+      signal: AbortSignal.timeout(4000),
+    });
+    if (subRes.ok) {
+      const subData = (await subRes.json()) as { isPro?: boolean };
+      if (Boolean(subData.isPro)) {
+        await chrome.storage.local.set({ isProUser: true });
+        return true;
+      }
+    }
+  } catch { /* network issue */ }
+  return false;
+}
+
+
 // ── Handlers ───────────────────────────────────────────────────────────────────
 async function handleCaptureSession(payload: {
   platform: string;
@@ -2893,7 +2926,25 @@ async function handleCaptureSession(payload: {
   // Network captures (source: 'fetch-intercept') carry authoritative full
   // history from the API and are always allowed to overwrite.
   const isNetworkCapture = payload.source === 'fetch-intercept';
-  if (shouldRejectIncoming(payload.messages.length, bestKnown, isNetworkCapture)) {
+  // [PHASE-5-FIX] Downgrade authority of network captures with suspicious titles.
+  // A JWT/base64 token or auth-state title means the fetch-interceptor grabbed an
+  // auth endpoint response, not a real conversation history. Treat it as a regular
+  // (non-authoritative) capture so the count guard in shouldRejectIncoming applies.
+  const isSuspiciousTitle = Boolean(
+    payload.title && (
+      // Base64 / JWT pattern — long token string
+      /^[A-Za-z0-9+/=_-]{40,}$/.test(payload.title.trim()) ||
+      // JWT three-part structure (header.payload.signature)
+      /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(payload.title.trim()) ||
+      // Starts with "ey" — standard base64url JWT prefix
+      /^ey[A-Za-z0-9_-]{20,}/.test(payload.title.trim())
+    )
+  );
+  const effectiveIsNetworkCapture = isNetworkCapture && !isSuspiciousTitle;
+  if (isSuspiciousTitle && isNetworkCapture) {
+    console.warn(`[CM:sw] CAPTURE_SESSION: suspicious title detected on network capture — downgrading authority (title=${payload.title?.slice(0, 40)}...)`);
+  }
+  if (shouldRejectIncoming(payload.messages.length, bestKnown, effectiveIsNetworkCapture)) {
     // DOM scrape is smaller (virtual scroll eviction), but may contain NEW
     // messages not yet in the stored snapshot. Merge by content fingerprint
     // instead of discarding — appends any genuinely new messages.
@@ -3071,6 +3122,11 @@ const _indexingInFlight = new Set<string>();
 // already running. We re-enqueue these ONCE after the in-flight job completes,
 // so newly-captured messages aren't silently dropped from the embeddings.
 const _indexDirty = new Set<string>();
+// [PHASE-1-FIX] Tracks the session hash at the time _indexDirty was set.
+// After a priority index completes during migration, the bg dirty path compares
+// this saved hash against the current session hash — if equal AND chunks exist,
+// the re-index is skipped entirely (priority already did the work).
+const _indexDirtyHash = new Map<string, string>();
 // [T2-FIX] Cooldown map to prevent duplicate backgroundIndex re-queues.
 const _bgIndexCooldown = new Map<string, number>();
 // [PERF-M3] Sessions with a deferred re-index timer pending — ensures only one
@@ -3237,6 +3293,9 @@ async function backgroundIndex(session: ContextSession): Promise<void> {
     // re-index requests that flood the queue after bulk index completes.
     if (!_bulkIndexActive) {
       _indexDirty.add(session.id);
+      // [PHASE-1-FIX] Snapshot the current hash at cancellation time so the dirty
+      // re-index path can detect if the priority index already covered this content.
+      _indexDirtyHash.set(session.id, hashMessages(session.messages));
       console.log(`[CM:sw:bgIdx] in-flight for ${session.id} — marked dirty for re-index`);
     }
     await dexieDb.pendingIndex.delete(session.id).catch(() => {});
@@ -3426,14 +3485,19 @@ async function backgroundIndex(session: ContextSession): Promise<void> {
             const currentHash = hashMessages(fresh.messages);
             const storedHash = await dexieDb.sessionHashes.get(fresh.id);
             const chunkCount = await dexieDb.chunkEmbeddings.where('sessionId').equals(fresh.id).count();
-            if (storedHash && storedHash.hash === currentHash && chunkCount > 0) {
-              if (!storedHash.isComplete) {
+            // [PHASE-1-FIX] If the hash at cancellation time matches the current hash
+            // AND chunks already exist, the priority index (T3 migration) already embedded
+            // this content. Skip the redundant full re-index that causes the 100s×2 thrash.
+            const dirtySnapshotHash = _indexDirtyHash.get(fresh.id);
+            _indexDirtyHash.delete(fresh.id);
+            const priorityAlreadyCovered = dirtySnapshotHash === currentHash && chunkCount > 0;
+            if (priorityAlreadyCovered || (storedHash && storedHash.hash === currentHash && chunkCount > 0)) {
+              if (storedHash && !storedHash.isComplete) {
                 await dexieDb.sessionHashes.where('sessionId').equals(fresh.id).modify({ isComplete: true }).catch(() => {});
               }
-              console.log(`[CM:sw:bgIdx] ${session.id} dirty flag stale (hash unchanged, ${chunkCount} chunks) — clearing without re-index`);
+              console.log(`[CM:sw:bgIdx] ${session.id} dirty flag cleared — ${priorityAlreadyCovered ? 'priority index already covered this content' : 'hash unchanged'} (${chunkCount} chunks) — skipping re-index`);
             } else {
               // [ISSUE-6] Hash actually changed — re-index is necessary.
-              // The existing hash check prevents unnecessary full re-indexing.
               console.log(`[CM:sw:bgIdx] re-indexing ${session.id} (dirty — hash changed, ${fresh.messages.length} msgs)`);
               await dexieDb.sessionHashes.where('sessionId').equals(session.id).modify({ isComplete: false }).catch(() => {});
               void backgroundIndex(fresh).catch(() => {});
@@ -3447,6 +3511,15 @@ async function backgroundIndex(session: ContextSession): Promise<void> {
       try {
         if (!(await driveClient.isConnected())) {
           console.log(`[CM:sw:bgIdx] Drive not connected — skipping hash upload for ${session.id}`);
+          return;
+        }
+        const sessionExists = await db.getSession(session.id).catch(() => null);
+        if (!sessionExists) {
+          console.log(`[CM:sw:bgIdx] session ${session.id} no longer exists in DB — skipping hash upload`);
+          return;
+        }
+        if (driveSyncManager.isTombstoned(session.id)) {
+          console.log(`[CM:sw:bgIdx] session ${session.id} is tombstoned — skipping hash upload`);
           return;
         }
         // [FIX-2] Skip chunk upload — only upload session hash (small JSON).
@@ -3776,7 +3849,7 @@ async function handleMigrateContext(
   // [ISSUE-12] Pause background indexing (preserves queue for resume after migration)
   semanticIndex.pauseBackgroundJobs();
   _indexingInFlight.clear();
-  _indexDirty.clear();
+  _indexDirty.clear(); _indexDirtyHash.clear();
   // [DEDUP-FIX] Do NOT clear _priorityIndexPromise here. Clearing it meant a
   // migration retry could not await an in-flight priority index for the same
   // session, so indexRemainingChunksPriority would spawn a SECOND concurrent
@@ -4000,8 +4073,15 @@ async function handleMigrateContext(
           const coveragePct = Math.round((chunkCount / session.messages.length) * 100);
           console.log(`[CM:sw] T3 — partial chunks (${chunkCount}/${session.messages.length} msgs, ${coveragePct}% coverage) — forcing priority index to complete`);
           reportProgress(30, `Completing index (${coveragePct}% done)...`);
+          // [ADAPTIVE-TIMEOUT] Proportional timeout: 6s base + 100ms per chunk over 50.
+          // 50 chunks → 6s, 100 chunks → 11s, 200 chunks → 21s.
+          // Prevents timeout on medium sessions where ONNX queue drain adds ~100ms/sub-batch.
+          const partialIndexTimeoutMs = 6000 + Math.max(0, chunkCount - 50) * 100;
           try {
-            await indexRemainingChunksPriority(session, checkpoint);
+            await Promise.race([
+              indexRemainingChunksPriority(session, checkpoint),
+              new Promise<never>((_, reject) => setTimeout(() => reject(new Error('priority_index_timeout')), partialIndexTimeoutMs))
+            ]);
             isFullyIndexed = true; checkpoint = 0;
             console.log(`[CM:sw] T3 — priority indexing completed for ${session.id}`);
           } catch (idxErr) {
@@ -4030,11 +4110,16 @@ async function handleMigrateContext(
             // then continue with Tier 3. The user stays in the Attention lane they chose.
             console.log(`[CM:sw] T3 — session not indexed (${session.messages.length} msgs). Starting priority index instead of Tier 1 fallback.`);
             reportProgress(35, `Indexing session (${session.messages.length} messages)…`);
+            // [ADAPTIVE-TIMEOUT] Proportional timeout — same formula as partial path.
+            const fullIndexTimeoutMs = 6000 + Math.max(0, session.messages.length - 50) * 100;
             try {
-              await indexRemainingChunksPriority(session, session.messages.length, (done, total) => {
-                const pct = Math.round((done / Math.max(total, 1)) * 35) + 35; // 35–70%
-                reportProgress(pct, 'Indexing for Attention Engine…');
-              });
+              await Promise.race([
+                indexRemainingChunksPriority(session, session.messages.length, (done, total) => {
+                  const pct = Math.round((done / Math.max(total, 1)) * 35) + 35; // 35–70%
+                  reportProgress(pct, 'Indexing for Attention Engine…');
+                }),
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('priority_index_timeout')), fullIndexTimeoutMs))
+              ]);
               isFullyIndexed = true; checkpoint = 0;
               console.log(`[CM:sw] T3 — priority index complete for ${session.id}, proceeding to retrieve`);
             } catch (idxErr) {

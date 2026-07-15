@@ -24,10 +24,13 @@ getOverridesForPlatform("grok").then((o) => { _localOverrides = o; }).catch(() =
 // Per-element streaming guard — skips messages still being generated so we
 // don't persist half-complete assistant output.
 function isStreaming(el: Element): boolean {
+  // [PHASE-4-FIX] Removed bare .loading class check — Grok's skeleton/composer
+  // loaders carry .loading on ancestor containers, which was incorrectly marking
+  // completed adjacent messages as streaming and filtering them out.
+  // Only check data-streaming attr, .streaming class, and CHILD indicator elements.
   const hasMarker = (
     el.getAttribute('data-streaming') === 'true' ||
     el.classList.contains('streaming') ||
-    el.classList.contains('loading') ||
     el.querySelector('[data-streaming="true"], .streaming-indicator, .loading-indicator') !== null
   )
   if (!hasMarker) return false
@@ -74,6 +77,69 @@ function scrapeMessages(): Message[] {
     }
   }
 
+  // ── Strategy 0: Direct structural layout (Grok 2026) ───────────────────
+  if (!hasUser() || found.length < 2) {
+    const scrollContainer = document.querySelector('main div.overflow-y-auto');
+    if (scrollContainer) {
+      const chatWrapper = scrollContainer.firstElementChild;
+      if (chatWrapper) {
+        const tempFound: Array<{ el: Element; role: 'user' | 'assistant' }> = [];
+        for (const row of Array.from(chatWrapper.children)) {
+          // Skip non-message chrome (composer, suggestions, banners).
+          const rowText = (row.textContent || '').trim();
+          if (rowText.length === 0 || row.querySelector('form, input, textarea')) continue;
+
+          // [GROK-MERGE-FIX] A Grok chat row is a flex container that holds ONE
+          // message bubble. But during capture the DOM can transiently contain a
+          // row that wraps BOTH a user bubble and an assistant reply (e.g. a
+          // streaming exchange that hasn't been split into separate rows yet).
+          // Treating such a row as a single message merges the two roles' text.
+          //
+          // Heuristic: count direct children whose own textContent is substantial
+          // (>20 chars). A clean single-message row has exactly one such child
+          // (the bubble). A merged row has >=2. Skip merged rows — Strategy 5/6
+          // will pick up the individual bubbles via [class*="message-bubble"].
+          const substantiveChildren = Array.from(row.children).filter(child => {
+            const t = (child.textContent || '').trim();
+            return t.length > 20;
+          });
+          if (substantiveChildren.length > 1) {
+            continue; // merged row — let later strategies handle the bubbles
+          }
+
+          // Classify by alignment. User messages in Grok are right-aligned
+          // (Tailwind items-end / justify-end / self-end); assistant is left.
+          const target = substantiveChildren[0] ?? row;
+          const cls = target.className.toString();
+          let isUser = /items-end|justify-end|self-end/.test(cls);
+          if (!isUser) {
+            const cs = window.getComputedStyle(target as HTMLElement);
+            isUser = cs.alignItems === 'flex-end' || cs.justifyContent === 'flex-end' || cs.alignSelf === 'flex-end';
+          }
+          // [ROLE-CONFIRM] Guard: if alignment says "user" but the element
+          // contains assistant-only markers (prose, copy/regenerate buttons,
+          // action rows), reclassify as assistant. This prevents merged rows
+          // where a user bubble and an adjacent action bar share one container.
+          if (isUser) {
+            const hasAssistantMarkers =
+              target.querySelector('.prose, [class*="prose"], [class*="markdown"]') !== null ||
+              target.querySelector(
+                '[aria-label*="copy" i], [aria-label*="regenerate" i], ' +
+                '[aria-label*="like" i], [aria-label*="dislike" i], ' +
+                '[aria-label*="retry" i]'
+              ) !== null;
+            if (hasAssistantMarkers) isUser = false;
+          }
+          tempFound.push({ el: target, role: isUser ? 'user' : 'assistant' });
+        }
+        if (tempFound.length > 0) {
+          tempFound.forEach(c => found.push(c));
+          console.log(`[CM:diag:grok] S0 structural: user=${tempFound.filter(e=>e.role==='user').length} asst=${tempFound.filter(e=>e.role==='assistant').length}`);
+        }
+      }
+    }
+  }
+
   // ── Strategy 1: data-testid role attributes — primary 2026 Grok pattern ─
   if (!hasUser()) {
     // Probe confirmed these exact selectors work: data-testid="user-message" and "assistant-message"
@@ -82,7 +148,12 @@ function scrapeMessages(): Message[] {
     const uEls = queryOutermost(uS1)
     const aEls = queryOutermost(aS1)
     uEls.forEach(el => found.push({ el, role: 'user' }))
-    if (!hasAsst()) aEls.forEach(el => found.push({ el, role: 'assistant' }))
+    // [PHASE-4-FIX] Replaced broad !hasAsst() guard with element-level dedup.
+    // Old guard silently dropped all S1 assistant elements if ANY assistant was
+    // already found from a previous strategy, causing under-counting when strategies
+    // partially overlap. Now we only skip elements already in the found set.
+    const foundEls1 = new Set(found.map(f => f.el))
+    aEls.filter(el => !foundEls1.has(el)).forEach(el => found.push({ el, role: 'assistant' }))
     console.log(`[CM:diag:grok] S1 testid: user=${uEls.length} asst=${aEls.length}`)
   }
 
@@ -129,7 +200,9 @@ function scrapeMessages(): Message[] {
   // If structural classification yields 0 user, fall back to alternating position.
   if (!hasUser() || found.length < 2) {
     const bubbles = [...document.querySelectorAll('[class*="message-bubble"]')]
-      .filter(el => !isStreaming(el) && (el.textContent?.trim().length ?? 0) > 10)
+      // [PHASE-4-FIX] Lowered min-length from 10 → 3 so short user messages
+      // like "ok", "yes", "sure", "go" are not silently filtered out.
+      .filter(el => !isStreaming(el) && (el.textContent?.trim().length ?? 0) > 3)
     const foundEls = new Set(found.map(f => f.el))
     const newFound: Array<{ el: Element; role: 'user' | 'assistant' }> = []
 
@@ -159,7 +232,16 @@ function scrapeMessages(): Message[] {
       } else if (hasProse || hasCode || hasActions || hasAssistantAria || hasMarkdown) {
         newFound.push({ el, role: 'assistant' })
       } else if (isShort) {
-        newFound.push({ el, role: 'user' })
+        // [ROLE-ALT-FIX] Short text with no structural cues — use DOM-order
+        // alternation instead of blindly defaulting to 'user'. A short
+        // assistant message like "Done." or "Yes." was previously misclassified
+        // as user. Track the last classified role; if the previously classified
+        // bubble (in DOM order) was assistant, this is likely user (and vice versa).
+        // This maintains the chat turn alternation invariant.
+        const prevRole = newFound.length > 0
+          ? newFound[newFound.length - 1].role
+          : (hasUser() ? 'assistant' : 'user');
+        newFound.push({ el, role: prevRole === 'assistant' ? 'user' : 'assistant' })
       } else {
         newFound.push({ el, role: 'assistant' })
       }
@@ -181,6 +263,93 @@ function scrapeMessages(): Message[] {
     const u = found.filter(e => e.role === 'user').length
     const a = found.filter(e => e.role === 'assistant').length
     console.log(`[CM:diag:grok] S5 message-bubble: user=${u} asst=${a}`)
+  }
+
+  // ── Strategy 6: Container-child classification (obfuscated DOM) ─────────
+  // When ALL named selectors fail (Grok fully obfuscated their class names),
+  // find the scrollable chat container and classify its direct children by
+  // structural cues: action buttons, prose/markdown, text length, alignment.
+  if (found.length < 2) {
+    const containers = [...document.querySelectorAll('main, [role="main"]')]
+    let chatRoot: Element | null = null
+    for (const c of containers) {
+      // The chat container is the scrollable element with many children
+      if (c.children.length >= 2) { chatRoot = c; break }
+    }
+    // Fallback: find the deepest scrollable container with >2 substantive children
+    if (!chatRoot) {
+      const scrollables = [...document.querySelectorAll('*')].filter(el => {
+        const cs = getComputedStyle(el)
+        return (cs.overflowY === 'auto' || cs.overflowY === 'scroll') &&
+               el.scrollHeight > el.clientHeight + 50 &&
+               el.children.length >= 1
+      })
+      // Pick the one with the most direct children with substantial text
+      for (const sc of scrollables) {
+        let targets = [...sc.children]
+        if (targets.length === 1 && targets[0].children.length > 0) {
+          targets = [...targets[0].children]
+        }
+        const substantialChildren = targets.filter(
+          child => (child.textContent?.trim().length ?? 0) > 20
+        )
+        if (substantialChildren.length >= 2) {
+          chatRoot = targets[0].parentElement
+          break
+        }
+      }
+    }
+
+    if (chatRoot) {
+      const foundEls = new Set(found.map(f => f.el))
+      const candidates = [...chatRoot.children]
+        .filter(el => !foundEls.has(el) && (el.textContent?.trim().length ?? 0) > 10 && !isStreaming(el))
+
+      const classified: Array<{ el: Element; role: 'user' | 'assistant' }> = []
+
+      for (const el of candidates) {
+        const text = (el.textContent ?? '').trim()
+        if (text.length < 5) continue
+        // Skip nav, header, footer, form elements
+        const tag = el.tagName.toLowerCase()
+        if (['nav', 'header', 'footer', 'form', 'aside'].includes(tag)) continue
+
+        const hasProse = el.querySelector('.prose, [class*="prose"], .markdown, [class*="markdown"]') !== null
+        const hasCode = el.querySelector('pre code, pre, code') !== null
+        const hasActions = el.querySelector(
+          '[aria-label*="copy" i], [aria-label*="regenerate" i], ' +
+          '[aria-label*="like" i], [aria-label*="dislike" i], ' +
+          '[aria-label*="share" i], [aria-label*="retry" i], ' +
+          'button svg, [class*="action"]'
+        ) !== null
+        const hasMarkdown = /^#{1,3}\s|\*\*[^*]|```|^\d+\.\s/m.test(text)
+        const cs = getComputedStyle(el)
+        const isRight = cs.marginLeft === 'auto' || cs.justifySelf === 'end' || cs.alignSelf === 'flex-end'
+        const isLong = text.length > 300
+
+        if (isRight && !hasProse && !hasCode && !hasActions) {
+          classified.push({ el, role: 'user' })
+        } else if (hasProse || hasCode || hasActions || hasMarkdown || isLong) {
+          classified.push({ el, role: 'assistant' })
+        } else if (text.length < 500 && !hasActions) {
+          classified.push({ el, role: 'user' })
+        } else {
+          classified.push({ el, role: 'assistant' })
+        }
+      }
+
+      // If no user messages found, use alternating position
+      if (classified.length >= 2 && !classified.some(c => c.role === 'user') && !hasUser()) {
+        classified.sort((a, b) =>
+          a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+        )
+        classified.forEach((c, i) => { c.role = i % 2 === 0 ? 'user' : 'assistant' })
+        console.log('[CM:diag:grok] S6 alternating-position fallback')
+      }
+
+      classified.forEach(c => found.push(c))
+      console.log(`[CM:diag:grok] S6 container-child: found=${classified.length} user=${classified.filter(e=>e.role==='user').length} asst=${classified.filter(e=>e.role==='assistant').length}`)
+    }
   }
 
   const u = found.filter(e => e.role === 'user').length
@@ -220,9 +389,10 @@ function scrapeMessages(): Message[] {
 
 startSessionCapture({
   platform: "grok",
-  selectorOrElement: () => _remoteSelectors?.observerTarget ?? document.body,
+  selectorOrElement: () => _remoteSelectors?.observerTarget ?? document.body ?? document.documentElement,
   scrapeMessages: () => runCapturePipeline("grok", scrapeMessages),
   requiresScrollBack: true,
+  scrollBackStrategy: 'step',
   // [ISSUE-5-grok] Add scroll container selector for scrollback
   getScrollContainerSelector: () => _remoteSelectors?.scrollContainer ?? 'main, [class*="scroll"], [class*="chat"]',
   extraCaptureDelays: [1500, 3000],

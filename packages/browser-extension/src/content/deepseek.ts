@@ -228,7 +228,7 @@ function scrapeMessages(): Message[] {
 
 startSessionCapture({
   platform: "deepseek",
-  selectorOrElement: () => _remoteSelectors?.observerTarget ?? document.body,
+  selectorOrElement: () => _remoteSelectors?.observerTarget ?? document.body ?? document.documentElement,
   scrapeMessages: () => runCapturePipeline("deepseek", scrapeMessages),
   getTitle: getDeepSeekTitle,
   requiresScrollBack: true,

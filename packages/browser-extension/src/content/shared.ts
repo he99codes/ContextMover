@@ -149,7 +149,7 @@ export function createObserver(
 function getDebugSnippet(): string {
   const mainEl = document.querySelector('main, [role="main"]');
   if (mainEl) return mainEl.outerHTML.slice(0, 5000);
-  return document.body.outerHTML.slice(0, 5000);
+  return (document.body || document.documentElement).outerHTML.slice(0, 5000);
 
 }
 
@@ -438,7 +438,7 @@ export function startSessionCapture(config: {
     } else if (config.platform === 'claude') {
       if (!/\/chat\//.test(window.location.href)) return;
     } else if (config.platform === 'grok') {
-      if (!/grok\.com\/(chat|conversation)\/[a-zA-Z0-9-]+/.test(window.location.href)) return;
+      if (!/grok\.com\/(chat|conversation|c)\/[a-zA-Z0-9-]+/.test(window.location.href)) return;
     } else if (config.platform === 'perplexity') {
       if (!/\/search\//.test(window.location.href)) return;
     } else if (config.platform === 'gemini') {
@@ -794,7 +794,7 @@ export function startSessionCapture(config: {
         : config.selectorOrElement;
       const scopeEl: Element =
         typeof _resolvedSO === 'string'
-          ? (document.querySelector(_resolvedSO) ?? document.body)
+          ? (document.querySelector(_resolvedSO) ?? document.body ?? document.documentElement)
           : _resolvedSO
       try {
         isScrollbackInProgress = true;

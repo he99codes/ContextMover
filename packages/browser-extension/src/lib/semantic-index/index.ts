@@ -476,6 +476,7 @@ let _bgPaused = false;
 // When migration starts, we signal this to instantly abort any running bg job
 // so the queue can drain to priority jobs without waiting for bg timeout.
 let _migrationAbort: AbortController | null = null;
+let _currentRunningSessionId: string | null = null;
 // [CM-FIX-B] Session-level in-flight lock — prevents two concurrent index jobs
 // for the same session (e.g. backgroundIndex + attentionEngine.indexSession
 // both firing simultaneously, doubling ml-worker ONNX load).
@@ -806,40 +807,45 @@ export class SemanticIndex {
           _migrationAbort = null;
         }
         try {
-          // [CM-MIGRATION-PRIORITY] If this bg job was already aborted, skip it
-          if (job.priority === 'background' && _migrationAbort?.signal.aborted) {
-            // [CM-PAUSE-REQUEUE] Re-add to queue front instead of rejecting so it
-            // resumes when resumeBackgroundJobs() is called after migration completes.
-            _backgroundQueue.unshift(job);
-            continue;
+          _currentRunningSessionId = job.session.id;
+          try {
+            // [CM-MIGRATION-PRIORITY] If this bg job was already aborted, skip it
+            if (job.priority === 'background' && _migrationAbort?.signal.aborted) {
+              // [CM-PAUSE-REQUEUE] Re-add to queue front instead of rejecting so it
+              // resumes when resumeBackgroundJobs() is called after migration completes.
+              _backgroundQueue.unshift(job);
+              continue;
+            }
+            broadcastIndexStatus({
+              active: true,
+              // [CM-QUEUE-FIX] Only include background jobs in queued count when actually
+              // running a background job. When a priority migration is active, paused
+              // background jobs are NOT waiting — they're suspended until migration completes.
+              // Showing their count was causing the misleading "N sessions in queue — migration
+              // will start after indexing" warning even though the migration was already running.
+              queued: job.priority === 'priority'
+                ? _priorityQueue.length
+                : _priorityQueue.length + _backgroundQueue.length,
+              sessionId: job.session.id,
+              progress: 0,
+              stage: job.priority === "priority" ? "Indexing (priority)..." : "Indexing in background...",
+            });
+            await this._runIndexJob(job);
+            job.resolve();
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            // [CM-PAUSE-REQUEUE] If a background job was aborted/cancelled for migration,
+            // re-add it to the queue front so it resumes after migration instead of being lost.
+            if (job.priority === 'background' && errMsg.includes('cancelled_for_migration')) {
+              console.log(`[CM:queue] bg job ${job.session.id} paused for migration — re-queuing for resume`);
+              _backgroundQueue.unshift(job); // Put back at front so it runs first on resume
+              // Don't call job.reject() — the promise stays pending until resume
+            } else {
+              job.reject(err);
+            }
           }
-          broadcastIndexStatus({
-            active: true,
-            // [CM-QUEUE-FIX] Only include background jobs in queued count when actually
-            // running a background job. When a priority migration is active, paused
-            // background jobs are NOT waiting — they're suspended until migration completes.
-            // Showing their count was causing the misleading "N sessions in queue — migration
-            // will start after indexing" warning even though the migration was already running.
-            queued: job.priority === 'priority'
-              ? _priorityQueue.length
-              : _priorityQueue.length + _backgroundQueue.length,
-            sessionId: job.session.id,
-            progress: 0,
-            stage: job.priority === "priority" ? "Indexing (priority)..." : "Indexing in background...",
-          });
-          await this._runIndexJob(job);
-          job.resolve();
-        } catch (err) {
-          const errMsg = err instanceof Error ? err.message : String(err);
-          // [CM-PAUSE-REQUEUE] If a background job was aborted/cancelled for migration,
-          // re-add it to the queue front so it resumes after migration instead of being lost.
-          if (job.priority === 'background' && errMsg.includes('cancelled_for_migration')) {
-            console.log(`[CM:queue] bg job ${job.session.id} paused for migration — re-queuing for resume`);
-            _backgroundQueue.unshift(job); // Put back at front so it runs first on resume
-            // Don't call job.reject() — the promise stays pending until resume
-          } else {
-            job.reject(err);
-          }
+        } finally {
+          _currentRunningSessionId = null;
         }
 
 
@@ -859,6 +865,18 @@ export class SemanticIndex {
   private async _runIndexJob(job: IndexJob): Promise<void> {
     const { session, onProgress } = job;
     const hw = await getHardwareProfile();
+
+    // [PHASE-3-FIX] For background jobs only: skip the full offscreenIndex call if
+    // the session is already fully indexed (e.g. a priority index completed it during
+    // a Tier 3 migration while this bg job was paused in the queue).
+    // Priority jobs are NOT guarded — they are user-triggered and must always run.
+    if (job.priority === 'background') {
+      const alreadyIndexed = !(await this.needsIndexing(session).catch(() => true));
+      if (alreadyIndexed) {
+        console.log(`[CM:index] ${session.id}: already indexed — skipping bg re-index (priority covered it)`);
+        return;
+      }
+    }
 
     const wrappedProgress = (pct: number, stage: string) => {
       onProgress?.(pct, stage);
@@ -1332,6 +1350,49 @@ export class SemanticIndex {
     }
     _indexingSessionLock.delete(sessionId);
     console.log(`[CM:queue] Cancelled priority index for ${sessionId}`);
+  }
+
+  cancelSessionJobs(sessionId: string): void {
+    let cancelledBg = 0;
+    let cancelledPriority = 0;
+    // 1. Remove from background queue
+    for (let i = _backgroundQueue.length - 1; i >= 0; i--) {
+      if (_backgroundQueue[i].session.id === sessionId) {
+        const job = _backgroundQueue.splice(i, 1)[0];
+        _indexingSessionLock.delete(sessionId);
+        job.reject(new Error('cancelled_for_deletion'));
+        cancelledBg++;
+      }
+    }
+    // 2. Remove from priority queue
+    for (let i = _priorityQueue.length - 1; i >= 0; i--) {
+      if (_priorityQueue[i].session.id === sessionId) {
+        const job = _priorityQueue.splice(i, 1)[0];
+        _indexingSessionLock.delete(sessionId);
+        job.reject(new Error('cancelled_for_deletion'));
+        cancelledPriority++;
+      }
+    }
+    // 3. Abort the currently running job if it matches sessionId
+    if (_currentRunningSessionId === sessionId) {
+      if (_migrationAbort) {
+        _migrationAbort.abort();
+        _migrationAbort = null;
+      }
+      if (_bgIndexRequestId) {
+        chrome.runtime.sendMessage({ type: 'OFFSCREEN_CANCEL_BATCH', requestId: _bgIndexRequestId }).catch(() => {});
+        _bgIndexRequestId = null;
+      }
+      if (_priorityIndexRequestId) {
+        chrome.runtime.sendMessage({ type: 'OFFSCREEN_CANCEL_BATCH', requestId: _priorityIndexRequestId }).catch(() => {});
+        _priorityIndexRequestId = null;
+      }
+      _indexingSessionLock.delete(sessionId);
+      console.log(`[CM:queue] Aborted running index job for ${sessionId}`);
+    }
+    if (cancelledBg > 0 || cancelledPriority > 0) {
+      console.log(`[CM:queue] Cancelled queued jobs for ${sessionId}: bg=${cancelledBg}, priority=${cancelledPriority}`);
+    }
   }
 
   async resetOffscreenDoc(): Promise<void> {

@@ -43,8 +43,11 @@ export function pickBestKnown<T extends CaptureLike>(
  * complete known snapshot.
  *
  * Rules:
- *   • A network capture (source === 'fetch-intercept') is authoritative and is
- *     never rejected — it carries full API history.
+ *   • A network capture (source === 'fetch-intercept') is normally authoritative
+ *     and carries full API history — BUT only if it has at least as many messages
+ *     as the best known snapshot. A 1-msg auth/JWT intercept is NOT authoritative.
+ *   • [PHASE-5-FIX] If isNetworkCapture but incomingCount < bestKnown.messages.length,
+ *     reject it — it is a lossy/partial intercept, not a full API history response.
  *   • Otherwise, reject the incoming capture when it has STRICTLY FEWER messages
  *     than the best known snapshot (a shrunken DOM scrape).
  *   • Equal or greater counts are always accepted.
@@ -54,8 +57,11 @@ export function shouldRejectIncoming(
   bestKnown: CaptureLike | null,
   isNetworkCapture: boolean
 ): boolean {
-  if (isNetworkCapture) return false;
   if (!bestKnown) return false;
+  // [PHASE-5-FIX] Network captures are authoritative only when they have >= messages.
+  // A 1-msg auth intercept (JWT title, session-state endpoint) must not clobber
+  // a fuller DOM snapshot. Apply the same count guard regardless of source.
+  if (isNetworkCapture && incomingCount >= bestKnown.messages.length) return false;
   return incomingCount < bestKnown.messages.length;
 }
 

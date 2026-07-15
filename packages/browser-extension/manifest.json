@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Context Mover",
+    "name": "Context Mover - AI Chat Mover",
     "version": "1.0.4",
     "description": "Never lose coding context again. One layer. Any agent. Zero friction.",
     "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlDj+Fa6rC3tqq3t3S08hPWdLm0MO37tEnqbLRLuHLBYX9EsdcUiRlipAPPdNArGkFnkPxLS+9cUCrRoVSmrUDDt9GR3geRHPqbp3q12ArV+iWvfSO4d2i4hDZEWaZXocmMkTMHkji7CQ56J98aH+nsULsuTzdvHkdaacdE52xqcVOwtRQv68te7WTBXJTpvo3XjanxXiYeWErGZGapvqHYOZRTkPNNtb70crlJxIwv4zm3ZqVbug53vz71LpEFJ8K/obT9vnC4SIeK8NOUNPOdJYFT+YkAv7s6kK91/5DQ7g1HFyRzxCLcOjdT7a1dwHncDd/8Ov/GYONn/hgRdxmwIDAQAB",
@@ -32,13 +32,12 @@
         "https://grok.x.ai/*",
         "https://www.perplexity.ai/*",
         "https://chat.deepseek.com/*",
-        "https://contextmover.com/*",
-        "https://*.contextmover.com/*",
-        "https://huggingface.co/*",
-        "https://*.huggingface.co/*",
-        "https://cdn.jsdelivr.net/*",
-        "https://www.googleapis.com/*",
-        "https://accounts.google.com/*",
+        "https://contextmover.com/extension-version.json",
+        "https://contextmover.com/api/scraper-admin/configs",
+        "https://www.contextmover.com/*",
+        "https://www.googleapis.com/drive/*",
+        "https://www.googleapis.com/upload/drive/*",
+        "https://www.googleapis.com/oauth2/*",
         "https://*.supabase.co/*"
     ],
     "background": {

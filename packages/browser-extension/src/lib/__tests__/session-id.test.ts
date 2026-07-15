@@ -47,6 +47,15 @@ describe("urlKeyFromHref", () => {
       expect(key).not.toContain("rid=");
     });
 
+    it("handles Grok /c/ UUID path (2026 URL format)", () => {
+      const key = urlKeyFromHref(
+        "grok",
+        "https://grok.com/c/cc7539f3-88b4-46a4-aaeb-decbc8ddd050?rid=3f456731-f3c0-468f-895d-e8cc830d05bf"
+      );
+      expect(key).not.toContain("rid=");
+      expect(key).toBe("grok::grok.com/c/cc7539f3-88b4-46a4-aaeb-decbc8ddd050");
+    });
+
     it("strips model params for ChatGPT, keeping conversation ID", () => {
       const key = urlKeyFromHref(
         "chatgpt",

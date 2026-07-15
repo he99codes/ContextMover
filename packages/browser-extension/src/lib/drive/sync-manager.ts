@@ -35,11 +35,13 @@ import { db, dexieDb, type SessionHash } from "@/lib/db";
 import { driveClient, type DriveIndex, type DriveSessionIndexEntry } from "./drive-client";
 import type { ContextSession } from "@/lib/types";
 import { recordPerf } from "@/lib/perf-track";
+import { semanticIndex } from "@/lib/semantic-index";
 
 const PROFILE_ID_KEY = "drive.profileId";
 const SOURCED_IDS_KEY = "drive.sourcedIds";
 const LAST_SYNC_AT_KEY = "drive.lastSyncAt";
 const LAST_SYNC_COUNT_KEY = "drive.lastSyncCount";
+const DRIVE_WIPED_KEY = "cm:driveWiped";
 
 const DEBOUNCE_MS = 1_500; // 1.5s — group rapid captures but sync fast
 const MAX_WAIT_MS = 3_000; // Hard cap: fire after 3s regardless of ongoing captures
@@ -211,6 +213,7 @@ class DriveSyncManager {
         SOURCED_IDS_KEY,
         LAST_SYNC_AT_KEY,
         LAST_SYNC_COUNT_KEY,
+        DRIVE_WIPED_KEY,
       ]);
       this.cachedProfileId = typeof got[PROFILE_ID_KEY] === "string" ? got[PROFILE_ID_KEY] : null;
       this.cachedSourcedIds = Array.isArray(got[SOURCED_IDS_KEY])
@@ -218,8 +221,9 @@ class DriveSyncManager {
         : null;
       this.cachedLastSyncAt = typeof got[LAST_SYNC_AT_KEY] === "number" ? got[LAST_SYNC_AT_KEY] : null;
       this.cachedLastSyncCount = typeof got[LAST_SYNC_COUNT_KEY] === "number" ? got[LAST_SYNC_COUNT_KEY] : null;
+      this._driveWiped = Boolean(got[DRIVE_WIPED_KEY]);
       this.cacheWarmupDone = true;
-      console.log("[drive-sync] cache warmed up");
+      console.log("[drive-sync] cache warmed up (driveWiped=" + this._driveWiped + ")");
     } catch (e) {
       console.warn("[drive-sync] cache warmup failed", e);
       this.cacheWarmupDone = true;
@@ -822,6 +826,7 @@ class DriveSyncManager {
           for (const s of tombstonedLocal) {
             try {
               await db.deleteSession(s.id);
+              semanticIndex.cancelSessionJobs(s.id);
               await Promise.all([
                 dexieDb.chunkEmbeddings.where('sessionId').equals(s.id).delete(),
                 dexieDb.sessionHashes.where('sessionId').equals(s.id).delete(),
@@ -970,6 +975,7 @@ class DriveSyncManager {
    *  (called on DRIVE_CONNECT, DRIVE_SYNC_NOW, or user-initiated sync). */
   markDriveWiped(): void {
     this._driveWiped = true;
+    void chrome.storage.local.set({ [DRIVE_WIPED_KEY]: true }).catch(() => {});
     this._freshSyncDone = false;
     this.cachedIndexLastSync = null;
     this.cachedBundleVersion = null;
@@ -1021,6 +1027,7 @@ class DriveSyncManager {
     }
     if (this._driveWiped) {
       this._driveWiped = false;
+      void chrome.storage.local.remove(DRIVE_WIPED_KEY).catch(() => {});
       console.log('[drive-sync] clearDriveWipedState — normal sync resumed');
     }
   }
@@ -1030,6 +1037,10 @@ class DriveSyncManager {
    *  handler to skip sync after a wipe. */
   isDriveWiped(): boolean {
     return this._driveWiped;
+  }
+
+  isTombstoned(sessionId: string): boolean {
+    return this.cachedTombstones.has(sessionId);
   }
 
   /** [WIPE-FIX] Full reset of ALL in-memory state. Called after WIPE_LOCAL_DATA
@@ -1239,6 +1250,7 @@ class DriveSyncManager {
   }
 
   async deleteFromDrive(sessionId: string): Promise<void> {
+    this.uploadQueue.delete(sessionId);
     try {
       if (!(await driveClient.isConnected())) return;
       const fileId = await driveClient.findFileBySessionId(sessionId);

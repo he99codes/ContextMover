@@ -105,14 +105,18 @@ export async function POST(req: NextRequest) {
       (resetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
     );
 
+    // [PROMOTION-UNLOCKED] Free tier limits are temporarily disabled — allow the migration
+    // but still return limit metadata so the sidebar can display accurate usage counts.
+    // The "Buy Pro" upsell remains visible in the extension UI for users who want to
+    // support the developer and unlock additional features.
     return NextResponse.json({
-      allowed: false,
-      reason: "limit_reached",
+      allowed: true,
+      reason: "limit_reached_promotional_unlocked",
       plan: userPlan.plan,
       tier,
       used: count,
       limit,
-      remaining: 0,
+      remaining: 999,
       resetDate: resetDate.toISOString(),
       daysUntilReset,
       upgradeUrl: "https://contextmover.com/pricing",

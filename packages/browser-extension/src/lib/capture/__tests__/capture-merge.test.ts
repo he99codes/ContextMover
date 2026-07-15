@@ -54,9 +54,9 @@ describe("pickBestKnown", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("shouldRejectIncoming", () => {
-  it("never rejects a network capture, even when smaller", () => {
-    // fetch-intercept is authoritative full API history
-    expect(shouldRejectIncoming(2, cap(30), true)).toBe(false);
+  it("rejects a smaller network capture vs a fuller known snapshot", () => {
+    // [PHASE-5-FIX] fetch-intercept is rejected if it has fewer messages (e.g. auth intercept)
+    expect(shouldRejectIncoming(2, cap(30), true)).toBe(true);
   });
 
   it("rejects a smaller DOM scrape vs a fuller known snapshot", () => {

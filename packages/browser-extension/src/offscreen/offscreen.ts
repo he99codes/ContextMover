@@ -484,11 +484,12 @@ async function processIndexJob(job: IndexJob): Promise<void> {
     // ID), then delete stale chunks AFTER all batches complete.
     const newChunkIds = new Set<string>();
 
-    // [FIX-11] Sub-batch yielding: split each BATCH_SIZE batch into sub-batches
-    // and drain the priority queue between sub-batches. This prevents a retrieve query
-    // embed from being blocked too long. 16 for balanced/full (fewer round-trips),
-    // 8 for minimal (less memory pressure).
-    const SUB_BATCH_SIZE = (job.hardware?.tier === 'minimal') ? 8 : 16;
+    // [PHASE-2-FIX] Halved sub-batch sizes: balanced/full 16→8, minimal 8→4.
+    // Each ONNX forward pass blocks the event loop for ~200ms (balanced, 8 texts)
+    // vs ~400ms before. urgentQueue query embeds now preempt within 200ms max
+    // instead of waiting up to 400ms for the previous 16-text sub-batch.
+    // Slight increase in round-trips (2×) is negligible vs the query P99 gain.
+    const SUB_BATCH_SIZE = (job.hardware?.tier === 'minimal') ? 4 : 8;
 
     for (let i = 0; i < sampled.length; i += BATCH_SIZE) {
       // [CM-FIX-A] Abort mid-loop instantly if this bg job was cancelled by a priority job.
@@ -558,10 +559,31 @@ async function processIndexJob(job: IndexJob): Promise<void> {
       progress(requestId, pct, `Embedding ${Math.min(batchEnd, sampled.length)}/${sampled.length}`);
     }
 
-    // [CM-T3-FIX] cancel stale bg jobs — partial chunks already persisted above
+    // [CM-T3-FIX] cancel stale bg jobs — partial chunks already persisted above.
+    // [CHUNK-CORRUPT-FIX] We must STILL delete stale chunks on cancellation.
+    // Previously this branch returned immediately, leaving high-index chunks from
+    // a prior (larger) index run in Dexie. When the session was later re-indexed
+    // with a different message count, bulkPut wrote new chunks at indices 0..N
+    // but the old chunks at indices N+1..M stayed — producing "136% coverage" /
+    // "231% coverage" corruption seen in logs and inflating retrieval + bg-index
+    // time. Now we delete any persisted chunk whose id is NOT in newChunkIds,
+    // exactly like the success path does.
     if (cancelledRequests.has(requestId)) {
       cancelledRequests.delete(requestId);
-      console.log(`[CM:offscreen] index job ${requestId} was cancelled — partial chunks already persisted`);
+      console.log(`[CM:offscreen] index job ${requestId} was cancelled — pruning stale chunks (${newChunkIds.size} new kept)`);
+      try {
+        const existingAfterCancel = await dexieDb.chunkEmbeddings
+          .where('sessionId').equals(session.id).toArray();
+        const staleAfterCancel = existingAfterCancel
+          .filter(c => !newChunkIds.has(c.id))
+          .map(c => c.id);
+        if (staleAfterCancel.length > 0) {
+          await dexieDb.chunkEmbeddings.bulkDelete(staleAfterCancel);
+          console.log(`[CM:offscreen] cancelled job ${requestId} pruned ${staleAfterCancel.length} stale chunks`);
+        }
+      } catch (e) {
+        console.warn(`[CM:offscreen] stale-chunk prune on cancel failed (${requestId}):`, e);
+      }
       const respond = pendingResponses.get(requestId);
       pendingResponses.delete(requestId);
       respond?.({ ok: false, error: 'cancelled — superseded by priority job' });

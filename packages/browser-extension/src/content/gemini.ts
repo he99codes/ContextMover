@@ -85,7 +85,7 @@ function scrapeMessages(): Message[] {
       break;
     }
   }
-  if (!scope) { scope = document.body; }
+  if (!scope) { scope = document.body || document.documentElement; }
 
   const userSel = _remoteSelectors?.userSelector
     ?? _localOverrides?.userSelector
@@ -281,7 +281,7 @@ async function findGeminiInput(timeoutMs = 3000): Promise<HTMLElement | null> {
       }
     }
 
-    const deep = deepQueryGeminiInput(document.body);
+    const deep = deepQueryGeminiInput(document.body || document.documentElement);
     if (deep) {
       console.log('[CM] Gemini input found via deep shadow walk');
       return deep;

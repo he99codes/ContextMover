@@ -332,7 +332,7 @@ startSessionCapture({
     document.querySelector('[data-testid="conversation-content"]') ??
     document.querySelector('[class*="conversation"]') ??
     document.querySelector('#__next > div') ??
-    document.body,
+    document.body ?? document.documentElement,
   scrapeMessages: () => runCapturePipeline("claude", scrapeMessages),
   getTitle: getClaudeTitle,
   // Claude's SPA can take 2–6s to render messages after route changes (lazy

@@ -116,10 +116,10 @@ export async function POST(req: NextRequest) {
 
     const month   = getCurrentMonth();
     const tierKey = getTierKey(tier);
-    const limit   =
-      tier === 1 ? userPlan.tier1Limit :
-      tier === 2 ? userPlan.tier2Limit :
-      userPlan.tier3Limit;
+    // [PROMOTION-UNLOCKED] Pass 999999 as p_limit so the RPC always succeeds, even when
+    // count >= normal free limit. The counter still increments accurately in the database
+    // so the sidebar displays the real usage (e.g. 12/10). Only blocking is disabled.
+    const limit   = 999999;
 
     const { data, error } = await admin.rpc("decrement_migration_safe_v2", {
       p_user_id:     user.id,

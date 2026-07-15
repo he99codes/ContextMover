@@ -46,12 +46,30 @@ export async function checkUsage(
 ): Promise<UsageCheckResult> {
   // [CM-FIX-SEC] removed token prefix debug log
   try {
+    let installId = "unknown";
+    let driveEmail: string | undefined = undefined;
+    try {
+      const stored = await chrome.storage.local.get(["cm:installId", "driveEmail"]);
+      if (stored["cm:installId"] && typeof stored["cm:installId"] === "string") {
+        installId = stored["cm:installId"];
+      }
+      if (stored["driveEmail"] && typeof stored["driveEmail"] === "string") {
+        driveEmail = stored["driveEmail"];
+      }
+    } catch { /* storage may be unavailable */ }
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "x-install-id": installId,
+    };
+    if (driveEmail) {
+      headers["x-drive-email"] = driveEmail;
+    }
+
     const res = await fetch(`${API_BASE}/api/usage/check`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({ tier }),
       signal: AbortSignal.timeout(8_000),
     });
@@ -140,12 +158,30 @@ export async function incrementUsage(
   }
 ): Promise<void> {
   try {
+    let installId = "unknown";
+    let driveEmail: string | undefined = undefined;
+    try {
+      const stored = await chrome.storage.local.get(["cm:installId", "driveEmail"]);
+      if (stored["cm:installId"] && typeof stored["cm:installId"] === "string") {
+        installId = stored["cm:installId"];
+      }
+      if (stored["driveEmail"] && typeof stored["driveEmail"] === "string") {
+        driveEmail = stored["driveEmail"];
+      }
+    } catch { /* storage may be unavailable */ }
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "x-install-id": installId,
+    };
+    if (driveEmail) {
+      headers["x-drive-email"] = driveEmail;
+    }
+
     await fetch(`${API_BASE}/api/usage/increment`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({ tier, ...metadata }),
     });
   } catch (err) {
@@ -159,11 +195,29 @@ export async function getUsageStatus(
   // [CM-FIX-SEC] removed token prefix debug log
   if (typeof navigator !== "undefined" && !navigator.onLine) return null;
   try {
+    let installId = "unknown";
+    let driveEmail: string | undefined = undefined;
+    try {
+      const stored = await chrome.storage.local.get(["cm:installId", "driveEmail"]);
+      if (stored["cm:installId"] && typeof stored["cm:installId"] === "string") {
+        installId = stored["cm:installId"];
+      }
+      if (stored["driveEmail"] && typeof stored["driveEmail"] === "string") {
+        driveEmail = stored["driveEmail"];
+      }
+    } catch { /* storage may be unavailable */ }
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+      "x-install-id": installId,
+    };
+    if (driveEmail) {
+      headers["x-drive-email"] = driveEmail;
+    }
+
     const res = await fetch(`${API_BASE}/api/usage/status`, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers,
     });
 
     if (!res.ok) return null;
