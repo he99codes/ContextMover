@@ -116,7 +116,7 @@ const FAQ_ITEMS = [
   { q: "What is the Attention Engine?",                  a: "A local AI model (runs on your device, not our servers) that understands your task semantically and extracts only the most relevant context. Uses WebGPU acceleration when available, falls back to WASM." },
   { q: "Can I delete my data?",                          a: "Yes. Settings \u2192 Danger Zone \u2192 Delete all data. Instant. Permanent. No questions asked and no server-side backups to purge." },
   { q: "Does it work with local AI models like Ollama?",  a: "Not yet. ContextMover currently works with web-based AI platforms. Local model support (Ollama, LM Studio, etc.) is on the roadmap." },
-  { q: "What happens when I hit my free tier limit?",    a: "You can still access all your existing sessions. New capture continues. Migrations will prompt you to upgrade for Attention Engine features. Your data is never deleted due to a plan limit." },
+  { q: "Is the extension really free?",                  a: "Yes — completely free. Create a free account and get unlimited migrations. Capture conversations, migrate between any supported AI platform, and use Smart Summary as much as you want. No credit card required. Some advanced features (like the Attention Engine for very long sessions) are pro — but the core migration experience is free forever." },
   { q: "Can I migrate from DeepSeek to Claude?",         a: "Yes. Select your DeepSeek session in the extension, choose Claude as the target, and click Migrate. DeepSeek is a migration target (you can send context to it), and Claude supports both capture and receiving context." },
 ];
 
@@ -378,8 +378,23 @@ export default function LandingPage() {
               ))}
             </div>
           </div>
+          {/* Free / unlimited callout pill */}
+          <div className="flex items-center justify-center gap-2 mb-4 animate-fade-in" style={{ animationDelay: "320ms" }}>
+            <span
+              className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-1.5 rounded-full"
+              style={{
+                background: "rgba(0,255,136,0.1)",
+                border: "1px solid rgba(0,255,136,0.35)",
+                color: "#00FF88",
+                boxShadow: "0 0 16px rgba(0,255,136,0.15)"
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00FF88] animate-pulse" />
+              100% Free &nbsp;·&nbsp; Unlimited migrations &nbsp;·&nbsp; Free account
+            </span>
+          </div>
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#6B6B6B] mb-4 animate-fade-in" style={{ animationDelay: "380ms" }}>
-            {["■ Local-first", "▸ Works offline", "◈ 3-tier intelligence", "No account needed"].map((t, i) => (
+            {["■ Local-first", "▸ Works offline", "◈ 3-tier intelligence", "✦ No credit card"].map((t, i) => (
               <span key={i}>{t}</span>
             ))}
           </div>
@@ -780,6 +795,47 @@ export default function LandingPage() {
               <Mail size={12} />
               Suggest a platform
             </a>
+          </div>
+
+          {/* Free-forever callout */}
+          <div className="reveal mt-12 rounded-2xl p-6 sm:p-8 relative overflow-hidden" style={{
+            background: "linear-gradient(135deg, rgba(0,255,136,0.06) 0%, rgba(0,180,255,0.04) 100%)",
+            border: "1px solid rgba(0,255,136,0.2)",
+            boxShadow: "0 0 40px rgba(0,255,136,0.06)"
+          }}>
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_0%,rgba(0,255,136,0.06),transparent)] pointer-events-none" />
+            <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6">
+              <div className="text-left flex-1">
+                <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#00FF88] mb-3 px-2.5 py-1 rounded-full" style={{ background: "rgba(0,255,136,0.12)", border: "1px solid rgba(0,255,136,0.25)" }}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00FF88] animate-pulse" />
+                  Free Forever
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-[#F5F5F5] mb-2 tracking-tight">The extension is completely free.</h3>
+                <p className="text-sm text-[#6B6B6B] leading-relaxed max-w-md">
+                  Sign up free. Migrate <strong className="text-[#F5F5F5]">unlimited times</strong>. No credit card, no usage limits on migrations. Just a free account to get started — context always stays on your device.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {[
+                    "✓ Unlimited migrations",
+                    "✓ All 6 platforms",
+                    "✓ Free account",
+                    "✓ No credit card",
+                  ].map((item, i) => (
+                    <span key={i} className="text-xs text-[#00FF88]/80 font-mono">{item}</span>
+                  ))}
+                </div>
+              </div>
+              <a
+                href="https://chromewebstore.google.com/detail/dopjoipdbeknkbnjpojjbimikhlmadae"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 bg-[#00FF88] text-[#0A0A0A] font-bold px-7 py-3.5 rounded-xl text-sm flex items-center gap-2 active:scale-95 transition-transform"
+                style={{ boxShadow: "0 0 24px rgba(0,255,136,0.3)" }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                Add to Chrome — free
+              </a>
+            </div>
           </div>
         </div>
       </section>
