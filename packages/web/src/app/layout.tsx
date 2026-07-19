@@ -11,6 +11,7 @@ import Link from "next/link";
 import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { Analytics } from "@vercel/analytics/next";
 // [SECURITY] Validate that no secret keys are accidentally exposed as NEXT_PUBLIC_.
 import "@/lib/env-guard";
 
@@ -54,6 +55,7 @@ export default function RootLayout({
           </div>
         </footer>
         <Toaster />
+        <Analytics />
         <Script
           src="https://checkout.razorpay.com/v1/checkout.js"
           strategy="lazyOnload"
