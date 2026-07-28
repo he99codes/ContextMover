@@ -168,6 +168,16 @@
             ],
             "run_at": "document_idle",
             "all_frames": false
+        },
+        {
+            "matches": [
+                "https://contextmover.com/*",
+                "https://www.contextmover.com/*"
+            ],
+            "js": [
+                "src/content/web-sync.ts"
+            ],
+            "run_at": "document_idle"
         }
     ],
     "action": {
@@ -229,6 +239,13 @@
     ],
     "content_security_policy": {
         "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; base-uri 'none'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://contextmover.com https://*.contextmover.com https://huggingface.co https://*.huggingface.co https://cdn-lfs.huggingface.co https://cdn-lfs-us-1.huggingface.co https://*.hf.space https://cdn.jsdelivr.net https://*.jsdelivr.net https://www.googleapis.com https://*.xethub.hf.co; form-action 'none'; frame-src 'none'"
+    },
+    "externally_connectable": {
+        "matches": [
+            "https://contextmover.com/*",
+            "https://www.contextmover.com/*",
+            "http://localhost:3000/*"
+        ]
     },
     "icons": {
         "16": "icons/icon16.png",

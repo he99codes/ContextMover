@@ -169,7 +169,9 @@ export default defineConfig(async ({ mode }) => {
   // Disable all production plugins - they're corrupting Phoenix library code
   const productionPlugins: Plugin[] = [];
 
+  const realDir = fs.realpathSync(__dirname);
   return {
+    root: realDir,
     plugins: [
       react(),
       crx({ manifest }),
@@ -189,17 +191,16 @@ export default defineConfig(async ({ mode }) => {
     build: {
       rollupOptions: {
         input: {
-          sidebar: "src/sidebar/index.html",
-          offscreen: "src/offscreen/offscreen.html",
-          "src/content/claude": "src/content/claude.ts",
-          "src/content/chatgpt": "src/content/chatgpt.ts",
-          "src/content/gemini": "src/content/gemini.ts",
-          "src/content/grok": "src/content/grok.ts",
-          "src/content/perplexity": "src/content/perplexity.ts",
-          "src/content/deepseek": "src/content/deepseek.ts",
-          "src/content/fetch-interceptor": "src/content/fetch-interceptor.ts",
-          "src/content/interceptor-bridge": "src/content/interceptor-bridge.ts",
-          "src/content/sidebar-toggle/toggle": "src/content/sidebar-toggle/toggle.ts",
+          "src/content/claude": path.resolve(__dirname, "src/content/claude.ts"),
+          "src/content/chatgpt": path.resolve(__dirname, "src/content/chatgpt.ts"),
+          "src/content/gemini": path.resolve(__dirname, "src/content/gemini.ts"),
+          "src/content/grok": path.resolve(__dirname, "src/content/grok.ts"),
+          "src/content/perplexity": path.resolve(__dirname, "src/content/perplexity.ts"),
+          "src/content/deepseek": path.resolve(__dirname, "src/content/deepseek.ts"),
+          "src/content/fetch-interceptor": path.resolve(__dirname, "src/content/fetch-interceptor.ts"),
+          "src/content/interceptor-bridge": path.resolve(__dirname, "src/content/interceptor-bridge.ts"),
+          "src/content/sidebar-toggle/toggle": path.resolve(__dirname, "src/content/sidebar-toggle/toggle.ts"),
+          "src/content/web-sync": path.resolve(__dirname, "src/content/web-sync.ts"),
         },
         output: {
           // @xenova/transformers is bundled into the offscreen chunk via
@@ -214,7 +215,7 @@ export default defineConfig(async ({ mode }) => {
     },
     resolve: {
       alias: { 
-        "@": path.resolve(__dirname, "src"),
+        "@": path.resolve(fs.realpathSync(__dirname), "src"),
       },
     },
   };

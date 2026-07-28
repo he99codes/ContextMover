@@ -1296,6 +1296,51 @@ chrome.runtime.onConnect.addListener((port) => {
   }
 });
 
+// ── External Web Sync (Brave / Web Tab Fallback) ─────────────────────────
+chrome.runtime.onMessageExternal?.addListener((msg, sender, sendResponse) => {
+  if (msg?.type === "WEB_AUTH_SYNC" && msg.session) {
+    void (async () => {
+      try {
+        console.log("[CM:auth] Received WEB_AUTH_SYNC from web app:", sender.url);
+        const { access_token, refresh_token, user } = msg.session;
+        if (access_token && refresh_token) {
+          await supabase.auth.setSession({ access_token, refresh_token });
+          await chrome.storage.local.set({
+            accessToken: access_token,
+            userId: user?.id ?? (await supabase.auth.getUser()).data.user?.id,
+          });
+          void broadcastToViews({ type: "AUTH_STATE_CHANGED" });
+          sendResponse({ ok: true, userId: user?.id });
+        } else {
+          sendResponse({ ok: false, error: "Invalid session payload" });
+        }
+      } catch (err) {
+        console.error("[CM:auth] WEB_AUTH_SYNC error:", err);
+        sendResponse({ ok: false, error: String(err) });
+      }
+    })();
+    return true;
+  }
+  if (msg?.type === "WEB_DRIVE_TOKEN_SYNC" && msg.token) {
+    void (async () => {
+      try {
+        console.log("[CM:drive] Received WEB_DRIVE_TOKEN_SYNC token from web app:", sender.url);
+        await chrome.storage.local.set({
+          "drive.flowToken": msg.token,
+          "drive.flowTokenAt": Date.now(),
+        });
+        await chrome.storage.local.remove("drive.explicitlyDisconnected");
+        void broadcastToViews({ type: "DRIVE_STATE_CHANGED" });
+        sendResponse({ ok: true });
+      } catch (err) {
+        console.error("[CM:drive] WEB_DRIVE_TOKEN_SYNC error:", err);
+        sendResponse({ ok: false, error: String(err) });
+      }
+    })();
+    return true;
+  }
+});
+
 // ── Message Router ─────────────────────────────────────────────────────────────
 let _lastDriveWipeAt = 0;
 const _wipeGuardMs = 60_000;
@@ -1391,6 +1436,50 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sendResponse({ ok: true, config: config ?? [] });
         } catch (err) {
           sendResponse({ ok: false, config: [] });
+        }
+        break;
+      }
+
+      // ── Web Sync relay (content script path for Brave / tab fallback) ──
+      // web-sync.ts content script relays messages from contextmover.com
+      // via chrome.runtime.sendMessage, which arrives here on onMessage,
+      // NOT on onMessageExternal. This mirrors the onMessageExternal handler.
+      case "WEB_AUTH_SYNC": {
+        if (!msg.session) { sendResponse({ ok: false, error: "No session" }); break; }
+        try {
+          const { access_token, refresh_token, user } = msg.session;
+          if (access_token && refresh_token) {
+            await supabase.auth.setSession({ access_token, refresh_token });
+            await chrome.storage.local.set({
+              accessToken: access_token,
+              userId: user?.id ?? (await supabase.auth.getUser()).data.user?.id,
+            });
+            void broadcastToViews({ type: "AUTH_STATE_CHANGED" });
+            console.log("[CM:auth] WEB_AUTH_SYNC processed via content script relay");
+            sendResponse({ ok: true, userId: user?.id });
+          } else {
+            sendResponse({ ok: false, error: "Invalid session payload" });
+          }
+        } catch (err) {
+          console.error("[CM:auth] WEB_AUTH_SYNC (onMessage) error:", err);
+          sendResponse({ ok: false, error: String(err) });
+        }
+        break;
+      }
+      case "WEB_DRIVE_TOKEN_SYNC": {
+        if (!msg.token) { sendResponse({ ok: false, error: "No token" }); break; }
+        try {
+          console.log("[CM:drive] WEB_DRIVE_TOKEN_SYNC received via content script relay");
+          await chrome.storage.local.set({
+            "drive.flowToken": msg.token,
+            "drive.flowTokenAt": Date.now(),
+          });
+          await chrome.storage.local.remove("drive.explicitlyDisconnected");
+          void broadcastToViews({ type: "DRIVE_STATE_CHANGED" });
+          sendResponse({ ok: true });
+        } catch (err) {
+          console.error("[CM:drive] WEB_DRIVE_TOKEN_SYNC (onMessage) error:", err);
+          sendResponse({ ok: false, error: String(err) });
         }
         break;
       }

@@ -67,6 +67,26 @@ function AuthForm() {
     return () => window.removeEventListener("pageshow", onPageShow);
   }, []);
 
+  // Broadcast session to extension whenever user lands on auth page while logged in
+  useEffect(() => {
+    const supabase = createClient();
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        window.postMessage({
+          source: "CONTEXTMOVER_WEB",
+          payload: {
+            type: "WEB_AUTH_SYNC",
+            session: {
+              access_token: session.access_token,
+              refresh_token: session.refresh_token,
+              user: { id: session.user.id, email: session.user.email },
+            },
+          },
+        }, "*");
+      }
+    });
+  }, []);
+
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     setError(null);
@@ -110,11 +130,24 @@ function AuthForm() {
 
     try {
       if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
+        if (data.session) {
+          window.postMessage({
+            source: "CONTEXTMOVER_WEB",
+            payload: {
+              type: "WEB_AUTH_SYNC",
+              session: {
+                access_token: data.session.access_token,
+                refresh_token: data.session.refresh_token,
+                user: { id: data.user.id, email: data.user.email },
+              },
+            },
+          }, "*");
+        }
         router.push("/dashboard");
         router.refresh();
       } else {

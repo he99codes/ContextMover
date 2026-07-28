@@ -140,7 +140,8 @@ export async function POST(req: NextRequest) {
       // https://project.supabase.co/auth/v1/verify?token=...&type=magiclink&redirect_to=...
       // Following it server-side with redirect:'manual' gives us a 303 redirect whose
       // Location header contains the session tokens in the URL hash/query.
-      const actionLink = (linkData as any).properties?.action_link as string | undefined;
+      const linkProperties = linkData.properties as Record<string, unknown> | undefined;
+      const actionLink = linkProperties?.action_link as string | undefined;
       if (actionLink) {
         try {
           const verifyRes = await fetch(actionLink, {
@@ -191,9 +192,9 @@ export async function POST(req: NextRequest) {
 
       // --- Strategy B (fallback): Try verifyOtp with token_hash / email_otp ---
       if (!session) {
-        const props = (linkData as any).properties as Record<string, unknown> | undefined;
+        const props = linkData.properties as Record<string, unknown> | undefined;
         const token_hash = (props?.hashed_token as string | undefined) ?? (props?.token_hash as string | undefined);
-        const verificationType = (props?.verification_type as any) ?? "magiclink";
+        const verificationType = (props?.verification_type as "magiclink" | "signup" | "recovery" | "invite" | "email_change" | "email") ?? "magiclink";
 
         const anon = createClient(supaUrl, supaAnon, { auth: { persistSession: false } });
 

@@ -255,18 +255,11 @@ class DriveClient {
       console.error("[CM:drive] launchWebAuthFlow: missing oauth2.client_id in manifest");
       return Promise.resolve(null);
     }
-    if (!chrome.identity?.launchWebAuthFlow) {
-      console.error("[CM:drive] launchWebAuthFlow: chrome.identity.launchWebAuthFlow unavailable");
-      return Promise.resolve(null);
-    }
 
-    const redirectUri = chrome.identity.getRedirectURL();
-    // One-time hint so the user can correct Google Cloud config if needed.
-    console.warn(
-      "[CM:drive] Falling back to launchWebAuthFlow. " +
-      "If this fails, ensure this redirect URL is registered on the OAuth client in Google Cloud Console:\n  " +
-      redirectUri
-    );
+    // Use Web App Redirect URI registered under the Web OAuth Client ID in Google Cloud Console.
+    // This avoids Google Error 400: "Custom scheme URIs are not allowed for 'WEB' client type"
+    // when using chromiumapp.org custom scheme URIs with Web OAuth clients.
+    const redirectUri = "https://www.contextmover.com/auth/connect-drive";
 
     const authUrl =
       "https://accounts.google.com/o/oauth2/v2/auth" +
@@ -277,17 +270,28 @@ class DriveClient {
       "&prompt=consent";
 
     console.log("[CM:drive] using client_id:", clientId);
-    console.log("[CM:drive] full auth URL:", authUrl);
+    console.log("[CM:drive] using web redirect_uri:", redirectUri);
 
     return new Promise((resolve) => {
       try {
+        if (!chrome.identity?.launchWebAuthFlow) {
+          // If launchWebAuthFlow is completely unavailable, open auth URL in tab
+          if (chrome.tabs?.create) chrome.tabs.create({ url: authUrl });
+          resolve(null);
+          return;
+        }
+
         chrome.identity.launchWebAuthFlow(
           { url: authUrl, interactive: true },
           (responseUrl) => {
             if (chrome.runtime.lastError || !responseUrl) {
-              console.error("[CM:drive] launchWebAuthFlow failed:",
+              console.warn("[CM:drive] launchWebAuthFlow popup blocked/cancelled. Opening Web Tab fallback...",
                 chrome.runtime.lastError?.message ?? "no response");
               void chrome.runtime.lastError;
+              // Fallback: Open auth URL in a web tab for Brave / popup-blocked environments
+              if (chrome.tabs?.create) {
+                chrome.tabs.create({ url: authUrl });
+              }
               resolve(null);
               return;
             }
@@ -303,6 +307,7 @@ class DriveClient {
         );
       } catch (e) {
         console.error("[CM:drive] launchWebAuthFlow threw:", e);
+        if (chrome.tabs?.create) chrome.tabs.create({ url: authUrl });
         resolve(null);
       }
     });
@@ -327,8 +332,6 @@ class DriveClient {
     const scopes = manifest.oauth2?.scopes ?? [];
     if (!clientId || !chrome.identity?.launchWebAuthFlow) return null;
 
-    const redirectUri = chrome.identity.getRedirectURL();
-
     // Pass login_hint so Google skips the account picker — critical for
     // seamless silent re-auth when the user has multiple Google accounts.
     let loginHint = "";
@@ -339,33 +342,44 @@ class DriveClient {
       }
     } catch { /* non-fatal */ }
 
-    const authUrl =
-      "https://accounts.google.com/o/oauth2/v2/auth" +
-      "?client_id=" + encodeURIComponent(clientId) +
-      "&response_type=token" +
-      "&redirect_uri=" + encodeURIComponent(redirectUri) +
-      "&scope=" + encodeURIComponent(scopes.join(" ")) +
-      "&prompt=none" +
-      loginHint;
+    // Try Chrome-native redirect first (works on Chrome, fails on Brave with Error 400).
+    // If that fails, retry with the web redirect URI (works on Brave).
+    const redirectUris = [
+      chrome.identity.getRedirectURL(),                   // Chrome-native (.chromiumapp.org)
+      "https://www.contextmover.com/auth/connect-drive",  // Web fallback (Brave-safe)
+    ];
 
-    return new Promise((resolve) => {
-      try {
-        chrome.identity.launchWebAuthFlow(
-          { url: authUrl, interactive: false },
-          (responseUrl) => {
-            if (chrome.runtime.lastError || !responseUrl) {
-              void chrome.runtime.lastError;
-              resolve(null);
-              return;
+    for (const redirectUri of redirectUris) {
+      const authUrl =
+        "https://accounts.google.com/o/oauth2/v2/auth" +
+        "?client_id=" + encodeURIComponent(clientId) +
+        "&response_type=token" +
+        "&redirect_uri=" + encodeURIComponent(redirectUri) +
+        "&scope=" + encodeURIComponent(scopes.join(" ")) +
+        "&prompt=none" +
+        loginHint;
+
+      const token = await new Promise<string | null>((resolve) => {
+        try {
+          chrome.identity.launchWebAuthFlow(
+            { url: authUrl, interactive: false },
+            (responseUrl) => {
+              if (chrome.runtime.lastError || !responseUrl) {
+                void chrome.runtime.lastError;
+                resolve(null);
+                return;
+              }
+              const match = responseUrl.match(/[#&]access_token=([^&]+)/);
+              resolve(match?.[1] ? decodeURIComponent(match[1]) : null);
             }
-            const match = responseUrl.match(/[#&]access_token=([^&]+)/);
-            resolve(match?.[1] ? decodeURIComponent(match[1]) : null);
-          }
-        );
-      } catch {
-        resolve(null);
-      }
-    });
+          );
+        } catch {
+          resolve(null);
+        }
+      });
+      if (token) return token;
+    }
+    return null;
   }
 
   /** Read our launchWebAuthFlow token cache; returns null if absent or expired. */

@@ -51,6 +51,11 @@ export default function AuthGate({ children }: AuthGateProps) {
     });
   }
 
+  function handleWebAuthFallback() {
+    window.open(`${WEBAPP_URL}/auth?ext_login=true`, "_blank");
+    setInfo("Opened login in a new browser tab. Complete sign-in there to sync automatically.");
+  }
+
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
     setError(null);
@@ -87,7 +92,7 @@ export default function AuthGate({ children }: AuthGateProps) {
       });
 
       if (!idTokenUrl) {
-        setError("Sign-in was cancelled");
+        setError("Popup blocked or cancelled (common on Brave). Use 'Sign in via Web Tab' below.");
         setGoogleLoading(false);
         return;
       }
@@ -95,7 +100,7 @@ export default function AuthGate({ children }: AuthGateProps) {
       const hashFragment = new URL(idTokenUrl).hash.slice(1);
       const idToken = new URLSearchParams(hashFragment).get("id_token");
       if (!idToken) {
-        setError("No id_token received from Google");
+        setError("No id_token received. Use 'Sign in via Web Tab' below.");
         setGoogleLoading(false);
         return;
       }
@@ -123,11 +128,11 @@ export default function AuthGate({ children }: AuthGateProps) {
         return;
       }
       
-      setError("Sign-in failed — please try again");
+      setError("Sign-in failed — please try again or use 'Sign in via Web Tab'");
       setGoogleLoading(false);
     } catch (err) {
       console.error("[CM:auth] OAuth error:", err);
-      setError("Sign-in failed — please try again.");
+      setError("Sign-in failed — use 'Sign in via Web Tab' below.");
       setGoogleLoading(false);
     }
   }
@@ -145,7 +150,7 @@ export default function AuthGate({ children }: AuthGateProps) {
         if (res?.error) {
           const m: string = res.error;
           setError(m.toLowerCase().includes("invalid login credentials")
-            ? "Invalid email or password. If you signed up with Google, use the Google button below."
+            ? "Invalid email or password. If you signed up with Google, use the Google or Web Tab button below."
             : m);
           return;
         }
@@ -263,6 +268,14 @@ export default function AuthGate({ children }: AuthGateProps) {
           className="mt-3 w-full rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] py-2 text-sm text-[#F5F5F5] hover:bg-[#252525] transition-all disabled:opacity-50"
         >
           {googleLoading ? "Connecting…" : "Continue with Google"}
+        </button>
+
+        <button
+          onClick={handleWebAuthFallback}
+          type="button"
+          className="mt-2 w-full rounded-[4px] border border-[#00FF88]/30 bg-[#00FF88]/5 py-1.5 text-xs text-[#00FF88] hover:bg-[#00FF88]/10 transition-all"
+        >
+          Sign in via Web Browser Tab ↗
         </button>
 
         <p className="mt-4 text-center text-[10px] text-[#6B6B6B]">
