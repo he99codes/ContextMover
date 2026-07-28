@@ -256,41 +256,48 @@ class DriveClient {
       return Promise.resolve(null);
     }
 
-    // Use Web App Redirect URI registered under the Web OAuth Client ID in Google Cloud Console.
-    // This avoids Google Error 400: "Custom scheme URIs are not allowed for 'WEB' client type"
-    // when using chromiumapp.org custom scheme URIs with Web OAuth clients.
-    const redirectUri = "https://www.contextmover.com/auth/connect-drive";
+    // Native extension redirect URI (.chromiumapp.org) for launchWebAuthFlow popup
+    const nativeRedirectUri = chrome.identity?.getRedirectURL ? chrome.identity.getRedirectURL() : "";
+    // Web fallback redirect URI for browser tab fallback (Brave / popup blocked)
+    const webRedirectUri = "https://www.contextmover.com/auth/connect-drive";
 
-    const authUrl =
+    const nativeAuthUrl =
       "https://accounts.google.com/o/oauth2/v2/auth" +
       "?client_id=" + encodeURIComponent(clientId) +
       "&response_type=token" +
-      "&redirect_uri=" + encodeURIComponent(redirectUri) +
+      "&redirect_uri=" + encodeURIComponent(nativeRedirectUri || webRedirectUri) +
+      "&scope=" + encodeURIComponent(scopes.join(" ")) +
+      "&prompt=consent";
+
+    const webAuthUrl =
+      "https://accounts.google.com/o/oauth2/v2/auth" +
+      "?client_id=" + encodeURIComponent(clientId) +
+      "&response_type=token" +
+      "&redirect_uri=" + encodeURIComponent(webRedirectUri) +
       "&scope=" + encodeURIComponent(scopes.join(" ")) +
       "&prompt=consent";
 
     console.log("[CM:drive] using client_id:", clientId);
-    console.log("[CM:drive] using web redirect_uri:", redirectUri);
+    console.log("[CM:drive] using native redirect_uri:", nativeRedirectUri);
 
     return new Promise((resolve) => {
       try {
         if (!chrome.identity?.launchWebAuthFlow) {
-          // If launchWebAuthFlow is completely unavailable, open auth URL in tab
-          if (chrome.tabs?.create) chrome.tabs.create({ url: authUrl });
+          if (chrome.tabs?.create) chrome.tabs.create({ url: webAuthUrl });
           resolve(null);
           return;
         }
 
         chrome.identity.launchWebAuthFlow(
-          { url: authUrl, interactive: true },
+          { url: nativeAuthUrl, interactive: true },
           (responseUrl) => {
             if (chrome.runtime.lastError || !responseUrl) {
-              console.warn("[CM:drive] launchWebAuthFlow popup blocked/cancelled. Opening Web Tab fallback...",
+              console.warn("[CM:drive] launchWebAuthFlow popup failed/blocked. Opening Web Tab fallback...",
                 chrome.runtime.lastError?.message ?? "no response");
               void chrome.runtime.lastError;
-              // Fallback: Open auth URL in a web tab for Brave / popup-blocked environments
+              // Fallback: Open auth URL with web redirect_uri in a browser tab
               if (chrome.tabs?.create) {
-                chrome.tabs.create({ url: authUrl });
+                chrome.tabs.create({ url: webAuthUrl });
               }
               resolve(null);
               return;
@@ -307,7 +314,7 @@ class DriveClient {
         );
       } catch (e) {
         console.error("[CM:drive] launchWebAuthFlow threw:", e);
-        if (chrome.tabs?.create) chrome.tabs.create({ url: authUrl });
+        if (chrome.tabs?.create) chrome.tabs.create({ url: webAuthUrl });
         resolve(null);
       }
     });
