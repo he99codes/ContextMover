@@ -110,7 +110,7 @@ export default function BuildWithMePage() {
           {/* Desktop right */}
           <div className="hidden md:flex items-center gap-2">
             <a href="/auth" className="px-3 py-1.5 text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors">Log in</a>
-            <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer" className="bg-[#00FF88] text-[#0A0A0A] font-semibold text-sm px-4 py-1.5 rounded-md hover:bg-[#00CC6A] transition-colors shadow-[0_0_12px_rgba(0,255,136,0.2)]">Get for free</a>
+            <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer" className="bg-[#00FF88] text-[#00FF88] font-semibold text-sm px-4 py-1.5 rounded-md hover:bg-[#00D26A] transition-colors shadow-[0_0_12px_rgba(0,255,136,0.2)]">Get for free</a>
           </div>
 
           {/* Mobile hamburger */}
@@ -153,7 +153,7 @@ export default function BuildWithMePage() {
             {/* Overlay CTAs */}
             <div className="shrink-0 px-5 pb-8 pt-4 flex flex-col gap-3 border-t border-[#1A1A1A]">
               <a href="/auth" className="flex items-center justify-center border border-[#2A2A2A] text-[#F5F5F5] font-semibold text-base h-[52px] rounded-lg active:opacity-80" onClick={() => setMenuOpen(false)}>Log in</a>
-              <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center bg-[#00FF88] text-[#0A0A0A] font-bold text-base h-[52px] rounded-lg active:scale-95 transition-transform shadow-[0_0_16px_rgba(0,255,136,0.25)]" onClick={() => setMenuOpen(false)}>Add to Chrome — free</a>
+              <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center bg-[#00FF88] text-[#00FF88] font-bold text-base h-[52px] rounded-lg active:scale-95 transition-transform shadow-[0_0_16px_rgba(0,255,136,0.25)]" onClick={() => setMenuOpen(false)}>Add to Chrome — free</a>
             </div>
           </div>
         )}
@@ -169,8 +169,8 @@ export default function BuildWithMePage() {
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(99,102,241,0.10),transparent)]" />
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-64 bg-[radial-gradient(ellipse_60%_60%_at_50%_100%,rgba(99,102,241,0.07),transparent)]" />
-            <div className="absolute top-1/4 right-0 w-[400px] h-[400px] rounded-full bg-[#6366f1] blur-[80px] opacity-[0.04]" />
-            <div className="absolute bottom-1/4 left-0 w-[300px] h-[300px] rounded-full bg-[#818cf8] blur-[80px] opacity-[0.03]" />
+            <div className="absolute top-1/4 right-0 w-[400px] h-[400px] rounded-full bg-[#E5E5E5] blur-[80px] opacity-[0.04]" />
+            <div className="absolute bottom-1/4 left-0 w-[300px] h-[300px] rounded-full bg-[#E5E5E5] blur-[80px] opacity-[0.03]" />
           </div>
 
           <div className="relative z-10 max-w-5xl mx-auto">
@@ -180,10 +180,10 @@ export default function BuildWithMePage() {
               <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold reveal" style={{
                 background: "rgba(99,102,241,0.12)",
                 border: "1px solid rgba(99,102,241,0.40)",
-                color: "#818cf8",
+                color: "#E5E5E5",
                 boxShadow: "0 0 20px rgba(99,102,241,0.15)"
               }}>
-                <span className="w-2 h-2 rounded-full bg-[#818cf8] animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-[#E5E5E5] animate-pulse" />
                 Available for projects · Let&apos;s build together
               </div>
             </div>
@@ -191,7 +191,7 @@ export default function BuildWithMePage() {
             {/* Headline */}
             <div className="text-center mb-4 reveal">
               <h2 className="text-[40px] sm:text-[52px] font-bold text-[#F5F5F5] leading-tight tracking-tight">
-                Build your <span className="text-[#818cf8]">product</span><br className="hidden sm:block" /> with me.
+                Build your <span className="text-[#E5E5E5]">product</span><br className="hidden sm:block" /> with me.
               </h2>
             </div>
 
@@ -200,7 +200,7 @@ export default function BuildWithMePage() {
               Got a side project, side hustle, or early startup? I&apos;ll help you ship it —
               fast, clean, and at rates that don&apos;t feel like enterprise pricing.
             </p>
-            <p className="text-center text-sm text-[#818cf8]/60 font-mono mb-14 reveal">
+            <p className="text-center text-sm text-[#E5E5E5]/60 font-mono mb-14 reveal">
               This is a collaboration and partnership opportunity — not an agency engagement.
             </p>
 
@@ -211,8 +211,8 @@ export default function BuildWithMePage() {
                   key={i}
                   className={`reveal reveal-d${i + 1} card-hover rounded-2xl p-7 text-left flex flex-col gap-4 transition-colors duration-200`}
                   style={{
-                    background: "rgba(255,255,255,0.02)",
-                    border: "1px solid rgba(255,255,255,0.06)",
+                    background: "rgba(0,255,136,0.02)",
+                    border: "1px solid rgba(0,255,136,0.06)",
                     borderLeft: "2px solid rgba(99,102,241,0.3)"
                   }}
                 >
@@ -231,8 +231,8 @@ export default function BuildWithMePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 max-w-2xl mx-auto">
                 {SKILLS.map((skill, i) => (
                   <div key={i} className="flex items-start gap-3 group">
-                    <Check size={14} className="text-[#818cf8] shrink-0 mt-1 transition-colors duration-150" />
-                    <span className="text-sm text-[#888888] group-hover:text-[#FFFFFF] transition-colors duration-150 leading-relaxed">
+                    <Check size={14} className="text-[#E5E5E5] shrink-0 mt-1 transition-colors duration-150" />
+                    <span className="text-sm text-[#888888] group-hover:text-[#00FF88] transition-colors duration-150 leading-relaxed">
                       {skill}
                     </span>
                   </div>
@@ -243,8 +243,8 @@ export default function BuildWithMePage() {
             {/* Quote */}
             <div className="reveal mb-14 max-w-2xl mx-auto">
               <div className="rounded-r-xl p-6 sm:p-7" style={{
-                background: "rgba(255,255,255,0.02)",
-                borderLeft: "3px solid #818cf8"
+                background: "rgba(0,255,136,0.02)",
+                borderLeft: "3px solid #E5E5E5"
               }}>
                 <p className="italic text-[#888888] text-sm leading-relaxed mb-3">
                   &ldquo;Built ContextMover end-to-end as a solo developer.
@@ -269,7 +269,7 @@ export default function BuildWithMePage() {
                   background: "rgba(99,102,241,0.04)"
                 }}>
                   <div className="text-3xl mb-4">✓</div>
-                  <p className="text-[#818cf8] font-semibold mb-1">Message sent.</p>
+                  <p className="text-[#E5E5E5] font-semibold mb-1">Message sent.</p>
                   <p className="text-sm text-[#6B6B6B]">I&apos;ll reply within 24 hours.</p>
                 </div>
               ) : (
@@ -299,7 +299,7 @@ export default function BuildWithMePage() {
                     className="w-full bg-[#0A0A0A] border border-[#2A2A2A] focus:border-[rgba(99,102,241,0.4)] rounded-lg px-4 py-3 text-sm text-[#F5F5F5] placeholder-[#3A3A3A] outline-none transition-colors resize-none"
                   />
                   {status === "error" && (
-                    <p className="text-xs text-[#EF4444]">
+                    <p className="text-xs text-[#00FF88]">
                       Something went wrong. Email me directly at{" "}
                       <a href="mailto:hey@contextmover.com" className="underline">
                         hey@contextmover.com
@@ -311,7 +311,7 @@ export default function BuildWithMePage() {
                     disabled={status === "loading"}
                     className="w-full font-bold py-3.5 rounded-lg text-sm btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
-                      background: "#818cf8",
+                      background: "#E5E5E5",
                       color: "#0A0A0A",
                       boxShadow: "0 0 24px rgba(99,102,241,0.25)"
                     }}

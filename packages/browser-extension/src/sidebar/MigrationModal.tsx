@@ -16,6 +16,13 @@ import { findTargetPlatformTab, focusTab, openPlatformTab } from "@/lib/platform
 import { attentionEngine, getHardwareProfile } from "@/lib/attention-engine";
 import type { HardwareProfile } from "@/lib/attention-engine";
 import { capabilityDetector } from "@/lib/capability-detector";
+// [CM-OFFSCREEN-FIX] perfStart for end-to-end migrate_total measurement.
+// Records the FULL user-perceived migration time (click → response), which
+// the SW-side migrate_tierN cannot capture (it misses message round-trip +
+// UI render + precompute). This is the number that matters to users.
+import { perfStart } from "@/lib/perf-track";
+// [CM-SOLAR-V2] Animated migration stepper.
+import { MigrationStepper } from "./MigrationStepper";
 // summarizeWithAttention removed — [CM-FIX-PRECOMPUTE] SW now owns this computation
 // [CM-PROMPT-SNOOZE] coming soon — re-enable when prompt engine ships
 // import { promptEngine } from "@/lib/prompt-engine/engine";
@@ -174,7 +181,7 @@ function MigrationSuccess({
   const TIER_BADGE: Record<number, { label: string; color: string }> = {
     1: { label: 'Full Context', color: '#888' },
     2: { label: 'Smart Summary', color: '#00FF88' },
-    3: { label: 'Attention Engine', color: '#F59E0B' },
+    3: { label: 'Attention Engine', color: '#00D26A' },
   }
   const badge = TIER_BADGE[migrationFile.tier] ?? TIER_BADGE[1]
 
@@ -275,7 +282,7 @@ function MigrationSuccess({
 
       {/* ── Quality warning ── */}
       {qualityWarning && (
-        <div style={{ marginBottom: 10, padding: '5px 8px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 4, fontSize: 9, color: '#EF4444' }}>
+        <div style={{ marginBottom: 10, padding: '5px 8px', background: 'rgba(0,255,136,0.07)', border: '1px solid rgba(0,255,136,0.2)', borderRadius: 4, fontSize: 9, color: '#00FF88' }}>
           ⚠️ {qualityWarning}
         </div>
       )}
@@ -311,7 +318,7 @@ function MigrationSuccess({
 
       {/* ── File expired ── */}
       {fetchError && (
-        <div style={{ marginBottom: 12, padding: '12px', background: 'rgba(255,68,68,0.06)', border: '1px solid rgba(255,68,68,0.2)', borderRadius: 8, textAlign: 'center', fontSize: 9, color: '#FF4444' }}>
+        <div style={{ marginBottom: 12, padding: '12px', background: 'rgba(255,68,68,0.06)', border: '1px solid rgba(255,68,68,0.2)', borderRadius: 8, textAlign: 'center', fontSize: 9, color: '#00FF88' }}>
           ⚠️ File expired from cache — run migration again
         </div>
       )}
@@ -340,7 +347,7 @@ function MigrationSuccess({
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <span style={{ fontSize: 18 }}>{injectState === 'timeout' ? '⏱️' : '⚠️'}</span>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 900, color: '#F59E0B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <div style={{ fontSize: 10, fontWeight: 900, color: '#00D26A', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 {injectState === 'timeout' ? 'Injection timed out' : 'Auto-inject failed'}
               </div>
               <div style={{ fontSize: 8, color: '#7A6030', marginTop: 1 }}>
@@ -358,7 +365,7 @@ function MigrationSuccess({
               width: '100%', height: 38, marginBottom: dlStatus === 'downloaded' ? 10 : 0,
               background: dlStatus === 'downloaded' ? 'rgba(0,255,136,0.1)' : 'rgba(245,158,11,0.15)',
               border: `1px solid ${dlStatus === 'downloaded' ? 'rgba(0,255,136,0.4)' : 'rgba(245,158,11,0.5)'}`,
-              borderRadius: 7, color: dlStatus === 'downloaded' ? '#00FF88' : '#F59E0B',
+              borderRadius: 7, color: dlStatus === 'downloaded' ? '#00FF88' : '#00D26A',
               fontSize: 10, fontWeight: 900, cursor: dlStatus === 'downloading' ? 'not-allowed' : 'pointer',
               textTransform: 'uppercase', letterSpacing: '0.1em', transition: 'all 0.15s',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -386,7 +393,7 @@ function MigrationSuccess({
           disabled={injectState === 'injecting'}
           style={{
             width: '100%', height: 40, marginBottom: 8,
-            background: injectState === 'injecting' ? '#0D2A0D' : 'rgba(0,255,136,0.12)',
+            background: injectState === 'injecting' ? '#2A2A2A' : 'rgba(0,255,136,0.12)',
             border: '1px solid rgba(0,255,136,0.4)',
             borderRadius: 8, color: '#00FF88',
             fontSize: 10, fontWeight: 900, cursor: injectState === 'injecting' ? 'not-allowed' : 'pointer',
@@ -817,6 +824,14 @@ export default function MigrationModal({
       }
     }
 
+    if (!targetTab?.id) {
+      setMigrateState({
+        status: "error",
+        message: `Could not open ${PLATFORM_LABELS[targetPlatform]}. Please open it manually and try again.`,
+      });
+      return;
+    }
+
     setTargetTabId(targetTab.id ?? null);
     await focusTab(targetTab.id!);
     await new Promise((r) => setTimeout(r, 300));
@@ -851,6 +866,12 @@ export default function MigrationModal({
     //   : null;
     const activeTemplate = null;
 
+    // [CM-OFFSCREEN-FIX] Measure end-to-end migration time as perceived by the
+    // user (from click to response). The SW's migrate_tierN only measures its
+    // own handler time; this captures the full round-trip including precompute,
+    // message passing, and UI render. This is the number shown in the dashboard
+    // as "migrate_total" with SLO=15s.
+    const endPerf = perfStart('migrate_total');
     chrome.runtime.sendMessage(
       {
         type: "MIGRATE_CONTEXT",
@@ -878,6 +899,8 @@ export default function MigrationModal({
         },
       },
       (response) => {
+        // [CM-OFFSCREEN-FIX] Record end-to-end migration time.
+        void endPerf({ sessionId: session.id, metadata: { tier, platform: targetPlatform } });
         console.log("[CM:migration] MIGRATE_CONTEXT response:", JSON.stringify(response)?.slice(0, 300));
         if (response?.error === "limit_reached" && onLimitReached && response.limitData) {
           onLimitReached(response.limitData as {
@@ -983,6 +1006,7 @@ export default function MigrationModal({
     >
       <div
         style={{
+          position: "relative",
           background: "#0A0A0A",
           border: "1px solid rgba(0,255,136,0.14)",
           borderRadius: "8px",
@@ -998,19 +1022,52 @@ export default function MigrationModal({
           boxShadow: "0 0 0 1px rgba(0,255,136,0.05), 0 24px 80px rgba(0,0,0,0.9)",
         }}
       >
+        {/* [CM-SOLAR-V2] Success flash overlay — gold→orange checkmark scale-in. */}
+        {isDone && (
+          <div
+            className="solar-success-flash"
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              pointerEvents: "none",
+              zIndex: 50,
+              background: "radial-gradient(ellipse 60% 60% at 50% 50%, rgba(0,255,136,0.18), transparent 70%)",
+              borderRadius: "8px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "48px",
+                fontWeight: 900,
+                background: "linear-gradient(135deg, #00FF88, #00C853)",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                color: "transparent",
+                WebkitTextFillColor: "transparent",
+                textShadow: "0 0 24px rgba(0,255,136,0.5)",
+                filter: "drop-shadow(0 0 12px rgba(0,210,106,0.4))",
+              }}
+            >
+              ✓
+            </span>
+          </div>
+        )}
         {/* ── Header ── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
           <div>
             <h2 style={{ margin: 0, fontSize: "11px", fontWeight: 900, color: "#00FF88", letterSpacing: "0.18em", textTransform: "uppercase", textShadow: "0 0 10px rgba(0,255,136,0.4)" }}>
               Migrate Context
             </h2>
-            <p style={{ margin: "2px 0 0", fontSize: "9px", color: "#6EE7B7", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            <p style={{ margin: "2px 0 0", fontSize: "9px", color: "#00D26A", letterSpacing: "0.1em", textTransform: "uppercase" }}>
               → {PLATFORM_LABELS[targetPlatform]}
             </p>
           </div>
           <button
             onClick={onClose}
-            style={{ background: "none", border: "1px solid #1A2A1A", borderRadius: "4px", color: "#34D399", cursor: "pointer", fontSize: "12px", padding: "2px 6px", transition: "all 0.15s" }}
+            style={{ background: "none", border: "1px solid #2A2A2A", borderRadius: "4px", color: "#00FF88", cursor: "pointer", fontSize: "12px", padding: "2px 6px", transition: "all 0.15s" }}
           >
             ✕
           </button>
@@ -1048,13 +1105,13 @@ export default function MigrationModal({
         )}
         {/* ── Quality-warning toast (tier fallback) ── */}
         {qualityWarning && (
-          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "4px", fontSize: "9px", color: "#EF4444", letterSpacing: "0.04em" }}>
+          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(0,255,136,0.08)", border: "1px solid rgba(0,255,136,0.25)", borderRadius: "4px", fontSize: "9px", color: "#00FF88", letterSpacing: "0.04em" }}>
             {"\u26A0\uFE0F " + qualityWarning}
           </div>
         )}
         {/* ── Slow-machine Tier 3 warning ── */}
         {slowMachineWarning && (
-          <div style={{ marginBottom: "6px", padding: "6px 10px", background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: "4px", fontSize: "9px", color: "#F59E0B", letterSpacing: "0.04em", lineHeight: 1.5 }}>
+          <div style={{ marginBottom: "6px", padding: "6px 10px", background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: "4px", fontSize: "9px", color: "#00D26A", letterSpacing: "0.04em", lineHeight: 1.5 }}>
             {"⏳ " + slowMachineWarning}
           </div>
         )}
@@ -1087,7 +1144,7 @@ export default function MigrationModal({
         )}
         {/* ── Tier-downgrade toast ── */}
         {downgradedToast && (
-          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: "4px", fontSize: "9px", color: "#F59E0B", letterSpacing: "0.04em" }}>
+          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: "4px", fontSize: "9px", color: "#00D26A", letterSpacing: "0.04em" }}>
             {"\uD83E\uDDE0 " + downgradedToast}
           </div>
         )}
@@ -1097,7 +1154,7 @@ export default function MigrationModal({
           {([
             { t: 1 as const, dot: "#666",    label: "Full Context", speed: "Fastest" },
             { t: 2 as const, dot: "#00FF88", label: "Smart",        speed: "Fast"    },
-            { t: 3 as const, dot: "#F59E0B", label: "▸ Attention", speed: "Smart"   },
+            { t: 3 as const, dot: "#00D26A", label: "▸ Attention", speed: "Smart"   },
           ] as const).map(({ t, dot, label, speed }) => {
             const active = tier === t;
             const disabled = t === 3 && !attentionAvailable;
@@ -1138,9 +1195,9 @@ export default function MigrationModal({
                 <div style={{ fontSize: "9px", fontWeight: 900, color: active ? "#00FF88" : disabled ? "#555" : "#888", textTransform: "uppercase", letterSpacing: "0.04em", lineHeight: 1.2 }}>
                   {disabled ? "Attention" : label}
                 </div>
-                <div style={{ fontSize: "8px", color: active ? "#00CC6A" : disabled ? "#F59E0B" : "#333" }}>{disabled ? "↺ Retry" : speed}</div>
+                <div style={{ fontSize: "8px", color: active ? "#00D26A" : disabled ? "#00D26A" : "#333" }}>{disabled ? "↺ Retry" : speed}</div>
                 {t === 3 && active && hw?.tier === "minimal" && (
-                  <div style={{ fontSize: "8px", color: "#F59E0B", marginTop: "2px", textAlign: "center" }}>
+                  <div style={{ fontSize: "8px", color: "#00D26A", marginTop: "2px", textAlign: "center" }}>
                     ⚠ May take 2+ min
                   </div>
                 )}
@@ -1150,17 +1207,15 @@ export default function MigrationModal({
         </div>
 
 
-        {/* ── Tier 3: migration progress bar ── */}
-        {tier === 3 && migrateState.status === "migrating" && (
+        {/* [CM-SOLAR-V2] Universal animated migration stepper — all tiers. */}
+        {migrateState.status === "migrating" && (
           <div style={{ marginBottom: "6px" }}>
-            <div style={{ width: "100%", background: "#1A1A1A", borderRadius: "4px", height: "4px", overflow: "hidden" }}>
-              <div style={{ width: migrateProgress + "%", height: "100%", background: "#00FF88", transition: "width 300ms ease", boxShadow: "0 0 8px rgba(0,255,136,0.5)" }} />
+            <MigrationStepper stage={migrateStage} progress={migrateProgress} tier={tier} variant="full" />
+            <div style={{ width: "100%", background: "#1A1A1A", borderRadius: "4px", height: "3px", overflow: "hidden", marginTop: "4px" }}>
+              <div className="solar-progress-fill" style={{ width: migrateProgress + "%", height: "100%", transition: "width 300ms ease", boxShadow: "0 0 8px rgba(0,255,136,0.5)" }} />
             </div>
-            <div style={{ fontSize: "9px", color: "#6B6B6B", marginTop: "4px", textAlign: "center" }}>
-              {migrateStage || "Processing..."} ({migrateProgress}%)
-            </div>
-            {hw?.tier === "minimal" && (
-              <div style={{ fontSize: "8px", color: "#F59E0B", marginTop: "2px", textAlign: "center" }}>
+            {tier === 3 && hw?.tier === "minimal" && (
+              <div style={{ fontSize: "8px", color: "#00D26A", marginTop: "4px", textAlign: "center" }}>
                 Will auto-switch to Smart Summary if not done in 8s
               </div>
             )}
@@ -1175,13 +1230,13 @@ export default function MigrationModal({
               <span style={{ color: "#00FF88", fontWeight: 700 }}>{engineState.progress}%</span>
             </div>
             <div style={{ background: "#111", borderRadius: "4px", height: "2px" }}>
-              <div style={{ background: "linear-gradient(90deg, #00FF88, #00CC6A)", height: "2px", borderRadius: "4px", width: `${engineState.progress}%`, transition: "width 0.3s ease", boxShadow: "0 0 6px rgba(0,255,136,0.5)" }} />
+              <div style={{ background: "linear-gradient(90deg, #00FF88, #00D26A)", height: "2px", borderRadius: "4px", width: `${engineState.progress}%`, transition: "width 0.3s ease", boxShadow: "0 0 6px rgba(0,255,136,0.5)" }} />
             </div>
           </div>
         )}
 
         {tier === 3 && engineState.status === "error" && (
-          <div style={{ marginBottom: "4px", padding: "4px 10px", background: "#110505", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F87171", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <div style={{ marginBottom: "4px", padding: "4px 10px", background: "#110505", border: "1px solid rgba(0,255,136,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F87171", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             ⚠ {engineState.message}
           </div>
         )}
@@ -1229,7 +1284,7 @@ export default function MigrationModal({
 
         {/* ── Tier 3: live preview ── */}
         {tier === 3 && preview.status === "analyzing" && (
-          <div style={{ marginBottom: "6px", padding: "5px 10px", background: "#111", border: "1px solid #1A2A1A", borderRadius: "4px", fontSize: "9px", color: "#34D399", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          <div style={{ marginBottom: "6px", padding: "5px 10px", background: "#111", border: "1px solid #2A2A2A", borderRadius: "4px", fontSize: "9px", color: "#00FF88", textTransform: "uppercase", letterSpacing: "0.08em" }}>
             · Analyzing…
           </div>
         )}
@@ -1237,7 +1292,7 @@ export default function MigrationModal({
         {tier === 3 && preview.status === "done" && (
           <div style={{ marginBottom: "6px", padding: "5px 10px", background: "#060F07", border: "1px solid rgba(0,255,136,0.18)", borderRadius: "4px", fontSize: "9px" }}>
             <span style={{ color: "#00FF88", fontWeight: 900 }}>✓ </span>
-            <span style={{ color: "#34D399" }}>
+            <span style={{ color: "#00FF88" }}>
               <strong style={{ color: "#00FF88" }}>{preview.compressionRatio}% compressed</strong>
               {" · "}<strong style={{ color: "#F5F5F5" }}>{preview.highlightedFiles}</strong> files
               {" · "}<strong style={{ color: "#F5F5F5" }}>{preview.relevantMessages}/{session.messages.length}</strong> msgs
@@ -1246,7 +1301,7 @@ export default function MigrationModal({
         )}
 
         {tier === 3 && preview.status === "error" && (
-          <div style={{ marginBottom: "6px", padding: "5px 10px", background: "#110505", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F87171", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <div style={{ marginBottom: "6px", padding: "5px 10px", background: "#110505", border: "1px solid rgba(0,255,136,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F87171", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Preview unavailable — keyword fallback
           </div>
         )}
@@ -1422,7 +1477,7 @@ export default function MigrationModal({
             <div style={{ marginBottom: 6 }}>
               <div style={{
                 padding: "6px 10px", borderRadius: 5, transition: "all 0.15s",
-                border: `1px solid ${hasSel && projectContextIncluded ? "rgba(0,255,136,0.3)" : isConn ? "rgba(255,255,255,0.07)" : "#1A1A1A"}`,
+                border: `1px solid ${hasSel && projectContextIncluded ? "rgba(0,255,136,0.3)" : isConn ? "rgba(0,255,136,0.07)" : "#1A1A1A"}`,
                 background: hasSel && projectContextIncluded ? "rgba(0,255,136,0.04)" : "#0D0D0D",
               }}>
                 {/* Header */}
@@ -1431,9 +1486,9 @@ export default function MigrationModal({
                     <span style={{ fontSize: 9, fontWeight: 900, color: hasSel && projectContextIncluded ? "#00FF88" : "#555", textTransform: "uppercase", letterSpacing: "0.1em" }}>
                       📁 Project Files
                     </span>
-                    {autoScoring && <span style={{ fontSize: 8, color: "#818CF8" }}>scanning…</span>}
+                    {autoScoring && <span style={{ fontSize: 8, color: "#E5E5E5" }}>scanning…</span>}
                     {autoScoredPaths.length > 0 && !autoScoring && (
-                      <span style={{ fontSize: 8, color: "#818CF8", background: "rgba(99,102,241,0.12)", borderRadius: 3, padding: "1px 5px" }}>✨ auto</span>
+                      <span style={{ fontSize: 8, color: "#E5E5E5", background: "rgba(99,102,241,0.12)", borderRadius: 3, padding: "1px 5px" }}>✨ auto</span>
                     )}
                   </div>
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -1446,7 +1501,7 @@ export default function MigrationModal({
                     {isConn && (
                       <button type="button" onClick={handleDisconnectFolder} title="Disconnect"
                         style={{ fontSize: 11, color: "#333", background: "none", border: "none", cursor: "pointer", lineHeight: 1 }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = "#EF4444")}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#00FF88")}
                         onMouseLeave={(e) => (e.currentTarget.style.color = "#333")}>×</button>
                     )}
                   </div>
@@ -1487,12 +1542,12 @@ export default function MigrationModal({
                           return (
                             <div key={path} onClick={() => handleToggleFile(path)}
                               style={{ display: "flex", alignItems: "center", gap: 5, padding: "2px 4px", cursor: "pointer", borderRadius: 3, background: sel ? "rgba(0,255,136,0.05)" : "transparent" }}
-                              onMouseEnter={(e) => { if (!sel) (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.03)"; }}
+                              onMouseEnter={(e) => { if (!sel) (e.currentTarget as HTMLDivElement).style.background = "rgba(0,255,136,0.03)"; }}
                               onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = sel ? "rgba(0,255,136,0.05)" : "transparent"; }}>
                               <span style={{ fontSize: 9, color: sel ? "#00FF88" : "#333", flexShrink: 0 }}>{sel ? "☑" : "☐"}</span>
                               <span style={{ fontSize: 9, color: sel ? "#F5F5F5" : "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{name}</span>
                               {score !== undefined && (
-                                <span style={{ fontSize: 7, color: "#818CF8", background: "rgba(99,102,241,0.12)", borderRadius: 3, padding: "1px 4px", flexShrink: 0 }}>{Math.round(score * 100)}%</span>
+                                <span style={{ fontSize: 7, color: "#E5E5E5", background: "rgba(99,102,241,0.12)", borderRadius: 3, padding: "1px 4px", flexShrink: 0 }}>{Math.round(score * 100)}%</span>
                               )}
                             </div>
                           );
@@ -1501,7 +1556,7 @@ export default function MigrationModal({
                     )}
                     <div style={{ fontSize: 8, color: hasSel ? "#444" : "#333" }}>
                       {hasSel
-                        ? <>{projectFiles.length} file{projectFiles.length !== 1 ? "s" : ""} · {fileContextBuilder.formatSize(projectFiles.reduce((s, f) => s + f.size, 0))}{(() => { const w = fileContextBuilder.getTokenWarning(projectFiles, targetPlatform); return w ? <span style={{ color: "#F59E0B", marginLeft: 6 }}>{w}</span> : null; })()}</>
+                        ? <>{projectFiles.length} file{projectFiles.length !== 1 ? "s" : ""} · {fileContextBuilder.formatSize(projectFiles.reduce((s, f) => s + f.size, 0))}{(() => { const w = fileContextBuilder.getTokenWarning(projectFiles, targetPlatform); return w ? <span style={{ color: "#00D26A", marginLeft: 6 }}>{w}</span> : null; })()}</>
                         : autoScoring ? "Scanning…" : "Select files or type task to auto-detect"}
                     </div>
                   </>
@@ -1513,7 +1568,7 @@ export default function MigrationModal({
 
         {/* ── Error banner ── */}
         {migrateState.status === "error" && (
-          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "#110505", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F87171", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <div style={{ marginBottom: "6px", padding: "4px 10px", background: "#110505", border: "1px solid rgba(0,255,136,0.2)", borderRadius: "4px", fontSize: "9px", color: "#F87171", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             {migrateState.message}
           </div>
         )}
@@ -1585,9 +1640,10 @@ export default function MigrationModal({
             <button
               onClick={handleMigrate}
               disabled={isBusy || isDone}
+              className={(!isBusy && !isDone) ? "solar-gradient-bg btn-primary" : ""}
               style={{
                 flex: 2, height: "36px", padding: "0 16px",
-                background: isDone ? "#060F07" : "#00FF88",
+                background: isDone ? "#060F07" : undefined,
                 border: isDone ? "1px solid rgba(0,255,136,0.25)" : "none",
                 borderRadius: "4px",
                 color: isDone ? "#00FF88" : "#0A0A0A",

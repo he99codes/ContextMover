@@ -121,7 +121,7 @@ export default function BillingPage() {
         <div className="mt-6">
           <Link
             href="/pricing"
-            className="inline-block rounded-md bg-[#00FF88] px-5 py-3 text-xs font-black uppercase tracking-wider text-[#0A0A0A] hover:opacity-90"
+            className="inline-block rounded-md bg-[#00FF88] px-5 py-3 text-xs font-black uppercase tracking-wider text-[#00FF88] hover:opacity-90"
           >
             View plans →
           </Link>
@@ -237,7 +237,7 @@ export default function BillingPage() {
             <button
               onClick={() => setConfirm(true)}
               disabled={cancelling}
-              className="rounded-md border border-[#FF4444] bg-transparent px-4 py-2 text-xs font-semibold uppercase tracking-wider text-[#FF4444] hover:bg-[#FF4444] hover:text-[#0A0A0A] disabled:opacity-50"
+              className="rounded-md border border-[#00FF88] bg-transparent px-4 py-2 text-xs font-semibold uppercase tracking-wider text-[#00FF88] hover:bg-[#00FF88] hover:text-[#00FF88] disabled:opacity-50"
             >
               Cancel subscription
             </button>
@@ -251,7 +251,7 @@ export default function BillingPage() {
                 <button
                   onClick={handleCancel}
                   disabled={cancelling}
-                  className="rounded-md bg-[#FF4444] px-4 py-2 text-xs font-black uppercase tracking-wider text-[#0A0A0A] hover:opacity-90 disabled:opacity-50"
+                  className="rounded-md bg-[#00FF88] px-4 py-2 text-xs font-black uppercase tracking-wider text-[#00FF88] hover:opacity-90 disabled:opacity-50"
                 >
                   {cancelling ? "Cancelling…" : "Yes, cancel"}
                 </button>

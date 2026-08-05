@@ -67,7 +67,7 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
       {/* Toolbar */}
       <div className="mb-7 flex flex-col gap-4">
         {/* Platform filter tabs with sliding underline */}
-        <div className="flex items-center gap-0 border-b border-[#0D2A0D] overflow-x-auto" style={{ background: "linear-gradient(to right, #050505, #081208, #050505)" }}>
+        <div className="flex items-center gap-0 border-b border-[#2A2A2A] overflow-x-auto" style={{ background: "linear-gradient(to right, #050505, #081208, #050505)" }}>
           {PLATFORMS.map((p) => {
             const isActive = filter === p.key;
             const color = p.logoKey ? (PCOLORS[p.logoKey] ?? "#6B6B6B") : "#00FF88";
@@ -77,7 +77,7 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
                 onClick={() => setFilter(p.key)}
                 className={cn(
                   "relative flex shrink-0 items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-black uppercase tracking-[0.14em] transition-all duration-150 whitespace-nowrap",
-                  isActive ? "text-[#F5F5F5]" : "text-[#2A4A2A] hover:text-[#4A8A4A]"
+                  isActive ? "text-[#F5F5F5]" : "text-[#2A2A2A] hover:text-[#4A8A4A]"
                 )}
                 style={isActive ? { color } : {}}
               >
@@ -120,10 +120,10 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
             className={cn(
-              "w-full rounded-[5px] border bg-[#080808] py-3 pl-9 pr-4 text-sm font-mono text-[#F5F5F5] placeholder:text-[#1A3A1A] outline-none transition-all duration-150",
+              "w-full rounded-[5px] border bg-[#080808] py-3 pl-9 pr-4 text-sm font-mono text-[#F5F5F5] placeholder:text-[#1A1A1A] outline-none transition-all duration-150",
               searchFocused
                 ? "border-[#00FF88] shadow-[0_0_0_2px_rgba(0,255,136,0.1),0_0_20px_rgba(0,255,136,0.05)]"
-                : "border-[#1A2A1A] hover:border-[#2A4A2A]"
+                : "border-[#2A2A2A] hover:border-[#2A2A2A]"
             )}
           />
         </div>
@@ -136,7 +136,7 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
             <Layers size={20} className="text-[#00FF88]" />
           </div>
           <h3 className="text-sm font-black uppercase tracking-widest text-[#F5F5F5]">No sessions captured yet</h3>
-          <p className="mt-1.5 max-w-xs text-xs font-mono text-[#2A4A2A]">
+          <p className="mt-1.5 max-w-xs text-xs font-mono text-[#2A2A2A]">
             Install the ContextMover extension and visit Claude, ChatGPT, Google Gemini,
             xAI Grok, Perplexity, or DeepSeek to start capturing context.
           </p>
@@ -145,8 +145,8 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
 
       {filtered.length === 0 && sessions.length > 0 && (
         <div className="flex flex-col items-center justify-center rounded-[8px] border border-dashed py-20 text-center animate-fade-in neon-border-pulse" style={{ background: "#070707" }}>
-          <RefreshCw size={18} className="mb-3 text-[#2A6A2A]" />
-          <p className="text-xs font-mono uppercase tracking-wider text-[#2A4A2A]">No sessions match your filter.</p>
+          <RefreshCw size={18} className="mb-3 text-[#6B6B6B]" />
+          <p className="text-xs font-mono uppercase tracking-wider text-[#2A2A2A]">No sessions match your filter.</p>
           <button
             onClick={() => { setFilter("All"); setSearch(""); }}
             className="mt-2 text-xs text-[#00FF88] transition-opacity hover:opacity-70"
@@ -174,7 +174,7 @@ export function SessionList({ initialSessions, userId }: SessionListProps) {
           <div className="text-[11px] font-black uppercase tracking-[0.4em] text-[#00FF88]" style={{ textShadow: "0 0 10px rgba(0,255,136,0.45)" }}>
             ⚗ The Crucible
           </div>
-          <div className="mt-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-[#1A3A1A]">
+          <div className="mt-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-[#1A1A1A]">
             Merge sessions · Forge Super Memory
           </div>
           <div className="mt-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-[#00FF88]/40">

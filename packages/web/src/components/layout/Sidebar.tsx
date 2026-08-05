@@ -182,8 +182,8 @@ export function Sidebar({ user }: SidebarProps) {
 
       {/* Zero-knowledge footer */}
       <div className="px-4 py-2 flex items-center gap-1.5">
-        <Shield size={9} className="text-[#1A3A1A] shrink-0" />
-        <p className="text-[9px] font-mono text-[#1A3A1A] leading-tight">Your data never touches our servers</p>
+        <Shield size={9} className="text-[#1A1A1A] shrink-0" />
+        <p className="text-[9px] font-mono text-[#1A1A1A] leading-tight">Your data never touches our servers</p>
       </div>
 
       {/* User */}
@@ -206,7 +206,7 @@ export function Sidebar({ user }: SidebarProps) {
           </div>
           <button
             onClick={handleSignOut}
-            className="shrink-0 rounded-[4px] p-1 text-[#6B6B6B] transition-colors hover:bg-red-500/10 hover:text-red-400"
+            className="shrink-0 rounded-[4px] p-1 text-[#6B6B6B] transition-colors hover:bg-[#00FF88]/10 hover:text-[#00FF88]"
             title="Sign out"
           >
             <LogOut size={14} />

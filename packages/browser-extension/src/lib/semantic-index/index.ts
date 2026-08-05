@@ -895,6 +895,22 @@ export class SemanticIndex {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hasOffscreen = !!(chrome as any).offscreen;
     if (hasOffscreen) {
+      // [CM-OFFSCREEN-FIX] Fast-fail if the offscreen doc is dead and can't be
+      // recreated. Without this, each background job waits up to 90s (the
+      // offscreen index timeout) before failing — 40 jobs × 90s = 1 hour of
+      // jammed queue (the v1.0.4 "indexing has stopped" symptom). Fail fast
+      // so the queue drains and the next attempt can succeed after reload.
+      try {
+        const hasDoc = await (chrome as any).offscreen.hasDocument?.();
+        if (!hasDoc) {
+          // Try to recreate via ensureOffscreenDocument; if it throws, fail fast.
+          await ensureOffscreenDocument();
+        }
+      } catch (offscreenErr) {
+        const msg = offscreenErr instanceof Error ? offscreenErr.message : String(offscreenErr);
+        console.warn(`[CM:index] ${session.id}: offscreen unavailable (${msg}) — skipping index job (fail fast)`);
+        throw new Error(`offscreen_unavailable: ${msg}`);
+      }
       const t0 = performance.now();
       wrappedProgress(5, "Spawning indexing worker...");
       // [CM-MIGRATION-PRIORITY] Pass abort signal for bg jobs so migration can cancel them

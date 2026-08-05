@@ -67,7 +67,7 @@ const SCAN_CSS = `
 //         onClick={onDismiss}
 //         aria-label="Remove chunk"
 //         style={{ position: "absolute", top: "3px", right: "4px", background: "none", border: "none", color: "#3A3A3A", fontSize: "10px", lineHeight: 1, padding: "0 2px", cursor: "pointer" }}
-//         onMouseEnter={(e) => { e.currentTarget.style.color = "#FF6B6B"; }}
+//         onMouseEnter={(e) => { e.currentTarget.style.color = "#FF4444"; }}
 //         onMouseLeave={(e) => { e.currentTarget.style.color = "#3A3A3A"; }}
 //       >×</button>
 // 

@@ -43,19 +43,36 @@ export async function focusTab(tabId: number): Promise<void> {
   await chrome.tabs.update(tabId, { active: true });
 }
 
-const PLATFORM_NEW_CHAT_URLS: Record<Platform, string> = {
-  claude:     "https://claude.ai/new",
-  chatgpt:    "https://chatgpt.com/",
-  gemini:     "https://gemini.google.com/app",
-  grok:       "https://grok.com/",
-  perplexity: "https://www.perplexity.ai/",
-  deepseek:   "https://chat.deepseek.com/",
-};
+/**
+ * [CM-SOLAR-V2] Detect the currently-active AI platform tab in the current window.
+ * Returns `{ platform, tab }` if the active tab's URL matches a known AI host,
+ * otherwise `null`. Used by the 1-click quick-migrate button on SessionCard.
+ */
+export async function detectActivePlatformTab(): Promise<{ platform: Platform; tab: chrome.tabs.Tab } | null> {
+  try {
+    const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!active?.url) return null;
+    for (const [platform, patterns] of Object.entries(PLATFORM_TAB_PATTERNS)) {
+      for (const pattern of patterns) {
+        // Convert glob (https://claude.ai/*) to regex.
+        const re = new RegExp("^" + pattern.replace(/[.*+?^${}()|[\]\\]/g, (ch) => (ch === "*" ? ".*" : ch === "?" ? "." : "\\" + ch)) + "$");
+        if (re.test(active.url)) {
+          return { platform: platform as Platform, tab: active };
+        }
+      }
+    }
+  } catch {
+    /* ignore — best-effort detection */
+  }
+  return null;
+}
 
-export async function openPlatformTab(
-  platform: Platform
-): Promise<chrome.tabs.Tab> {
-  const url = PLATFORM_NEW_CHAT_URLS[platform];
-  const tab = await chrome.tabs.create({ url, active: true });
-  return tab;
+/**
+ * [CM-NESTED-FIX] Open a new tab for the given platform and return it.
+ * Used by MigrationModal/AttentionModal when no existing tab is found.
+ */
+export async function openPlatformTab(platform: Platform): Promise<chrome.tabs.Tab> {
+  const patterns = PLATFORM_TAB_PATTERNS[platform];
+  const url = patterns[0].replace(/\*$/, "");
+  return await chrome.tabs.create({ url, active: true });
 }

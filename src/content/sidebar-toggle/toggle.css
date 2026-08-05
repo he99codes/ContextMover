@@ -33,7 +33,7 @@
   cursor: pointer;
 
   /* Effects */
-  box-shadow: -2px 0 12px rgba(0, 255, 120, 0.15);
+  box-shadow: -2px 0 12px rgba(0,255,136, 0.15);
   opacity: 0.85;
   transition:
     box-shadow 200ms ease,
@@ -43,7 +43,7 @@
 
 .cf-toggle:hover {
   opacity: 1;
-  box-shadow: -2px 0 20px rgba(0, 255, 120, 0.35);
+  box-shadow: -2px 0 20px rgba(0,255,136, 0.35);
 }
 
 .cf-toggle:active {
@@ -59,12 +59,12 @@
 /* Sidebar open state */
 .cf-toggle--open {
   opacity: 1;
-  box-shadow: -2px 0 24px rgba(0, 255, 120, 0.50);
-  background: #0F1A0F;
+  box-shadow: -2px 0 24px rgba(0,255,136, 0.50);
+  background: #0A0A0A;
 }
 
 .cf-toggle--open:hover {
-  box-shadow: -2px 0 32px rgba(0, 255, 120, 0.65);
+  box-shadow: -2px 0 32px rgba(0,255,136, 0.65);
 }
 
 /* Logo image */
@@ -94,12 +94,12 @@
 
 .cf-dot--active {
   background: #00D26A;
-  box-shadow: 0 0 6px rgba(0, 210, 106, 0.6);
+  box-shadow: 0 0 6px rgba(0,255,136, 0.6);
 }
 
 /* Open state dot contrast */
 .cf-toggle--open .cf-dot--idle {
-  background: rgba(0, 255, 120, 0.2);
+  background: rgba(0,255,136, 0.2);
 }
 
 .cf-toggle--open .cf-dot--active {
@@ -114,7 +114,7 @@
 
 .cf-toggle--busy:hover {
   opacity: 0.6;
-  box-shadow: -2px 0 12px rgba(0, 255, 120, 0.15);
+  box-shadow: -2px 0 12px rgba(0,255,136, 0.15);
 }
 
 /* Left side positioning */
@@ -122,23 +122,23 @@
   right: auto;
   left: 0;
   border-radius: 0 50% 50% 0;
-  box-shadow: 2px 0 12px rgba(0, 255, 120, 0.15);
+  box-shadow: 2px 0 12px rgba(0,255,136, 0.15);
 }
 
 .cf-toggle--left:hover {
-  box-shadow: 2px 0 20px rgba(0, 255, 120, 0.35);
+  box-shadow: 2px 0 20px rgba(0,255,136, 0.35);
 }
 
 .cf-toggle--open.cf-toggle--left {
-  box-shadow: 2px 0 24px rgba(0, 255, 120, 0.50);
+  box-shadow: 2px 0 24px rgba(0,255,136, 0.50);
 }
 
 .cf-toggle--open.cf-toggle--left:hover {
-  box-shadow: 2px 0 32px rgba(0, 255, 120, 0.65);
+  box-shadow: 2px 0 32px rgba(0,255,136, 0.65);
 }
 
 .cf-toggle--busy.cf-toggle--left:hover {
-  box-shadow: 2px 0 12px rgba(0, 255, 120, 0.15);
+  box-shadow: 2px 0 12px rgba(0,255,136, 0.15);
 }
 
 /* Overrides for left-side snapping */
@@ -146,21 +146,21 @@
   right: auto;
   left: 0;
   border-radius: 0 50% 50% 0;
-  box-shadow: 2px 0 12px rgba(0, 255, 120, 0.15);
+  box-shadow: 2px 0 12px rgba(0,255,136, 0.15);
 }
 
 .cf-toggle--left:hover {
-  box-shadow: 2px 0 20px rgba(0, 255, 120, 0.35);
+  box-shadow: 2px 0 20px rgba(0,255,136, 0.35);
 }
 
 .cf-toggle--open.cf-toggle--left {
-  box-shadow: 2px 0 24px rgba(0, 255, 120, 0.50);
+  box-shadow: 2px 0 24px rgba(0,255,136, 0.50);
 }
 
 .cf-toggle--open.cf-toggle--left:hover {
-  box-shadow: 2px 0 32px rgba(0, 255, 120, 0.65);
+  box-shadow: 2px 0 32px rgba(0,255,136, 0.65);
 }
 
 .cf-toggle--busy.cf-toggle--left:hover {
-  box-shadow: 2px 0 12px rgba(0, 255, 120, 0.15);
+  box-shadow: 2px 0 12px rgba(0,255,136, 0.15);
 }

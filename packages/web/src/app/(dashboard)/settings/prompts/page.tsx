@@ -282,7 +282,7 @@ export default function PromptsPage() {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-[14px] shrink-0">{t.icon}</span>
-                  <span className={`text-[12px] font-medium truncate ${selected?.id === t.id ? "text-[#F5F5F5]" : "text-[#A0A0A0]"}`}>{t.name}</span>
+                  <span className={`text-[12px] font-medium truncate ${selected?.id === t.id ? "text-[#F5F5F5]" : "text-[#00D26A]"}`}>{t.name}</span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {t.isDefault && <span className="rounded-full bg-[#00FF88]/10 px-1.5 py-0.5 text-[9px] font-semibold text-[#00FF88]">default</span>}
@@ -464,7 +464,7 @@ export default function PromptsPage() {
               <label className="text-[12px] text-[#6B6B6B]">Auto-apply to all migrations (default template)</label>
             </div>
 
-            {saveError && <p className="text-[11px] text-red-400">{saveError}</p>}
+            {saveError && <p className="text-[11px] text-white">{saveError}</p>}
 
             {/* Save / Delete */}
             <div className="flex gap-3 pt-1">
@@ -478,7 +478,7 @@ export default function PromptsPage() {
               {!isCreating && selected && (
                 <button
                   onClick={handleDelete}
-                  className="rounded-[6px] border border-red-500/30 px-4 py-2.5 text-[12px] font-medium text-red-400 transition-all hover:bg-red-500/10"
+                  className="rounded-[6px] border border-white/30 px-4 py-2.5 text-[12px] font-medium text-white transition-all hover:bg-white/10"
                 >
                   Delete
                 </button>
@@ -506,7 +506,7 @@ export default function PromptsPage() {
                     {selectedAssignments.map((a) => (
                       <span key={a.id} className="flex items-center gap-1 rounded-full bg-[#00FF88]/10 border border-[#00FF88]/20 px-2.5 py-1 text-[10px] text-[#00FF88]">
                         {a.platform ?? a.sessionId}
-                        <button onClick={() => removeAssignment(a.id)} className="ml-0.5 text-[#00FF88]/60 hover:text-red-400">×</button>
+                        <button onClick={() => removeAssignment(a.id)} className="ml-0.5 text-[#00FF88]/60 hover:text-white">×</button>
                       </span>
                     ))}
                   </div>

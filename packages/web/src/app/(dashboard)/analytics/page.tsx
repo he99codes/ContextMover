@@ -78,7 +78,7 @@ export default function OverviewPage() {
           href={CHROME_STORE_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-[6px] bg-[#00FF88] px-4 py-2 text-xs font-semibold text-black hover:bg-[#00CC6A] transition-colors"
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-[6px] bg-[#00FF88] px-4 py-2 text-xs font-semibold text-black hover:bg-[#00D26A] transition-colors"
         >
           Open extension <ArrowRight size={12} />
         </a>
@@ -90,7 +90,7 @@ export default function OverviewPage() {
           <Link
             key={item.href}
             href={item.href}
-            className="group flex items-center gap-4 rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] p-4 hover:border-[rgba(0,255,136,0.3)] hover:bg-[#0D1A0D] transition-all"
+            className="group flex items-center gap-4 rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] p-4 hover:border-[rgba(0,255,136,0.3)] hover:bg-[#0A0A0A] transition-all"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[6px] border border-[#2A2A2A] bg-[#111] group-hover:border-[#00FF88]/20 transition-colors">
               <item.icon size={15} className="text-[#6B6B6B] group-hover:text-[#00FF88] transition-colors" />

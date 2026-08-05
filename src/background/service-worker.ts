@@ -30,6 +30,9 @@ import { pickBestKnown, shouldRejectIncoming } from "@/lib/capture/capture-merge
 // Drive sync — additive layer over IndexedDB. Independent of Supabase vault.
 import { driveClient } from "@/lib/drive/drive-client";
 import { driveSyncManager } from "@/lib/drive/sync-manager";
+// [CM-OFFSCREEN-FIX] Perf telemetry — ported from packages/browser-extension
+// so repo-root builds have the P50/P90/P99 dashboard.
+import { perfStart, getPerfStats, recordPerf } from "@/lib/perf-track";
 
 const DEBUG = process.env.NODE_ENV === "development";
 const DEBUG_DIAG = false; // Set true to re-enable verbose diagnostic log mirroring
@@ -1035,6 +1038,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
+      // [CM-OFFSCREEN-FIX] Perf dashboard — returns P50/P90/P99/SLO per operation.
+      case "GET_PERF_STATS": {
+        if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
+        const windowMs = (msg as { windowMs?: number }).windowMs;
+        getPerfStats(windowMs).then(stats => {
+          sendResponse({ ok: true, stats });
+        }).catch(() => sendResponse({ ok: true, stats: [] }));
+        return true;
+      }
+
       case "SYNC_FILES_TO_MCP": {
         if (!isFromExtensionUI(sender)) { sendResponse({ error: "Unauthorized" }); return; }
         // Sidebar fires this whenever the user toggles file selection or
@@ -1206,28 +1219,72 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
 
         // ── Freemium gate ────────────────────────────────────────────────────
-        // Always try to get fresh session first
+        // [CM-FLASH] Flash mode skips the supabase.auth.getSession() network
+        // roundtrip and the checkMigrationAllowed server call. We use the
+        // stored token directly and verify usage fire-and-forget AFTER
+        // injection so the user perceives <1s latency. If the user is over
+        // limit, the NEXT flash migration will be blocked (server-enforced).
+        const _flash = !!msg.payload?.flash;
         let accessToken: string | undefined;
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.access_token) {
-            accessToken = session.access_token;
-            // Keep storage in sync
-            await chrome.storage.local.set({
-              accessToken: session.access_token,
-              userId: session.user?.id,
-            });
-          } else {
-            // Fallback to stored token
+        if (_flash) {
+          // Fast path — read token from local storage (no network).
+          const stored = await chrome.storage.local.get("accessToken");
+          accessToken = stored.accessToken as string | undefined;
+        } else {
+          // Normal path — always try to get fresh session first.
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              accessToken = session.access_token;
+              // Keep storage in sync
+              await chrome.storage.local.set({
+                accessToken: session.access_token,
+                userId: session.user?.id,
+              });
+            } else {
+              // Fallback to stored token
+              const stored = await chrome.storage.local.get("accessToken");
+              accessToken = stored.accessToken as string | undefined;
+            }
+          } catch {
             const stored = await chrome.storage.local.get("accessToken");
             accessToken = stored.accessToken as string | undefined;
           }
-        } catch {
-          const stored = await chrome.storage.local.get("accessToken");
-          accessToken = stored.accessToken as string | undefined;
         }
 
-        if (accessToken) {
+        if (_flash) {
+          // [CM-FLASH] Skip server usage check — verify fire-and-forget after.
+          // Anonymous flash users use local counters only (checked below if no token).
+          if (!accessToken) {
+            const FREE_ANON_LIMITS: Record<number, number> = { 1: 8, 2: 3, 3: 3 };
+            const anonLimit = FREE_ANON_LIMITS[_tier] ?? 8;
+            const month = new Date().toISOString().slice(0, 7);
+            const anonKey = `anon_usage_t${_tier}_${month}`;
+            const stored = await chrome.storage.local.get(anonKey);
+            const anonCount = (stored[anonKey] as number | undefined) ?? 0;
+            if (anonCount >= anonLimit) {
+              const resetDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+              const daysUntilReset = Math.ceil((resetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+              sendResponse({
+                success: false,
+                error: "limit_reached",
+                limitData: {
+                  tier: _tier,
+                  used: anonCount,
+                  limit: anonLimit,
+                  daysUntilReset,
+                  upgradeUrl: "https://contextmover.com/pricing",
+                },
+              });
+              break;
+            }
+            void chrome.storage.local.set({ [anonKey]: anonCount + 1 });
+          }
+          // Fire-and-forget server usage check (does not block injection).
+          if (accessToken) {
+            void checkMigrationAllowed(_tier, accessToken as string).catch(() => {});
+          }
+        } else if (accessToken) {
           const usage = await checkMigrationAllowed(_tier, accessToken as string);
           if (!usage.allowed) {
             sendResponse({
@@ -2482,6 +2539,8 @@ async function handleMigrateContext(
     promptTemplate?: { name: string; content: string; icon: string } | null;
     projectContext?: string | null;
     skipAutoInject?: boolean;
+    // [CM-FLASH] Flash migration — skip server build, skip auth refresh, skip usage check.
+    flash?: boolean;
   },
   sendResponse: (r: unknown) => void,
   accessToken?: string
@@ -2503,7 +2562,8 @@ async function handleMigrateContext(
   try {
     if (tier === 1) {
       const localFile = buildTier1File(session)
-      migrationFile = accessToken
+      // [CM-FLASH] Flash mode uses the local file directly — no server roundtrip.
+      migrationFile = (accessToken && !payload.flash)
         ? await fetchMigrationBuild(
             { tier: 1, platform: session.platform, sessionTitle: session.title, messages: session.messages },
             accessToken, localFile
@@ -2571,6 +2631,24 @@ async function handleMigrateContext(
         sendResponse({ success: false, error: 'Attention Engine unavailable — model could not load on this device' });
         return;
       }
+      // [CM-OFFSCREEN-FIX] Verify offscreen doc is alive before entering the
+      // 120s T3 timeout. If it's dead and can't be recreated, fail fast with a
+      // clear error instead of burning the full timeout. This is the fix for
+      // the v1.0.4 regression where offscreen.html was missing from the build.
+      const offscreenAlive = await ensureOffscreenAliveOrRecreate();
+      if (!offscreenAlive) {
+        console.error('[CM:sw] T3 — offscreen document unavailable, cannot run attention engine. Returning hard error.');
+        resumeBackgroundIndexing();
+        activeMigrationInProgress = false;
+        void drainCancelledByMigration();
+        sendResponse({
+          success: false,
+          error: 'attention_engine_unavailable',
+          requestedTier: 3,
+          message: 'Attention Engine unavailable — offscreen document could not be created. Try again after reloading the extension, or switch to Smart Summary / Full Context.',
+        });
+        return;
+      }
       reportProgress(30, 'Running attention engine...')
       // [CM-TIER-FIX] removed auto-downgrade — user controls tier, not hardware detector
       // If Tier 3 was requested, run it. Let it be slow. That is the user's choice.
@@ -2635,7 +2713,8 @@ async function handleMigrateContext(
         // [CM-T3-FIX] build attention map for scored chunk serialization
         const attentionMap = await attentionEngine.buildAttentionMap(session, task3, 'balanced');
         const localFile = buildTier3File(session, chunks, task3, attentionMap)
-        migrationFile = accessToken
+        // [CM-FLASH] Flash mode uses the local file directly.
+        migrationFile = (accessToken && !payload.flash)
           ? await fetchMigrationBuild(
               { tier: 3, platform: session.platform, sessionTitle: session.title,
                 messages: session.messages, originalCount: session.messages.length,
@@ -2670,6 +2749,11 @@ async function handleMigrateContext(
   } catch (err: any) {
     console.warn('[CM:sw] File build failed, falling back to tier 1:', err)
     void reportExtensionEvent({ event: 'migration_fallback', platform: session.platform, tier, detail: String(err instanceof Error ? err.message : err).slice(0, 200), timestamp: Date.now() });
+    // [CM-OFFSCREEN-FIX] Record the fallback explicitly so the perf dashboard
+    // can distinguish successful T3 from T3-that-fell-back-to-T1.
+    if (tier === 3) {
+      void recordPerf('migrate_tier3_fallback', performance.now() - t0, { sessionId: session.id, metadata: { platform: session.platform, messageCount: session.messages.length, tier, reason: String(err instanceof Error ? err.message : err).slice(0, 80) } });
+    }
     migrationFile = buildTier1File(session)
     // Notify sidebar so the user knows the context was compressed.
     void broadcastToViews({
@@ -2744,7 +2828,7 @@ async function handleMigrateContext(
       // It should still be user-triggered from the extension, just not from MigrationModal.
       try {
         if (tier === 1) {
-            const t1Ready = await waitForTabContentScript(payload.targetTabId!)
+            const t1Ready = await waitForTabContentScript(payload.targetTabId!, payload.flash)
             if (t1Ready) {
               const t1Result = await new Promise<{ ok: boolean; error?: string }>((resolve) => {
                 chrome.tabs.sendMessage(
@@ -2762,7 +2846,7 @@ async function handleMigrateContext(
               console.warn(`[CM:sw] Tier 1 file injection: content script not ready on tab ${payload.targetTabId}`);
             }
         } else {
-            const ready = await waitForTabContentScript(payload.targetTabId!);
+            const ready = await waitForTabContentScript(payload.targetTabId!, payload.flash);
             if (!ready) {
                 console.warn(`[CM:sw] Tab ${payload.targetTabId} content script not ready after 8 pings — trying executeScript fallback`);
                 const [execResult] = await chrome.scripting.executeScript({
@@ -2816,6 +2900,9 @@ async function handleMigrateContext(
   activeMigrationInProgress = false;
           void drainCancelledByMigration();
   void reportExtensionEvent({ event: 'migration_success', platform: session.platform, tier, detail: injected ? 'injected' : 'prepared', timestamp: Date.now() });
+  // [CM-OFFSCREEN-FIX] Record SW-internal migration time per tier. The
+  // sidebar separately records migrate_total (end-to-end user-perceived).
+  void recordPerf(`migrate_tier${tier}` as 'migrate_tier1' | 'migrate_tier2' | 'migrate_tier3', performance.now() - t0, { sessionId: session.id, metadata: { platform: session.platform, messageCount: session.messages.length, tier } });
   sendResponse({
     success: true,
     injected,
@@ -3392,22 +3479,33 @@ function waitForTabComplete(tabId: number, timeoutMs = 15_000): Promise<boolean>
  * Phase 1 — waits for tab.status === 'complete' (event-driven via onUpdated, 15 s cap).
  * Phase 2 — pings the content script 8 times at uniform 1500ms intervals.
  * Returns true when the script responds, false when all 8 pings are exhausted.
+ *
+ * [CM-FLASH] When `flash=true`:
+ *   - Phase 1 is skipped (the active tab is already complete).
+ *   - Phase 2 pings immediately (0ms first attempt), then retries at 300ms
+ *     intervals instead of 1500ms. For an already-loaded AI tab the content
+ *     script responds on the first ping, so the total wait is ~5-10ms.
  */
-async function waitForTabContentScript(tabId: number): Promise<boolean> {
-  // Phase 1: wait for the tab to finish its initial navigation.
-  const complete = await waitForTabComplete(tabId, 15_000);
-  console.log(
-    complete
-      ? `[CM:sw] Tab ${tabId} reached 'complete' status`
-      : `[CM:sw] Tab ${tabId} did not reach 'complete' within 15 s — proceeding with pings`
-  );
+async function waitForTabContentScript(tabId: number, flash = false): Promise<boolean> {
+  if (!flash) {
+    // Phase 1: wait for the tab to finish its initial navigation.
+    const complete = await waitForTabComplete(tabId, 15_000);
+    console.log(
+      complete
+        ? `[CM:sw] Tab ${tabId} reached 'complete' status`
+        : `[CM:sw] Tab ${tabId} did not reach 'complete' within 15 s — proceeding with pings`
+    );
+  }
 
-  // Phase 2: ping at uniform 1500ms intervals (delay runs BEFORE each attempt).
-  const PING_RETRIES = 8;
-  const PING_DELAY_MS = 1_500;
+  // Phase 2: ping loop. Flash mode uses 0ms first ping + 300ms retries.
+  const PING_RETRIES = flash ? 6 : 8;
+  const PING_DELAY_MS = flash ? 300 : 1_500;
   for (let i = 0; i < PING_RETRIES; i++) {
-    await new Promise<void>((r) => setTimeout(r, PING_DELAY_MS));
-    console.log(`[CM:ping] Tab ${tabId} attempt ${i + 1}/${PING_RETRIES} (+${PING_DELAY_MS}ms)`);
+    // Flash mode: first ping is immediate (no delay). Subsequent pings delay.
+    if (!(flash && i === 0)) {
+      await new Promise<void>((r) => setTimeout(r, PING_DELAY_MS));
+    }
+    console.log(`[CM:ping] Tab ${tabId} attempt ${i + 1}/${PING_RETRIES} (+${flash && i === 0 ? 0 : PING_DELAY_MS}ms${flash ? " flash" : ""})`);
     const alive = await new Promise<boolean>((resolve) => {
       try {
         chrome.tabs.sendMessage(tabId, { type: "PING" }, (resp) => {

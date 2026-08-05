@@ -59,6 +59,9 @@ export interface ChunkEmbedding {
   language?: string;
   tokenCount: number;
   createdAt: number;
+  // [CM-OFFSCREEN-FIX] true when written without embeddings (offscreen dead).
+  // retrieve() will use keyword fallback. Lets T3 proceed instead of failing.
+  keywordOnly?: boolean;
 }
 
 export interface SessionHash {
@@ -105,6 +108,46 @@ export interface PendingIndexJob {
   priority: 'background' | 'foreground';
   retryCount: number;         // incremented on each failed attempt
   lastAttemptAt?: number;     // Date.now() of last attempt
+}
+
+// [CM-OFFSCREEN-FIX] Perf telemetry types — ported from packages/browser-extension
+// so repo-root builds have the same P50/P90/P99 dashboard as the nested clone.
+export type PerfOperation =
+  | 'capture_session'
+  | 'migrate_tier1'
+  | 'migrate_tier2'
+  | 'migrate_tier3'
+  | 'migrate_tier3_fallback'  // T3 that fell back to T1 — distinguishes successful T3 from fallback
+  | 'migrate_total'           // end-to-end user-perceived migration time (sidebar-measured)
+  | 'background_index'
+  | 'background_index_chunk'  // Progressive indexing chunk operation
+  | 'semantic_search'
+  | 'drive_sync'
+  | 'tree_sitter_parse'
+  | 'embedding_generate'
+  | 'embedding_query';
+
+export interface PerformanceMetric {
+  id?: number;
+  operation: PerfOperation;
+  durationMs: number;
+  timestamp: number;
+  sessionId?: string;
+  metadata?: {
+    platform?: string;
+    messageCount?: number;
+    tier?: number;
+    hwTier?: string;
+    chunkCount?: number;
+    usedKeywordFallback?: boolean;
+    textLength?: number;
+    totalMessages?: number;
+    checkpoint?: number;
+    isComplete?: boolean;
+    scannedChunks?: number;
+    totalChunks?: number;
+    reason?: string;
+  };
 }
 
 export interface RetrievalCache {
@@ -189,6 +232,9 @@ class ContextMoverDB extends Dexie {
   // [CM-PERSIST-FIX] persistent queue for interrupted background index jobs
   pendingIndex!: Table<PendingIndexJob, string>;
 
+  // [CM-OFFSCREEN-FIX] P50/P90/P95/P99 latency telemetry store.
+  performanceMetrics!: Table<PerformanceMetric, number>;
+
   constructor() {
     super("contextmover");
 
@@ -272,6 +318,24 @@ class ContextMoverDB extends Dexie {
       migrationQuality: "id, sessionId, platform, tier, score, createdAt",
       metaPrompts: "[sessionId+platform+tier], sessionId, builtAt",
       pendingIndex: "sessionId, createdAt, priority",
+    });
+
+    // ── v8: + performanceMetrics store ── P50/P90/P95/P99 latency telemetry.
+    // [CM-OFFSCREEN-FIX] Ported from packages/browser-extension so repo-root
+    // builds have the same perf dashboard. Indexed by operation + timestamp
+    // for efficient percentile queries over a rolling 7-day window.
+    this.version(8).stores({
+      sessions: "id, platform, updatedAt",
+      prompt_templates: "id, userId, isDefault, usageCount, updatedAt",
+      prompt_assignments: "id, sessionId, platform, templateId",
+      chunkEmbeddings: "id, sessionId, createdAt, hasCode",
+      sessionHashes: "sessionId, indexedAt",
+      storedSummaries: "id, sessionId, tier, builtAt",
+      retrievalCache: "id, sessionId, builtAt",
+      migrationQuality: "id, sessionId, platform, tier, score, createdAt",
+      metaPrompts: "[sessionId+platform+tier], sessionId, builtAt",
+      pendingIndex: "sessionId, createdAt, priority",
+      performanceMetrics: "++id, operation, timestamp",
     });
   }
 }

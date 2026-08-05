@@ -152,7 +152,7 @@ export function proCancelledEmail(email: string, periodEnd?: string): { subject:
   return {
     subject: "Your ContextMover Pro subscription has been cancelled",
     html: layout(`
-      ${badge("SUBSCRIPTION CANCELLED", "#EF4444")}
+      ${badge("SUBSCRIPTION CANCELLED", "#00FF88")}
       <div style="margin-top:16px"></div>
       ${h1("Pro cancelled")}
       ${p(`Hi ${email},`)}
@@ -194,7 +194,7 @@ export function paymentFailedEmail(email: string): { subject: string; html: stri
   return {
     subject: "Action required: ContextMover payment failed",
     html: layout(`
-      ${badge("PAYMENT FAILED", "#EF4444")}
+      ${badge("PAYMENT FAILED", "#00FF88")}
       <div style="margin-top:16px"></div>
       ${h1("We couldn't process your payment")}
       ${p(`Hi ${email},`)}

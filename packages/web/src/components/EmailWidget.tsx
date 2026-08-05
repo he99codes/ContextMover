@@ -64,7 +64,7 @@ export default function EmailWidget() {
           className="w-full bg-[#111111] border border-[#2A2A2A] focus:border-[rgba(0,255,136,0.35)] rounded-md px-3 py-2 text-xs text-[#F5F5F5] placeholder-[#3A3A3A] outline-none transition-colors"
         />
         {status === "error" && (
-          <p className="text-[10px] text-[#EF4444]">
+          <p className="text-[10px] text-[#00FF88]">
             Failed —{" "}
             <a href="mailto:hey@contextmover.com" className="underline">email us directly</a>
           </p>
@@ -72,7 +72,7 @@ export default function EmailWidget() {
         <button
           type="submit"
           disabled={status === "loading"}
-          className="w-full bg-[#00FF88] text-[#0A0A0A] font-bold py-2 rounded-md text-xs hover:bg-[#00CC6A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-[#00FF88] text-[#00FF88] font-bold py-2 rounded-md text-xs hover:bg-[#00D26A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {status === "loading" ? "Sending…" : "Send →"}
         </button>

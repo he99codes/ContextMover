@@ -442,6 +442,43 @@ async function ensureOffscreenDocumentLocal(): Promise<void> {
   return _offscreenCreating;
 }
 
+// [CM-OFFSCREEN-FIX] Offscreen liveness check + recreate. Used by the T3
+// migration path to fail fast with a clear error when the offscreen doc is
+// dead (the v1.0.4 regression: offscreen.html missing from build →
+// createDocument throws "Page failed to load" → all ONNX dead). Without this
+// check, T3 burns the full 6s priority-index timeout before falling back to
+// T1, which the user perceives as "Attention Engine broken".
+let _offscreenAliveCache = true;
+let _offscreenAliveCacheAt = 0;
+const OFFSCREEN_ALIVE_CACHE_MS = 10_000;
+
+async function isOffscreenAlive(): Promise<boolean> {
+  if (Date.now() - _offscreenAliveCacheAt < OFFSCREEN_ALIVE_CACHE_MS) {
+    return _offscreenAliveCache;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const offscreen = (chrome as any).offscreen;
+  if (!offscreen) return false;
+  try {
+    const has: boolean = await offscreen.hasDocument?.() ?? false;
+    _offscreenAliveCache = has;
+    _offscreenAliveCacheAt = Date.now();
+    return has;
+  } catch {
+    _offscreenAliveCache = false;
+    _offscreenAliveCacheAt = Date.now();
+    return false;
+  }
+}
+
+async function ensureOffscreenAliveOrRecreate(): Promise<boolean> {
+  if (await isOffscreenAlive()) return true;
+  _offscreenAliveCache = false;
+  _offscreenAliveCacheAt = 0;
+  await ensureOffscreenDocumentLocal();
+  return await isOffscreenAlive();
+}
+
 // GET_SESSIONS result cache — coalesces rapid-fire sidebar polls within 100ms.
 let getSessionsCache: unknown = null;
 let getSessionsCacheAt = 0;
@@ -1973,27 +2010,71 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
 
         // ── Freemium gate ────────────────────────────────────────────────────
-        // Always try to get fresh session first
+        // [CM-FLASH] Flash mode skips the supabase.auth.getSession() network
+        // roundtrip and the checkMigrationAllowed server call. We use the
+        // stored token directly and verify usage fire-and-forget AFTER
+        // injection so the user perceives <1s latency.
+        const _flash = !!msg.payload?.flash;
         let accessToken: string | undefined;
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.access_token) {
-            accessToken = session.access_token;
-            // Keep storage in sync
-            await chrome.storage.local.set({
-              accessToken: session.access_token,
-              userId: session.user?.id,
-            });
-          } else {
-            // Fallback to stored token
+        if (_flash) {
+          // Fast path — read token from local storage (no network).
+          const stored = await chrome.storage.local.get("accessToken");
+          accessToken = stored.accessToken as string | undefined;
+        } else {
+          // Normal path — always try to get fresh session first.
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              accessToken = session.access_token;
+              // Keep storage in sync
+              await chrome.storage.local.set({
+                accessToken: session.access_token,
+                userId: session.user?.id,
+              });
+            } else {
+              // Fallback to stored token
+              const stored = await chrome.storage.local.get("accessToken");
+              accessToken = stored.accessToken as string | undefined;
+            }
+          } catch {
             const stored = await chrome.storage.local.get("accessToken");
             accessToken = stored.accessToken as string | undefined;
           }
-        } catch {
-          const stored = await chrome.storage.local.get("accessToken");
-          accessToken = stored.accessToken as string | undefined;
         }
 
+        if (_flash) {
+          // [CM-FLASH] Skip server usage + Pro-verify checks — fire-and-forget after.
+          // Anonymous flash users use local counters only (checked below if no token).
+          if (!accessToken) {
+            const FREE_ANON_LIMITS: Record<number, number> = { 1: 8, 2: 3, 3: 3 };
+            const anonLimit = FREE_ANON_LIMITS[_tier] ?? 8;
+            const month = new Date().toISOString().slice(0, 7);
+            const anonKey = `anon_usage_t${_tier}_${month}`;
+            const stored = await chrome.storage.local.get(anonKey);
+            const anonCount = (stored[anonKey] as number | undefined) ?? 0;
+            if (anonCount >= anonLimit) {
+              const resetDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+              const daysUntilReset = Math.ceil((resetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+              sendResponse({
+                success: false,
+                error: "limit_reached",
+                limitData: {
+                  tier: _tier,
+                  used: anonCount,
+                  limit: anonLimit,
+                  daysUntilReset,
+                  upgradeUrl: "https://contextmover.com/pricing",
+                },
+              });
+              break;
+            }
+            void chrome.storage.local.set({ [anonKey]: anonCount + 1 });
+          }
+          // Fire-and-forget server usage check (does not block injection).
+          if (accessToken) {
+            void checkMigrationAllowed(_tier, accessToken as string).catch(() => {});
+          }
+        } else {
         // [PRO-VERIFIED] First check if user is verified Pro via Drive seat, install ID, or subscription
         const isProVerified = await verifyUserIsPro(accessToken);
         if (isProVerified) {
@@ -2085,6 +2166,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             if (stale.length) void chrome.storage.local.remove(stale);
           }).catch(() => {});
         }
+        } // end [CM-FLASH] else (non-flash gate)
 
         // [CM-FAST-MIGRATE] Removed duplicate raw OFFSCREEN_INDEX_SESSION that
         // bypassed the queue system. handleMigrateContext now handles all indexing
@@ -3903,6 +3985,8 @@ async function handleMigrateContext(
     promptTemplate?: { name: string; content: string; icon: string } | null;
     projectContext?: string | null;
     skipAutoInject?: boolean;
+    // [CM-FLASH] Flash migration — skip server build, skip auth refresh, skip usage check.
+    flash?: boolean;
   },
   sendResponse: (r: unknown) => void,
   accessToken?: string
@@ -4162,10 +4246,10 @@ async function handleMigrateContext(
           const coveragePct = Math.round((chunkCount / session.messages.length) * 100);
           console.log(`[CM:sw] T3 — partial chunks (${chunkCount}/${session.messages.length} msgs, ${coveragePct}% coverage) — forcing priority index to complete`);
           reportProgress(30, `Completing index (${coveragePct}% done)...`);
-          // [ADAPTIVE-TIMEOUT] Proportional timeout: 6s base + 100ms per chunk over 50.
-          // 50 chunks → 6s, 100 chunks → 11s, 200 chunks → 21s.
-          // Prevents timeout on medium sessions where ONNX queue drain adds ~100ms/sub-batch.
-          const partialIndexTimeoutMs = 6000 + Math.max(0, chunkCount - 50) * 100;
+          // [CM-OFFSCREEN-FIX] Increased timeout — 15s base + 200ms/chunk over 50.
+          // 50 chunks → 15s, 100 chunks → 25s, 200 chunks → 45s.
+          // Previous 6s base was too tight for ONNX cold-start (3-5s alone).
+          const partialIndexTimeoutMs = 15000 + Math.max(0, chunkCount - 50) * 200;
           try {
             await Promise.race([
               indexRemainingChunksPriority(session, checkpoint),
@@ -4194,13 +4278,34 @@ async function handleMigrateContext(
           const hasAE = await attentionEngine.hasAttentionChunks(session.id).catch(() => false);
           if (hasAE) { await attentionEngine.copyChunksToDexie(session.id).catch(() => 0); isFullyIndexed = true; checkpoint = 0; }
           else {
+            // [CM-OFFSCREEN-FIX] Before attempting priority index (which goes
+            // through the offscreen doc), verify the offscreen is alive. If it's
+            // dead and can't be recreated, fail fast with a clear error instead
+            // of burning the full timeout and silently falling back to T1.
+            // This is the v1.0.4 regression fix: offscreen.html missing from
+            // build → createDocument 404 → all ONNX dead → T3 always fell back.
+            const offscreenAlive = await ensureOffscreenAliveOrRecreate();
+            if (!offscreenAlive) {
+              console.error('[CM:sw] T3 — offscreen document unavailable, cannot index. Returning hard error (not T1 fallback).');
+              activeMigrationInProgress = false;
+              semanticIndex.resumeBackgroundJobs(); // [ISSUE-12]
+              sendResponse({
+                success: false,
+                error: 'attention_engine_unavailable',
+                requestedTier: 3,
+                message: 'Attention Engine unavailable — offscreen document could not be created. Try again after reloading the extension, or switch to Smart Summary / Full Context.',
+              });
+              return;
+            }
             // [CM-T3-PRIORITY-INDEX] Session needs indexing — do NOT fall back to Tier 1.
             // Pause background jobs so all CPU goes to this migration, index with priority,
             // then continue with Tier 3. The user stays in the Attention lane they chose.
             console.log(`[CM:sw] T3 — session not indexed (${session.messages.length} msgs). Starting priority index instead of Tier 1 fallback.`);
             reportProgress(35, `Indexing session (${session.messages.length} messages)…`);
-            // [ADAPTIVE-TIMEOUT] Proportional timeout — same formula as partial path.
-            const fullIndexTimeoutMs = 6000 + Math.max(0, session.messages.length - 50) * 100;
+            // [CM-OFFSCREEN-FIX] Increased timeout — ONNX MiniLM cold-start alone
+            // takes 3-5s, so 6s was too tight for ≤50 messages. 15s base + 200ms/msg
+            // over 50. 50 msgs → 15s, 100 msgs → 25s, 200 msgs → 45s.
+            const fullIndexTimeoutMs = 15000 + Math.max(0, session.messages.length - 50) * 200;
             try {
               await Promise.race([
                 indexRemainingChunksPriority(session, session.messages.length, (done, total) => {
@@ -4212,7 +4317,23 @@ async function handleMigrateContext(
               isFullyIndexed = true; checkpoint = 0;
               console.log(`[CM:sw] T3 — priority index complete for ${session.id}, proceeding to retrieve`);
             } catch (idxErr) {
-              // If priority index fails for any reason, fall back to Tier 1 only now.
+              // [CM-OFFSCREEN-FIX] Check if offscreen died during indexing. If so,
+              // return a hard error (not T1 fallback) — the user chose Attention.
+              const idxMsg = idxErr instanceof Error ? idxErr.message : String(idxErr);
+              const offscreenStillAlive = await isOffscreenAlive().catch(() => false);
+              if (!offscreenStillAlive || idxMsg === 'priority_index_timeout') {
+                console.error(`[CM:sw] T3 — priority index failed (offscreen dead or timeout): ${idxMsg}. Returning hard error.`);
+                activeMigrationInProgress = false;
+                semanticIndex.resumeBackgroundJobs(); // [ISSUE-12]
+                sendResponse({
+                  success: false,
+                  error: 'attention_engine_index_failed',
+                  requestedTier: 3,
+                  message: `Attention Engine could not index this session (${idxMsg}). Try again, or switch to Smart Summary / Full Context.`,
+                });
+                return;
+              }
+              // Other error — fall back to Tier 1 only now.
               console.warn(`[CM:sw] T3 — priority index failed:`, idxErr);
               throw new Error('no_chunks_tier1_fallback');
             }
@@ -4328,6 +4449,13 @@ async function handleMigrateContext(
   } catch (err: any) {
     console.warn('[CM:sw] File build failed, falling back to tier 1:', err)
     void reportExtensionEvent({ event: 'migration_fallback', platform: session.platform, tier, detail: String(err instanceof Error ? err.message : err).slice(0, 200), timestamp: Date.now() });
+    // [CM-OFFSCREEN-FIX] Record the fallback explicitly so the perf dashboard
+    // can distinguish successful T3 from T3-that-fell-back-to-T1. Without this,
+    // the dashboard showed T3 P50=6.0s (the timeout value) with no indication
+    // that those were all failures.
+    if (tier === 3) {
+      void recordPerf('migrate_tier3_fallback' as 'migrate_tier3', performance.now() - t0, { sessionId: session.id, metadata: { platform: session.platform, messageCount: session.messages.length, tier, reason: String(err instanceof Error ? err.message : err).slice(0, 80) } });
+    }
     migrationFile = isMultiSession ? buildMultiSessionTier1File(allSessions) : buildTier1File(session)
     // Notify sidebar so the user knows the context was compressed.
     void broadcastToViews({
@@ -4406,7 +4534,7 @@ async function handleMigrateContext(
       // It should still be user-triggered from the extension, just not from MigrationModal.
       try {
         if (tier === 1) {
-            const t1Ready = await waitForTabContentScript(payload.targetTabId!)
+            const t1Ready = await waitForTabContentScript(payload.targetTabId!, payload.flash)
             if (t1Ready) {
               const t1Result = await new Promise<{ ok: boolean; error?: string }>((resolve) => {
                 chrome.tabs.sendMessage(
@@ -4424,7 +4552,7 @@ async function handleMigrateContext(
               console.warn(`[CM:sw] Tier 1 file injection: content script not ready on tab ${payload.targetTabId}`);
             }
         } else {
-            const ready = await waitForTabContentScript(payload.targetTabId!);
+            const ready = await waitForTabContentScript(payload.targetTabId!, payload.flash);
             if (!ready) {
                 console.warn(`[CM:sw] Tab ${payload.targetTabId} content script not ready after 8 pings — trying executeScript fallback`);
                 const [execResult] = await chrome.scripting.executeScript({
@@ -5196,22 +5324,30 @@ function waitForTabComplete(tabId: number, timeoutMs = 15_000): Promise<boolean>
  * Phase 1 — waits for tab.status === 'complete' (event-driven via onUpdated, 15 s cap).
  * Phase 2 — pings the content script 8 times at uniform 1500ms intervals.
  * Returns true when the script responds, false when all 8 pings are exhausted.
+ *
+ * [CM-FLASH] When `flash=true`:
+ *   - Phase 1 is skipped (the active tab is already complete).
+ *   - Phase 2 pings immediately (0ms first attempt), then retries at 300ms.
  */
-async function waitForTabContentScript(tabId: number): Promise<boolean> {
-  // Phase 1: wait for the tab to finish its initial navigation.
-  const complete = await waitForTabComplete(tabId, 15_000);
-  console.log(
-    complete
-      ? `[CM:sw] Tab ${tabId} reached 'complete' status`
-      : `[CM:sw] Tab ${tabId} did not reach 'complete' within 15 s — proceeding with pings`
-  );
+async function waitForTabContentScript(tabId: number, flash = false): Promise<boolean> {
+  if (!flash) {
+    // Phase 1: wait for the tab to finish its initial navigation.
+    const complete = await waitForTabComplete(tabId, 15_000);
+    console.log(
+      complete
+        ? `[CM:sw] Tab ${tabId} reached 'complete' status`
+        : `[CM:sw] Tab ${tabId} did not reach 'complete' within 15 s — proceeding with pings`
+    );
+  }
 
-  // Phase 2: ping at uniform 1500ms intervals (delay runs BEFORE each attempt).
-  const PING_RETRIES = 8;
-  const PING_DELAY_MS = 1_500;
+  // Phase 2: ping loop. Flash mode uses 0ms first ping + 300ms retries.
+  const PING_RETRIES = flash ? 6 : 8;
+  const PING_DELAY_MS = flash ? 300 : 1_500;
   for (let i = 0; i < PING_RETRIES; i++) {
-    await new Promise<void>((r) => setTimeout(r, PING_DELAY_MS));
-    console.log(`[CM:ping] Tab ${tabId} attempt ${i + 1}/${PING_RETRIES} (+${PING_DELAY_MS}ms)`);
+    if (!(flash && i === 0)) {
+      await new Promise<void>((r) => setTimeout(r, PING_DELAY_MS));
+    }
+    console.log(`[CM:ping] Tab ${tabId} attempt ${i + 1}/${PING_RETRIES} (+${flash && i === 0 ? 0 : PING_DELAY_MS}ms${flash ? " flash" : ""})`);
     const alive = await new Promise<boolean>((resolve) => {
       try {
         chrome.tabs.sendMessage(tabId, { type: "PING" }, (resp) => {

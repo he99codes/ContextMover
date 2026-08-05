@@ -91,7 +91,7 @@ function BugReportViewer({ reports }: { reports: ScraperBugReport[] }) {
               <TableRow key={report.id} className="border-zinc-800">
                 <TableCell>{report.platform_id}</TableCell>
                 <TableCell className="max-w-xs truncate">{report.error_message ?? '—'}</TableCell>
-                <TableCell>{report.href ? <a href={report.href} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Link</a> : '—'}</TableCell>
+                <TableCell>{report.href ? <a href={report.href} target="_blank" rel="noopener noreferrer" className="text-white hover:underline">Link</a> : '—'}</TableCell>
                 <TableCell>
                   {report.dom_snippet && (
                     <Dialog>
@@ -223,7 +223,7 @@ export default function ScraperAdminPage() {
 
       <section>
         {reportsError && (
-          <div className="mb-4 p-3 rounded border border-red-500/30 bg-red-500/5 text-red-400 text-xs font-mono">
+          <div className="mb-4 p-3 rounded border border-[#00FF88]/30 bg-[#00FF88]/5 text-[#00FF88] text-xs font-mono">
             ⚠ Bug reports fetch failed: {reportsError}
           </div>
         )}

@@ -36,16 +36,108 @@
   to   { opacity: 1; transform: translateY(0);   }
 }
 
+/* [CM-SOLAR] Ember-pulse status dots (online / indexing). */
+@keyframes ember-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,255,136,0.55); }
+  50%       { box-shadow: 0 0 0 5px rgba(0,255,136,0); }
+}
+
+/* [CM-SOLAR] Solar neon border for active cards / highlight containers. */
+@keyframes solar-border {
+  0%, 100% { border-color: rgba(0,255,136,0.12); box-shadow: 0 0 4px rgba(0,255,136,0.05); }
+  50%       { border-color: rgba(0,255,136,0.45); box-shadow: 0 0 14px rgba(0,255,136,0.18); }
+}
+
+/* [CM-SOLAR] Text warm glow (selected / primary headings). */
+@keyframes solar-text-glow {
+  0%, 100% { text-shadow: 0 0 6px rgba(0,255,136,0.25), 0 0 12px rgba(0,255,136,0.1); }
+  50%       { text-shadow: 0 0 12px rgba(0,255,136,0.55), 0 0 24px rgba(0,255,136,0.25); }
+}
+
 @layer utilities {
   .animate-shimmer {
-    background: linear-gradient(90deg, #1A1A1A 25%, #252525 50%, #1A1A1A 75%);
+    background: linear-gradient(90deg, #1A1A1A 25%, #3A2A1A 50%, #1A1A1A 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
   }
   .animate-pulse-green { animation: pulse-green 2s ease-in-out infinite; }
-  .animate-fade-in     { animation: fade-in     200ms ease both; }
-  .animate-slide-up    { animation: slide-up    250ms ease both; }
+  .animate-ember-pulse  { animation: ember-pulse 2.2s ease-in-out infinite; }
+  .animate-solar-border { animation: solar-border 3s ease-in-out infinite; }
+  .animate-solar-text   { animation: solar-text-glow 2.5s ease-in-out infinite; }
+  .animate-fade-in      { animation: fade-in 200ms ease both; }
+  .animate-slide-up     { animation: slide-up 250ms ease both; }
+
+  /* [CM-SOLAR] Card hover with ember glow. */
+  .card-hover {
+    transition: transform 180ms ease, border-color 150ms ease, box-shadow 180ms ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    border-color: rgba(0,255,136,0.55) !important;
+    box-shadow: 0 0 0 1px rgba(0,255,136,0.25), 0 4px 24px rgba(0,255,136,0.12), 0 0 40px rgba(0,255,136,0.04) !important;
+  }
+  .card-hover:active { transform: translateY(-1px) scale(0.99); }
+
+  /* [CM-SOLAR] Primary button “heat up”. */
+  .btn-primary {
+    transition: transform 160ms ease, background-color 120ms ease, box-shadow 160ms ease;
+  }
+  .btn-primary:hover  { transform: scale(1.02); box-shadow: 0 0 16px rgba(0,255,136,0.35); }
+  .btn-primary:active { transform: scale(0.98); }
+
+  /* [CM-SOLAR-V2] Bold gradient + glow utilities. */
+  .solar-gradient-bg {
+    background: linear-gradient(135deg, #00FF88 0%, #00D26A 50%, #00C853 100%);
+  }
+  .solar-gradient-text {
+    background: linear-gradient(135deg, #00FF88, #00C853);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+  .solar-radial-wash {
+    background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0,255,136,0.10), transparent 70%);
+    pointer-events: none;
+  }
+  .solar-progress-fill {
+    background: linear-gradient(90deg, #00FF88, #00D26A, #00C853);
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* [CM-SOLAR-V2] Mini stepper dots (compact variant on cards). */
+  .mini-step-dot {
+    width: 6px; height: 6px; border-radius: 9999px;
+    background: #2A2A2A;
+    transition: background 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+  }
+  .mini-step-dot.active {
+    background: #00FF88;
+    box-shadow: 0 0 0 0 rgba(0,255,136,0.55);
+    animation: ember-pulse 2.2s ease-in-out infinite;
+    transform: scale(1.25);
+  }
+  .mini-step-dot.done {
+    background: #00C853;
+    box-shadow: 0 0 6px rgba(0,210,106,0.5);
+  }
 }
+
+/* [CM-SOLAR-V2] Success flash overlay (modal completion). */
+@keyframes solar-flash {
+  0%   { opacity: 0; transform: scale(0.5); }
+  60%  { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.solar-success-flash {
+  animation: solar-flash 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes solar-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.solar-fade-out { animation: solar-fade-out 400ms ease 600ms both; }
 
 .stagger-item { animation: fade-in 200ms ease both; }
 .stagger-item:nth-child(1) { animation-delay:   0ms; }

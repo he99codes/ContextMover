@@ -29,7 +29,7 @@ async function af(url: string, token: string, opts?: RequestInit) {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#2A6A2A] mb-3">{children}</h2>;
+  return <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#6B6B6B] mb-3">{children}</h2>;
 }
 function Th({ children }: { children: React.ReactNode }) { return <th className="px-3 py-2 text-left">{children}</th>; }
 function Td({ children }: { children: React.ReactNode }) { return <td className="px-3 py-2 text-[#6B6B6B]">{children}</td>; }
@@ -37,7 +37,7 @@ function Notice({ children }: { children: React.ReactNode }) { return <p classNa
 function SmBtn({ children, onClick, disabled, danger }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; danger?: boolean; }) {
   return (
     <button onClick={onClick} disabled={disabled}
-      className={`px-2 py-0.5 rounded border text-[10px] font-mono uppercase tracking-widest transition-colors disabled:opacity-40 cursor-pointer ${danger ? "border-[#2A1A1A] text-[#6B6B6B] hover:border-[#EF4444] hover:text-[#EF4444]" : "border-[#1A2A1A] text-[#6B6B6B] hover:border-[#00FF88]/40 hover:text-[#00FF88]"}`}>
+      className={`px-2 py-0.5 rounded border text-[10px] font-mono uppercase tracking-widest transition-colors disabled:opacity-40 cursor-pointer ${danger ? "border-[#2A2A2A] text-[#6B6B6B] hover:border-[#00FF88] hover:text-[#00FF88]" : "border-[#2A2A2A] text-[#6B6B6B] hover:border-[#00FF88]/40 hover:text-[#00FF88]"}`}>
       {children}
     </button>
   );
@@ -107,7 +107,7 @@ function StatsBar({ stats, error }: { stats: Stats | null, error: string | null 
   return (
     <section>
       <SectionTitle>Stats</SectionTitle>
-      {error && <p className="text-xs text-[#EF4444] mb-2">{error}</p>}
+      {error && <p className="text-xs text-[#00FF88] mb-2">{error}</p>}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {cards.map(({ label, key }) => (
           <div key={key} className="bg-[#0A0A0A] border border-[#1A1A1A] rounded p-4">
@@ -138,7 +138,7 @@ function UserHistoryPanel({ userId, token }: { userId: string; token: string }) 
   }, [userId, token]);
 
   if (loading) return <div className="px-4 py-3 text-[#3A3A3A] text-center">Loading history…</div>;
-  if (error) return <div className="px-4 py-3 text-[#EF4444] text-center">{error}</div>;
+  if (error) return <div className="px-4 py-3 text-[#00FF88] text-center">{error}</div>;
   if (!history) return null;
 
   const now = Date.now();
@@ -294,7 +294,7 @@ function UserHistoryPanel({ userId, token }: { userId: string; token: string }) 
                   const total = u.tier1_count + u.tier2_count + u.tier3_count;
                   const isCurrent = u.month === currentMonth;
                   return (
-                    <tr key={i} className={`border-b border-[#0A0A0A] ${isCurrent ? "bg-[#0F1A0F]" : ""}`}>
+                    <tr key={i} className={`border-b border-[#0A0A0A] ${isCurrent ? "bg-[#0A0A0A]" : ""}`}>
                       <td className="px-2 py-1.5 text-[#6B6B6B]">
                         {u.month}
                         {isCurrent && <span className="text-[#00FF88] ml-1">●</span>}
@@ -327,7 +327,7 @@ function UserHistoryPanel({ userId, token }: { userId: string; token: string }) 
               const sEnd = s.current_period_end;
               const sCancelledActive = s.status === "cancelled" && sEnd && new Date(sEnd).getTime() > now;
               const sExpired = s.status === "cancelled" && sEnd && new Date(sEnd).getTime() <= now;
-              const color = s.status === "active" || s.status === "authenticated" ? "#00FF88" : sCancelledActive ? "#F97316" : sExpired ? "#EF4444" : "#6B6B6B";
+              const color = s.status === "active" || s.status === "authenticated" ? "#00FF88" : sCancelledActive ? "#F97316" : sExpired ? "#00FF88" : "#6B6B6B";
               return (
                 <div key={i} className="bg-[#0A0A0A] border rounded p-3" style={{ borderColor: color + "22" }}>
                   <div className="flex items-center gap-2 mb-2">
@@ -345,7 +345,7 @@ function UserHistoryPanel({ userId, token }: { userId: string; token: string }) 
                     {s.cancelled_at && (
                       <div>
                         <span className="text-[#3A3A3A]">Cancelled: </span>
-                        <span className="text-[#EF4444]">{fmtDate(s.cancelled_at)}</span>
+                        <span className="text-[#00FF88]">{fmtDate(s.cancelled_at)}</span>
                       </div>
                     )}
                     {s.trial_end && (
@@ -567,7 +567,7 @@ function UsageControlsSection({ token }: { token: string }) {
             className="flex-1 bg-[#080808] border border-[#2A2A2A] rounded px-3 py-1.5 text-xs font-mono text-[#F5F5F5] placeholder-[#3A3A3A] outline-none focus:border-[#00FF88]/40" />
           <SmBtn onClick={findUser} disabled={busy}>{busy ? "…" : "Find User"}</SmBtn>
         </div>
-        {err && <p className="text-xs text-[#EF4444]">{err}</p>}
+        {err && <p className="text-xs text-[#00FF88]">{err}</p>}
         {notice && <Notice>{notice}</Notice>}
         {found && (
           <div className="space-y-2">
@@ -590,7 +590,7 @@ function UsageControlsSection({ token }: { token: string }) {
 }
 
 // ── Bug Reports ───────────────────────────────────────────────────────────────
-const SEV: Record<string, string> = { critical: "#EF4444", high: "#F97316", medium: "#EAB308", low: "#6B6B6B" };
+const SEV: Record<string, string> = { critical: "#00FF88", high: "#F97316", medium: "#EAB308", low: "#6B6B6B" };
 
 function BugReportsSection({ token }: { token: string }) {
   const [reports, setReports] = useState<BugReport[]>([]);
@@ -603,7 +603,7 @@ function BugReportsSection({ token }: { token: string }) {
   return (
     <section>
       <SectionTitle>Bug Reports</SectionTitle>
-      {error && <p className="text-xs text-[#EF4444] mb-2">{error}</p>}
+      {error && <p className="text-xs text-[#00FF88] mb-2">{error}</p>}
       <div className="overflow-x-auto rounded border border-[#1A1A1A]">
         <table className="w-full text-xs font-mono">
           <thead><tr className="border-b border-[#1A1A1A] text-[#3A3A3A] uppercase tracking-widest"><Th>Email</Th><Th>Severity</Th><Th>Description</Th><Th>Version</Th><Th>Date</Th></tr></thead>
@@ -641,7 +641,7 @@ function ScraperBugReportsSection({ token }: { token: string }) {
   return (
     <section>
       <SectionTitle>Scraper Bug Reports</SectionTitle>
-      {error && <p className="text-xs text-[#EF4444] mb-2">{error}</p>}
+      {error && <p className="text-xs text-[#00FF88] mb-2">{error}</p>}
       <div className="overflow-x-auto rounded border border-[#1A1A1A]">
         <table className="w-full text-xs font-mono">
           <thead><tr className="border-b border-[#1A1A1A] text-[#3A3A3A] uppercase tracking-widest"><Th>Platform</Th><Th>Error</Th><Th>URL</Th><Th>Date</Th></tr></thead>
@@ -663,7 +663,7 @@ function ScraperBugReportsSection({ token }: { token: string }) {
 }
 
 // ── Refund Requests ───────────────────────────────────────────────────────────
-const ST: Record<string, string> = { pending: "#EAB308", approved: "#00FF88", rejected: "#EF4444" };
+const ST: Record<string, string> = { pending: "#EAB308", approved: "#00FF88", rejected: "#00FF88" };
 
 function RefundsSection({ token }: { token: string }) {
   const [refunds, setRefunds] = useState<RefundRequest[]>([]);
@@ -751,8 +751,8 @@ export default function AdminPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-black tracking-widest text-[#00FF88]">⚡ Admin Panel</h1>
         <div className="flex gap-3 text-xs font-mono">
-          <a href="/admin/scrapers" className="text-[#6B6B6B] hover:text-[#00FF88] transition-colors border border-[#1A2A1A] px-2 py-1 rounded hover:border-[#00FF88]/30">Scrapers →</a>
-          <a href="/admin/health" className="text-[#6B6B6B] hover:text-[#00FF88] transition-colors border border-[#1A2A1A] px-2 py-1 rounded hover:border-[#00FF88]/30">DB Health →</a>
+          <a href="/admin/scrapers" className="text-[#6B6B6B] hover:text-[#00FF88] transition-colors border border-[#2A2A2A] px-2 py-1 rounded hover:border-[#00FF88]/30">Scrapers →</a>
+          <a href="/admin/health" className="text-[#6B6B6B] hover:text-[#00FF88] transition-colors border border-[#2A2A2A] px-2 py-1 rounded hover:border-[#00FF88]/30">DB Health →</a>
         </div>
       </div>
       <StatsBar stats={stats} error={statsError} />

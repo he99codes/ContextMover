@@ -63,7 +63,7 @@ function TerminalDemo() {
       {/* Left: Claude */}
       <div className="bg-[#111111] border border-[#2A2A2A] rounded-xl overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#2A2A2A] bg-[#1A1A1A]">
-          <span className="w-2 h-2 rounded-full bg-[#D97706] shrink-0" />
+          <span className="w-2 h-2 rounded-full bg-[#E5E5E5] shrink-0" />
           <span className="text-xs text-[#6B6B6B] font-mono">Captured · Claude</span>
         </div>
         <div className="p-4 font-mono text-xs space-y-2.5 min-h-[148px]">
@@ -90,13 +90,13 @@ function TerminalDemo() {
       {/* Right: ChatGPT */}
       <div className="bg-[#111111] border border-[#2A2A2A] rounded-xl overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#2A2A2A] bg-[#1A1A1A]">
-          <span className="w-2 h-2 rounded-full bg-[#10B981] shrink-0" />
+          <span className="w-2 h-2 rounded-full bg-[#E5E5E5] shrink-0" />
           <span className="text-xs text-[#6B6B6B] font-mono">Injected · ChatGPT</span>
         </div>
         <div className="p-4 font-mono text-xs space-y-2.5 min-h-[148px]">
           {injectLines.map((ln, i) => (
             <div key={i} style={lineStyle(step >= i + 6, "right")}>
-              <span className={ln.role === "sys" ? "text-[#6B6B6B]" : ln.role === "ai" ? "text-[#10B981]" : "text-[#6B6B6B]"}>
+              <span className={ln.role === "sys" ? "text-[#6B6B6B]" : ln.role === "ai" ? "text-[#E5E5E5]" : "text-[#6B6B6B]"}>
                 {ln.role === "sys" ? "◇ sys: " : ln.role === "user" ? "▶ You: " : "◆ AI:  "}
               </span>
               <span className="text-[#F5F5F5]">{ln.text}</span>
@@ -161,12 +161,12 @@ function FaqAccordion() {
     <div className="space-y-2 max-w-2xl mx-auto">
       {FAQ_ITEMS.map((item, i) => (
         <div key={i} className={`rounded-xl overflow-hidden transition-all duration-300 ${open === i ? "shadow-[0_0_30px_rgba(0,255,136,0.08)]" : ""}`} style={{
-          background: "rgba(255,255,255,0.02)",
-          border: open === i ? "1px solid rgba(0,255,136,0.2)" : "1px solid rgba(255,255,255,0.06)"
+          background: "rgba(0,255,136,0.02)",
+          border: open === i ? "1px solid rgba(0,255,136,0.2)" : "1px solid rgba(0,255,136,0.06)"
         }}>
           <button
             onClick={() => setOpen(open === i ? null : i)}
-            className="w-full text-left px-5 py-4 sm:px-6 flex justify-between items-center hover:bg-[rgba(255,255,255,0.03)] transition-colors"
+            className="w-full text-left px-5 py-4 sm:px-6 flex justify-between items-center hover:bg-[rgba(0,255,136,0.03)] transition-colors"
           >
             <span className="font-medium text-[#F5F5F5] text-sm">{item.q}</span>
             <span
@@ -178,7 +178,7 @@ function FaqAccordion() {
             className="overflow-hidden transition-all duration-300 ease-in-out"
             style={{ maxHeight: open === i ? "180px" : "0px" }}
           >
-            <p className="px-5 pt-1 pb-5 sm:px-6 text-sm text-zinc-400 leading-relaxed border-t border-[rgba(255,255,255,0.06)]">
+            <p className="px-5 pt-1 pb-5 sm:px-6 text-sm text-zinc-400 leading-relaxed border-t border-[rgba(0,255,136,0.06)]">
               {item.a}
             </p>
           </div>
@@ -194,7 +194,7 @@ const PLATFORMS = [
   { name: "Claude",         sub: "Anthropic",    color: "#ff6b35", badge: "Capture & Migrate", dot: "bg-[#ff6b35]" },
   { name: "ChatGPT",        sub: "OpenAI",        color: "#10a37f", badge: "Capture & Migrate", dot: "bg-[#10a37f]" },
   { name: "Google Gemini",  sub: "Google",        color: "#4285f4", badge: "Capture & Migrate", dot: "bg-[#4285f4]" },
-  { name: "xAI Grok",       sub: "xAI",           color: "#ffffff", badge: "Capture & Migrate", dot: "bg-[#ffffff]" },
+  { name: "xAI Grok",       sub: "xAI",           color: "#00FF88", badge: "Capture & Migrate", dot: "bg-[#00FF88]" },
   { name: "Perplexity",     sub: "Perplexity AI", color: "#20b8cd", badge: "Migrate target",    dot: "bg-[#20b8cd]" },
   { name: "DeepSeek",       sub: "DeepSeek",      color: "#4d6bff", badge: "Migrate target",    dot: "bg-[#4d6bff]" },
 ];
@@ -216,8 +216,8 @@ export default function LandingPage() {
       background: `
         radial-gradient(ellipse 80% 50% at 20% 20%, rgba(0,255,136,0.03) 0%, transparent 60%),
         radial-gradient(ellipse 60% 40% at 80% 80%, rgba(0,180,255,0.03) 0%, transparent 60%),
-        linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px),
+        linear-gradient(rgba(0,255,136,0.012) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,136,0.012) 1px, transparent 1px),
         #020202
       `,
       backgroundSize: "100% 100%, 100% 100%, 52px 52px, 52px 52px, 100% 100%"
@@ -260,7 +260,7 @@ export default function LandingPage() {
           {/* Desktop right */}
           <div className="hidden md:flex items-center gap-2">
             <a href="/auth" className="px-3 py-1.5 text-sm text-[#6B6B6B] hover:text-[#F5F5F5] transition-colors">Log in</a>
-            <a href="/auth?mode=signup" className="bg-[#00FF88] text-[#0A0A0A] font-semibold text-sm px-4 py-1.5 rounded-md hover:bg-[#00CC6A] transition-colors shadow-[0_0_12px_rgba(0,255,136,0.2)]">Get for free</a>
+            <a href="/auth?mode=signup" className="bg-[#00FF88] text-[#00FF88] font-semibold text-sm px-4 py-1.5 rounded-md hover:bg-[#00D26A] transition-colors shadow-[0_0_12px_rgba(0,255,136,0.2)]">Get for free</a>
           </div>
 
           {/* Mobile hamburger */}
@@ -321,7 +321,7 @@ export default function LandingPage() {
             {/* Overlay CTAs */}
             <div className="shrink-0 px-5 pb-8 pt-4 flex flex-col gap-3 border-t border-[#1A1A1A]">
               <a href="/auth" className="flex items-center justify-center border border-[#2A2A2A] text-[#F5F5F5] font-semibold text-base h-[52px] rounded-lg active:opacity-80" onClick={() => setMenuOpen(false)}>Log in</a>
-              <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center bg-[#00FF88] text-[#0A0A0A] font-bold text-base h-[52px] rounded-lg active:scale-95 transition-transform shadow-[0_0_16px_rgba(0,255,136,0.25)]" onClick={() => setMenuOpen(false)}>Add to Chrome — free</a>
+              <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center bg-[#00FF88] text-[#00FF88] font-bold text-base h-[52px] rounded-lg active:scale-95 transition-transform shadow-[0_0_16px_rgba(0,255,136,0.25)]" onClick={() => setMenuOpen(false)}>Add to Chrome — free</a>
             </div>
           </div>
         )}
@@ -331,7 +331,7 @@ export default function LandingPage() {
       <section className="relative min-h-screen flex flex-col items-center justify-center pt-24 px-4 sm:px-8 lg:px-16 pb-16 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-[500px] bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(0,255,136,0.08),transparent)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:52px_52px]" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,136,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,136,0.012)_1px,transparent_1px)] bg-[size:52px_52px]" />
           <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0A0A0A] to-transparent" />
         </div>
         <div className="relative z-10 max-w-4xl mx-auto text-center">
@@ -361,7 +361,7 @@ export default function LandingPage() {
               href={CHROME_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-[#00FF88] text-[#0A0A0A] font-bold px-8 py-3.5 rounded-lg text-base w-full sm:w-auto text-center btn-primary shadow-[0_0_24px_rgba(0,255,136,0.25)] min-h-[52px] flex items-center justify-center active:scale-95 transition-transform"
+              className="bg-[#00FF88] text-[#00FF88] font-bold px-8 py-3.5 rounded-lg text-base w-full sm:w-auto text-center btn-primary shadow-[0_0_24px_rgba(0,255,136,0.25)] min-h-[52px] flex items-center justify-center active:scale-95 transition-transform"
             >
               Add to Chrome — it&apos;s free
             </a>
@@ -410,10 +410,10 @@ export default function LandingPage() {
       {/* ══════════════════════════ 3. PROBLEM ══════════════════════════ */}
       <section className="py-12 sm:py-20 lg:py-32 px-4 sm:px-8 lg:px-16 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-[#00ff88] blur-[80px] opacity-[0.04]" />
+          <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-[#00FF88] blur-[80px] opacity-[0.04]" />
         </div>
         <div className="max-w-5xl mx-auto text-center relative z-10">
-          <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>Every AI session starts from <span className="text-[#00ff88]">zero.</span></h2>
+          <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>Every AI session starts from <span className="text-[#00FF88]">zero.</span></h2>
           <p className="reveal text-[#6B6B6B] mb-14">You&apos;ve been there. You know how frustrating it is.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-14">
             {[
@@ -422,9 +422,9 @@ export default function LandingPage() {
               { emoji: "◷", title: "Hours of context lost", body: "Long debugging sessions. Complex architectural decisions. All gone the moment you switch tabs or close the browser." },
             ].map((card, i) => (
               <div key={i} className={`reveal reveal-d${i + 1} card-hover rounded-2xl p-5 sm:p-7 text-left relative overflow-hidden group transition-all duration-300`} style={{
-                background: "rgba(255,255,255,0.02)",
+                background: "rgba(0,255,136,0.02)",
                 borderLeft: "2px solid rgba(0,255,136,0.3)",
-                border: "1px solid rgba(255,255,255,0.06)"
+                border: "1px solid rgba(0,255,136,0.06)"
               }}>
                 <div className="relative z-10">
                   <div className="text-3xl mb-4">{card.emoji}</div>
@@ -434,7 +434,7 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-          <p className="reveal italic text-[#F59E0B] text-base max-w-md mx-auto pl-4" style={{ borderLeft: "3px solid #F59E0B" }}>
+          <p className="reveal italic text-[#00D26A] text-base max-w-md mx-auto pl-4" style={{ borderLeft: "3px solid #00D26A" }}>
             &ldquo;Developers spend an average of 23 minutes re-explaining context when switching AI tools.&rdquo;
           </p>
         </div>
@@ -452,8 +452,8 @@ export default function LandingPage() {
             ContextMover captures your entire conversation, intelligently extracts what matters, and injects it perfectly formatted into your next AI session.
           </p>
           <div className="reveal rounded-[20px] p-8 sm:p-10 overflow-hidden relative" style={{
-            background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.06)"
+            background: "rgba(0,255,136,0.02)",
+            border: "1px solid rgba(0,255,136,0.06)"
           }}>
             {/* Simplified mobile flow */}
             <div className="block sm:hidden flex flex-col items-center gap-2 text-sm mb-4">
@@ -476,8 +476,8 @@ export default function LandingPage() {
                   { name: "Gemini", color: "#4285F4" }
                 ].map((p) => (
                   <div key={p.name} className="px-4 py-2 text-sm font-medium w-28 text-center" style={{
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    background: "rgba(0,255,136,0.05)",
+                    border: "1px solid rgba(0,255,136,0.1)",
                     borderRadius: "6px",
                     color: p.color
                   }}>{p.name}</div>
@@ -489,7 +489,7 @@ export default function LandingPage() {
                   <div key={i} className="h-px w-full relative flow-line" style={{
                     background: "rgba(0,255,136,0.15)"
                   }}>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-pulse" style={{ animationDelay: `${i * 0.5}s` }} />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#00FF88] animate-pulse" style={{ animationDelay: `${i * 0.5}s` }} />
                   </div>
                 ))}
               </div>
@@ -512,7 +512,7 @@ export default function LandingPage() {
                   <div key={i} className="h-px w-full relative flow-line-reverse" style={{
                     background: "rgba(0,255,136,0.15)"
                   }}>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-pulse" style={{ animationDelay: `${i * 0.5 + 0.2}s` }} />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#00FF88] animate-pulse" style={{ animationDelay: `${i * 0.5 + 0.2}s` }} />
                   </div>
                 ))}
               </div>
@@ -544,14 +544,14 @@ export default function LandingPage() {
       {/* ══════════════════════════ 5. 3-TIER FEATURES ══════════════════════════ */}
       <section id="tiers" className="py-12 sm:py-20 lg:py-32 px-4 sm:px-8 lg:px-16 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-0 w-[400px] h-[400px] rounded-full bg-[#6366f1] blur-[80px] opacity-[0.05]" />
+          <div className="absolute top-0 left-0 w-[400px] h-[400px] rounded-full bg-[#E5E5E5] blur-[80px] opacity-[0.05]" />
         </div>
         <div className="max-w-5xl mx-auto text-center relative z-10">
-          <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>Intelligence that matches <span className="text-[#00ff88]">your needs.</span></h2>
+          <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>Intelligence that matches <span className="text-[#00FF88]">your needs.</span></h2>
           <p className="reveal text-[#6B6B6B] mb-14">Three tiers. Every situation covered.</p>
           <div className="grid grid-cols-1 gap-5">
             {[
-              { icon: "□", tier: "Full Context",    badge: null,          speed: "▸▸▸ Instant", desc: "Send the complete conversation verbatim. Every word, every code block, zero compression. When you need absolutely everything.", accent: "rgba(255,255,255,0.3)" },
+              { icon: "□", tier: "Full Context",    badge: null,          speed: "▸▸▸ Instant", desc: "Send the complete conversation verbatim. Every word, every code block, zero compression. When you need absolutely everything.", accent: "rgba(0,255,136,0.3)" },
               { icon: "◆", tier: "Smart Summary",   badge: "Recommended", speed: "▸▸▸ Fast",    desc: "Automatically extracts goals, key decisions, bugs fixed, and all code blocks. The smart default for most sessions — 60–80% compression.", accent: "rgba(0,255,136,0.4)" },
               { icon: "▸", tier: "Attention Engine", badge: null,          speed: "▸▸ Smart",    desc: "Semantic AI understands your task and finds exactly what's relevant. GPU-accelerated on your device. Best for 1000+ message sessions.", accent: "rgba(99,102,241,0.4)" },
             ].map((card, i) => (
@@ -560,9 +560,9 @@ export default function LandingPage() {
                 href="#pricing"
                 className={`reveal reveal-d${i + 1} relative card-hover rounded-2xl p-7 text-left flex flex-col gap-4 block overflow-hidden group transition-all duration-300`}
                 style={{
-                  background: "rgba(255,255,255,0.02)",
+                  background: "rgba(0,255,136,0.02)",
                   borderLeft: `2px solid ${card.accent}`,
-                  border: "1px solid rgba(255,255,255,0.06)"
+                  border: "1px solid rgba(0,255,136,0.06)"
                 }}
               >
                 <div className="relative z-10">
@@ -570,7 +570,7 @@ export default function LandingPage() {
                     <span className="absolute top-4 right-4 text-[11px] font-bold px-2.5 py-1 rounded-full" style={{
                       background: "rgba(0,255,136,0.15)",
                       border: "1px solid rgba(0,255,136,0.3)",
-                      color: "#00ff88"
+                      color: "#00FF88"
                     }}>{card.badge}</span>
                   )}
                   <div className="text-2xl">{card.icon}</div>
@@ -580,7 +580,7 @@ export default function LandingPage() {
                   </div>
                   <div className="mt-auto pt-2 border-t border-[#2A2A2A] flex items-center justify-between">
                     <span className="text-xs px-2 py-0.5 rounded-full" style={{
-                      background: "rgba(255,255,255,0.05)",
+                      background: "rgba(0,255,136,0.05)",
                       color: card.accent
                     }}>{card.speed}</span>
                     <span className="text-[10px] text-[#3A3A3A] hover:text-[#6B6B6B] transition-colors">See pricing →</span>
@@ -592,7 +592,7 @@ export default function LandingPage() {
           <div className="reveal mt-8 inline-flex items-center gap-2 bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.2)] rounded-full px-4 py-2 text-xs text-[#00FF88]">
             + Caveman Mode — strips AI filler words for 65% faster responses
           </div>
-          <p className="reveal mt-3 text-xs font-mono text-[#2A4A2A]">
+          <p className="reveal mt-3 text-xs font-mono text-[#2A2A2A]">
             🔒 Zero-knowledge · All processing runs on your device · No data ever leaves your machine
           </p>
         </div>
@@ -603,7 +603,7 @@ export default function LandingPage() {
       <section id="project-files" className="py-12 sm:py-20 lg:py-32 px-4 sm:px-8 lg:px-16 relative overflow-hidden">
         <div className="max-w-5xl mx-auto relative z-10">
           <div className="text-center mb-14">
-            <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>Local folder <span className="text-[#00ff88]">context.</span></h2>
+            <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>Local folder <span className="text-[#00FF88]">context.</span></h2>
             <p className="reveal text-[#6B6B6B] max-w-xl mx-auto">
               Connect your IDE. Include your actual project files. Every AI session grounded in your real codebase — not a description of it.
             </p>
@@ -615,8 +615,8 @@ export default function LandingPage() {
               { icon: "◈", title: "Local Folder Context",          soon: false, body: "Read files directly from your machine. No upload, no cloud roundtrip. Your project stays local and private while your AI stays fully informed.", rotate: "0.5deg" },
             ].map((card, i) => (
               <div key={i} className={`reveal reveal-d${i + 1} card-hover rounded-2xl p-7 text-left relative overflow-hidden group transition-all duration-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.08)]`} style={{
-                background: "rgba(255,255,255,0.02)",
-                border: "1px solid rgba(255,255,255,0.06)",
+                background: "rgba(0,255,136,0.02)",
+                border: "1px solid rgba(0,255,136,0.06)",
                 transform: `rotate(${card.rotate})`
               }}>
                 <div className="relative z-10">
@@ -624,9 +624,9 @@ export default function LandingPage() {
                     <span className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-widest rounded px-1.5 py-0.5 flex items-center gap-1" style={{
                       background: "rgba(99,102,241,0.15)",
                       border: "1px solid rgba(99,102,241,0.3)",
-                      color: "#818cf8"
+                      color: "#E5E5E5"
                     }}>
-                      <span className="w-1 h-1 rounded-full bg-[#818cf8] animate-pulse" />
+                      <span className="w-1 h-1 rounded-full bg-[#E5E5E5] animate-pulse" />
                       Coming Soon
                     </span>
                   )}
@@ -666,11 +666,11 @@ export default function LandingPage() {
                   }}>
                     {step.icon}
                   </div>
-                  <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-[#00FF88] text-[#0A0A0A] text-[10px] font-bold flex items-center justify-center shadow-[0_0_12px_rgba(0,255,136,0.4)]">{i + 1}</div>
+                  <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-[#00FF88] text-[#00FF88] text-[10px] font-bold flex items-center justify-center shadow-[0_0_12px_rgba(0,255,136,0.4)]">{i + 1}</div>
                 </div>
                 <div className="p-4 rounded-xl" style={{
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.05)",
+                  background: "rgba(0,255,136,0.02)",
+                  border: "1px solid rgba(0,255,136,0.05)",
                   borderRadius: "12px"
                 }}>
                   <h3 className="font-bold text-[#F5F5F5] text-lg mb-2">{step.title}</h3>
@@ -690,7 +690,7 @@ export default function LandingPage() {
         </div>
         <div className="max-w-5xl mx-auto relative z-10">
           <div className="text-center mb-14">
-            <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>Your <span className="text-[#00ff88]">context.</span> Your device. Your control.</h2>
+            <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>Your <span className="text-[#00FF88]">context.</span> Your device. Your control.</h2>
             <p className="reveal text-[#6B6B6B] max-w-md mx-auto">We designed ContextMover so our servers are never in the loop. Because they shouldn&apos;t be.</p>
           </div>
           <div className="flex flex-col gap-10 items-start">
@@ -701,8 +701,8 @@ export default function LandingPage() {
                 background: "#0a0a0a",
                 borderRadius: "12px 12px 0 0"
               }}>
-                <span className="w-3 h-3 rounded-full bg-[#FF4444]" />
-                <span className="w-3 h-3 rounded-full bg-[#F59E0B]" />
+                <span className="w-3 h-3 rounded-full bg-[#00FF88]" />
+                <span className="w-3 h-3 rounded-full bg-[#00D26A]" />
                 <span className="w-3 h-3 rounded-full bg-[#00FF88]" />
               </div>
               {/* Terminal body */}
@@ -736,8 +736,8 @@ export default function LandingPage() {
                 "Delete everything with one click — no server-side backups to purge",
                 "No VC funding — we earn when you pay, not from your data",
               ].map((item, i) => (
-                <div key={i} className="flex items-start gap-3 group py-2" style={{ borderBottom: i < 5 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
-                  <Check size={14} className="text-emerald-400 shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                <div key={i} className="flex items-start gap-3 group py-2" style={{ borderBottom: i < 5 ? "1px solid rgba(0,255,136,0.05)" : "none" }}>
+                  <Check size={14} className="text-white shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                   <span className="text-sm text-[#F5F5F5] leading-relaxed">{item}</span>
                 </div>
               ))}
@@ -750,7 +750,7 @@ export default function LandingPage() {
       {/* ══════════════════════════ 8. PLATFORM SUPPORT ══════════════════════════ */}
       <section id="platforms" className="py-12 sm:py-20 lg:py-32 px-4 sm:px-8 lg:px-16 relative overflow-hidden">
         <div className="max-w-5xl mx-auto text-center relative z-10">
-          <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>Works where you <span className="text-[#00ff88]">work.</span></h2>
+          <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-4" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>Works where you <span className="text-[#00FF88]">work.</span></h2>
           <p className="reveal text-[#6B6B6B] mb-14">Every major AI platform. One extension.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-8">
             {PLATFORMS.map((p, i) => (
@@ -758,8 +758,8 @@ export default function LandingPage() {
                 key={i}
                 className={`reveal reveal-d${(i % 3) + 1} card-hover rounded-2xl p-5 text-left flex flex-col gap-3 cursor-default relative overflow-hidden group transition-all duration-300`}
                 style={{
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.06)"
+                  background: "rgba(0,255,136,0.02)",
+                  border: "1px solid rgba(0,255,136,0.06)"
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "translateY(-2px)";
@@ -767,7 +767,7 @@ export default function LandingPage() {
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+                  e.currentTarget.style.borderColor = "rgba(0,255,136,0.06)";
                 }}
               >
                 <div className="relative z-10">
@@ -776,8 +776,8 @@ export default function LandingPage() {
                     <span className="font-semibold text-[#F5F5F5] text-sm">{p.name}</span>
                   </div>
                   <div className="text-xs text-[#6B6B6B]">{p.sub}</div>
-                  <div className={`text-xs font-medium px-2 py-0.5 rounded-full w-fit ${p.badge === "Capture & Migrate" ? "text-[#00ff88]" : "text-zinc-400"}`} style={{
-                    background: p.badge === "Capture & Migrate" ? "rgba(0,255,136,0.1)" : "rgba(255,255,255,0.05)",
+                  <div className={`text-xs font-medium px-2 py-0.5 rounded-full w-fit ${p.badge === "Capture & Migrate" ? "text-[#00FF88]" : "text-zinc-400"}`} style={{
+                    background: p.badge === "Capture & Migrate" ? "rgba(0,255,136,0.1)" : "rgba(0,255,136,0.05)",
                     border: p.badge === "Capture & Migrate" ? "1px solid rgba(0,255,136,0.2)" : "none"
                   }}>
                     {p.badge}
@@ -829,7 +829,7 @@ export default function LandingPage() {
                 href="https://chromewebstore.google.com/detail/dopjoipdbeknkbnjpojjbimikhlmadae"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="shrink-0 bg-[#00FF88] text-[#0A0A0A] font-bold px-7 py-3.5 rounded-xl text-sm flex items-center gap-2 active:scale-95 transition-transform"
+                className="shrink-0 bg-[#00FF88] text-[#00FF88] font-bold px-7 py-3.5 rounded-xl text-sm flex items-center gap-2 active:scale-95 transition-transform"
                 style={{ boxShadow: "0 0 24px rgba(0,255,136,0.3)" }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
@@ -845,7 +845,7 @@ export default function LandingPage() {
       <section id="super-memory" className="py-28 px-4 sm:px-8 lg:px-16 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl h-[600px] bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(99,102,241,0.06),transparent)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.008)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.008)_1px,transparent_1px)] bg-[size:52px_52px] opacity-50" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,136,0.008)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,136,0.008)_1px,transparent_1px)] bg-[size:52px_52px] opacity-50" />
         </div>
         <div className="relative z-10 max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.2)] rounded-full px-3.5 py-1 text-xs text-[#00FF88]/70 font-mono mb-8 reveal shadow-[0_0_20px_rgba(0,255,136,0.15)]">
@@ -870,19 +870,19 @@ export default function LandingPage() {
             boxShadow: "0 0 60px rgba(99,102,241,0.08)"
           }}>
             <div className="flex items-center gap-2 mb-5 pb-4 border-b border-[#151515]">
-              <span className="w-2 h-2 rounded-full bg-[#FF4444]/50" />
-              <span className="w-2 h-2 rounded-full bg-[#F59E0B]/50" />
+              <span className="w-2 h-2 rounded-full bg-[#00FF88]/50" />
+              <span className="w-2 h-2 rounded-full bg-[#00D26A]/50" />
               <span className="w-2 h-2 rounded-full bg-[#00FF88]/50" />
               <span className="text-[#2A2A2A] ml-2">super_memory — [access restricted]</span>
             </div>
             <p className="text-[#2A5A2A] mb-3"># persistent memory layer</p>
-            <p className="mb-1"><span className="text-[#6B6B6B]">sessions_indexed</span>   <span className="text-[#818cf8]/50" style={{ display: "inline-block", width: "120px", height: "8px", background: "linear-gradient(90deg, #818cf8 0%, #818cf8 100%)", borderRadius: "2px" }}></span></p>
-            <p className="mb-1"><span className="text-[#6B6B6B]">knowledge_graph</span>    <span className="text-[#818cf8]/50" style={{ display: "inline-block", width: "80px", height: "8px", background: "linear-gradient(90deg, #818cf8 0%, #818cf8 60%, transparent 60%)", borderRadius: "2px", animation: "pulse 2s infinite" }}></span> building...</p>
-            <p className="mb-1"><span className="text-[#6B6B6B]">recall_accuracy</span>    <span className="text-[#818cf8]/50" style={{ display: "inline-block", width: "100px", height: "8px", background: "linear-gradient(90deg, #818cf8 0%, #818cf8 80%, transparent 80%)", borderRadius: "2px" }}></span></p>
-            <p className="mb-1"><span className="text-[#6B6B6B]">cross_platform</span>     <span className="text-[#818cf8]/50">=  true</span></p>
-            <p className="mb-1"><span className="text-[#6B6B6B]">zero_knowledge</span>     <span className="text-[#818cf8]/50">=  always</span></p>
-            <p className="mt-4 text-[#1A3A1A]">status: not yet. but soon.</p>
-            <p className="mt-1 text-[#818cf8]/30 animate-pulse">▌</p>
+            <p className="mb-1"><span className="text-[#6B6B6B]">sessions_indexed</span>   <span className="text-[#E5E5E5]/50" style={{ display: "inline-block", width: "120px", height: "8px", background: "linear-gradient(90deg, #E5E5E5 0%, #E5E5E5 100%)", borderRadius: "2px" }}></span></p>
+            <p className="mb-1"><span className="text-[#6B6B6B]">knowledge_graph</span>    <span className="text-[#E5E5E5]/50" style={{ display: "inline-block", width: "80px", height: "8px", background: "linear-gradient(90deg, #E5E5E5 0%, #E5E5E5 60%, transparent 60%)", borderRadius: "2px", animation: "pulse 2s infinite" }}></span> building...</p>
+            <p className="mb-1"><span className="text-[#6B6B6B]">recall_accuracy</span>    <span className="text-[#E5E5E5]/50" style={{ display: "inline-block", width: "100px", height: "8px", background: "linear-gradient(90deg, #E5E5E5 0%, #E5E5E5 80%, transparent 80%)", borderRadius: "2px" }}></span></p>
+            <p className="mb-1"><span className="text-[#6B6B6B]">cross_platform</span>     <span className="text-[#E5E5E5]/50">=  true</span></p>
+            <p className="mb-1"><span className="text-[#6B6B6B]">zero_knowledge</span>     <span className="text-[#E5E5E5]/50">=  always</span></p>
+            <p className="mt-4 text-[#1A1A1A]">status: not yet. but soon.</p>
+            <p className="mt-1 text-[#E5E5E5]/30 animate-pulse">▌</p>
           </div>
           <p className="reveal mt-10 text-xs text-[#2A2A2A] font-mono">
             Be first to know:{" "}
@@ -900,7 +900,7 @@ export default function LandingPage() {
       {/* ══════════════════════════ 10. FAQ ══════════════════════════ */}
       <section className="py-24 px-4 sm:px-8 lg:px-16 bg-grid-pattern relative overflow-hidden">
         <div className="max-w-2xl mx-auto text-center relative z-10">
-          <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-14" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}><span className="text-[#00ff88]">Questions.</span></h2>
+          <h2 className="reveal text-3xl sm:text-4xl font-bold text-[#F5F5F5] mb-14" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}><span className="text-[#00FF88]">Questions.</span></h2>
           <FaqAccordion />
         </div>
       </section>
@@ -908,7 +908,7 @@ export default function LandingPage() {
 
       {/* ═══════════════ TRUST BAR ═══════════════ */}
       <div className="bg-[#050F05] bg-grid-pattern border-t border-[rgba(0,255,136,0.06)] py-3 px-4 sm:px-8 lg:px-16 text-center">
-        <p className="text-xs font-mono text-[#2A6A2A]">
+        <p className="text-xs font-mono text-[#6B6B6B]">
           🔒 <strong className="text-[#00FF88]">Zero-knowledge.</strong>{" "}
           Data never touches our servers · Context stays on your machine · Vault syncs to your own Supabase · We cannot read or sell your conversations.
         </p>
@@ -935,7 +935,7 @@ export default function LandingPage() {
                 <span className="font-bold text-[#F5F5F5]">ContextMover</span>
               </div>
               <p className="text-sm text-[#6B6B6B] leading-relaxed">Context Operating System for AI developers.</p>
-              <p className="text-xs font-mono text-[#1A3A1A] leading-relaxed">🔒 Zero-knowledge — your conversations never touch our servers.</p>
+              <p className="text-xs font-mono text-[#1A1A1A] leading-relaxed">🔒 Zero-knowledge — your conversations never touch our servers.</p>
             </div>
             {/* Nav links */}
             <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 gap-x-10 gap-y-3 text-sm text-[#6B6B6B]">

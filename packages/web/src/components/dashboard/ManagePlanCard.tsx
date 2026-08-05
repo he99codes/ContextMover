@@ -46,7 +46,7 @@ export function ManagePlanCard() {
         </div>
         <Link
           href="/pricing"
-          className="inline-flex items-center gap-1.5 rounded-[6px] bg-[#00FF88] px-4 py-2 text-xs font-semibold text-black hover:bg-[#00CC6A] transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-[6px] bg-[#00FF88] px-4 py-2 text-xs font-semibold text-black hover:bg-[#00D26A] transition-colors"
         >
           <Zap size={12} /> Upgrade to Pro
         </Link>

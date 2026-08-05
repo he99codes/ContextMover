@@ -73,6 +73,10 @@ export interface AttentionChunk {
   filePath?: string;
   language?: string;
   timestamp: number;
+  // [CM-OFFSCREEN-FIX] true when chunks were written without embeddings because
+  // the offscreen document was unavailable. retrieve() will use keyword fallback
+  // for these chunks. Lets T3 proceed (with keyword ranking) instead of failing.
+  keywordOnly?: boolean;
 }
 
 export interface AttentionMap {
@@ -406,8 +410,28 @@ export class AttentionEngine {
       `(${existingChunks.length} already indexed, tier=${this.tier} cap=${cap})`
     );
 
-    // Embed only the new chunks.
-    const embedded = await this.embedChunks(newChunks);
+    // [CM-OFFSCREEN-FIX] Embed only the new chunks. If the offscreen document
+    // is dead, embedChunks throws. Previously this was silently swallowed
+    // (fire-and-forget) leaving ae_chunks empty → T3 fell back to T1. Now we
+    // catch the failure and write keyword-only chunks (zeroed embeddings +
+    // keywordOnly flag) so retrieve() can use keyword fallback immediately.
+    let embedded: AttentionChunk[];
+    let keywordOnly = false;
+    try {
+      embedded = await this.embedChunks(newChunks);
+    } catch (embedErr) {
+      console.warn(
+        `${TAG} indexSession — embedChunks FAILED for ${session.id} ` +
+        `(offscreen unavailable?): ${embedErr instanceof Error ? embedErr.message : String(embedErr)}. ` +
+        `Writing keyword-only chunks so retrieve() can use keyword fallback.`
+      );
+      embedded = newChunks.map((c) => ({
+        ...c,
+        embedding: new Array(EMBEDDING_DIM).fill(0),
+        keywordOnly: true,
+      }));
+      keywordOnly = true;
+    }
 
     // Append new chunks + update meta atomically. Never touches existing chunks.
     const tx = db.transaction([CHUNKS_STORE, SESSIONS_META_STORE], "readwrite");
@@ -418,10 +442,15 @@ export class AttentionEngine {
       sessionId: session.id,
       messageCount: session.messages.length,
       indexedAt: Date.now(),
+      // [CM-OFFSCREEN-FIX] record whether this index was keyword-only.
+      keywordOnly,
     });
     await tx.done;
 
-    console.log(`${TAG} Appended ${embedded.length} new chunk(s) for session ${session.id}`);
+    console.log(
+      `${TAG} Appended ${embedded.length} new chunk(s) for session ${session.id}` +
+      `${keywordOnly ? ' (keyword-only — offscreen was unavailable)' : ''}`
+    );
   }
 
   // ─── buildAttentionMap ────────────────────────────────────────────────────

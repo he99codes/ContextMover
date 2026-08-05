@@ -129,13 +129,13 @@ export default function FeedbackPage() {
               </div>
 
               {status === "error" && (
-                <p className="text-xs text-[#EF4444]">Something went wrong. Please try again.</p>
+                <p className="text-xs text-[#00FF88]">Something went wrong. Please try again.</p>
               )}
 
               <button
                 type="submit"
                 disabled={status === "loading" || !rating || !feedback.trim()}
-                className="w-full bg-[#00FF88] text-[#0A0A0A] font-bold py-3.5 rounded-lg text-sm shadow-[0_0_24px_rgba(0,255,136,0.2)] hover:bg-[#00CC6A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-[#00FF88] text-[#00FF88] font-bold py-3.5 rounded-lg text-sm shadow-[0_0_24px_rgba(0,255,136,0.2)] hover:bg-[#00D26A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {status === "loading" ? "Submitting…" : "Submit feedback →"}
               </button>

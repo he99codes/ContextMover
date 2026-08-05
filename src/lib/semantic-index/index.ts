@@ -567,6 +567,21 @@ export class SemanticIndex {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hasOffscreen = !!(chrome as any).offscreen;
     if (hasOffscreen) {
+      // [CM-OFFSCREEN-FIX] Fast-fail if the offscreen doc is dead and can't be
+      // recreated. Without this, each background job waits up to 90s (the
+      // offscreen index timeout) before failing — 40 jobs × 90s = 1 hour of
+      // jammed queue (the "indexing has stopped" symptom). Fail fast so the
+      // queue drains and the next attempt can succeed after reload.
+      try {
+        const hasDoc = await (chrome as any).offscreen.hasDocument?.();
+        if (!hasDoc) {
+          await ensureOffscreenDocument();
+        }
+      } catch (offscreenErr) {
+        const msg = offscreenErr instanceof Error ? offscreenErr.message : String(offscreenErr);
+        console.warn(`[CM:index] ${session.id}: offscreen unavailable (${msg}) — skipping index job (fail fast)`);
+        throw new Error(`offscreen_unavailable: ${msg}`);
+      }
       // Delete any existing chunks for this session before re-indexing.
       // This prevents duplicate chunks when indexSession is called multiple times.
       await dexieDb.chunkEmbeddings.where('sessionId').equals(session.id).delete();

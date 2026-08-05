@@ -27,12 +27,12 @@ import type { Session } from "@/types";
 import { SessionExportPanel } from "./SessionExportPanel";
 
 const PLATFORM_STYLES: Record<string, { label: string; dot: string; badge: string; color: string }> = {
-  claude:     { label: "Claude",     dot: "bg-[#D97706]", badge: "text-[#D97706] border-[#D97706]/25 bg-[#D97706]/10", color: "#D97706" },
-  chatgpt:    { label: "ChatGPT",    dot: "bg-[#10B981]", badge: "text-[#10B981] border-[#10B981]/25 bg-[#10B981]/10", color: "#10B981" },
-  gemini:     { label: "Gemini",     dot: "bg-[#6366F1]", badge: "text-[#6366F1] border-[#6366F1]/25 bg-[#6366F1]/10", color: "#6366F1" },
+  claude:     { label: "Claude",     dot: "bg-[#E5E5E5]", badge: "text-[#E5E5E5] border-[#E5E5E5]/25 bg-[#E5E5E5]/10", color: "#E5E5E5" },
+  chatgpt:    { label: "ChatGPT",    dot: "bg-[#E5E5E5]", badge: "text-[#E5E5E5] border-[#E5E5E5]/25 bg-[#E5E5E5]/10", color: "#E5E5E5" },
+  gemini:     { label: "Gemini",     dot: "bg-[#E5E5E5]", badge: "text-[#E5E5E5] border-[#E5E5E5]/25 bg-[#E5E5E5]/10", color: "#E5E5E5" },
   grok:       { label: "Grok",       dot: "bg-[#F5F5F5]", badge: "text-[#F5F5F5] border-[#F5F5F5]/25 bg-[#F5F5F5]/10", color: "#F5F5F5" },
-  perplexity: { label: "Perplexity", dot: "bg-[#20B2AA]", badge: "text-[#20B2AA] border-[#20B2AA]/25 bg-[#20B2AA]/10", color: "#20B2AA" },
-  deepseek:   { label: "DeepSeek",   dot: "bg-[#4C8BF5]", badge: "text-[#4C8BF5] border-[#4C8BF5]/25 bg-[#4C8BF5]/10", color: "#4C8BF5" },
+  perplexity: { label: "Perplexity", dot: "bg-[#E5E5E5]", badge: "text-[#E5E5E5] border-[#E5E5E5]/25 bg-[#E5E5E5]/10", color: "#E5E5E5" },
+  deepseek:   { label: "DeepSeek",   dot: "bg-[#E5E5E5]", badge: "text-[#E5E5E5] border-[#E5E5E5]/25 bg-[#E5E5E5]/10", color: "#E5E5E5" },
 };
 
 function getStyle(platform: string) {
@@ -131,7 +131,7 @@ export function SessionDetailView({ session }: Props) {
                 <button
                   onClick={handleSave}
                   disabled={busy === "save"}
-                  className="inline-flex h-8 px-3 items-center gap-1 rounded-[4px] bg-[#00FF88] text-black text-sm font-semibold hover:bg-[#00CC6A] disabled:opacity-50 transition-colors"
+                  className="inline-flex h-8 px-3 items-center gap-1 rounded-[4px] bg-[#00FF88] text-black text-sm font-semibold hover:bg-[#00D26A] disabled:opacity-50 transition-colors"
                 >
                   {busy === "save" ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                   Save
@@ -176,7 +176,7 @@ export function SessionDetailView({ session }: Props) {
             </button>
             <Link
               href={`/migrate?session=${session.id}`}
-              className="inline-flex h-9 px-3 items-center gap-1.5 rounded-[4px] bg-[#00FF88] text-black text-sm font-semibold hover:bg-[#00CC6A] transition-all hover:shadow-[0_0_12px_rgba(0,255,136,0.3)]"
+              className="inline-flex h-9 px-3 items-center gap-1.5 rounded-[4px] bg-[#00FF88] text-black text-sm font-semibold hover:bg-[#00D26A] transition-all hover:shadow-[0_0_12px_rgba(0,255,136,0.3)]"
             >
               <ArrowLeftRight size={14} />
               Migrate
@@ -184,7 +184,7 @@ export function SessionDetailView({ session }: Props) {
             <button
               onClick={handleDelete}
               disabled={busy === "delete"}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-[4px] border border-[#2A2A2A] text-[#6B6B6B] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 disabled:opacity-50 transition-colors"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-[4px] border border-[#2A2A2A] text-[#6B6B6B] hover:bg-white/10 hover:text-[#FF4444] hover:border-[#FF4444]/30 disabled:opacity-50 transition-colors"
               title="Delete session"
             >
               {busy === "delete" ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}

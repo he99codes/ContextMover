@@ -42,3 +42,27 @@ export async function focusTab(tabId: number): Promise<void> {
 
   await chrome.tabs.update(tabId, { active: true });
 }
+
+/**
+ * [CM-SOLAR-V2] Detect the currently-active AI platform tab in the current window.
+ * Returns `{ platform, tab }` if the active tab's URL matches a known AI host,
+ * otherwise `null`. Used by the 1-click quick-migrate button on SessionCard.
+ */
+export async function detectActivePlatformTab(): Promise<{ platform: Platform; tab: chrome.tabs.Tab } | null> {
+  try {
+    const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!active?.url) return null;
+    for (const [platform, patterns] of Object.entries(PLATFORM_TAB_PATTERNS)) {
+      for (const pattern of patterns) {
+        // Convert glob (https://claude.ai/*) to regex.
+        const re = new RegExp("^" + pattern.replace(/[.*+?^${}()|[\]\\]/g, (ch) => (ch === "*" ? ".*" : ch === "?" ? "." : "\\" + ch)) + "$");
+        if (re.test(active.url)) {
+          return { platform: platform as Platform, tab: active };
+        }
+      }
+    }
+  } catch {
+    /* ignore — best-effort detection */
+  }
+  return null;
+}

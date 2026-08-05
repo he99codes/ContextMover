@@ -230,7 +230,7 @@ alter publication supabase_realtime add table cm_sessions;`;
                 : "Not yet synced this session"}
             </p>
             {syncError && (
-              <p className="text-[11px] text-red-400 mt-1 flex items-center gap-1.5">
+              <p className="text-[11px] text-white mt-1 flex items-center gap-1.5">
                 <AlertCircle size={11} className="shrink-0" /> {syncError}
               </p>
             )}
@@ -248,7 +248,7 @@ alter publication supabase_realtime add table cm_sessions;`;
         {/* Super Memory teaser — TASK 3 */}
         <div className="flex items-center gap-2 px-1">
           <span className="flex h-1.5 w-1.5 rounded-full bg-[#00FF88]/40 shrink-0" />
-          <p className="text-[10px] font-mono text-[#2A4A2A]">
+          <p className="text-[10px] font-mono text-[#2A2A2A]">
             Vault sync powers{" "}
             <span className="text-[#00FF88]/50">Super Memory</span>
             {" "}— coming soon
@@ -275,7 +275,7 @@ alter publication supabase_realtime add table cm_sessions;`;
           </a>
           <button
             onClick={() => setScreen("delete-confirm")}
-            className="inline-flex items-center gap-1.5 rounded-[4px] border border-red-500/25 px-3 py-2 text-xs font-medium text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-[4px] border border-white/25 px-3 py-2 text-xs font-medium text-white hover:border-white/40 hover:bg-white/5 transition-colors"
           >
             <Trash2 size={12} /> Delete vault data
           </button>
@@ -293,8 +293,8 @@ alter publication supabase_realtime add table cm_sessions;`;
   if (screen === "delete-confirm") {
     return (
       <div className="max-w-md mx-auto space-y-5">
-        <div className="rounded-[8px] border border-red-500/30 bg-red-500/5 p-6">
-          <Trash2 size={20} className="mb-3 text-red-400" />
+        <div className="rounded-[8px] border border-white/30 bg-white/5 p-6">
+          <Trash2 size={20} className="mb-3 text-white" />
           <h3 className="text-sm font-semibold text-[#F5F5F5] mb-2">Delete all vault data?</h3>
           <p className="text-xs text-[#6B6B6B] mb-4">
             This permanently deletes all sessions, memory nodes, and edges from your Supabase vault. Your local extension data is NOT affected.
@@ -303,7 +303,7 @@ alter publication supabase_realtime add table cm_sessions;`;
           <input
             value={deleteInput}
             onChange={(e) => setDeleteInput(e.target.value)}
-            className="w-full rounded-[4px] border border-[#3A3A3A] bg-[#111] px-3 py-2 text-sm font-mono text-[#F5F5F5] outline-none focus:border-red-500/50 mb-4"
+            className="w-full rounded-[4px] border border-[#3A3A3A] bg-[#111] px-3 py-2 text-sm font-mono text-[#F5F5F5] outline-none focus:border-white/50 mb-4"
             placeholder="delete"
           />
           <div className="flex gap-2">
@@ -316,7 +316,7 @@ alter publication supabase_realtime add table cm_sessions;`;
             <button
               onClick={() => void handleDeleteData()}
               disabled={deleteInput !== "delete" || testing}
-              className="flex-1 rounded-[4px] bg-red-600/80 px-3 py-2 text-xs font-medium text-white hover:bg-red-600 disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
+              className="flex-1 rounded-[4px] bg-white/80 px-3 py-2 text-xs font-medium text-black hover:bg-white disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
             >
               {testing ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
               Delete all data
@@ -344,7 +344,7 @@ alter publication supabase_realtime add table cm_sessions;`;
           <Check size={28} className="text-[#00FF88]" />
         </div>
         <h2 className="text-lg font-black uppercase tracking-widest text-[#F5F5F5]">Vault connected!</h2>
-        <p className="mt-2 text-xs font-mono text-[#2A6A2A] max-w-xs">
+        <p className="mt-2 text-xs font-mono text-[#6B6B6B] max-w-xs">
           Your sessions now sync to your personal Supabase. ContextMover never sees this data.
         </p>
         <button
@@ -370,7 +370,7 @@ alter publication supabase_realtime add table cm_sessions;`;
         </div>
 
         {error && (
-          <div className="rounded-[6px] border border-red-500/30 bg-red-500/8 px-4 py-3 text-xs text-red-400">{error}</div>
+          <div className="rounded-[6px] border border-[#00FF88]/30 bg-[#00FF88]/10 px-4 py-3 text-xs text-[#00FF88]">{error}</div>
         )}
 
         {/* Schema setup instructions */}
@@ -485,7 +485,7 @@ alter publication supabase_realtime add table cm_sessions;`;
       </div>
 
       {/* Trust signals */}
-      <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-[#2A4A2A]">
+      <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-[#2A2A2A]">
         {[
           "Your Supabase, your rules",
           "AES-256-GCM encrypted config",

@@ -112,8 +112,8 @@ export function SessionCard({ session }: SessionCardProps) {
       className={cn(
         "stagger-item group relative flex items-start gap-4 overflow-hidden rounded-[8px] border px-6 py-5",
         busy === "delete"
-          ? "border-red-500/30 bg-red-500/5 opacity-50"
-          : "bg-[#0A0A0A] border-[#1A2A1A] card-hover"
+          ? "border-white/30 bg-white/5 opacity-50"
+          : "bg-[#0A0A0A] border-[#2A2A2A] card-hover"
       )}
     >
       {/* Always-visible platform left border */}
@@ -167,13 +167,13 @@ export function SessionCard({ session }: SessionCardProps) {
                   {session.title ?? "Untitled session"}
                 </p>
                 {preview && (
-                  <p className="mt-1 text-xs font-mono text-[#1A3A1A] line-clamp-1">
+                  <p className="mt-1 text-xs font-mono text-[#1A1A1A] line-clamp-1">
                     {truncate(preview, 100)}
                   </p>
                 )}
               </Link>
             )}
-            {error && <p className="mt-1 text-[11px] text-red-400">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-[#FF4444]">{error}</p>}
           </div>
 
           {/* Actions: always visible on hover */}
@@ -195,7 +195,7 @@ export function SessionCard({ session }: SessionCardProps) {
               onClick={(e) => { stopLink(e); setIsEditing(true); }}
               disabled={busy !== null}
               title="Rename session"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#2A4A2A] transition-colors hover:bg-[#1A3A1A] hover:text-[#F5F5F5] disabled:opacity-50"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#2A2A2A] transition-colors hover:bg-[#1A1A1A] hover:text-[#F5F5F5] disabled:opacity-50"
             >
               <Pencil size={13} />
             </button>
@@ -204,7 +204,7 @@ export function SessionCard({ session }: SessionCardProps) {
               onClick={handleDelete}
               disabled={busy !== null}
               title="Delete session"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#2A1A1A] transition-colors hover:bg-red-500/10 hover:text-red-400 hover:shadow-[0_0_8px_rgba(239,68,68,0.15)] disabled:opacity-50"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#2A2A2A] transition-colors hover:bg-[#00FF88]/10 hover:text-[#00FF88] hover:shadow-[0_0_8px_rgba(0,255,136,0.15)] disabled:opacity-50"
             >
               {busy === "delete" ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
             </button>
@@ -217,13 +217,13 @@ export function SessionCard({ session }: SessionCardProps) {
           )}
         </div>
 
-        <div className="mt-4 flex items-center gap-4 border-t border-[#0D1A0D] pt-3">
+        <div className="mt-4 flex items-center gap-4 border-t border-[#0A0A0A] pt-3">
           <PlatformBadge platform={session.platform} logoSize={11} />
-          <span className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-[#1A3A1A]">
+          <span className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-[#1A1A1A]">
             <MessageSquare size={10} />
             {msgCount} {msgCount === 1 ? "message" : "messages"}
           </span>
-          <span suppressHydrationWarning className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-[#1A3A1A]">
+          <span suppressHydrationWarning className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-[#1A1A1A]">
             <Clock size={10} />
             {formatRelativeTime(session.updated_at)}
           </span>

@@ -64,7 +64,7 @@ export default function PricingSection() {
           Annual
         </span>
         {isAnnual && (
-          <span className="bg-emerald-500/20 text-emerald-400 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+          <span className="bg-[#00FF88]/20 text-[#00FF88] text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full border border-[#00FF88]/30">
             Save 33%
           </span>
         )}
@@ -94,7 +94,7 @@ export default function PricingSection() {
           <ul className="flex flex-col gap-3 flex-1">
             {FREE_FEATURES.map((f) => (
               <li key={f.text} className="flex items-start gap-2 text-sm text-zinc-300">
-                <span className="text-emerald-400 mt-0.5 shrink-0">✓</span>
+                <span className="text-white mt-0.5 shrink-0">✓</span>
                 <span>{f.text}</span>
               </li>
             ))}
@@ -130,7 +130,7 @@ export default function PricingSection() {
 
           {/* Early Bird banner */}
           <div
-            className="mt-2 text-center rounded-lg px-3 sm:px-4 py-2 text-emerald-400 text-[10px] sm:text-xs font-medium"
+            className="mt-2 text-center rounded-lg px-3 sm:px-4 py-2 text-white text-[10px] sm:text-xs font-medium"
             style={{
               background: "rgba(16, 185, 129, 0.1)",
               border: "1px solid rgba(16, 185, 129, 0.3)",
@@ -147,7 +147,7 @@ export default function PricingSection() {
                   <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">₹2,399</span>
                   <span className="text-zinc-400 text-xs sm:text-sm mb-1 sm:mb-2">/ year</span>
                 </div>
-                <p className="text-emerald-400 text-[10px] sm:text-xs mt-1">₹200/month · Save ₹1,189</p>
+                <p className="text-white text-[10px] sm:text-xs mt-1">₹200/month · Save ₹1,189</p>
               </>
             ) : (
               <div className="flex items-end gap-1">
@@ -170,7 +170,7 @@ export default function PricingSection() {
                   </>
                 ) : (
                   <>
-                    <span className="text-purple-400 mt-0.5 shrink-0">✓</span>
+                    <span className="text-white mt-0.5 shrink-0">✓</span>
                     <span className="text-zinc-200">{f.text}</span>
                   </>
                 )}
@@ -205,7 +205,7 @@ export default function PricingSection() {
                   <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">₹3,999</span>
                   <span className="text-zinc-500 text-xs sm:text-sm mb-1 sm:mb-2">/ year</span>
                 </div>
-                <p className="text-blue-400 text-[10px] sm:text-xs mt-1">₹333/month · Save ₹1,989</p>
+                <p className="text-white text-[10px] sm:text-xs mt-1">₹333/month · Save ₹1,989</p>
               </>
             ) : (
               <div className="flex items-end gap-1">
@@ -228,7 +228,7 @@ export default function PricingSection() {
                   </>
                 ) : (
                   <>
-                    <span className="text-blue-400 mt-0.5 shrink-0">✓</span>
+                    <span className="text-white mt-0.5 shrink-0">✓</span>
                     <span className="text-zinc-300">{f.text}</span>
                   </>
                 )}
@@ -238,7 +238,7 @@ export default function PricingSection() {
 
           <a
             href="/auth?plan=pro"
-            className="mt-8 block w-full text-center rounded-xl py-3 font-medium text-blue-400 transition-colors hover:bg-blue-950/50"
+            className="mt-8 block w-full text-center rounded-xl py-3 font-medium text-white transition-colors hover:bg-white/10"
             style={{ border: "1px solid #3b82f6" }}
           >
             Upgrade to Pro →

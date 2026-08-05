@@ -191,6 +191,13 @@ export default defineConfig(async ({ mode }) => {
     build: {
       rollupOptions: {
         input: {
+          // [CM-OFFSCREEN-FIX] offscreen doc is created dynamically via
+          // chrome.offscreen.createDocument() and is NOT in manifest.json, so
+          // @crxjs/vite-plugin does not know about it. It MUST be listed here
+          // or it won't be emitted to dist/ — which is what broke v1.0.4
+          // (offscreen.html 404 → "Page failed to load" → all ONNX dead).
+          sidebar: path.resolve(__dirname, "src/sidebar/index.html"),
+          offscreen: path.resolve(__dirname, "src/offscreen/offscreen.html"),
           "src/content/claude": path.resolve(__dirname, "src/content/claude.ts"),
           "src/content/chatgpt": path.resolve(__dirname, "src/content/chatgpt.ts"),
           "src/content/gemini": path.resolve(__dirname, "src/content/gemini.ts"),

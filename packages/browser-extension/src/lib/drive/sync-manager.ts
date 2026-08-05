@@ -163,6 +163,10 @@ class DriveSyncManager {
   private cachedIndexLastSync: number | null = null;
   // [FAST-SYNC] Bundle version tracking — skip downloads when unchanged.
   private cachedBundleVersion: number | null = null;
+  // [DRIVE-LOOP-FIX] IDs of sessions just downloaded from the bundle.
+  // These are excluded from the "missing from index" re-upload check to
+  // break the download→upload→version-bump→download loop.
+  private justDownloadedIds: Set<string> = new Set();
   // [OPTION-B] cachedEmbeddingsVersion removed — embeddings not synced via Drive.
   // [FAST-SYNC] Pending version bumps — set by flushUploadQueue, consumed by rebuildIndex.
   private _pendingBundleBump = false;
@@ -639,6 +643,8 @@ class DriveSyncManager {
         try {
           const sessions = await driveClient.downloadSessionsBundle();
           if (sessions && sessions.length > 0) {
+            // [DRIVE-LOOP-FIX] Track downloaded IDs to prevent re-upload loop.
+            this.justDownloadedIds = new Set(sessions.map(s => s.id));
             // Bulk save all sessions to IDB
             // Only invalidate isComplete for sessions that actually changed
             // (different messageCount or updatedAt) to avoid mass re-indexing.
@@ -844,7 +850,14 @@ class DriveSyncManager {
         // Bug A: Queue upload for local sessions not in the Drive index.
         // [BUG-1 FIX] Skip sessions in the tombstone set — they were deleted
         // on another profile and must NOT be re-uploaded (resurrection prevention).
-        const missingFromIndex = allLocal.filter(s => !remoteIds.has(s.id) && !tombstoneSet.has(s.id));
+        // [DRIVE-LOOP-FIX] Also skip sessions just downloaded from the bundle —
+        // they're not actually "missing", they just haven't been added to the
+        // index entries yet (rebuildIndex runs after flushUploadQueue).
+        const missingFromIndex = allLocal.filter(s =>
+          !remoteIds.has(s.id) && !tombstoneSet.has(s.id) && !this.justDownloadedIds.has(s.id)
+        );
+        // Clear the just-downloaded set after one sync cycle.
+        this.justDownloadedIds.clear();
         for (const s of missingFromIndex) this.queueUpload(s.id);
         if (missingFromIndex.length > 0) {
           console.log(`[drive-sync] queued ${missingFromIndex.length} local session(s) missing from Drive index`);

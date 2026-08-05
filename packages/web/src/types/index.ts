@@ -54,19 +54,21 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
 };
 
 export const PLATFORM_COLORS: Record<Platform, string> = {
-  claude:     "#D97706",
-  chatgpt:    "#10B981",
-  gemini:     "#6366F1",
-  grok:       "#F5F5F5",
-  perplexity: "#20B2AA",
-  deepseek:   "#4C8BF5",
+  // [CM-SOLAR] Warm metallic platform palette.
+  claude:     "#00FF88",
+  chatgpt:    "#00C853",
+  gemini:     "#E5E5E5",
+  grok:       "#E5E5E5",
+  perplexity: "#00D26A",
+  deepseek:   "#E5E5E5",
 };
 
 export const PLATFORM_BG: Record<Platform, string> = {
-  claude:     "bg-amber-50 text-amber-700 border-amber-200",
-  chatgpt:    "bg-emerald-50 text-emerald-700 border-emerald-200",
-  gemini:     "bg-indigo-50 text-indigo-700 border-indigo-200",
-  grok:       "bg-gray-100 text-gray-700 border-gray-200",
-  perplexity: "bg-teal-50 text-teal-700 border-teal-200",
-  deepseek:   "bg-blue-50 text-blue-700 border-blue-200",
+  // [CM-SOLAR] Platform badge backgrounds — warm grayscale.
+  claude:     "bg-[#00FF88]/10 text-[#00FF88] border-[#00FF88]/30",
+  chatgpt:    "bg-[#00C853]/10 text-[#00C853] border-[#00C853]/30",
+  gemini:     "bg-[#E5E5E5]/10 text-[#E5E5E5] border-[#E5E5E5]/30",
+  grok:       "bg-[#E5E5E5]/10 text-[#E5E5E5] border-[#E5E5E5]/30",
+  perplexity: "bg-[#00D26A]/10 text-[#00D26A] border-[#00D26A]/30",
+  deepseek:   "bg-[#E5E5E5]/10 text-[#E5E5E5] border-[#E5E5E5]/30",
 };

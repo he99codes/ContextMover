@@ -44,7 +44,7 @@ function Note({ children }: { children: React.ReactNode }) {
 
 function Warn({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-[8px] border border-yellow-500/20 bg-yellow-500/5 px-4 py-3 text-sm text-yellow-200 leading-relaxed my-4">
+    <div className="rounded-[8px] border border-white/20 bg-white/5 px-4 py-3 text-sm text-gray-300 leading-relaxed my-4">
       {children}
     </div>
   );
@@ -284,7 +284,7 @@ export default function DocsPage() {
             {[
               { label: "Speed", value: "Instant", color: "text-[#00FF88]" },
               { label: "Quality", value: "Perfect", color: "text-[#00FF88]" },
-              { label: "Session size", value: "≤ ~20k tokens", color: "text-yellow-400" },
+              { label: "Session size", value: "≤ ~20k tokens", color: "text-gray-300" },
             ].map(({ label, value, color }) => (
               <div key={label} className="rounded-[8px] border border-[#1E1E1E] bg-[#0F0F0F] p-3">
                 <p className={`text-sm font-semibold ${color}`}>{value}</p>
@@ -377,8 +377,8 @@ export default function DocsPage() {
         >
           <div className="grid grid-cols-3 gap-3 mb-6 text-center">
             {[
-              { label: "Speed (modern CPU)", value: "~8–25 s", color: "text-yellow-400" },
-              { label: "Speed (older i3/i5)", value: "~40–120 s", color: "text-orange-400" },
+              { label: "Speed (modern CPU)", value: "~8–25 s", color: "text-gray-300" },
+              { label: "Speed (older i3/i5)", value: "~40–120 s", color: "text-gray-400" },
               { label: "Quality", value: "Highest", color: "text-[#00FF88]" },
             ].map(({ label, value, color }) => (
               <div key={label} className="rounded-[8px] border border-[#1E1E1E] bg-[#0F0F0F] p-3">

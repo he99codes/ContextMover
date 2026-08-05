@@ -6,14 +6,17 @@
  */
 import type { DOMProbeResult } from '@/content/shared';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { findTargetPlatformTab, focusTab } from "@/lib/platform-tabs";
+import { findTargetPlatformTab, focusTab, detectActivePlatformTab } from "@/lib/platform-tabs";
 import { dexieDb } from "@/lib/db";
 import type { ContextSession, Platform } from "@/lib/types";
 import ExportMenu from "@/components/ExportMenu";
 import { PlatformBadge, PlatformLogo } from "@/components/PlatformLogo";
 import MigrationModal from "./MigrationModal";
+import { MigrationStepper } from "./MigrationStepper";
 import KnowledgeSynthesizer from "./components/KnowledgeSynthesizer";
 import { QualityScoreCard } from "./QualityScoreCard";
+// [CM-OFFSCREEN-FIX] Perf dashboard panel — P50/P90/P99 latency telemetry.
+import { PerfStatsPanel } from "./PerfStatsPanel";
 import type { QualityScore } from "@/lib/quality/migration-scorer";
 import { getUsageStatus, type UsageStatus } from "@/lib/usage-client";
 import { getRemoteUpdateInfo } from "@/lib/remote-config";
@@ -45,6 +48,11 @@ interface SessionCardProps {
   migrationTier?: 1 | 2 | 3;
   driveSourced?: boolean;
   isPendingIndex?: boolean; // [CM-PERSIST-FIX]
+  // [CM-SOLAR-V2] 1-click quick-migrate (Tier 1, inline).
+  isQuickMigrating?: boolean;
+  quickMigrateStage?: string;
+  quickMigrateProgress?: number;
+  onQuickMigrate?: () => void;
   onSelect: () => void;
   onRenaming?: (v: boolean) => void;
 }
@@ -75,6 +83,10 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
   migrationTier,
   driveSourced,
   isPendingIndex, // [CM-PERSIST-FIX]
+  isQuickMigrating,
+  quickMigrateStage,
+  quickMigrateProgress,
+  onQuickMigrate,
   onSelect,
   onRenaming,
 }) {
@@ -102,7 +114,7 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(); } }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="stagger-item relative block w-full cursor-pointer rounded-[4px] border bg-[#0a0a0a] px-2 py-[4px] text-left"
+      className="stagger-item card-hover relative block w-full cursor-pointer rounded-[4px] border bg-[#0a0a0a] px-2 py-[4px] text-left"
       style={{
         borderColor: hovered ? `${pColor}50` : `${pColor}25`,
         boxShadow: hovered
@@ -123,7 +135,7 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
             {driveSourced && (
               <span
                 title="Synced from Google Drive (captured on another profile)"
-                style={{ fontSize: 9, color: "#5AA9FF", letterSpacing: "0.05em" }}
+                style={{ fontSize: 9, color: "#00FF88", letterSpacing: "0.05em" }}
               >
                 ☁
               </span>
@@ -135,7 +147,7 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
             {isPendingIndex && (
               <span style={{
                 fontSize: '9px',
-                color: 'var(--color-text-warning, #F59E0B)',
+                color: 'var(--color-text-warning, #00D26A)',
                 opacity: 0.85,
                 marginLeft: '4px',
                 letterSpacing: '0.02em',
@@ -153,7 +165,7 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
             onEditingChange={onRenaming}
           />
           {/* ── Meta row ── */}
-          <div className="flex items-center gap-1 text-[8px] uppercase" style={{ letterSpacing: "0.08em", color: "#2A4A2A" }}>
+          <div className="flex items-center gap-1 text-[8px] uppercase" style={{ letterSpacing: "0.08em", color: "#2A2A2A" }}>
             <span>{msgCount} turns</span>
             <span>·</span>
             <span>{formatRelativeTime(session.updatedAt)}</span>
@@ -168,7 +180,7 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
                   title={`${codeBlockCount} code block${codeBlockCount !== 1 ? "s" : ""}`}
                   style={{
                     display: "inline-flex", alignItems: "center", gap: "2px",
-                    color: "#6366F1", fontWeight: 700, fontSize: "8px",
+                    color: "#E5E5E5", fontWeight: 700, fontSize: "8px",
                   }}
                 >
                   <span style={{ fontFamily: "monospace", fontSize: "9px", lineHeight: 1 }}>&lt;/&gt;</span>
@@ -182,7 +194,7 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
                 <span style={{
                   padding: "1px 6px",
                   borderRadius: "10px",
-                  background: (migrationTier ?? 1) >= 2 ? "rgba(0,255,136,0.12)" : "rgba(255,255,255,0.06)",
+                  background: (migrationTier ?? 1) >= 2 ? "rgba(0,255,136,0.12)" : "rgba(0,255,136,0.06)",
                   border: `1px solid ${(migrationTier ?? 1) >= 2 ? "rgba(0,255,136,0.3)" : "#2A2A2A"}`,
                   color: (migrationTier ?? 1) >= 2 ? "#00FF88" : "#666",
                   fontSize: "8px",
@@ -196,10 +208,31 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1 pt-0.5">
-          <span style={{
-            color: hovered ? "#00FF88" : "#3A3A3A",
-            transition: "color 150ms ease",
-          }}>›</span>
+          {/* [CM-SOLAR-V2] 1-click quick-migrate (Tier 1, inline mini stepper). */}
+          {isQuickMigrating ? (
+            <div className="flex items-center gap-1.5">
+              <MigrationStepper
+                stage={quickMigrateStage ?? ""}
+                progress={quickMigrateProgress ?? 0}
+                tier={1}
+                variant="compact"
+              />
+              <span style={{ display: "inline-block", animation: "spin 0.7s linear infinite", color: "#00FF88", fontSize: "10px" }}>↻</span>
+            </div>
+          ) : hovered ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); onQuickMigrate?.(); }}
+              title="Quick migrate (Full Context) to active AI tab"
+              className="rounded-[3px] border border-[#00FF88]/30 bg-[#00FF88]/10 px-1 text-[10px] text-[#00FF88] transition-all hover:bg-[#00FF88]/20 hover:border-[#00FF88]/50 hover:shadow-[0_0_8px_rgba(0,255,136,0.3)]"
+            >
+              ⚡
+            </button>
+          ) : (
+            <span style={{
+              color: hovered ? "#00FF88" : "#3A3A3A",
+              transition: "color 150ms ease",
+            }}>›</span>
+          )}
         </div>
       </div>
     </div>
@@ -209,7 +242,10 @@ const SessionCard = memo<SessionCardProps>(function SessionCard({
   prev.session.updatedAt === next.session.updatedAt &&
   prev.session.messages.length === next.session.messages.length &&
   prev.vaultConnected === next.vaultConnected &&
-  prev.migrationTier === next.migrationTier
+  prev.migrationTier === next.migrationTier &&
+  prev.isQuickMigrating === next.isQuickMigrating &&
+  prev.quickMigrateStage === next.quickMigrateStage &&
+  prev.quickMigrateProgress === next.quickMigrateProgress
 );
 
 const PLATFORM_LABELS: Record<Platform, string> = {
@@ -231,12 +267,12 @@ const PLATFORM_SHORT: Record<Platform, string> = {
 };
 
 const PLATFORM_COLORS: Record<Platform, string> = {
-  claude:     "#D97706",
-  chatgpt:    "#10B981",
-  gemini:     "#6366F1",
+  claude:     "#E5E5E5",
+  chatgpt:    "#E5E5E5",
+  gemini:     "#E5E5E5",
   grok:       "#E5E5E5",
-  perplexity: "#20B2AA",
-  deepseek:   "#4C8BF5",
+  perplexity: "#E5E5E5",
+  deepseek:   "#E5E5E5",
 };
 
 function getDisplayName(session: ContextSession): string {
@@ -385,6 +421,12 @@ export default function Sidebar() {
   const [tick, setTick] = useState(0);
   const [isRenaming, setIsRenaming] = useState(false);
   const [showMigrationModal, setShowMigrationModal] = useState(false);
+
+  // [CM-SOLAR-V2] 1-click quick-migrate (Tier 1) inline on session cards.
+  const [quickMigratingId, setQuickMigratingId] = useState<string | null>(null);
+  const [quickMigrateStage, setQuickMigrateStage] = useState("");
+  const [quickMigrateProgress, setQuickMigrateProgress] = useState(0);
+  const quickMigratingRef = useRef<string | null>(null);
 
   // [CM-PERSIST-FIX] poll for pending index jobs to show UI indicator
   useEffect(() => {
@@ -589,9 +631,14 @@ export default function Sidebar() {
   }, []);
 
   // Keep handleMessageRef in sync with latest loadSessions closure every render.
-  handleMessageRef.current = (msg: { type: string; pct?: number; done?: number; total?: number; phase?: string; platform?: string; reason?: string; pendingId?: string; sessionTitle?: string; targetPlatform?: string }) => {
+  handleMessageRef.current = (msg: { type: string; pct?: number; done?: number; total?: number; phase?: string; platform?: string; reason?: string; pendingId?: string; sessionTitle?: string; targetPlatform?: string; progress?: number; stage?: string }) => {
     if (msg.type === "SESSIONS_UPDATED") {
       if (!activeRenameRef.current) loadSessions();
+    }
+    // [CM-SOLAR-V2] Quick-migrate progress (only when a quick-migrate is active).
+    if (msg.type === "MIGRATION_PROGRESS" && quickMigratingRef.current) {
+      setQuickMigrateProgress(typeof msg.progress === "number" ? msg.progress : 0);
+      setQuickMigrateStage(typeof msg.stage === "string" ? msg.stage : "");
     }
     if (msg.type === "SCRAPER_BROKEN") {
       // [CM-FIX-2] removed user-facing error: "[p] UI changed! Scraper broken. Update pending."
@@ -892,6 +939,69 @@ export default function Sidebar() {
     });
   }, [warmupSession]);
 
+  // [CM-SOLAR-V2] 1-click quick-migrate: auto-detect active AI tab, run Tier 1 inline.
+  const handleQuickMigrate = useCallback(async (session: ContextSession) => {
+    if (quickMigratingRef.current) return; // prevent double-click
+    quickMigratingRef.current = session.id;
+    setQuickMigratingId(session.id);
+    setQuickMigrateProgress(0);
+    setQuickMigrateStage("");
+
+    // 1. Auto-detect the active AI tab; fall back to session's source platform.
+    let targetPlatform: Platform = session.platform;
+    let tab: chrome.tabs.Tab | undefined;
+    const detected = await detectActivePlatformTab();
+    if (detected) {
+      targetPlatform = detected.platform;
+      tab = detected.tab;
+    } else {
+      tab = await findTargetPlatformTab(session.platform);
+    }
+    if (!tab?.id) {
+      setStatusMessage({ tone: "error", text: `Open an AI tab (Claude, ChatGPT, etc.) then try again.` });
+      quickMigratingRef.current = null;
+      setQuickMigratingId(null);
+      return;
+    }
+
+    // 2. Focus the target tab so injection lands in the right place.
+    // [CM-FLASH] Skip the 250ms sleep — the tab is already active (we just
+    // detected it as the active tab, or focused it). The content script is
+    // already loaded on an open AI tab.
+    await focusTab(tab.id);
+
+    // 3. Fire MIGRATE_CONTEXT with tier: 1 (Full Context) + flash mode.
+    chrome.runtime.sendMessage(
+      {
+        type: "MIGRATE_CONTEXT",
+        payload: {
+          sessionId: session.id,
+          targetPlatform,
+          targetTabId: tab.id,
+          tier: 1 as const,
+          skipAutoInject: false,
+          flash: true,
+        },
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          setStatusMessage({ tone: "error", text: "Quick-migrate failed — please try again." });
+        } else if (response?.error === "limit_reached") {
+          setStatusMessage({ tone: "error", text: "Daily limit reached — upgrade for more migrations." });
+        } else if (response?.error) {
+          setStatusMessage({ tone: "error", text: "Quick-migrate failed — please try again." });
+        } else if (response?.success) {
+          setMigrationTiers((prev) => ({ ...prev, [session.id]: 1 }));
+          setStatusMessage({ tone: "success", text: "✅ Quick-migrated (Full Context) · Stayed in your browser" });
+        }
+        quickMigratingRef.current = null;
+        setQuickMigratingId(null);
+        setQuickMigrateProgress(0);
+        setQuickMigrateStage("");
+      }
+    );
+  }, []);
+
   function loadIndexStats() {
     setIndexStatsLoading(true);
     safeSendMessage<{ ok?: boolean; stats?: IndexStats }>({ type: 'GET_INDEX_STATS' }, (res) => {
@@ -1057,8 +1167,8 @@ export default function Sidebar() {
                 statusMessage.tone === "success"
                   ? "border-[#00FF88]/25 bg-[#00FF88]/6 text-[#00FF88]"
                   : statusMessage.tone === "error"
-                  ? "border-red-500/25 bg-red-500/6 text-red-400"
-                  : "border-[#1A2A1A] bg-[#080808] text-[#2A5A2A]"
+                  ? "border-[#FF4444]/25 bg-[#FF4444]/6 text-[#FF4444]"
+                  : "border-[#2A2A2A] bg-[#080808] text-[#6B6B6B]"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -1083,20 +1193,25 @@ export default function Sidebar() {
             </div>
           )}
 
+          {/* [CM-OFFSCREEN-FIX] Latency dashboard — P50/P90/P99 per operation. */}
+          <div className="mx-3 mt-2">
+            <PerfStatsPanel />
+          </div>
+
           {/* ── Session stats bar ── */}
-          <div className="grid grid-cols-3 divide-x divide-[#0D1A0D] border-b border-[#0D2A0D] text-center" style={{ background: "linear-gradient(to bottom, #070707, #050505)" }}>
+          <div className="grid grid-cols-3 divide-x divide-[#0A0A0A] border-b border-[#2A2A2A] text-center" style={{ background: "linear-gradient(to bottom, #070707, #050505)" }}>
             <div className="px-2 py-1.5">
-              <div className="text-[9px] font-black uppercase tracking-[0.25em] text-[#2A6A2A]">Turns</div>
+              <div className="text-[9px] font-black uppercase tracking-[0.25em] text-[#6B6B6B]">Turns</div>
               <div className="mt-0.5 text-sm font-bold tabular-nums" style={{ color: platformColor }}>{selected.messages.length}</div>
             </div>
             <div className="px-2 py-1.5">
-              <div className="text-[9px] font-black uppercase tracking-[0.25em] text-[#2A6A2A]">Created</div>
+              <div className="text-[9px] font-black uppercase tracking-[0.25em] text-[#6B6B6B]">Created</div>
               <div className="mt-0.5 text-[11px] font-medium text-[#F5F5F5]">
                 {new Date(selected.createdAt).toLocaleDateString("en", { month: "short", day: "numeric" })}
               </div>
             </div>
             <div className="px-2 py-1.5" style={{ background: `${platformColor}0A` }}>
-              <div className="text-[9px] font-black uppercase tracking-[0.25em] text-[#2A6A2A]">Route</div>
+              <div className="text-[9px] font-black uppercase tracking-[0.25em] text-[#6B6B6B]">Route</div>
               <div className="mt-0.5 text-[11px] font-semibold text-[#00FF88]">
                 {PLATFORM_SHORT[selected.platform]} → {PLATFORM_SHORT[targetPlatform]}
               </div>
@@ -1104,12 +1219,12 @@ export default function Sidebar() {
           </div>
 
           <div className="flex items-center justify-between px-4 pt-2">
-            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#2A6A2A]">
+            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#6B6B6B]">
               {showFullTranscript ? "Full transcript" : "Recent transcript"}
             </div>
             <button
               onClick={() => setShowFullTranscript((value) => !value)}
-              className="rounded-[4px] border border-[#1A3A1A] bg-[#080808] px-2 py-1 text-[9px] font-black uppercase tracking-widest text-[#2A6A2A] hover:border-[#00FF88]/30 hover:text-[#00FF88] transition-all"
+              className="rounded-[4px] border border-[#1A1A1A] bg-[#080808] px-2 py-1 text-[9px] font-black uppercase tracking-widest text-[#6B6B6B] hover:border-[#00FF88]/30 hover:text-[#00FF88] transition-all"
             >
               {showFullTranscript ? "Show recent" : "Show all"}
             </button>
@@ -1168,9 +1283,9 @@ export default function Sidebar() {
             })}
           </div>
 
-          <div className="border-t border-[#0D2A0D] px-4 py-2 space-y-2" style={{ background: "linear-gradient(to top, #050505, #070707)" }}>
+          <div className="border-t border-[#2A2A2A] px-4 py-2 space-y-2" style={{ background: "linear-gradient(to top, #050505, #070707)" }}>
             <div>
-              <div className="mb-1.5 text-[10px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">
+              <div className="mb-1.5 text-[10px] font-black uppercase tracking-[0.3em] text-[#6B6B6B]">
                 ◈ Route to
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -1187,7 +1302,7 @@ export default function Sidebar() {
                         background: `${pc}12`,
                         boxShadow: `0 0 16px ${pc}30, inset 0 0 10px ${pc}08`,
                       } : {
-                        borderColor: "#0D1A0D",
+                        borderColor: "#0A0A0A",
                         background: "#060606",
                       }}
                     >
@@ -1211,7 +1326,7 @@ export default function Sidebar() {
                 padding: '6px 10px',
                 marginBottom: '8px',
                 fontSize: '10px',
-                color: '#F59E0B',
+                color: '#00D26A',
                 lineHeight: 1.5
               }}>
                 ⚠️ Only {selected.messages.length} messages captured.
@@ -1224,8 +1339,8 @@ export default function Sidebar() {
             <div className="flex gap-2">
               <button
                 onClick={() => setShowMigrationModal(true)}
-                className="relative flex flex-1 items-center justify-center gap-1.5 overflow-hidden rounded-[5px] py-3 text-[11px] font-black uppercase tracking-widest text-black transition-all hover:scale-[1.02] hover:-translate-y-px active:scale-[0.98]"
-                style={{ background: "#00FF88", boxShadow: "0 0 22px rgba(0,255,136,0.5), 0 0 44px rgba(0,255,136,0.15)" }}
+                className="solar-gradient-bg btn-primary relative flex flex-1 items-center justify-center gap-1.5 overflow-hidden rounded-[5px] py-3 text-[11px] font-black uppercase tracking-widest text-black transition-all hover:scale-[1.02] hover:-translate-y-px active:scale-[0.98]"
+                style={{ boxShadow: "0 0 22px rgba(0,255,136,0.5), 0 0 44px rgba(0,255,136,0.15)" }}
               >
                 Migrate → {PLATFORM_SHORT[targetPlatform]}
               </button>
@@ -1247,7 +1362,7 @@ export default function Sidebar() {
               />
               <button
                 onClick={() => deleteSession(selected.id)}
-                className="rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 text-xs font-medium text-[#6B6B6B] transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
+                className="rounded-[4px] border border-[#2A2A2A] bg-[#1A1A1A] px-3 text-xs font-medium text-[#6B6B6B] transition hover:border-[#FF4444]/30 hover:bg-[#FF4444]/10 hover:text-[#FF4444]"
               >
                 Delete
               </button>
@@ -1289,6 +1404,8 @@ export default function Sidebar() {
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden bg-[#050505] text-[#F5F5F5] crt">
+      {/* [CM-SOLAR-V2] Radial orange-glow wash at the top of the sidebar. */}
+      <div className="solar-radial-wash pointer-events-none absolute inset-x-0 top-0 h-24 z-0" />
       <style>{`
         @keyframes neon-amber-glow {
           0%, 100% { text-shadow: 0 0 3px rgba(245,158,11,0.25), 0 0 6px rgba(245,158,11,0.1); opacity: 0.75; }
@@ -1308,7 +1425,7 @@ export default function Sidebar() {
       <div className="flex h-full flex-col">
         {/* ── Update available banner ── */}
         {updateAvailable && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", background: "rgba(0,210,106,0.07)", borderBottom: "1px solid rgba(0,210,106,0.2)", fontSize: 9, color: "#00D26A", lineHeight: 1.4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", background: "rgba(0,255,136,0.07)", borderBottom: "1px solid rgba(0,255,136,0.2)", fontSize: 9, color: "#00D26A", lineHeight: 1.4 }}>
             <span style={{ flexShrink: 0 }}>↑</span>
             <span style={{ flex: 1 }}>v{updateAvailable} available — Chrome will auto-update on next restart</span>
             <button
@@ -1328,7 +1445,7 @@ export default function Sidebar() {
           </div>
         )}
         {/* Header */}
-        <div className="border-b border-[#0D2A0D] px-2 py-[3px]" style={{ background: "linear-gradient(135deg, #040404 0%, #071207 55%, #040404 100%)", boxShadow: "0 1px 0 rgba(0,255,136,0.07)" }}>
+        <div className="border-b border-[#2A2A2A] px-2 py-[3px]" style={{ background: "linear-gradient(135deg, #040404 0%, #071207 55%, #040404 100%)", boxShadow: "0 1px 0 rgba(0,255,136,0.07)" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <img
@@ -1337,15 +1454,15 @@ export default function Sidebar() {
                 style={{ height: 17, display: "block", width: "auto", filter: "drop-shadow(0 0 4px rgba(0,255,136,0.35))" }}
               />
               <div className="flex flex-col gap-0">
-                <span className="text-[10px] font-black neon-flicker" style={{ letterSpacing: "0.04em", color: "#00FF88", textShadow: "0 0 8px rgba(0,255,136,0.4)" }}>ContextMover</span>
-                <span className="text-[6px] uppercase" style={{ letterSpacing: "0.2em", color: "#2A5A2A" }}>CMD CENTER v1</span>
+                <span className="text-[10px] font-black neon-flicker solar-gradient-text" style={{ letterSpacing: "0.04em" }}>ContextMover</span>
+                <span className="text-[6px] uppercase" style={{ letterSpacing: "0.2em", color: "#6B6B6B" }}>CMD CENTER v1</span>
                 {/* Device limit exceeded warning — clickable to manage devices */}
                 {planStatus.loaded && planStatus.deviceLimitExceeded && (
                   <button
                     type="button"
                     onClick={() => chrome.tabs.create({ url: `${PRICING_URL.replace("/pricing", "")}/settings/billing` })}
                     title={planStatus.deviceLimitMessage ?? "Pro active on 5 devices. Click to manage devices."}
-                    className="text-[8px] font-bold uppercase tracking-[0.1em] text-red-400 hover:text-red-300 text-left"
+                    className="text-[8px] font-bold uppercase tracking-[0.1em] text-[#00D26A] hover:text-[#00FF88] text-left"
                   >
                     ⚠ Device limit — manage →
                   </button>
@@ -1387,7 +1504,7 @@ export default function Sidebar() {
                 className={`flex h-5 w-5 items-center justify-center rounded-[3px] border transition-all duration-200 ${
                   refreshSuccess
                     ? 'border-[#00FF88]/60 bg-[#00FF88]/10 text-[#00FF88]'
-                    : 'border-[#1A3A1A] bg-[#060606] text-[#2A6A2A] hover:border-[#00FF88]/50 hover:text-[#00FF88]'
+                    : 'border-[#1A1A1A] bg-[#060606] text-[#6B6B6B] hover:border-[#00FF88]/50 hover:text-[#00FF88]'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <span className={`text-sm${isRefreshing ? ' animate-spin' : ''}`}>↻</span>
@@ -1398,7 +1515,7 @@ export default function Sidebar() {
                 className={`flex items-center gap-0.5 rounded-[3px] border px-1 py-0 text-[8px] font-black uppercase tracking-wide transition-all duration-200 ${
                   vaultConnected === true
                     ? 'border-[#00FF88]/30 bg-[#00FF88]/8 text-[#00FF88]'
-                    : 'border-[#1A3A1A] bg-[#060606] text-[#1A3A1A]'
+                    : 'border-[#1A1A1A] bg-[#060606] text-[#1A1A1A]'
                 }`}
               >
                 <span className={vaultConnected === true ? 'animate-pulse-green inline-block h-1 w-1 rounded-full bg-[#00FF88]' : 'inline-block h-1 w-1 rounded-full bg-[#3A3A3A]'} />
@@ -1410,10 +1527,10 @@ export default function Sidebar() {
                 title={driveConnected ? 'Drive connected — click to sync now' : 'Connect Google Drive for cross-device sync'}
                 className={`flex items-center gap-0.5 rounded-[3px] border px-1 py-0 text-[8px] font-black uppercase tracking-wide transition-all duration-200 ${
                   driveSyncing
-                    ? 'border-[#1A3A1A] bg-[#060606] text-[#1A3A1A] opacity-60 cursor-not-allowed'
+                    ? 'border-[#1A1A1A] bg-[#060606] text-[#1A1A1A] opacity-60 cursor-not-allowed'
                     : driveConnected === true
                       ? 'border-[#00FF88]/30 bg-[#00FF88]/8 text-[#00FF88]'
-                      : 'border-[#1A3A1A] bg-[#060606] text-[#1A3A1A] hover:text-[#2A6A2A]'
+                      : 'border-[#1A1A1A] bg-[#060606] text-[#1A1A1A] hover:text-[#6B6B6B]'
                 }`}
               >
                 <span className={driveConnected === true && !driveSyncing ? 'animate-pulse-green inline-block h-1 w-1 rounded-full bg-[#00FF88]' : 'inline-block h-1 w-1 rounded-full bg-[#3A3A3A]'} />
@@ -1436,8 +1553,8 @@ export default function Sidebar() {
                   title="Knowledge Synthesizer — Coming Soon"
                   className={`flex h-5 w-5 items-center justify-center rounded-[3px] border transition-all duration-200 cursor-not-allowed opacity-50 ${
                     showSynthesizer
-                      ? 'border-purple-500/40 bg-purple-500/10 text-purple-400'
-                      : 'border-[#1A3A1A] bg-[#060606] text-[#2A2A4A]'
+                      ? 'border-[#A855F7]/40 bg-[#A855F7]/10 text-[#A855F7]'
+                      : 'border-[#1A1A1A] bg-[#060606] text-[#2A2A2A]'
                   }`}
                 >
                   <span className="text-[11px]">⚡</span>
@@ -1464,7 +1581,7 @@ export default function Sidebar() {
                 className={`flex h-5 w-5 items-center justify-center rounded-[3px] border transition-all duration-200 ${
                   showSettings
                     ? 'border-[#00FF88]/40 bg-[#00FF88]/10 text-[#00FF88]'
-                    : 'border-[#1A3A1A] bg-[#060606] text-[#2A6A2A] hover:border-[#00FF88]/40 hover:text-[#00FF88]'
+                    : 'border-[#1A1A1A] bg-[#060606] text-[#6B6B6B] hover:border-[#00FF88]/40 hover:text-[#00FF88]'
                 }`}
               >
                 <span className="text-[11px]">⚙</span>
@@ -1481,7 +1598,7 @@ export default function Sidebar() {
             >
               <span style={{ fontSize: '9px' }}>&#128274;</span>
               <span style={{ color: '#4A4A4A' }}>Local only</span>
-              <span style={{ color: '#2A4A2A', marginLeft: '2px' }}>· Connect vault →</span>
+              <span style={{ color: '#2A2A2A', marginLeft: '2px' }}>· Connect vault →</span>
             </button>
           )}
 
@@ -1496,8 +1613,8 @@ export default function Sidebar() {
 
           {vaultConnected === null && (
             <div className="mt-0.5 flex items-center gap-1">
-              <span className="inline-block h-1 w-1 rounded-full bg-[#1A3A1A]" />
-              <span className="text-[9px] uppercase" style={{ letterSpacing: '0.1em', color: '#1A3A1A' }}>Checking vault…</span>
+              <span className="inline-block h-1 w-1 rounded-full bg-[#1A1A1A]" />
+              <span className="text-[9px] uppercase" style={{ letterSpacing: '0.1em', color: '#1A1A1A' }}>Checking vault…</span>
             </div>
           )}
 
@@ -1505,9 +1622,9 @@ export default function Sidebar() {
             <div className="mt-1 rounded-[3px] border border-[#00FF88]/15 bg-[#00FF88]/5 px-2 py-1">
               <div className="flex items-center justify-between mb-0.5">
                 <span className="text-[8px] uppercase tracking-widest" style={{ color: "#00FF88" }}>{partialSync.phase}</span>
-                <span className="text-[8px]" style={{ color: "#2A6A2A" }}>{partialSync.done}/{partialSync.total}</span>
+                <span className="text-[8px]" style={{ color: "#6B6B6B" }}>{partialSync.done}/{partialSync.total}</span>
               </div>
-              <div className="h-[3px] w-full rounded-full bg-[#0D2A0D] overflow-hidden">
+              <div className="h-[3px] w-full rounded-full bg-[#2A2A2A] overflow-hidden">
                 <div className="h-full rounded-full bg-[#00FF88] transition-all duration-300" style={{ width: `${partialSync.pct}%` }} />
               </div>
             </div>
@@ -1516,13 +1633,13 @@ export default function Sidebar() {
           {leadSession ? (
             <div className="mt-0.5 flex items-center gap-1">
               <span className="h-1 w-1 flex-shrink-0 rounded-full bg-[#00FF88] animate-pulse-green" style={{ boxShadow: "0 0 4px #00FF88" }} />
-              <span className="text-[9px] uppercase" style={{ letterSpacing: "0.12em", color: "#2A6A2A" }}>
+              <span className="text-[9px] uppercase" style={{ letterSpacing: "0.12em", color: "#6B6B6B" }}>
                 Online · <span style={{ color: "#6AFF6A" }}>{PLATFORM_LABELS[leadSession.platform]}</span>
                 {" · "}{formatRelativeTime(leadSession.updatedAt)}
               </span>
             </div>
           ) : (
-            <p className="mt-0.5 text-[9px] uppercase" style={{ letterSpacing: "0.12em", color: "#1A3A1A" }}>Awaiting signal — open Claude, ChatGPT or Gemini</p>
+            <p className="mt-0.5 text-[9px] uppercase" style={{ letterSpacing: "0.12em", color: "#1A1A1A" }}>Awaiting signal — open Claude, ChatGPT or Gemini</p>
           )}
 
           <div className="mt-1 grid grid-cols-3 gap-1">
@@ -1568,8 +1685,8 @@ export default function Sidebar() {
               statusMessage.tone === "success"
                 ? "border-[#00FF88]/25 bg-[#00FF88]/6 text-[#00FF88]"
                 : statusMessage.tone === "error"
-                ? "border-red-500/25 bg-red-500/6 text-red-400"
-                : "border-[#1A2A1A] bg-[#080808] text-[#2A5A2A]"
+                ? "border-[#FF4444]/25 bg-[#FF4444]/6 text-[#FF4444]"
+                : "border-[#2A2A2A] bg-[#080808] text-[#6B6B6B]"
             }`}
           >
             <div className="flex items-start justify-between gap-3">
@@ -1584,14 +1701,14 @@ export default function Sidebar() {
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search sessions…"
-            className="w-full rounded-[4px] border border-[#1A3A1A] bg-[#0a0a0a] px-2 py-1 text-[10px] font-mono text-[#F5F5F5] outline-none placeholder:text-[#2A4A2A] focus:border-[#00FF88] focus:shadow-[0_0_0_2px_rgba(0,255,136,0.1)] transition-all"
+            className="w-full rounded-[4px] border border-[#1A1A1A] bg-[#0a0a0a] px-2 py-1 text-[10px] font-mono text-[#F5F5F5] outline-none placeholder:text-[#2A2A2A] focus:border-[#00FF88] focus:shadow-[0_0_0_2px_rgba(0,255,136,0.1)] transition-all"
           />
           <div style={{ position: "relative" }}>
             <input
               value={semanticQuery}
               onChange={(e) => setSemanticQuery(e.target.value)}
               placeholder="Search by meaning (semantic)…"
-              className="w-full rounded-[4px] border border-[#1A1A3A] bg-[#0a0a0a] px-2 py-1 text-[10px] font-mono text-[#F5F5F5] outline-none placeholder:text-[#2A2A4A] focus:border-[#6366f1] focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-all"
+              className="w-full rounded-[4px] border border-[#1A1A1A] bg-[#0a0a0a] px-2 py-1 text-[10px] font-mono text-[#F5F5F5] outline-none placeholder:text-[#2A2A2A] focus:border-[#E5E5E5] focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] transition-all"
             />
             {/* [CM-PERF] semantic ready indicator — appears after ONNX model warms up */}
             {searchReady && (
@@ -1600,7 +1717,7 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <div className="flex gap-1 overflow-x-auto border-b border-[#0D2A0D] px-3 py-0.5 scrollbar-none" style={{ background: "linear-gradient(to right, #050505, #081208, #050505)" }}>
+        <div className="flex gap-1 overflow-x-auto border-b border-[#2A2A2A] px-3 py-0.5 scrollbar-none" style={{ background: "linear-gradient(to right, #050505, #081208, #050505)" }}>
           {(["all", "claude", "chatgpt", "gemini", "grok", "perplexity", "deepseek"] as const).map((item) => {
             const isActive = filter === item;
             const pColor = item !== "all" ? PLATFORM_COLORS[item] : null;
@@ -1614,7 +1731,7 @@ export default function Sidebar() {
                   ? pColor
                     ? { background: `${pColor}18`, borderColor: `${pColor}45`, color: pColor, boxShadow: `0 0 10px ${pColor}28` }
                     : { background: "rgba(0,255,136,0.1)", borderColor: "rgba(0,255,136,0.3)", color: "#00FF88", boxShadow: "0 0 10px rgba(0,255,136,0.25)" }
-                  : { background: "#080808", borderColor: "#1A2A1A", color: "#2A4A2A" }
+                  : { background: "#080808", borderColor: "#2A2A2A", color: "#2A2A2A" }
                 }
               >
                 {item === "all" ? "All" : PLATFORM_SHORT[item]}
@@ -1662,7 +1779,7 @@ export default function Sidebar() {
           )}
           {semanticSessions.length > 0 && (
             <div className="mb-1.5 space-y-1">
-              <div className="pb-0.5 text-[7px] uppercase tracking-widest text-[#6366f1]">Semantic matches</div>
+              <div className="pb-0.5 text-[7px] uppercase tracking-widest text-[#E5E5E5]">Semantic matches</div>
               {semanticSessions.map(({ session: s, score }) => (
                 <div
                   key={s.id}
@@ -1677,14 +1794,14 @@ export default function Sidebar() {
                   <div className="flex items-center gap-1 pl-1">
                     <div className="min-w-0 flex-1">
                       <PlatformBadge platform={s.platform} logoSize={8} />
-                      <p className="truncate text-[10px] font-medium text-[#F5F5F5] transition-colors group-hover:text-[#6366f1]">{s.title}</p>
+                      <p className="truncate text-[10px] font-medium text-[#F5F5F5] transition-colors group-hover:text-[#E5E5E5]">{s.title}</p>
                       <div className="flex items-center gap-1 text-[8px] text-[#6B6B6B]">
                         <span>{s.messages.length} turns</span>
                         <span>·</span>
-                        <span className="font-semibold text-[#6366f1]">{Math.round(score * 100)}% match</span>
+                        <span className="font-semibold text-[#E5E5E5]">{Math.round(score * 100)}% match</span>
                       </div>
                     </div>
-                    <span className="text-[#3A3A3A] transition-colors group-hover:text-[#6366f1]">›</span>
+                    <span className="text-[#3A3A3A] transition-colors group-hover:text-[#E5E5E5]">›</span>
                   </div>
                 </div>
               ))}
@@ -1695,7 +1812,7 @@ export default function Sidebar() {
               {[...Array(4)].map((_, i) => (
                 <div
                   key={i}
-                  className="overflow-hidden rounded-[4px] border border-[#1A2A1A] bg-[#0a0a0a] px-1.5 py-1"
+                  className="overflow-hidden rounded-[4px] border border-[#2A2A2A] bg-[#0a0a0a] px-1.5 py-1"
                 >
                   <div className="flex items-center gap-2">
                     <div className="h-3 w-12 rounded-[20px] bg-[#2A2A2A] animate-pulse" />
@@ -1729,6 +1846,10 @@ export default function Sidebar() {
                   migrationTier={migrationTiers[session.id]}
                   driveSourced={driveSourcedSet.has(session.id)}
                   isPendingIndex={pendingIndexIds.has(session.id)} // [CM-PERSIST-FIX]
+                  isQuickMigrating={quickMigratingId === session.id}
+                  quickMigrateStage={quickMigratingId === session.id ? quickMigrateStage : ""}
+                  quickMigrateProgress={quickMigratingId === session.id ? quickMigrateProgress : 0}
+                  onQuickMigrate={() => void handleQuickMigrate(session)}
                   onSelect={() => handleSessionSelect(session)}
                   onRenaming={handleRenaming}
                 />
@@ -1746,7 +1867,7 @@ export default function Sidebar() {
         {/* ── MCP IDE bridge status (Add-on 6) ────────────────────────────── */}
         <MCPStatusPanel />
 
-        <div className="border-t border-[#0D2A0D] px-2 py-0.5 space-y-0.5">
+        <div className="border-t border-[#2A2A2A] px-2 py-0.5 space-y-0.5">
           <div
             className="crucible-pulse flex cursor-default items-center justify-center rounded-[4px] border border-dashed py-0.5 transition-all hover:scale-[1.01]"
             style={{ borderColor: "rgba(0,255,136,0.2)", background: "rgba(0,255,136,0.018)" }}
@@ -1754,7 +1875,7 @@ export default function Sidebar() {
             <div style={{ fontSize: "5px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.3em", color: "#00FF88", textShadow: "0 0 8px rgba(0,255,136,0.5)" }}>
               ⚗ THE CRUCIBLE
             </div>
-            <div style={{ marginLeft: "6px", fontSize: "5px", textTransform: "uppercase", letterSpacing: "0.14em", color: "#1A3A1A" }}>
+            <div style={{ marginLeft: "6px", fontSize: "5px", textTransform: "uppercase", letterSpacing: "0.14em", color: "#1A1A1A" }}>
               Drop sessions to merge · Super Memory
             </div>
           </div>
@@ -1763,14 +1884,14 @@ export default function Sidebar() {
             <button
               type="button"
               onClick={() => chrome.tabs.create({ url: DASHBOARD_URL })}
-              className="flex-1 rounded-[3px] border border-[#1A3A1A] bg-[#060606] py-px text-[7px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
+              className="flex-1 rounded-[3px] border border-[#1A1A1A] bg-[#060606] py-px text-[7px] font-black uppercase tracking-widest text-[#6B6B6B] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
             >
               Dashboard ↗
             </button>
             <button
               type="button"
               onClick={() => chrome.tabs.create({ url: PRICING_URL })}
-              className="flex-1 rounded-[3px] border border-[#1A3A1A] bg-[#060606] py-px text-[7px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
+              className="flex-1 rounded-[3px] border border-[#1A1A1A] bg-[#060606] py-px text-[7px] font-black uppercase tracking-widest text-[#6B6B6B] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
             >
               Upgrade ⚡
             </button>
@@ -1778,7 +1899,7 @@ export default function Sidebar() {
               type="button"
               onClick={() => chrome.tabs.create({ url: "https://contextmover.com/support#bug-report" })}
               title="Report a bug"
-              className="rounded-[3px] border border-[#1A3A1A] bg-[#060606] px-1.5 py-px text-[7px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#EF4444]/30 hover:text-[#EF4444]"
+              className="rounded-[3px] border border-[#1A1A1A] bg-[#060606] px-1.5 py-px text-[7px] font-black uppercase tracking-widest text-[#6B6B6B] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88]"
             >
               Bug ⚠
             </button>
@@ -1831,7 +1952,7 @@ function MCPStatusPanel() {
   const platforms = status?.platforms ?? {};
 
   return (
-    <div style={{ borderTop: "1px solid #0D2A0D", padding: "1px 6px", background: "#040404" }}>
+    <div style={{ borderTop: "1px solid #2A2A2A", padding: "1px 6px", background: "#040404" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
         <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#3A3A3A", flexShrink: 0 }} />
         <span style={{ fontSize: 6, fontWeight: 700, color: "#3A3A3A", textTransform: "uppercase", letterSpacing: "0.18em", flex: 1 }}>
@@ -1872,18 +1993,18 @@ function SemanticIndexPanel({
 }) {
   return (
     <div className="space-y-4">
-      <div className="text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">⚙ Semantic Index</div>
+      <div className="text-[9px] font-black uppercase tracking-[0.3em] text-[#6B6B6B]">⚙ Semantic Index</div>
       <div
-        className="rounded-[6px] border border-[#1A2A1A] bg-[#080808] p-4 space-y-2"
+        className="rounded-[6px] border border-[#2A2A2A] bg-[#080808] p-4 space-y-2"
         style={{ boxShadow: "0 0 20px rgba(0,255,136,0.04)" }}
       >
-        <div className="flex items-center gap-2 border-b border-[#0D2A0D] pb-2">
+        <div className="flex items-center gap-2 border-b border-[#2A2A2A] pb-2">
           <span className="text-base">🧠</span>
           <span className="text-[11px] font-bold text-[#F5F5F5]">Semantic Index</span>
         </div>
 
         {loading && (
-          <div className="py-2 text-[10px] text-[#2A6A2A] animate-pulse">Loading stats…</div>
+          <div className="py-2 text-[10px] text-[#6B6B6B] animate-pulse">Loading stats…</div>
         )}
         {!loading && !stats && (
           <div className="py-2 text-[10px] text-[#3A3A3A]">No data — capture a session to start indexing.</div>
@@ -1906,12 +2027,12 @@ function SemanticIndexPanel({
 
         <button
           onClick={onClear}
-          className="mt-1 w-full rounded-[4px] border border-red-500/20 bg-red-500/5 py-2 text-[9px] font-black uppercase tracking-widest text-red-400 transition-all hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300"
+          className="mt-1 w-full rounded-[4px] border border-[#00FF88]/20 bg-[#00FF88]/5 py-2 text-[9px] font-black uppercase tracking-widest text-[#00FF88] transition-all hover:border-[#00FF88]/40 hover:bg-[#00FF88]/10 hover:text-[#00D26A]"
         >
           Clear Index
         </button>
       </div>
-      <p className="text-[9px] leading-relaxed" style={{ color: "#2A3A2A" }}>
+      <p className="text-[9px] leading-relaxed" style={{ color: "#2A2A2A" }}>
         Clearing removes embeddings, summaries and prompt cache — not your sessions. Re-indexing happens automatically on next capture.
       </p>
     </div>
@@ -1951,15 +2072,15 @@ function DriveSyncPanel({
 
   return (
     <div className="space-y-4">
-      <div className="text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">☁ Drive Sync</div>
+      <div className="text-[9px] font-black uppercase tracking-[0.3em] text-[#6B6B6B]">☁ Drive Sync</div>
       <div
-        className="rounded-[6px] border border-[#1A2A1A] bg-[#080808] p-4 space-y-2"
-        style={{ boxShadow: "0 0 20px rgba(90,169,255,0.04)" }}
+        className="rounded-[6px] border border-[#2A2A2A] bg-[#080808] p-4 space-y-2"
+        style={{ boxShadow: "0 0 20px rgba(0,255,136,0.04)" }}
       >
         {!status.connected ? (
           // STATE A — Not connected
           <>
-            <div className="flex items-center gap-2 border-b border-[#0D2A0D] pb-2">
+            <div className="flex items-center gap-2 border-b border-[#2A2A2A] pb-2">
               <span className="text-base">📱</span>
               <span className="text-[11px] font-bold text-[#F5F5F5]">Sessions on this device only</span>
             </div>
@@ -1968,14 +2089,14 @@ function DriveSyncPanel({
               Your data is stored in a private folder in your own Drive — only this
               extension can access it. Your data never passes through our servers.
             </p>
-            <p className="text-[9px] leading-relaxed rounded-[4px] border border-[rgba(90,169,255,0.15)] bg-[rgba(90,169,255,0.05)] px-2 py-1.5" style={{ color: "#7A9ABB" }}>
+            <p className="text-[9px] leading-relaxed rounded-[4px] border border-[rgba(0,255,136,0.15)] bg-[rgba(0,255,136,0.05)] px-2 py-1.5" style={{ color: "#00D26A" }}>
               ⚠️ Cross-profile sync requires the <strong>same Google account</strong> in every profile.
               Different Google accounts are always separate silos.
             </p>
             <button
               onClick={onConnect}
               disabled={busy}
-              className="mt-1 w-full rounded-[4px] border border-[rgba(90,169,255,0.35)] bg-[rgba(90,169,255,0.08)] py-2 text-[9px] font-black uppercase tracking-widest text-[#5AA9FF] transition-all hover:border-[rgba(90,169,255,0.6)] hover:bg-[rgba(90,169,255,0.15)] disabled:opacity-50"
+              className="mt-1 w-full rounded-[4px] border border-[rgba(0,255,136,0.35)] bg-[rgba(0,255,136,0.08)] py-2 text-[9px] font-black uppercase tracking-widest text-[#00FF88] transition-all hover:border-[rgba(0,255,136,0.6)] hover:bg-[rgba(0,255,136,0.15)] disabled:opacity-50"
             >
               {busy ? 'Connecting…' : 'Connect Google Drive'}
             </button>
@@ -1983,16 +2104,16 @@ function DriveSyncPanel({
         ) : busy ? (
           // STATE B — Connected, syncing
           <>
-            <div className="flex items-center gap-2 border-b border-[#0D2A0D] pb-2">
+            <div className="flex items-center gap-2 border-b border-[#2A2A2A] pb-2">
               <span className="text-base">☁</span>
               <span className="text-[11px] font-bold text-[#F5F5F5]">Google Drive connected</span>
             </div>
-            <div className="py-2 text-[10px] text-[#5AA9FF] animate-pulse">Syncing…</div>
+            <div className="py-2 text-[10px] text-[#00FF88] animate-pulse">Syncing…</div>
           </>
         ) : (
           // STATE C — Connected, synced
           <>
-            <div className="flex items-center gap-2 border-b border-[#0D2A0D] pb-2">
+            <div className="flex items-center gap-2 border-b border-[#2A2A2A] pb-2">
               <span className="text-base">☁</span>
               <span className="text-[11px] font-bold text-[#F5F5F5]">Google Drive connected</span>
             </div>
@@ -2008,14 +2129,14 @@ function DriveSyncPanel({
               <button
                 onClick={onSyncNow}
                 disabled={busy}
-                className="flex-1 rounded-[4px] border border-[rgba(90,169,255,0.35)] bg-[rgba(90,169,255,0.08)] py-2 text-[9px] font-black uppercase tracking-widest text-[#5AA9FF] transition-all hover:border-[rgba(90,169,255,0.6)] hover:bg-[rgba(90,169,255,0.15)] disabled:opacity-50"
+                className="flex-1 rounded-[4px] border border-[rgba(0,255,136,0.35)] bg-[rgba(0,255,136,0.08)] py-2 text-[9px] font-black uppercase tracking-widest text-[#00FF88] transition-all hover:border-[rgba(0,255,136,0.6)] hover:bg-[rgba(0,255,136,0.15)] disabled:opacity-50"
               >
                 Sync now
               </button>
               <button
                 onClick={onDisconnect}
                 disabled={busy}
-                className="flex-1 rounded-[4px] border border-red-500/20 bg-red-500/5 py-2 text-[9px] font-black uppercase tracking-widest text-red-400 transition-all hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
+                className="flex-1 rounded-[4px] border border-[#00FF88]/20 bg-[#00FF88]/5 py-2 text-[9px] font-black uppercase tracking-widest text-[#00FF88] transition-all hover:border-[#00FF88]/40 hover:bg-[#00FF88]/10 hover:text-[#00D26A] disabled:opacity-50"
               >
                 Disconnect
               </button>
@@ -2023,7 +2144,7 @@ function DriveSyncPanel({
           </>
         )}
       </div>
-      <p className="text-[9px] leading-relaxed" style={{ color: "#2A3A2A" }}>
+      <p className="text-[9px] leading-relaxed" style={{ color: "#2A2A2A" }}>
         Sessions captured on this profile sync to your private appdata folder.
         Sessions from other Chrome profiles signed into the <strong style={{ color: "#3A5A3A" }}>same Google account</strong> appear
         here with a ☁ badge. Different Google accounts are always separate silos.
@@ -2059,12 +2180,12 @@ function QualityStatsPanel({
   const avg = stats?.avgScore ?? 0;
   return (
     <div className="space-y-4">
-      <div className="text-[9px] font-black uppercase tracking-[0.3em] text-[#2A6A2A]">📊 Migration Quality</div>
+      <div className="text-[9px] font-black uppercase tracking-[0.3em] text-[#6B6B6B]">📊 Migration Quality</div>
       <div
-        className="rounded-[6px] border border-[#1A2A1A] bg-[#080808] p-4 space-y-2"
+        className="rounded-[6px] border border-[#2A2A2A] bg-[#080808] p-4 space-y-2"
         style={{ boxShadow: "0 0 20px rgba(0,255,136,0.04)" }}
       >
-        <div className="flex items-center gap-2 border-b border-[#0D2A0D] pb-2">
+        <div className="flex items-center gap-2 border-b border-[#2A2A2A] pb-2">
           <span className="text-base">📊</span>
           <span className="text-[11px] font-bold text-[#F5F5F5]">Migration Quality</span>
         </div>
@@ -2089,12 +2210,12 @@ function QualityStatsPanel({
         <button
           onClick={onClear}
           disabled={count === 0}
-          className="w-full rounded-[4px] border border-red-500/20 bg-red-500/5 py-2 text-[9px] font-black uppercase tracking-widest text-red-400 transition-all hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full rounded-[4px] border border-[#00FF88]/20 bg-[#00FF88]/5 py-2 text-[9px] font-black uppercase tracking-widest text-[#00FF88] transition-all hover:border-[#00FF88]/40 hover:bg-[#00FF88]/10 hover:text-[#00D26A] disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Clear History
         </button>
       </div>
-      <p className="text-[9px] leading-relaxed" style={{ color: "#2A3A2A" }}>
+      <p className="text-[9px] leading-relaxed" style={{ color: "#2A2A2A" }}>
         Quality scores are computed locally after every migration. The downloaded .txt is a plain-text engine-evaluation report — share it with the team to surface compression / retention regressions.
       </p>
     </div>
@@ -2175,8 +2296,8 @@ function Toast({ msg, onDone }: { msg: ToastMsg; onDone: () => void }) {
         borderRadius: 5,
         fontSize: 10,
         fontWeight: 700,
-        background: msg.kind === "success" ? "rgba(0,255,136,0.12)" : "rgba(239,68,68,0.12)",
-        border: `1px solid ${msg.kind === "success" ? "rgba(0,255,136,0.35)" : "rgba(239,68,68,0.35)"}`,
+        background: msg.kind === "success" ? "rgba(0,255,136,0.12)" : "rgba(0,255,136,0.12)",
+        border: `1px solid ${msg.kind === "success" ? "rgba(0,255,136,0.35)" : "rgba(0,255,136,0.35)"}`,
         color: msg.kind === "success" ? "#00FF88" : "#F87171",
         pointerEvents: "none",
       }}
@@ -2375,7 +2496,7 @@ function FileTreeRow({
             )}
             {/* Auto-detect relevance score badge */}
             {autoScores?.has(node.path) && (
-              <span style={{ fontSize: 7, color: "#818CF8", background: "rgba(99,102,241,0.15)", borderRadius: 3, padding: "1px 4px", flexShrink: 0 }}>
+              <span style={{ fontSize: 7, color: "#E5E5E5", background: "rgba(99,102,241,0.15)", borderRadius: 3, padding: "1px 4px", flexShrink: 0 }}>
                 {Math.round((autoScores.get(node.path)! * 100))}%
               </span>
             )}
@@ -2462,7 +2583,7 @@ function ProjectPanel({
 
   const tokens = Math.ceil(selectedSize / 4);
   const tokenLevel = fileCopier.getTokenWarningLevel(tokens);
-  const tokenColor = tokenLevel === "safe" ? "#00FF88" : tokenLevel === "warning" ? "#F59E0B" : "#EF4444";
+  const tokenColor = tokenLevel === "safe" ? "#00FF88" : tokenLevel === "warning" ? "#00D26A" : "#00FF88";
   const tokenDot = tokenLevel === "safe" ? "🟢" : tokenLevel === "warning" ? "🟡" : "🔴";
 
   // ── read selected files helper ─────────────────────────────────────────────
@@ -2590,15 +2711,15 @@ function ProjectPanel({
 
   if (!connected) {
     return (
-      <div className="mx-3 mt-2 mb-1 rounded-[6px] border border-[#1A2A1A] bg-[#080808]">
-        <div className="flex items-center justify-between px-3 py-2 border-b border-[#1A2A1A]">
-          <span className="text-[9px] font-black uppercase tracking-[0.18em] text-[#2A4A2A]">📁 Project Context</span>
+      <div className="mx-3 mt-2 mb-1 rounded-[6px] border border-[#2A2A2A] bg-[#080808]">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[#2A2A2A]">
+          <span className="text-[9px] font-black uppercase tracking-[0.18em] text-[#2A2A2A]">📁 Project Context</span>
         </div>
         <div className="px-3 py-3 text-center">
           <p className="text-[10px] text-[#444] mb-2 leading-relaxed">Connect your project folder to include files in migration.</p>
           <button
             onClick={() => void onConnect()}
-            className="rounded-[4px] border border-[#1A3A1A] bg-[#060606] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#2A6A2A] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88] hover:shadow-[0_0_10px_rgba(0,255,136,0.15)]"
+            className="rounded-[4px] border border-[#1A1A1A] bg-[#060606] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#6B6B6B] transition-all hover:border-[#00FF88]/30 hover:text-[#00FF88] hover:shadow-[0_0_10px_rgba(0,255,136,0.15)]"
           >
             + Connect Folder
           </button>
@@ -2622,10 +2743,10 @@ function ProjectPanel({
       ref={panelRef}
       tabIndex={0}
       style={{ outline: "none" }}
-      className="mx-3 mt-2 mb-1 rounded-[6px] border border-[#1A2A1A] bg-[#080808] relative"
+      className="mx-3 mt-2 mb-1 rounded-[6px] border border-[#2A2A2A] bg-[#080808] relative"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[#1A2A1A]">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[#2A2A2A]">
         <button
           onClick={onTogglePanel}
           className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#2A5A2A] hover:text-[#00FF88] transition-colors"
@@ -2634,8 +2755,8 @@ function ProjectPanel({
           <span>📁 {rootName}</span>
         </button>
         <div className="flex items-center gap-1">
-          <button onClick={() => void onRefresh()} title="Refresh (re-read folder)" className="flex h-5 w-5 items-center justify-center rounded-[3px] border border-[#1A3A1A] text-[#2A4A2A] hover:text-[#00FF88] hover:border-[#00FF88]/40 transition-all text-[10px]">↻</button>
-          <button onClick={onDisconnect} title="Disconnect folder" className="flex h-5 w-5 items-center justify-center rounded-[3px] border border-[#1A3A1A] text-[#3A3A3A] hover:text-red-400 hover:border-red-500/30 transition-all text-[10px]">✕</button>
+          <button onClick={() => void onRefresh()} title="Refresh (re-read folder)" className="flex h-5 w-5 items-center justify-center rounded-[3px] border border-[#1A1A1A] text-[#2A2A2A] hover:text-[#00FF88] hover:border-[#00FF88]/40 transition-all text-[10px]">↻</button>
+          <button onClick={onDisconnect} title="Disconnect folder" className="flex h-5 w-5 items-center justify-center rounded-[3px] border border-[#1A1A1A] text-[#3A3A3A] hover:text-[#FF4444] hover:border-[#FF4444]/30 transition-all text-[10px]">✕</button>
         </div>
       </div>
 
@@ -2661,7 +2782,7 @@ function ProjectPanel({
               value={filter}
               onChange={(e) => onFilterChange(e.target.value)}
               placeholder="🔍 Filter…"
-              className="flex-1 min-w-0 rounded-[3px] border border-[#1A2A1A] bg-[#050505] px-2 py-[3px] text-[10px] font-mono text-[#F5F5F5] outline-none placeholder:text-[#2A3A2A] focus:border-[#00FF88]/40 transition-all"
+              className="flex-1 min-w-0 rounded-[3px] border border-[#2A2A2A] bg-[#050505] px-2 py-[3px] text-[10px] font-mono text-[#F5F5F5] outline-none placeholder:text-[#2A2A2A] focus:border-[#00FF88]/40 transition-all"
             />
           </div>
 
@@ -2700,14 +2821,14 @@ function ProjectPanel({
                     background: "rgba(99,102,241,0.07)",
                     display: "flex", alignItems: "center", justifyContent: "space-between",
                   }}>
-                    <span style={{ fontSize: 9, color: "#818CF8" }}>
+                    <span style={{ fontSize: 9, color: "#E5E5E5" }}>
                       ✨ {selectedCount} file{selectedCount !== 1 ? "s" : ""} auto-detected from session
                     </span>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button
                         onClick={onClearAutoSelect}
                         style={{ fontSize: 8, color: "#555", background: "none", border: "none", cursor: "pointer" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = "#EF4444")}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#00FF88")}
                         onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
                         title="Clear auto-selection"
                       >Clear</button>
@@ -2722,7 +2843,7 @@ function ProjectPanel({
                   <button
                     onClick={() => { projectReader.clearAll(); onToggleNode("__clear__"); }}
                     style={{ fontSize: 8, color: "#3A3A3A", background: "none", border: "none", cursor: "pointer" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "#EF4444")}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "#00FF88")}
                     onMouseLeave={(e) => (e.currentTarget.style.color = "#3A3A3A")}
                   >
                     Clear all
@@ -2805,7 +2926,7 @@ function ProjectPanel({
                 </div>
               </>
             ) : (
-              <p style={{ fontSize: 9, color: "#2A3A2A" }}>Select files to copy, download, or add to migration</p>
+              <p style={{ fontSize: 9, color: "#2A2A2A" }}>Select files to copy, download, or add to migration</p>
             )}
           </div>
         </>
@@ -2874,12 +2995,12 @@ function UsageMeter({ status }: { status: UsageStatus }) {
       {tiers.map(({ key, label }) => {
         const t = status.usage[key];
         const pct = t.limit > 0 ? Math.min((t.used / t.limit) * 100, 100) : 0;
-        const color = pct >= 100 ? "#FF4444" : pct >= 80 ? "#F59E0B" : "#00FF88";
+        const color = pct >= 100 ? "#00FF88" : pct >= 80 ? "#00D26A" : "#00FF88";
         return (
           <div key={key} style={{ marginBottom: "6px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
               <span style={{ fontSize: "9px", color: "#6B6B6B" }}>{label}</span>
-              <span style={{ fontSize: "9px", color: pct >= 100 ? "#FF4444" : "#4A4A4A" }}>
+              <span style={{ fontSize: "9px", color: pct >= 100 ? "#00FF88" : "#4A4A4A" }}>
                 {t.used}/{t.limit}
               </span>
             </div>

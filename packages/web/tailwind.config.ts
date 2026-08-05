@@ -47,6 +47,7 @@ const config: Config = {
           foreground: "hsl(var(--card-foreground))",
         },
         // ContextMover design tokens
+        // [CM-GREEN] Original green & black palette restored.
         cf: {
           bg:      "#0A0A0A",
           surface: "#111111",
@@ -54,16 +55,28 @@ const config: Config = {
           border:  "#2A2A2A",
           text:    "#F5F5F5",
           muted:   "#6B6B6B",
+          white:   "#FFFFFF",
+          orange:  "#00FF88",
+          gold:    "#00D26A",
+          "gold-bright": "#00C853",
+          pink:    "#A855F7",
+          silver:  "#E5E5E5",
+          coral:   "#FF4444",
+          // legacy token names preserved
+          light:   "#E5E5E5",
+          "light-dim": "#00D26A",
+          mid:     "#FF4444",
           green:   "#00FF88",
-          "green-dim": "#00CC6A",
+          "green-dim": "#00D26A",
         },
+        // [CM-GREEN] Platform logos in original brand colors.
         platform: {
-          claude:     "#D97706",
-          chatgpt:    "#10B981",
-          gemini:     "#6366F1",
-          grok:       "#F5F5F5",
-          perplexity: "#20B2AA",
-          deepseek:   "#4C8BF5",
+          claude:     "#D97757",
+          chatgpt:    "#10A37F",
+          gemini:     "#4285F4",
+          grok:       "#1DA1F2",
+          perplexity: "#20B848",
+          deepseek:   "#4D6BFE",
         },
       },
       fontFamily: {
@@ -104,8 +117,8 @@ const config: Config = {
           "100%": { backgroundPosition:  "200% center" },
         },
         "pulse-green": {
-          "0%, 100%": { boxShadow: "0 0 0 0 rgba(0,255,136,0.6)" },
-          "50%":       { boxShadow: "0 0 0 5px rgba(0,255,136,0)" },
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(255,138,0,0.6)" },
+          "50%":       { boxShadow: "0 0 0 5px rgba(255,138,0,0)" },
         },
         "count-up": {
           from: { opacity: "0", transform: "translateY(6px) scale(0.92)" },

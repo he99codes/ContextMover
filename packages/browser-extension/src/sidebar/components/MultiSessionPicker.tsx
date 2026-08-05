@@ -9,9 +9,9 @@ import type { ContextSession, Platform } from "@/lib/types";
 import { PlatformBadge } from "@/components/PlatformLogo";
 
 const PLATFORM_COLORS: Record<Platform, string> = {
-  claude: "#D97706",
-  chatgpt: "#10B981",
-  gemini: "#6366F1",
+  claude: "#E5E5E5",
+  chatgpt: "#E5E5E5",
+  gemini: "#E5E5E5",
   grok: "#E11D48",
   perplexity: "#06B6D4",
   deepseek: "#8B5CF6",
@@ -184,8 +184,8 @@ export default function MultiSessionPicker({ sessions, excludeIds, onAdd, onClos
                       width: "14px",
                       height: "14px",
                       borderRadius: "3px",
-                      border: isSelected ? "1px solid #6366f1" : "1px solid #2A2A2A",
-                      background: isSelected ? "#6366f1" : "transparent",
+                      border: isSelected ? "1px solid #E5E5E5" : "1px solid #2A2A2A",
+                      background: isSelected ? "#E5E5E5" : "transparent",
                       flexShrink: 0,
                       display: "flex",
                       alignItems: "center",
@@ -265,7 +265,7 @@ export default function MultiSessionPicker({ sessions, excludeIds, onAdd, onClos
               disabled={selectedIds.size === 0}
               style={{
                 padding: "4px 12px",
-                background: selectedIds.size > 0 ? "#6366f1" : "#1A1A2A",
+                background: selectedIds.size > 0 ? "#E5E5E5" : "#1A1A2A",
                 border: "none",
                 borderRadius: "4px",
                 color: selectedIds.size > 0 ? "#fff" : "#3A3A3A",

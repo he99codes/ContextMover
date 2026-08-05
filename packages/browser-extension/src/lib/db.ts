@@ -59,6 +59,9 @@ export interface ChunkEmbedding {
   language?: string;
   tokenCount: number;
   createdAt: number;
+  // [CM-OFFSCREEN-FIX] true when written without embeddings (offscreen dead).
+  // retrieve() will use keyword fallback. Lets T3 proceed instead of failing.
+  keywordOnly?: boolean;
 }
 
 export interface SessionHash {
@@ -108,6 +111,8 @@ export type PerfOperation =
   | 'migrate_tier1'
   | 'migrate_tier2'
   | 'migrate_tier3'
+  | 'migrate_tier3_fallback'  // [CM-OFFSCREEN-FIX] T3 that fell back to T1 — distinguishes successful T3 from fallback
+  | 'migrate_total'           // [CM-OFFSCREEN-FIX] end-to-end user-perceived migration time (sidebar-measured)
   | 'background_index'
   | 'background_index_chunk'  // [CM-P1-FIX] Progressive indexing chunk operation
   | 'semantic_search'
@@ -136,6 +141,9 @@ export interface PerformanceMetric {
     isComplete?: boolean;
     scannedChunks?: number;
     totalChunks?: number;
+    // [CM-OFFSCREEN-FIX] reason for fallback (short error string) — used by
+    // migrate_tier3_fallback to record why T3 fell back to T1.
+    reason?: string;
   };
 }
 

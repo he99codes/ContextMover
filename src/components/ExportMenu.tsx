@@ -134,7 +134,7 @@ export default function ExportMenu({
         title={isPro ? "Export session" : "Pro only — upgrade to export sessions"}
         aria-label={isPro ? "Export session" : "Export session (Pro only)"}
         aria-expanded={open}
-        style={isActive ? { background: "rgba(0,210,106,0.1)", color: "#00D26A" } : undefined}
+        style={isActive ? { background: "rgba(0,255,136,0.1)", color: "#00D26A" } : undefined}
         className={
           variant === "icon"
             ? "inline-flex h-7 w-7 items-center justify-center rounded-[4px] border border-[#2A2A2A] text-[#6B6B6B] transition hover:border-[#00FF88]/30 hover:text-[#00FF88]"

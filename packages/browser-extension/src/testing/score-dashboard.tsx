@@ -16,13 +16,13 @@ import type { MigrationScore } from "./migration-scorer";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function scoreColor(s: number): string {
-  return s >= 70 ? "#00FF88" : s >= 50 ? "#F59E0B" : "#EF4444";
+  return s >= 70 ? "#00FF88" : s >= 50 ? "#00D26A" : "#00FF88";
 }
 
 function gradeBg(grade: MigrationScore["grade"]): string {
   if (grade === "Excellent" || grade === "Good") return "bg-[#00FF88]/10 text-[#00FF88] border-[#00FF88]/30";
-  if (grade === "Degraded") return "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/30";
-  return "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30";
+  if (grade === "Degraded") return "bg-[#00D26A]/10 text-[#00D26A] border-[#00D26A]/30";
+  return "bg-[#00FF88]/10 text-[#00FF88] border-[#00FF88]/30";
 }
 
 function worstDimension(score: MigrationScore): string {
@@ -41,7 +41,7 @@ function worstDimension(score: MigrationScore): string {
 function Sparkline({ values }: { values: number[] }) {
   if (values.length < 2) {
     return (
-      <div className="flex h-14 items-center justify-center text-[10px] text-[#2A4A2A]">
+      <div className="flex h-14 items-center justify-center text-[10px] text-[#2A2A2A]">
         Need ≥ 2 runs for trend
       </div>
     );
@@ -64,9 +64,9 @@ function Sparkline({ values }: { values: number[] }) {
       {/* threshold dashed line */}
       <line
         x1={pad} y1={threshY} x2={W - pad} y2={threshY}
-        stroke="#2A6A2A" strokeWidth={1} strokeDasharray="4 3"
+        stroke="#6B6B6B" strokeWidth={1} strokeDasharray="4 3"
       />
-      <text x={W - pad} y={threshY - 3} fontSize={8} fill="#2A6A2A" textAnchor="end">70</text>
+      <text x={W - pad} y={threshY - 3} fontSize={8} fill="#6B6B6B" textAnchor="end">70</text>
 
       {/* sparkline */}
       <polyline
@@ -99,8 +99,8 @@ function DimensionBar({
       <div className="flex justify-between text-[10px]">
         <span style={{ color: "#6AFF6A" }}>{label}</span>
         <span className="font-mono" style={{ color: col }}>
-          {score}<span className="text-[#2A4A2A]"> / 100</span>
-          <span className="ml-1 text-[#2A4A2A]">(w={weight})</span>
+          {score}<span className="text-[#2A2A2A]"> / 100</span>
+          <span className="ml-1 text-[#2A2A2A]">(w={weight})</span>
         </span>
       </div>
       <div className="h-1.5 rounded-full bg-[#111]">
@@ -122,12 +122,12 @@ function ResultRow({ result }: { result: TestResult }) {
   return (
     <>
       <tr
-        className="cursor-pointer border-b border-[#0D2A0D] hover:bg-[#0A180A] transition-colors"
+        className="cursor-pointer border-b border-[#2A2A2A] hover:bg-[#0A180A] transition-colors"
         onClick={() => setExpanded((e) => !e)}
       >
-        <td className="px-3 py-2 text-[10px] font-mono text-[#A0A0A0]">{result.sessionName}</td>
+        <td className="px-3 py-2 text-[10px] font-mono text-[#00D26A]">{result.sessionName}</td>
         <td className="px-3 py-2">
-          <span className="rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider bg-[#0A1A0A] border border-[#1A3A1A] text-[#2A6A2A]">
+          <span className="rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider bg-[#0A1A0A] border border-[#1A1A1A] text-[#6B6B6B]">
             {result.tier}
           </span>
         </td>
@@ -139,8 +139,8 @@ function ResultRow({ result }: { result: TestResult }) {
             {s.grade}
           </span>
         </td>
-        <td className="px-3 py-2 text-[10px] text-[#EF4444]">{worstDimension(s)}</td>
-        <td className="px-3 py-2 text-[10px] text-[#2A4A2A]">{expanded ? "▲" : "▼"}</td>
+        <td className="px-3 py-2 text-[10px] text-[#00FF88]">{worstDimension(s)}</td>
+        <td className="px-3 py-2 text-[10px] text-[#2A2A2A]">{expanded ? "▲" : "▼"}</td>
       </tr>
       {expanded && (
         <tr className="bg-[#060E06]">
@@ -155,7 +155,7 @@ function ResultRow({ result }: { result: TestResult }) {
                 {Object.entries(s.dimensions).map(([key, dim]) => (
                   <div key={key} className="space-y-0.5">
                     <div style={{ color: scoreColor(dim.score) }}>{dim.score}</div>
-                    <div className="text-[#2A4A2A] uppercase tracking-wider">{key.replace(/([A-Z])/g, " $1").trim()}</div>
+                    <div className="text-[#2A2A2A] uppercase tracking-wider">{key.replace(/([A-Z])/g, " $1").trim()}</div>
                   </div>
                 ))}
               </div>
@@ -231,10 +231,10 @@ export default function ScoreDashboard() {
     <div className="flex h-full flex-col overflow-y-auto bg-[#050505] text-[#F5F5F5]">
 
       {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#0D2A0D] bg-[#050505] px-4 py-3">
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#2A2A2A] bg-[#050505] px-4 py-3">
         <div>
           <div className="text-[12px] font-black uppercase tracking-[0.2em] text-[#00FF88]">Migration Quality</div>
-          <div className="text-[9px] uppercase tracking-wider text-[#2A4A2A]">
+          <div className="text-[9px] uppercase tracking-wider text-[#2A2A2A]">
             {GOLDEN_SESSIONS_COUNT} sessions × 3 tiers = 18 tests
           </div>
         </div>
@@ -253,7 +253,7 @@ export default function ScoreDashboard() {
       </div>
 
       {error && (
-        <div className="mx-4 mt-3 rounded-[5px] border border-[#EF4444]/30 bg-[#EF4444]/8 px-3 py-2 text-[10px] text-[#EF4444]">
+        <div className="mx-4 mt-3 rounded-[5px] border border-[#00FF88]/30 bg-[#00FF88]/8 px-3 py-2 text-[10px] text-[#00FF88]">
           {error}
         </div>
       )}
@@ -263,7 +263,7 @@ export default function ScoreDashboard() {
         <div className={`mx-4 mt-3 rounded-[5px] border px-3 py-2.5 text-[10px] font-black uppercase tracking-wider ${
           launchReady
             ? "border-[#00FF88]/30 bg-[#00FF88]/8 text-[#00FF88]"
-            : "border-[#EF4444]/30 bg-[#EF4444]/8 text-[#EF4444]"
+            : "border-[#00FF88]/30 bg-[#00FF88]/8 text-[#00FF88]"
         }`}>
           {launchReady
             ? "✓ Ready for production — all tests ≥ 70, all dimensions ≥ 50"
@@ -294,17 +294,17 @@ export default function ScoreDashboard() {
             {
               label: "vs Last",
               value: regNum == null
-                ? <span className="text-xl font-black text-[#2A4A2A]">—</span>
-                : <span className={`text-xl font-black ${(regNum as number) >= 0 ? "text-[#00FF88]" : "text-[#EF4444]"}`}>
+                ? <span className="text-xl font-black text-[#2A2A2A]">—</span>
+                : <span className={`text-xl font-black ${(regNum as number) >= 0 ? "text-[#00FF88]" : "text-[#00FF88]"}`}>
                     {(regNum as number) >= 0 ? "▲" : "▼"}{Math.abs(regNum as number)}
                   </span>,
               sub: regNum == null ? "first run" : `${(regNum as number) >= 0 ? "+" : ""}${regNum} pts`,
             },
           ].map(({ label, value, sub }) => (
-            <div key={label} className="rounded-[6px] border border-[#0D2A0D] bg-[#080808] px-3 py-3 text-center">
-              <div className="text-[9px] uppercase tracking-wider text-[#2A4A2A]">{label}</div>
+            <div key={label} className="rounded-[6px] border border-[#2A2A2A] bg-[#080808] px-3 py-3 text-center">
+              <div className="text-[9px] uppercase tracking-wider text-[#2A2A2A]">{label}</div>
               <div className="mt-1">{value}</div>
-              <div className="text-[9px] text-[#1A3A1A]">{sub}</div>
+              <div className="text-[9px] text-[#1A1A1A]">{sub}</div>
             </div>
           ))}
         </div>
@@ -313,13 +313,13 @@ export default function ScoreDashboard() {
       {/* Results table */}
       {report && (
         <div className="mt-4 px-4">
-          <div className="text-[9px] font-black uppercase tracking-[0.2em] text-[#2A6A2A] mb-2">Results (worst first)</div>
-          <div className="overflow-hidden rounded-[6px] border border-[#0D2A0D]">
+          <div className="text-[9px] font-black uppercase tracking-[0.2em] text-[#6B6B6B] mb-2">Results (worst first)</div>
+          <div className="overflow-hidden rounded-[6px] border border-[#2A2A2A]">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-[#0D2A0D] bg-[#080808]">
+                <tr className="border-b border-[#2A2A2A] bg-[#080808]">
                   {["Session", "Tier", "Score", "Grade", "Worst Dim", ""].map((h) => (
-                    <th key={h} className="px-3 py-2 text-[9px] font-black uppercase tracking-wider text-[#2A4A2A]">{h}</th>
+                    <th key={h} className="px-3 py-2 text-[9px] font-black uppercase tracking-wider text-[#2A2A2A]">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -337,8 +337,8 @@ export default function ScoreDashboard() {
       {/* Dimension breakdown */}
       {report && dimAvgs.length > 0 && (
         <div className="mt-4 px-4">
-          <div className="text-[9px] font-black uppercase tracking-[0.2em] text-[#2A6A2A] mb-2">Dimension Averages</div>
-          <div className="rounded-[6px] border border-[#0D2A0D] bg-[#080808] p-4 space-y-3">
+          <div className="text-[9px] font-black uppercase tracking-[0.2em] text-[#6B6B6B] mb-2">Dimension Averages</div>
+          <div className="rounded-[6px] border border-[#2A2A2A] bg-[#080808] p-4 space-y-3">
             {dimAvgs.map(({ key, avg, weight }) => (
               <DimensionBar
                 key={key}
@@ -353,12 +353,12 @@ export default function ScoreDashboard() {
 
       {/* History sparkline */}
       <div className="mt-4 px-4">
-        <div className="text-[9px] font-black uppercase tracking-[0.2em] text-[#2A6A2A] mb-2">
+        <div className="text-[9px] font-black uppercase tracking-[0.2em] text-[#6B6B6B] mb-2">
           Score Trend (last {Math.min(sparkValues.length, 10)} runs)
         </div>
-        <div className="rounded-[6px] border border-[#0D2A0D] bg-[#080808] p-4">
+        <div className="rounded-[6px] border border-[#2A2A2A] bg-[#080808] p-4">
           <Sparkline values={sparkValues} />
-          <div className="mt-1 text-[9px] text-[#1A3A1A]">
+          <div className="mt-1 text-[9px] text-[#1A1A1A]">
             {history.length} total run(s) · Dashed line = 70 launch threshold
           </div>
         </div>

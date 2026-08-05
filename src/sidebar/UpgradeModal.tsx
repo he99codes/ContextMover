@@ -140,7 +140,7 @@ export function UpgradeModal({
               overflow:     "hidden",
             }}
           >
-            <div style={{ width: "100%", height: "100%", background: "#FF4444" }} />
+            <div style={{ width: "100%", height: "100%", background: "#00FF88" }} />
           </div>
         </div>
 

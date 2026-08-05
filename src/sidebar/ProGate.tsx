@@ -103,7 +103,7 @@ export default function ProGate({ children }: ProGateProps) {
       {/* CTA */}
       <button
         onClick={() => window.open(PRICING_URL, "_blank")}
-        className="w-full max-w-[220px] rounded-[4px] bg-[#00FF88] py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-[#0A0A0A] transition-opacity hover:opacity-90"
+        className="w-full max-w-[220px] rounded-[4px] bg-[#00FF88] py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-[#00FF88] transition-opacity hover:opacity-90"
         style={{ boxShadow: "0 0 20px rgba(0,255,136,0.25)" }}
       >
         Upgrade to Pro

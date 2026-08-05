@@ -185,7 +185,7 @@ export default function SeatsPage() {
                 <button
                   disabled={removing === seat.seat_email}
                   onClick={() => handleRemove(seat.seat_email)}
-                  className="text-xs text-[#FF4444] hover:underline disabled:opacity-50"
+                  className="text-xs text-[#00FF88] hover:underline disabled:opacity-50"
                 >
                   {removing === seat.seat_email ? "Removing…" : "Remove"}
                 </button>
@@ -206,7 +206,7 @@ export default function SeatsPage() {
             <button
               disabled={adding || !newEmail.includes("@")}
               onClick={handleAdd}
-              className="rounded-md bg-[#00FF88] px-4 py-2 text-xs font-bold text-black disabled:opacity-50 hover:bg-[#00CC6A]"
+              className="rounded-md bg-[#00FF88] px-4 py-2 text-xs font-bold text-black disabled:opacity-50 hover:bg-[#00D26A]"
             >
               {adding ? "Adding…" : "Add Seat"}
             </button>
@@ -216,8 +216,8 @@ export default function SeatsPage() {
 
       {/* Violations */}
       {violations.length > 0 && (
-        <section className="rounded-md border border-[#FF4444]/30 bg-[#111] p-5">
-          <h2 className="text-sm font-semibold mb-3 text-[#FF4444]">Drive Mismatch Flags</h2>
+        <section className="rounded-md border border-[#00FF88]/30 bg-[#111] p-5">
+          <h2 className="text-sm font-semibold mb-3 text-[#00FF88]">Drive Mismatch Flags</h2>
           <p className="text-xs text-[#6B6B6B] mb-3">
             These profiles connected a different Drive account and had Pro revoked.
             Reconnect the correct master Drive to restore Pro.

@@ -116,7 +116,7 @@ export function QualityScoreCard({ score, coverageStats, onDismiss }: QualitySco
           marginBottom:   10,
         }}
       >
-        <span style={{ fontWeight: 600, color: "#A0A0A0", letterSpacing: 0.4 }}>
+        <span style={{ fontWeight: 600, color: "#00D26A", letterSpacing: 0.4 }}>
           Migration Quality
         </span>
         <button
@@ -207,7 +207,7 @@ export function QualityScoreCard({ score, coverageStats, onDismiss }: QualitySco
         <div style={{ marginTop: 6, fontSize: 11 }}>
           {(() => {
             const pct = Math.round((coverageStats.messagesUsed / score.meta.originalMessages) * 100) || 0;
-            const color = pct > 40 ? "var(--color-text-success, #00FF88)" : pct >= 20 ? "var(--color-text-warning, #F59E0B)" : "var(--color-text-danger, #EF4444)";
+            const color = pct > 40 ? "var(--color-text-success, #00FF88)" : pct >= 20 ? "var(--color-text-warning, #00D26A)" : "var(--color-text-danger, #00FF88)";
             return (
               <span style={{ color }}>
                 Coverage: {pct}% of session messages
@@ -270,7 +270,7 @@ function scoreTone(total: number): {
     return { borderColor: "#00D26A", scoreColor: "#00D26A", icon: "✅" };
   }
   if (total >= 75) {
-    return { borderColor: "#00D26A", scoreColor: "#FFFFFF", icon: "✅" };
+    return { borderColor: "#00D26A", scoreColor: "#00FF88", icon: "✅" };
   }
   if (total >= 60) {
     return { borderColor: "#E8B339", scoreColor: "#E8B339", icon: "⚠️" };

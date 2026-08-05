@@ -48,12 +48,12 @@ export default function BugReportForm() {
         </select>
       </div>
       <div>
-        <label className="block text-sm font-semibold text-[#F5F5F5] mb-1">Description <span className="text-[#EF4444]">*</span></label>
+        <label className="block text-sm font-semibold text-[#F5F5F5] mb-1">Description <span className="text-[#00FF88]">*</span></label>
         <textarea value={desc} onChange={e=>setDesc(e.target.value)} rows={5} required
           placeholder="Steps to reproduce, what you expected, what happened..."
           className="w-full rounded-[6px] border border-[#2A2A2A] bg-[#111] px-3 py-2 text-sm text-[#F5F5F5] placeholder-[#444] outline-none focus:border-[#00D26A]/40 resize-y" />
       </div>
-      {err && <p className="text-sm text-[#EF4444]">{err}</p>}
+      {err && <p className="text-sm text-[#00FF88]">{err}</p>}
       <button type="submit" disabled={status==="loading"}
         className="rounded-[6px] bg-[#00D26A] px-5 py-2 text-sm font-bold text-black disabled:opacity-50 hover:bg-[#00B85C] transition-colors">
         {status==="loading" ? "Sending…" : "Send Report"}

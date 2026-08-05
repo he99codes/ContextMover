@@ -179,7 +179,7 @@ export default function AuthGate({ children }: AuthGateProps) {
           </div>
           <button
             onClick={signOut}
-            className="text-[10px] text-[#6B6B6B] hover:text-red-400 uppercase tracking-wider transition-colors"
+            className="text-[10px] text-[#6B6B6B] hover:text-[#FF4444] uppercase tracking-wider transition-colors"
           >
             Sign out
           </button>
@@ -237,7 +237,7 @@ export default function AuthGate({ children }: AuthGateProps) {
           </div>
 
           {error && (
-            <div className="rounded-[4px] border border-red-500/30 bg-red-500/10 px-2 py-1.5 text-[11px] text-red-400">
+            <div className="rounded-[4px] border border-[#00FF88]/30 bg-[#00FF88]/10 px-2 py-1.5 text-[11px] text-[#00FF88]">
               {error}
             </div>
           )}
@@ -250,7 +250,7 @@ export default function AuthGate({ children }: AuthGateProps) {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-[4px] bg-[#00FF88] py-2 text-sm font-semibold text-black transition-all hover:bg-[#00CC6A] hover:shadow-[0_0_12px_rgba(0,255,136,0.3)] disabled:opacity-50"
+            className="w-full rounded-[4px] bg-[#00FF88] py-2 text-sm font-semibold text-black transition-all hover:bg-[#00D26A] hover:shadow-[0_0_12px_rgba(0,255,136,0.3)] disabled:opacity-50"
           >
             {submitting ? "Please wait…" : "Sign in"}
           </button>

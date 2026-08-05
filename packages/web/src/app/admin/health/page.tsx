@@ -28,8 +28,8 @@ const supabase = createClient();
 function Badge({ ok }: { ok: boolean }) {
   return (
     <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold tracking-wide ${
-      ok ? "bg-green-500/15 text-green-400 border border-green-500/30"
-         : "bg-red-500/15 text-red-400 border border-red-500/30"
+      ok ? "bg-white/15 text-white border border-white/30"
+         : "bg-white/15 text-white border border-white/30"
     }`}>
       {ok ? "PASS" : "FAIL"}
     </span>
@@ -43,7 +43,7 @@ function Section({ title, checks }: { title: string; checks: Check[] }) {
       <div className="flex items-center gap-2 mb-2">
         <h2 className="text-sm font-bold text-white/70 uppercase tracking-widest">{title}</h2>
         {failed > 0 && (
-          <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 rounded px-1.5 py-0.5">
+          <span className="text-[10px] font-bold text-white bg-white/10 border border-white/20 rounded px-1.5 py-0.5">
             {failed} failed
           </span>
         )}
@@ -52,7 +52,7 @@ function Section({ title, checks }: { title: string; checks: Check[] }) {
         {checks.map((c, i) => (
           <div key={c.name} className={`flex items-start gap-3 px-4 py-2.5 text-sm ${
             i % 2 === 0 ? "bg-white/2" : "bg-transparent"
-          } ${!c.ok ? "bg-red-500/5" : ""}`}>
+          } ${!c.ok ? "bg-white/5" : ""}`}>
             <Badge ok={c.ok} />
             <div className="flex-1 min-w-0">
               <span className="font-mono text-white/80 text-[12px]">{c.name}</span>
@@ -128,7 +128,7 @@ export default function HealthPage() {
 
       {/* Error */}
       {error && (
-        <div className="mb-6 p-4 rounded-lg border border-red-500/30 bg-red-500/5 text-red-400 text-sm">
+        <div className="mb-6 p-4 rounded-lg border border-[#00FF88]/30 bg-[#00FF88]/5 text-[#00FF88] text-sm">
           {error}
         </div>
       )}
@@ -144,13 +144,13 @@ export default function HealthPage() {
       {report && (
         <div className={`mb-8 p-4 rounded-lg border ${
           report.summary.ok
-            ? "border-green-500/30 bg-green-500/5"
-            : "border-red-500/30 bg-red-500/5"
+            ? "border-white/30 bg-white/5"
+            : "border-white/30 bg-white/5"
         }`}>
           <div className="flex items-center gap-3">
             <span className="text-2xl">{report.summary.ok ? "✅" : "❌"}</span>
             <div>
-              <p className={`font-bold ${report.summary.ok ? "text-green-400" : "text-red-400"}`}>
+              <p className={`font-bold ${report.summary.ok ? "text-white" : "text-white"}`}>
                 {report.summary.ok ? "All systems operational" : `${report.summary.failed} check(s) failed`}
               </p>
               <p className="text-xs text-white/40 mt-0.5">
@@ -161,7 +161,7 @@ export default function HealthPage() {
           {report.summary.failedChecks.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {report.summary.failedChecks.map(n => (
-                <span key={n} className="font-mono text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 rounded px-2 py-0.5">
+                <span key={n} className="font-mono text-[10px] text-white bg-white/10 border border-white/20 rounded px-2 py-0.5">
                   {n}
                 </span>
               ))}

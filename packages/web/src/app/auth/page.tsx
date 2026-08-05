@@ -252,7 +252,7 @@ function AuthForm() {
               </div>
 
               {error && (
-                <div className="flex items-start gap-2 rounded-[8px] border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-400">
+                <div className="flex items-start gap-2 rounded-[8px] border border-[#00FF88]/30 bg-[#00FF88]/10 px-3 py-2.5 text-sm text-[#00FF88]">
                   <AlertCircle size={15} className="mt-0.5 shrink-0" />
                   <span>{error}</span>
                 </div>
@@ -267,7 +267,7 @@ function AuthForm() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-[#00FF88] hover:bg-[#00CC6A] text-black font-semibold rounded-[8px] transition-all hover:shadow-[0_0_16px_rgba(0,255,136,0.3)]"
+                className="w-full bg-[#00FF88] hover:bg-[#00D26A] text-black font-semibold rounded-[8px] transition-all hover:shadow-[0_0_16px_rgba(0,255,136,0.3)]"
               >
                 {isLoading
                   ? "Loading…"

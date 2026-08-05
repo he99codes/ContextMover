@@ -125,7 +125,7 @@ export function VaultSessionList() {
 
   // Loading state
   if (vaultReady === null) {
-    return <div className="flex items-center justify-center py-32 text-xs font-mono text-[#2A4A2A] uppercase tracking-widest animate-pulse">Checking vault…</div>;
+    return <div className="flex items-center justify-center py-32 text-xs font-mono text-[#2A2A2A] uppercase tracking-widest animate-pulse">Checking vault…</div>;
   }
 
   // Not connected
@@ -136,7 +136,7 @@ export function VaultSessionList() {
           <Lock size={22} className="text-[#00FF88]" />
         </div>
         <h3 className="text-sm font-black uppercase tracking-widest text-[#F5F5F5]">Your sessions are stored locally</h3>
-        <p className="mt-2 max-w-sm text-xs font-mono text-[#2A4A2A] leading-relaxed">
+        <p className="mt-2 max-w-sm text-xs font-mono text-[#2A2A2A] leading-relaxed">
           Your conversations live in the browser extension&apos;s local storage.<br />
           Connect your personal Supabase vault to view sessions here and unlock Super Memory.
         </p>
@@ -146,7 +146,7 @@ export function VaultSessionList() {
         >
           Connect Personal Vault →
         </Link>
-        <p className="mt-3 text-[10px] font-mono text-[#1A3A1A]">Free · Takes 45 seconds · Your data stays in YOUR Supabase account</p>
+        <p className="mt-3 text-[10px] font-mono text-[#1A1A1A]">Free · Takes 45 seconds · Your data stays in YOUR Supabase account</p>
       </div>
     );
   }
@@ -157,14 +157,14 @@ export function VaultSessionList() {
       <div className="mb-5 flex items-center gap-2 rounded-[6px] border border-[#00FF88]/15 bg-[#00FF88]/5 px-3 py-2">
         <span className="h-1.5 w-1.5 rounded-full bg-[#00FF88] animate-pulse-green" style={{ boxShadow: "0 0 6px #00FF88" }} />
         <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-[#00FF88]">Connected to your vault</span>
-        <Link href="/settings/vault" className="ml-auto text-[10px] font-mono text-[#2A6A2A] hover:text-[#00FF88] transition-colors flex items-center gap-1">
+        <Link href="/settings/vault" className="ml-auto text-[10px] font-mono text-[#6B6B6B] hover:text-[#00FF88] transition-colors flex items-center gap-1">
           Manage <ExternalLink size={9} />
         </Link>
       </div>
 
       {/* Platform filter tabs */}
       <div className="mb-7 flex flex-col gap-4">
-        <div className="flex items-center gap-0 border-b border-[#0D2A0D] overflow-x-auto" style={{ background: "linear-gradient(to right, #050505, #081208, #050505)" }}>
+        <div className="flex items-center gap-0 border-b border-[#2A2A2A] overflow-x-auto" style={{ background: "linear-gradient(to right, #050505, #081208, #050505)" }}>
           {PLATFORMS.map((p) => {
             const isActive = filter === p.key;
             const color = p.logoKey ? (PCOLORS[p.logoKey] ?? "#6B6B6B") : "#00FF88";
@@ -174,7 +174,7 @@ export function VaultSessionList() {
                 onClick={() => setFilter(p.key)}
                 className={cn(
                   "relative flex shrink-0 items-center gap-2 px-4 pb-3 pt-2 text-[10px] font-black uppercase tracking-[0.14em] transition-all duration-150 whitespace-nowrap",
-                  isActive ? "text-[#F5F5F5]" : "text-[#2A4A2A] hover:text-[#4A8A4A]"
+                  isActive ? "text-[#F5F5F5]" : "text-[#2A2A2A] hover:text-[#4A8A4A]"
                 )}
                 style={isActive ? { color } : {}}
               >
@@ -194,7 +194,7 @@ export function VaultSessionList() {
             onChange={(e) => setSearch(e.target.value)}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
-            className={cn("w-full rounded-[5px] border bg-[#080808] py-3 pl-9 pr-4 text-sm font-mono text-[#F5F5F5] placeholder:text-[#1A3A1A] outline-none transition-all duration-150", searchFocused ? "border-[#00FF88] shadow-[0_0_0_2px_rgba(0,255,136,0.1)]" : "border-[#1A2A1A] hover:border-[#2A4A2A]")}
+            className={cn("w-full rounded-[5px] border bg-[#080808] py-3 pl-9 pr-4 text-sm font-mono text-[#F5F5F5] placeholder:text-[#1A1A1A] outline-none transition-all duration-150", searchFocused ? "border-[#00FF88] shadow-[0_0_0_2px_rgba(0,255,136,0.1)]" : "border-[#2A2A2A] hover:border-[#2A2A2A]")}
           />
         </div>
       </div>
@@ -202,7 +202,7 @@ export function VaultSessionList() {
       {/* Empty states */}
       {loading && (
         <div className="space-y-3">
-          {[...Array(3)].map((_, i) => <div key={i} className="h-20 rounded-[6px] border border-[#1A2A1A] bg-[#080808] animate-pulse" />)}
+          {[...Array(3)].map((_, i) => <div key={i} className="h-20 rounded-[6px] border border-[#2A2A2A] bg-[#080808] animate-pulse" />)}
         </div>
       )}
 
@@ -212,7 +212,7 @@ export function VaultSessionList() {
             <Layers size={20} className="text-[#00FF88]" />
           </div>
           <h3 className="text-sm font-black uppercase tracking-widest text-[#F5F5F5]">No sessions in your vault yet</h3>
-          <p className="mt-1.5 max-w-xs text-xs font-mono text-[#2A4A2A]">
+          <p className="mt-1.5 max-w-xs text-xs font-mono text-[#2A2A2A]">
             Install the extension and visit Claude, ChatGPT, Gemini, Grok, Perplexity, or DeepSeek.
           </p>
         </div>
@@ -220,8 +220,8 @@ export function VaultSessionList() {
 
       {!loading && filtered.length === 0 && sessions.length > 0 && (
         <div className="flex flex-col items-center justify-center rounded-[8px] border border-dashed py-20 text-center animate-fade-in" style={{ background: "#070707" }}>
-          <RefreshCw size={18} className="mb-3 text-[#2A6A2A]" />
-          <p className="text-xs font-mono uppercase tracking-wider text-[#2A4A2A]">No sessions match your filter.</p>
+          <RefreshCw size={18} className="mb-3 text-[#6B6B6B]" />
+          <p className="text-xs font-mono uppercase tracking-wider text-[#2A2A2A]">No sessions match your filter.</p>
           <button onClick={() => { setFilter("All"); setSearch(""); }} className="mt-2 text-xs text-[#00FF88] hover:opacity-70 transition-opacity">Clear filters</button>
         </div>
       )}
@@ -236,7 +236,7 @@ export function VaultSessionList() {
       <div className="mt-4">
         <div className="crucible-pulse flex cursor-default flex-col items-center justify-center rounded-[8px] border border-dashed py-6 transition-all hover:scale-[1.004]" style={{ borderColor: "rgba(0,255,136,0.16)", background: "rgba(0,255,136,0.014)" }}>
           <div className="text-[11px] font-black uppercase tracking-[0.4em] text-[#00FF88]" style={{ textShadow: "0 0 10px rgba(0,255,136,0.45)" }}>⚗ The Crucible</div>
-          <div className="mt-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-[#1A3A1A]">Merge sessions · Forge Super Memory</div>
+          <div className="mt-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-[#1A1A1A]">Merge sessions · Forge Super Memory</div>
           <div className="mt-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-[#00FF88]/40">Coming in v3</div>
         </div>
       </div>

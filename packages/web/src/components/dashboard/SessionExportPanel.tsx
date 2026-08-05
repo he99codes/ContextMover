@@ -125,7 +125,7 @@ export function SessionExportPanel({ session }: Props) {
         <button
           type="button"
           onClick={handleDownload}
-          className="inline-flex items-center gap-1.5 rounded-[4px] bg-[#00FF88] px-3 py-1.5 text-xs font-semibold text-black transition hover:bg-[#00CC6A] hover:shadow-[0_0_10px_rgba(0,255,136,0.3)]"
+          className="inline-flex items-center gap-1.5 rounded-[4px] bg-[#00FF88] px-3 py-1.5 text-xs font-semibold text-black transition hover:bg-[#00D26A] hover:shadow-[0_0_10px_rgba(0,255,136,0.3)]"
         >
           <Download size={13} />
           Download {meta.label.toLowerCase()}
@@ -141,7 +141,7 @@ export function SessionExportPanel({ session }: Props) {
       </div>
 
       {error && (
-        <div className="mx-5 mt-3 flex items-start gap-2 rounded-[4px] border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] text-red-400">
+        <div className="mx-5 mt-3 flex items-start gap-2 rounded-[4px] border border-[#00FF88]/30 bg-[#00FF88]/10 px-3 py-2 text-[11px] text-[#00FF88]">
           <AlertCircle size={12} className="mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>

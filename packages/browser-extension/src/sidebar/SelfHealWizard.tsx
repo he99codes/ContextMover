@@ -209,11 +209,11 @@ export default function SelfHealWizard({ initialPlatform, onClose, accessToken }
   const stepDot = (s: WizardStep): React.CSSProperties => ({
     width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center",
     justifyContent: "center", fontSize: 10, fontWeight: 700,
-    background: step === s ? "rgba(0,255,136,0.2)" : step > s ? "rgba(0,255,136,0.08)" : "rgba(255,255,255,0.04)",
-    border: `1px solid ${step === s ? "rgba(0,255,136,0.7)" : step > s ? "rgba(0,255,136,0.3)" : "rgba(255,255,255,0.1)"}`,
+    background: step === s ? "rgba(0,255,136,0.2)" : step > s ? "rgba(0,255,136,0.08)" : "rgba(0,255,136,0.04)",
+    border: `1px solid ${step === s ? "rgba(0,255,136,0.7)" : step > s ? "rgba(0,255,136,0.3)" : "rgba(0,255,136,0.1)"}`,
     color: step >= s ? "#00FF88" : "#555",
   });
-  const confidenceColor = (c: number) => c >= 0.8 ? "#00FF88" : c >= 0.6 ? "#FFAA00" : "#FF6B6B";
+  const confidenceColor = (c: number) => c >= 0.8 ? "#00FF88" : c >= 0.6 ? "#FFAA00" : "#FF4444";
   const confidenceLabel = (c: number) => c >= 0.8 ? "High" : c >= 0.6 ? "Medium" : "Low";
 
   return (
@@ -226,7 +226,7 @@ export default function SelfHealWizard({ initialPlatform, onClose, accessToken }
           {([1, 2, 3] as WizardStep[]).map(s => (
             <React.Fragment key={s}>
               <div style={stepDot(s)}>{step > s ? "✓" : s}</div>
-              {s < 3 && <div style={{ width: 18, height: 1, background: step > s ? "rgba(0,255,136,0.3)" : "rgba(255,255,255,0.07)" }} />}
+              {s < 3 && <div style={{ width: 18, height: 1, background: step > s ? "rgba(0,255,136,0.3)" : "rgba(0,255,136,0.07)" }} />}
             </React.Fragment>
           ))}
         </div>
@@ -303,7 +303,7 @@ export default function SelfHealWizard({ initialPlatform, onClose, accessToken }
                   onChange={e => setProbeJson(e.target.value)}
                   style={{ ...inputStyle, height: 70, resize: "vertical" }}
                 />
-                {parseError && <div style={{ fontSize: 9, color: "#FF6B6B" }}>{parseError}</div>}
+                {parseError && <div style={{ fontSize: 9, color: "#FF4444" }}>{parseError}</div>}
               </div>
             )}
 
@@ -361,7 +361,7 @@ export default function SelfHealWizard({ initialPlatform, onClose, accessToken }
                 ✓ Ready to apply — {[autoSelected.userSelector && "user", autoSelected.assistantSelector && "assistant", autoSelected.rootSelector && "root", autoSelected.inputSelector && "input"].filter(Boolean).join(", ")} selector{Object.values(autoSelected).filter(Boolean).length !== 1 ? "s" : ""} found
               </div>
             ) : (
-              <div style={{ fontSize: 9, color: "#FF6B6B", background: "rgba(255,107,107,0.05)", border: "1px solid rgba(255,107,107,0.2)", borderRadius: 4, padding: "6px 10px" }}>
+              <div style={{ fontSize: 9, color: "#FF4444", background: "rgba(255,107,107,0.05)", border: "1px solid rgba(255,107,107,0.2)", borderRadius: 4, padding: "6px 10px" }}>
                 ⚠ No message selectors found — the page may not have a conversation loaded yet.
                 Go back, open a conversation, then re-run.
               </div>
@@ -410,7 +410,7 @@ export default function SelfHealWizard({ initialPlatform, onClose, accessToken }
                 shareResult.ok ? (
                   <div style={{ fontSize: 10, color: "#00FF88" }}>✓ Submitted — thank you! We'll review and roll it out shortly.</div>
                 ) : (
-                  <div style={{ fontSize: 9, color: "#FF6B6B" }}>Failed: {shareResult.error}</div>
+                  <div style={{ fontSize: 9, color: "#FF4444" }}>Failed: {shareResult.error}</div>
                 )
               ) : (
                 <button onClick={shareWithServer} disabled={sharing} style={btn()}>

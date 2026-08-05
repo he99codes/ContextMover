@@ -44,6 +44,8 @@ const SLO: Record<PerfOperation, number> = {
   migrate_tier1: 1000,
   migrate_tier2: 8000,
   migrate_tier3: 8000,
+  migrate_tier3_fallback: 8000,  // [CM-OFFSCREEN-FIX] fallback should be fast — if it's slow, the timeout was wasted
+  migrate_total: 15000,          // [CM-OFFSCREEN-FIX] end-to-end user-perceived migration SLO (15s)
   background_index: 30000,
   background_index_chunk: 30000,  // [CM-P1-FIX] Progressive indexing chunk operation
   semantic_search: 2000,
@@ -66,7 +68,7 @@ export async function getPerfStats(windowMs = RETENTION_MS): Promise<PerfStats[]
     if (!byOp.has(r.operation)) byOp.set(r.operation, []);
     byOp.get(r.operation)!.push(r.durationMs);
   }
-  const ops: PerfOperation[] = ['capture_session','migrate_tier1','migrate_tier2','migrate_tier3','background_index','semantic_search','drive_sync','tree_sitter_parse','embedding_generate','embedding_query'];
+  const ops: PerfOperation[] = ['capture_session','migrate_tier1','migrate_tier2','migrate_tier3','migrate_tier3_fallback','migrate_total','background_index','semantic_search','drive_sync','tree_sitter_parse','embedding_generate','embedding_query'];
   return ops.map(op => {
     const sorted = (byOp.get(op) ?? []).sort((a, b) => a - b);
     const p90 = pct(sorted, 90);

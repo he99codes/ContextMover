@@ -125,7 +125,7 @@ export function SettingsView({ email, userId }: Props) {
           </div>
           <Link
             href="/pricing"
-            className="shrink-0 inline-flex items-center gap-1.5 rounded-[4px] bg-[#00FF88] px-3 py-1.5 text-xs font-semibold text-black hover:bg-[#00CC6A] transition-colors"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-[4px] bg-[#00FF88] px-3 py-1.5 text-xs font-semibold text-black hover:bg-[#00D26A] transition-colors"
           >
             Upgrade to Pro
           </Link>
@@ -136,10 +136,10 @@ export function SettingsView({ email, userId }: Props) {
       </section>
 
       {/* Danger Zone */}
-      <section className="rounded-[8px] border border-red-500/20 bg-[#1A1A1A] p-5 mb-4">
+      <section className="rounded-[8px] border border-[#FF4444]/20 bg-[#1A1A1A] p-5 mb-4">
         <div className="flex items-center gap-2 mb-4">
-          <AlertTriangle size={15} className="text-red-400" />
-          <h2 className="text-sm font-semibold text-red-400">Danger Zone</h2>
+          <AlertTriangle size={15} className="text-[#FF4444]" />
+          <h2 className="text-sm font-semibold text-[#FF4444]">Danger Zone</h2>
         </div>
         {deleteStep === "idle" ? (
           <div className="flex items-center justify-between gap-4">
@@ -149,7 +149,7 @@ export function SettingsView({ email, userId }: Props) {
             </div>
             <button
               onClick={() => setDeleteStep("confirm")}
-              className="shrink-0 inline-flex items-center gap-1.5 rounded-[4px] border border-red-500/40 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors"
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-[4px] border border-[#FF4444]/40 px-3 py-1.5 text-xs font-medium text-[#FF4444] hover:bg-[#FF4444]/10 transition-colors"
             >
               <Trash2 size={12} />
               Delete
@@ -159,13 +159,13 @@ export function SettingsView({ email, userId }: Props) {
           <div className="space-y-3">
             <p className="text-sm text-[#F5F5F5]">Are you sure? <strong>This cannot be undone.</strong></p>
             <p className="text-xs text-[#6B6B6B]">
-              Your account will be signed out immediately. Email <a href="mailto:hey@contextmover.com" className="text-red-400 hover:underline">hey@contextmover.com</a> to complete deletion — we&apos;ll purge all data within 48 hours.
+              Your account will be signed out immediately. Email <a href="mailto:hey@contextmover.com" className="text-[#FF4444] hover:underline">hey@contextmover.com</a> to complete deletion — we&apos;ll purge all data within 48 hours.
             </p>
             <div className="flex gap-2">
               <button
                 onClick={handleDeleteAccount}
                 disabled={busy !== null}
-                className="inline-flex items-center gap-1.5 rounded-[4px] bg-red-500 px-4 py-2 text-xs font-semibold text-white hover:bg-red-600 disabled:opacity-50 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-[4px] bg-[#FF4444] px-4 py-2 text-xs font-semibold text-black hover:bg-[#00FF88] disabled:opacity-50 transition-colors"
               >
                 {busy === "delete" ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                 Yes, delete my account

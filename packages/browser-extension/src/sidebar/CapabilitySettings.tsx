@@ -118,7 +118,7 @@ export default function CapabilitySettings() {
               onClick={() => handleSelect(opt.value)}
               title={opt.help}
               style={{
-                background: active ? "#0F1A0F" : "#111",
+                background: active ? "#0A0A0A" : "#111",
                 border: `1px solid ${active ? "#00FF88" : "#222"}`,
                 color: active ? "#00FF88" : "#AAA",
                 borderRadius: "4px",

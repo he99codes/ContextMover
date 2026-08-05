@@ -5,7 +5,8 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "tsc --noEmit && vite build",
+        "build": "tsc --noEmit && vite build && node scripts/verify-build.ts",
+        "verify-build": "node scripts/verify-build.ts",
         "test": "vitest run",
         "test:watch": "vitest",
         "lint": "eslint src --ext .ts,.tsx",

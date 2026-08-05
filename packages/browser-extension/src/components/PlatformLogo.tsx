@@ -13,7 +13,7 @@ interface LogoProps extends SVGProps<SVGSVGElement> { size?: LogoSize; }
 export function ClaudeLogo({ size = 14, ...p }: LogoProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...p}>
-      <path d="M14 3.5H10L4 20.5H7.8L9.2 16.5H14.8L16.2 20.5H20L14 3.5ZM10.2 13.5L12 8.2L13.8 13.5H10.2Z" fill="#D97706"/>
+      <path d="M14 3.5H10L4 20.5H7.8L9.2 16.5H14.8L16.2 20.5H20L14 3.5ZM10.2 13.5L12 8.2L13.8 13.5H10.2Z" fill="currentColor"/>
     </svg>
   );
 }
@@ -21,8 +21,8 @@ export function ClaudeLogo({ size = 14, ...p }: LogoProps) {
 export function ChatGPTLogo({ size = 14, ...p }: LogoProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...p}>
-      <circle cx="12" cy="12" r="9" stroke="#10B981" strokeWidth="1.5" fill="none"/>
-      <path d="M9 9h3.5a2.5 2.5 0 0 1 0 5H9V9Zm0 5h5.5" stroke="#10B981" strokeWidth="1.3" strokeLinecap="round"/>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+      <path d="M9 9h3.5a2.5 2.5 0 0 1 0 5H9V9Zm0 5h5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -30,13 +30,7 @@ export function ChatGPTLogo({ size = 14, ...p }: LogoProps) {
 export function GeminiLogo({ size = 14, ...p }: LogoProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...p}>
-      <defs>
-        <linearGradient id="gem-g" x1="12" y1="2" x2="12" y2="22" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#818CF8"/>
-          <stop offset="100%" stopColor="#6366F1"/>
-        </linearGradient>
-      </defs>
-      <path d="M12 2C11 6 8 9 4 10c4 1 7 4 8 8 1-4 4-7 8-8-4-1-7-4-8-8Z" fill="url(#gem-g)"/>
+      <path d="M12 2C11 6 8 9 4 10c4 1 7 4 8 8 1-4 4-7 8-8-4-1-7-4-8-8Z" fill="currentColor"/>
     </svg>
   );
 }
@@ -44,7 +38,7 @@ export function GeminiLogo({ size = 14, ...p }: LogoProps) {
 export function GrokLogo({ size = 14, ...p }: LogoProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...p}>
-      <path d="M4 4L11.3 12L4 20H7L12.7 13.7L18 20H21L13.4 11.7L20.5 4H17.5L12 10L7 4H4Z" fill="#E5E5E5"/>
+      <path d="M4 4L11.3 12L4 20H7L12.7 13.7L18 20H21L13.4 11.7L20.5 4H17.5L12 10L7 4H4Z" fill="currentColor"/>
     </svg>
   );
 }
@@ -52,8 +46,8 @@ export function GrokLogo({ size = 14, ...p }: LogoProps) {
 export function PerplexityLogo({ size = 14, ...p }: LogoProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...p}>
-      <rect x="3" y="3" width="18" height="18" rx="9" stroke="#20B2AA" strokeWidth="1.5" fill="none"/>
-      <path d="M9 8h4a2.5 2.5 0 0 1 0 5H9V8Zm0 5h5M9 8v8" stroke="#20B2AA" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+      <rect x="3" y="3" width="18" height="18" rx="9" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+      <path d="M9 8h4a2.5 2.5 0 0 1 0 5H9V8Zm0 5h5M9 8v8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
@@ -61,8 +55,8 @@ export function PerplexityLogo({ size = 14, ...p }: LogoProps) {
 export function DeepSeekLogo({ size = 14, ...p }: LogoProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...p}>
-      <path d="M6 4h5.5a8 8 0 0 1 0 16H6V4Z" stroke="#4C8BF5" strokeWidth="1.5" fill="none"/>
-      <path d="M6 12h8" stroke="#4C8BF5" strokeWidth="1.3" strokeLinecap="round"/>
+      <path d="M6 4h5.5a8 8 0 0 1 0 16H6V4Z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+      <path d="M6 12h8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -78,13 +72,25 @@ export const PLATFORM_FULL_NAMES: Record<string, string> = {
 };
 
 export const PLATFORM_COLORS: Record<string, string> = {
-  claude: "#D97706", chatgpt: "#10B981", gemini: "#6366F1",
-  grok: "#E5E5E5", perplexity: "#20B2AA", deepseek: "#4C8BF5",
+  // [CM-SOLAR] Warm metallic platform palette.
+  claude:     "#00FF88",
+  chatgpt:    "#00C853",
+  gemini:     "#E5E5E5",
+  grok:       "#E5E5E5",
+  perplexity: "#00D26A",
+  deepseek:   "#E5E5E5",
 };
 
 export function PlatformLogo({ platform, size = 14, ...p }: { platform: string } & LogoProps) {
   const Logo = LOGOS[platform.toLowerCase()];
-  return Logo ? <Logo size={size} {...p} /> : null;
+  if (!Logo) return null;
+  const color = PLATFORM_COLORS[platform.toLowerCase()] ?? "#6B6B6B";
+  // [CM-SOLAR] Logo inherits its platform color.
+  return (
+    <span style={{ color, display: "inline-flex" }}>
+      <Logo size={size} {...p} />
+    </span>
+  );
 }
 
 export function PlatformBadge({ platform, logoSize = 10 }: { platform: string; logoSize?: number }) {

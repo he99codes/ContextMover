@@ -176,7 +176,7 @@ export function PricingClient() {
   }
 
   function ProCTA() {
-    if (loading) return <div className="h-11 w-full animate-pulse rounded-[6px] bg-[#1A2A1A]" />;
+    if (loading) return <div className="h-11 w-full animate-pulse rounded-[6px] bg-[#2A2A2A]" />;
 
     if (!user) return (
       <Link
@@ -231,7 +231,7 @@ export function PricingClient() {
         {/* Privacy badge */}
         <div className="mb-8 flex items-start justify-center gap-2 rounded-[8px] border border-[#00FF88]/15 bg-[#00FF88]/5 px-5 py-4">
           <Shield size={14} className="text-[#00FF88] shrink-0 mt-0.5" />
-          <div className="text-xs font-mono text-[#2A6A2A] space-y-1">
+          <div className="text-xs font-mono text-[#6B6B6B] space-y-1">
             <p><strong className="text-[#00FF88]">Zero-knowledge architecture</strong> — on every plan.</p>
             <p>User data never touches our servers · Context stays on your machine</p>
             <p>Vault syncs only to your own Supabase · We cannot read or sell your conversations</p>
@@ -338,12 +338,12 @@ export function PricingClient() {
 
           {/* Pro Card */}
           <div
-            className="flex-1 relative rounded-[10px] border border-[#00FF88]/30 bg-[#0D1A0D] p-7 md:min-w-[240px] md:max-w-[320px] flex flex-col"
+            className="flex-1 relative rounded-[10px] border border-[#00FF88]/30 bg-[#0A0A0A] p-7 md:min-w-[240px] md:max-w-[320px] flex flex-col"
             style={{ boxShadow: "0 0 40px rgba(0,255,136,0.08)" }}
           >
             {/* Badges */}
             <div className="absolute -top-3 left-0 right-0 flex justify-center gap-2">
-              <span className="rounded-full border border-[#00FF88]/30 bg-[#0D1A0D] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#00FF88]">
+              <span className="rounded-full border border-[#00FF88]/30 bg-[#0A0A0A] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#00FF88]">
                 Most Popular
               </span>
               {!loading && isEarlyBird && (

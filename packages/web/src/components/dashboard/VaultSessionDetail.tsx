@@ -62,7 +62,7 @@ export function VaultSessionDetail({ sessionId }: Props) {
   }, [sessionId]);
 
   if (vaultReady === null || session === undefined) {
-    return <div className="flex items-center justify-center py-32 text-xs font-mono text-[#2A4A2A] uppercase tracking-widest animate-pulse">Loading…</div>;
+    return <div className="flex items-center justify-center py-32 text-xs font-mono text-[#2A2A2A] uppercase tracking-widest animate-pulse">Loading…</div>;
   }
 
   if (!vaultReady) {
@@ -70,7 +70,7 @@ export function VaultSessionDetail({ sessionId }: Props) {
       <div className="flex flex-col items-center justify-center py-32 text-center">
         <Lock size={22} className="mb-4 text-[#00FF88]" />
         <p className="text-sm font-black uppercase tracking-widest text-[#F5F5F5]">Vault not connected</p>
-        <p className="mt-2 text-xs font-mono text-[#2A4A2A]">Connect your personal Supabase vault to view sessions here.</p>
+        <p className="mt-2 text-xs font-mono text-[#2A2A2A]">Connect your personal Supabase vault to view sessions here.</p>
         <Link href="/settings/vault" className="mt-5 text-xs text-[#00FF88] hover:opacity-70 transition-opacity">Set up vault →</Link>
       </div>
     );
